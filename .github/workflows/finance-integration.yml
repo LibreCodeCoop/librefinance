@@ -61,42 +61,42 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: LibreCodeCoop/librefinance-banking
-          ref: e2ed9043590e05333b134db0f23a6cca366c0adf
+          ref: a9b220569dcb99f38904006e86a47f234cf75f34
           path: .ci-modules/librefinance_banking
           persist-credentials: false
       - name: Checkout import module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: LibreCodeCoop/librefinance-import
-          ref: 0f033beae7bf65dec2403f1c63a6bd57a1f14db5
+          ref: d28d30c6fdb05554918870ed4e338eddafac48e5
           path: .ci-modules/librefinance_import
           persist-credentials: false
       - name: Checkout invoicing module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: LibreCodeCoop/librefinance-invoicing
-          ref: e60c21d5da57eb56d615b1dcbff0844dd5292c94
+          ref: f32a0e3f78436f238dc5f5fe0bde27602363401b
           path: .ci-modules/librefinance_invoicing
           persist-credentials: false
       - name: Checkout NFS-e drafts module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: LibreCodeCoop/librefinance-nfse
-          ref: 6e2a46559a2478823af8a1aebdd0125f58496d9f
+          ref: b5a20a0b611ad7f0e530cfe0dc8cae300a2a5e31
           path: .ci-modules/librefinance_nfse
           persist-credentials: false
       - name: Checkout obligations module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: LibreCodeCoop/librefinance-obligations
-          ref: 062e16f1c15638c02fee2518be7057812d4b1a4d
+          ref: cec1ec64a87968d522297741e39e4633be971684
           path: .ci-modules/librefinance_obligations
           persist-credentials: false
       - name: Checkout reports module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: LibreCodeCoop/librefinance-reports
-          ref: ad047129f3dd8916b34260b884568e5bc76059d1
+          ref: 94b9b85087d310488270e99a294a1b075e69fd2f
           path: .ci-modules/librefinance_reports
           persist-credentials: false
       - name: Set up PHP 8.5 for Nextcloud master
