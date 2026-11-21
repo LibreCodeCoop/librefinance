@@ -17,7 +17,8 @@ final class PaymentMethodService {
         'pix','digital_wallet','other'];
 
     public function __construct(private IDBConnection $db,
-        private AccessService $access, private WriteService $writer) {}
+        private AccessService $access, private WriteService $writer,
+        private AccountReferenceGuard $accountGuard) {}
 
     public function list(int $spaceId, int $afterId = 0): array {
         $this->access->requireRole($spaceId, 'viewer');
@@ -41,10 +42,17 @@ final class PaymentMethodService {
         ?int $bankAccountId=null): array {
         $this->access->requireRole($spaceId, 'manager');
         [$name,$kind]=self::validate($name,$kind);
-        $this->requireBank($spaceId,$bankAccountId);
         $now=time();
         $this->db->beginTransaction();
         try {
+            if ($bankAccountId !== null) {
+                try {
+                    $this->accountGuard->reserve($spaceId, $bankAccountId, true);
+                } catch (DomainException $e) {
+                    throw new DomainException('invalid_payment_account', previous: $e);
+                }
+            }
+            $this->requireBank($spaceId,$bankAccountId);
             $this->writer->insert('lf_payment_methods',[
                 'space_id'=>$spaceId,'name'=>$name,'kind'=>$kind,
                 'bank_account_id'=>$bankAccountId,'active'=>true,
@@ -64,12 +72,19 @@ final class PaymentMethodService {
         $old=$this->find($spaceId,$methodId);
         if ($old===null) throw new DomainException('payment_method_not_found');
         [$name]=self::validate($name,(string)$old['kind']);
-        $this->requireBank($spaceId,$bankAccountId);
         if ($bankAccountId !== $old['bank_account_id'] && $this->used($spaceId,$methodId)) {
             throw new DomainException('payment_method_in_use');
         }
         $this->db->beginTransaction();
         try {
+            if ($bankAccountId !== null) {
+                try {
+                    $this->accountGuard->reserve($spaceId, $bankAccountId, true);
+                } catch (DomainException $e) {
+                    throw new DomainException('invalid_payment_account', previous: $e);
+                }
+            }
+            $this->requireBank($spaceId,$bankAccountId);
             $this->writer->update('lf_payment_methods',[
                 'name'=>$name,'bank_account_id'=>$bankAccountId,
                 'active'=>$active,'updated_at'=>time(),
