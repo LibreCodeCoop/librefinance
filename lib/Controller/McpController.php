@@ -6,6 +6,7 @@
 declare(strict_types=1);
 
 namespace OCA\LibreFinance\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 
 use OCA\LibreFinance\Service\McpService;
 use OCP\AppFramework\Controller;
@@ -27,6 +28,7 @@ final class McpController extends Controller {
      * no CSRF opt-out, no tool mutation and no external HTTP dependencies.
      */
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/mcp')]
     public function handle(): Response {
         // This is not a browser CORS API. Never accept an unrelated Origin.
         $origin = $this->request->getHeader('Origin');

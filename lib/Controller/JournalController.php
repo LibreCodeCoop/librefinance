@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 namespace OCA\LibreFinance\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 
 use OCA\LibreFinance\Service\LedgerService;
 use OCP\AppFramework\Http\JSONResponse;
@@ -22,6 +23,7 @@ final class JournalController extends ApiController {
      * @NoAdminRequired
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/journals')]
     public function index(int $spaceId, int $beforeId = 0): JSONResponse {
         return $this->respond(fn() => $this->ledger->journals($spaceId, $beforeId));
     }
@@ -30,6 +32,7 @@ final class JournalController extends ApiController {
      * @NoAdminRequired
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/journals')]
     public function create(
         int $spaceId,
         int $debitId,
@@ -53,6 +56,7 @@ final class JournalController extends ApiController {
      * @NoAdminRequired
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/journals/{journalId}/reverse')]
     public function reverse(int $spaceId, int $journalId): JSONResponse {
         return $this->respond(fn() => $this->ledger->reverse($spaceId, $journalId));
     }

@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 namespace OCA\LibreFinance\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\TemplateResponse;
@@ -26,6 +27,7 @@ final class PageController extends Controller {
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
     #[NoCSRFRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/')]
     public function index(): TemplateResponse {
         // The workspace no longer hosts any iframe. Use Nextcloud's default
         // Content Security Policy without relaxing frame-src.

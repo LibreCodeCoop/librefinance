@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 namespace OCA\LibreFinance\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 
 use OCA\LibreFinance\Service\CatalogService;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -20,11 +21,13 @@ final class ContactController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/contacts')]
     public function index(int $spaceId, int $afterId = 0): JSONResponse {
         return $this->respond(fn(): array => $this->catalog->contacts($spaceId, $afterId));
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/contacts')]
     public function create(int $spaceId, string $name, string $kind = 'customer',
         ?string $email = null, ?string $taxId = null, array $customFields = []): JSONResponse {
         return $this->respond(fn(): array => $this->catalog->createContact(
@@ -33,6 +36,7 @@ final class ContactController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'PUT', url: '/api/spaces/{spaceId}/contacts/{contactId}')]
     public function update(int $spaceId, int $contactId, string $name, string $kind,
         ?string $email = null, ?string $taxId = null, bool $active = true, array $customFields = []): JSONResponse {
         return $this->respond(fn(): array => $this->catalog->updateContact(

@@ -6,6 +6,7 @@
 declare(strict_types=1);
 
 namespace OCA\LibreFinance\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 
 use OCA\LibreFinance\Service\ModuleService;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -18,11 +19,13 @@ final class ModuleController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/modules')]
     public function index(int $spaceId): JSONResponse {
         return $this->respond(fn(): array => $this->modules->listForSpace($spaceId));
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'PUT', url: '/api/spaces/{spaceId}/modules/{moduleId}')]
     public function toggle(int $spaceId, string $moduleId, bool $enabled): JSONResponse {
         return $this->respond(fn(): array => $this->modules->toggle($spaceId, $moduleId, $enabled));
     }

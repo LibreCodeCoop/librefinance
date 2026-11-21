@@ -6,6 +6,7 @@
 declare(strict_types=1);
 
 namespace OCA\LibreFinance\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 
 use OCA\LibreFinance\Service\CompanyService;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -18,11 +19,13 @@ final class CompanyController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/companies')]
     public function index(int $spaceId, int $afterId = 0): JSONResponse {
         return $this->respond(fn(): array => $this->companies->list($spaceId, $afterId));
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/companies')]
     public function create(int $spaceId, string $legalName, string $country = 'BR', ?string $taxId = null,
         ?string $tradeName = null, ?string $municipalRegistration = null,
         ?string $stateRegistration = null, array $customFields = []): JSONResponse {
@@ -32,6 +35,7 @@ final class CompanyController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'PUT', url: '/api/spaces/{spaceId}/companies/{companyId}')]
     public function update(int $spaceId, int $companyId, string $legalName,
         string $country = 'BR', ?string $taxId = null, ?string $tradeName = null,
         ?string $municipalRegistration = null, ?string $stateRegistration = null,

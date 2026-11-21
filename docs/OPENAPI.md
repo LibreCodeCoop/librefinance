@@ -4,11 +4,12 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 # LibreFinance API e OpenAPI 3.1
 
-A API nativa é implementada em PHP nas rotas `appinfo/routes.php` do núcleo
-`librefinance` e dos seis aplicativos opcionais. A especificação
-[openapi.json](openapi.json) é um contrato **de desenvolvimento**, gerado a
-partir das rotas reais e complementado por campos JSON explícitos, sem copiar
-algoritmos ou estruturas internas do Akaunting.
+A API nativa usa atributos `#[FrontpageRoute]` nos métodos dos controllers
+PHP do núcleo e dos seis aplicativos opcionais. Não existe arquivo
+`appinfo/routes.php`: o controller define a rota. A especificação
+[openapi.json](openapi.json) é gerada a partir dos atributos reais e dos
+contratos JSON declarados; o gerador falha diante de um formato não
+reconhecido, em vez de omitir silenciosamente uma operação.
 
 ## Autenticação e autorização
 
@@ -22,8 +23,8 @@ algoritmos ou estruturas internas do Akaunting.
   enumeração. Erros de estado/duplicação usam 409 e validações de negócio 422.
 - Operações `POST`, `PUT` e `DELETE` não aceitam ignorar CSRF na
   interface. Não instale outros provedores de autenticação por conta própria.
-- A documentação cobre **56 operações** e **42 caminhos HTTP** na revisão
-  local registrada; cada PR deve verificar contagem e diferença real de rotas.
+- A documentação cobre **91 operações** e **66 caminhos HTTP** na revisão
+  atual; cada PR deve verificar contagem e diferença real de rotas.
 
 ### Gerar e validar
 

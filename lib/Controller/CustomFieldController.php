@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later */
 declare(strict_types=1);
 namespace OCA\LibreFinance\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCA\LibreFinance\Service\CustomFieldService;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
@@ -13,10 +14,12 @@ final class CustomFieldController extends ApiController {
         parent::__construct($appName, $request);
     }
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/company-fields')]
     public function index(int $spaceId): JSONResponse {
         return $this->respond(fn() => $this->fields->list($spaceId));
     }
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/company-fields')]
     public function create(int $spaceId, string $key, string $label, string $type,
         bool $required = false, array $options = [], bool $visible = true,
         ?string $help = null, int $sortOrder = 0, int $columnSpan = 12): JSONResponse {
@@ -24,6 +27,7 @@ final class CustomFieldController extends ApiController {
             $type, $required, $options, 'company', $visible, $help, $sortOrder, $columnSpan), 201);
     }
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'PUT', url: '/api/spaces/{spaceId}/company-fields/{fieldId}')]
     public function update(int $spaceId, int $fieldId, string $label,
         bool $required = false, bool $active = true, ?bool $visible = null,
         ?string $help = null, ?int $sortOrder = null, ?int $columnSpan = null): JSONResponse {
@@ -31,10 +35,12 @@ final class CustomFieldController extends ApiController {
             $label, $required, $active, 'company', $visible, $help, $sortOrder, $columnSpan));
     }
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/custom-fields/{entityKind}')]
     public function indexForEntity(int $spaceId, string $entityKind): JSONResponse {
         return $this->respond(fn() => $this->fields->list($spaceId, $entityKind));
     }
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/custom-fields/{entityKind}')]
     public function createForEntity(int $spaceId, string $entityKind,
         string $key, string $label, string $type, bool $required = false,
         array $options = [], bool $visible = true, ?string $help = null,
@@ -43,6 +49,7 @@ final class CustomFieldController extends ApiController {
             $type, $required, $options, $entityKind, $visible, $help, $sortOrder, $columnSpan), 201);
     }
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'PUT', url: '/api/spaces/{spaceId}/custom-fields/{entityKind}/{fieldId}')]
     public function updateForEntity(int $spaceId, string $entityKind, int $fieldId,
         string $label, bool $required = false, bool $active = true,
         ?bool $visible = null, ?string $help = null,
