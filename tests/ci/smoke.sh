@@ -245,6 +245,9 @@ if [ "$LF_WITH_EXTENSIONS" = 1 ]; then
     php /var/www/html/custom_apps/librefinance/tests/integration/account-deletion.php
   compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
     -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
+    php /var/www/html/custom_apps/librefinance/tests/integration/account-deletion-race.php
+  compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
+    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
     php /var/www/html/custom_apps/librefinance/tests/integration/modules.php
   compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
     -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
