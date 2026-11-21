@@ -20,7 +20,8 @@ final class LedgerService {
         private WriteService $writer, private AccessService $access,
         private JournalClaimService $claims, private CategoryService $categories,
         private CustomFieldService $customFields,
-        private PaymentMethodService $paymentMethods) {}
+        private PaymentMethodService $paymentMethods,
+        private AccountReferenceGuard $accountGuard) {}
 
     /** @return array<int, array<string, mixed>> */
     public function accounts(int $spaceId): array {
@@ -104,6 +105,7 @@ final class LedgerService {
             $existing = $q->executeQuery()->fetchAssociative();
             if ($existing === false) { throw new DomainException('account_not_found'); }
             if (!$active && (bool)$existing['active']) {
+                $this->accountGuard->reserve($spaceId, $accountId);
                 $balance = $this->db->getQueryBuilder();
                 $balance->selectAlias($balance->createFunction('SUM(amount_minor)'), 'amount')
                     ->from('lf_postings')
@@ -291,6 +293,12 @@ final class LedgerService {
                 return ['id' => (int)$existing['id'], 'replayed' => true];
             }
 
+            // Acquire account locks in a globally stable order before posting.
+            $ids = [$debitId, $creditId];
+            sort($ids, SORT_NUMERIC);
+            foreach ($ids as $id) {
+                $this->accountGuard->reserve($spaceId, $id);
+            }
             $custom = $this->customFields->validateValues($spaceId, $customFields, true, 0, 'journal');
             if ($paymentMethodId !== null) {
                 $this->paymentMethods->validateForJournal($spaceId,$paymentMethodId,$debitId,$creditId);

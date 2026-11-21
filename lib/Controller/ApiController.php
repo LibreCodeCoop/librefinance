@@ -32,7 +32,7 @@ abstract class ApiController extends Controller {
                 'ai_task_not_found' => 404,
                 'ai_provider_unavailable' => 503,
                 'module_disabled' => 403,
-                'account_has_balance', 'account_in_use', 'payment_method_in_use', 'idempotency_conflict', 'sku_conflict', 'journal_claimed', 'journal_already_claimed', 'journal_not_available' => 409,
+                'account_has_balance', 'account_in_use', 'account_reference_busy', 'payment_method_in_use', 'idempotency_conflict', 'sku_conflict', 'journal_claimed', 'journal_already_claimed', 'journal_not_available' => 409,
                 default => 422,
             };
             return new JSONResponse(['error' => $code], $status);

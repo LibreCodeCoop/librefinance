@@ -14,6 +14,7 @@ use OCA\LibreFinance\Service\CatalogService;
 use OCA\LibreFinance\Service\CategoryService;
 use OCA\LibreFinance\Service\CompanyService;
 use OCA\LibreFinance\Service\LedgerService;
+use OCA\LibreFinance\Service\AccountReferenceGuard;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
@@ -25,7 +26,7 @@ final class FinanceApi {
     public function __construct(private ModuleService $modules, private IDBConnection $db,
         private JournalClaimService $claims, private CatalogService $catalog,
         private CategoryService $categories, private CompanyService $companies,
-        private LedgerService $ledger) {}
+        private LedgerService $ledger, private AccountReferenceGuard $accountGuard) {}
 
     public function requireModule(int $spaceId, string $moduleId, string $role = 'viewer'): void {
         $this->modules->requireEnabled($spaceId, $moduleId, $role);
@@ -277,6 +278,35 @@ final class FinanceApi {
             throw new DomainException('bank_account_not_found');
         }
         return (string)$account['currency'];
+    }
+
+    /**
+     * Reserve active bank accounts against concurrent deletion. Call only
+     * inside the caller's open transaction, before creating ANY reference.
+     * All IDs are ordered to prevent cross-module deadlocks.
+     *
+     * @param list<int> $accountIds
+     * @return array<int,string> account ID => currency
+     */
+    public function reserveBankAccountsForWrite(int $spaceId, string $moduleId,
+        array $accountIds): array {
+        $this->requireModule($spaceId, $moduleId, 'operator');
+        if (!$this->db->inTransaction()) {
+            throw new \LogicException('bank_reference_guard_requires_transaction');
+        }
+        if ($accountIds === [] || count($accountIds) > 100) {
+            throw new DomainException('invalid_import_batch');
+        }
+        $ids = array_values(array_unique($accountIds));
+        sort($ids, SORT_NUMERIC);
+        $result = [];
+        foreach ($ids as $id) {
+            if (!is_int($id) || $id <= 0) {
+                throw new DomainException('bank_account_not_found');
+            }
+            $result[$id] = $this->accountGuard->reserve($spaceId, $id, true);
+        }
+        return $result;
     }
 
     public function journalContainsBankPosting(int $spaceId, string $moduleId,

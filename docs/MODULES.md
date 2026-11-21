@@ -87,6 +87,26 @@ Pode-se trocar `pgsql` por `sqlite` ou `mariadb`. **Executar somente em laborat�
 
 O administrador da instância decide quais apps instalar; essa é a fronteira de confiança de código executável. O gestor financeiro decide, separadamente, em quais espaços os módulos podem operar. Toda extensão deve impor suas permissões em PHP, inclusive ao receber identificadores de objeto de outro espaço, após revogação e durante condições concorrentes. Preferir IDs imutáveis, colunas de isolamento e índices únicos no DB; manter audit log e migrações independentes. Para pagamento externo, notificação, agendamento, arquivos, assinatura e NFS-e, definir contratos explícitos de autorização/consentimento, replay, erros, dados pessoais e reversão, em vez de acoplar diretamente ao frontend.
 
+## Proteção transacional de contas em extensões
+
+Uma consulta somente leitura a `requireBankAccount` ou `requireBankImportAccounts`
+**não** reserva a conta contra exclusão. Ao inserir registros que referenciam
+contas financeiras (`bank_account_id`, `from_account_id`, `to_account_id`),
+o módulo deve abrir uma transação na mesma conexão do Nextcloud e chamar
+`FinanceApi::reserveBankAccountsForWrite($spaceId, $moduleId, $ids)` **antes**
+de inserir as referências. Os IDs são ordenados internamente para reduzir
+interbloqueios entre módulos. A reserva executa uma atualização condicional
+na linha da conta e mantém o bloqueio até o commit ou rollback da transação;
+ela rejeita contas excluídas, desativadas ou de outro espaço. A reserva sem
+transação é erro de contrato.
+
+A API mantém a checagem de permissão e retorna moeda por identificador. Cada
+extensão continua responsável pela identidade, deduplicação e integridade de
+suas próprias referências, inclusive depois de uma falha. Integrações antigas
+que não usam a reserva exigem migração/atualização antes de habilitar exclusão
+concorrente de contas; a presença deste método isoladamente não prova
+integridade de apps terceiros.
+
 **Não executar instalações de módulos por upload arbitrário a partir de um gestor financeiro**. Isso contornaria a governança e a assinatura de aplicativos Nextcloud.
 
 
