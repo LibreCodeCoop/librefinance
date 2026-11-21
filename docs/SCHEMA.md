@@ -5,7 +5,12 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Modelo de dados e nomes de tabelas — LibreFinance
 
-## Esquema físico do núcleo (migrações 000001–000006)
+## Esquema físico do núcleo (migration inicial consolidada)
+
+O núcleo possui uma única migration `Version000100Date20261121190000`, que
+cria as tabelas definitivas na instalação limpa. Os módulos opcionais mantêm
+suas **próprias** migrations iniciais, sem assumir a propriedade das tabelas
+do núcleo. O app de obrigações já tinha uma só migration e a manteve.
 
 Tabelas no banco do Nextcloud, com prefixo da instalação (por exemplo `oc_`); não exigem banco independente.
 
@@ -44,4 +49,25 @@ Não misturar entidades jurídicas, organizações, espaços, grupos e identidad
 
 ## Estratégia de evolução
 
-Migrações Nextcloud aditivas e versionadas. Não editar migração publicada; preservar dados, índices e rollback documentado. Instalação limpa e os fluxos sintéticos iniciais foram testados em PostgreSQL, SQLite e MariaDB no Nextcloud Server master. Ainda são necessários testes de upgrade, compatibilidade das migrações históricas, carga e concorrência ampliada antes de declarar compatibilidade para produção. Nunca importar dumps proprietários nem copiar o desenho de banco de código licenciado como fonte da implementação.
+### Consolidação pré-publicação
+
+A revisão atual substitui as migrations incrementais experimentais por **um
+ponto inicial de instalação em cada aplicativo**, com as colunas, índices,
+nullability e valores-padrão finais no momento da criação. As classes de
+migration anteriores permanecem recuperáveis pelo histórico Git, mas não são
+executadas em novas instalações. O número da nova baseline é superior às
+versões anteriores, para permitir que instalações de **desenvolvimento**
+detectem a mudança; as operações guardadas de alteração permanecem no
+arquivo consolidado como compatibilidade de atualização, sem apagar dados.
+
+A decisão é restrita ao período anterior à publicação de releases: depois de
+distribuída uma versão que usuários possam instalar com dados persistentes,
+migrations existentes tornam-se **imutáveis**, e novas alterações devem
+receber migrations adicionais. Não é seguro redefinir o histórico de bancos
+externos à cooperativa com base apenas na ausência de publicação na App Store.
+
+Compare o esquema físico final e as constraints com SQLite, PostgreSQL e
+MariaDB e valide instalação nova **e** atualização de uma instalação
+anterior com dados sintéticos. Não restaurar um banco de desenvolvimento
+antigo apagando registros para que ele passe na CI. Nunca importar dumps
+proprietários nem copiar o desenho de bancos de software concorrente.
