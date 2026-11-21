@@ -1,0 +1,156 @@
+# SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Project-specific integration gate. Shared reusable lint/build/REUSE workflows
+# come unmodified from LibreCodeCoop/.github and are managed by workflow sync.
+name: LibreFinance integrated functionality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: librefinance-integration-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Core API and frontend contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --include=dev
+      - run: npm test
+      - run: npm run test:openapi
+      - run: npm run build
+      - name: Assert production assets are synchronized
+        run: git diff --exit-code -- js/main.js css/main.css js/main.js.license
+
+  integrated:
+    name: Installed Nextcloud + six modules / ${{ matrix.database }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [pgsql, sqlite, mariadb]
+    steps:
+      - name: Checkout LibreFinance core
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Checkout reviewed Nextcloud Server
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: nextcloud/server
+          ref: 7a89690a1ca17aae3113da13070487c191eb1f4b
+          path: .ci-nextcloud-server
+          submodules: recursive
+          persist-credentials: false
+      - name: Checkout banking module
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: LibreCodeCoop/librefinance-banking
+          ref: f7dd0c751fc55653022b78a765f140c46c081880
+          path: .ci-modules/librefinance_banking
+          persist-credentials: false
+      - name: Checkout import module
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: LibreCodeCoop/librefinance-import
+          ref: 4cf83f1c1e1575f6d9a923ca10e376f8c3dc9f15
+          path: .ci-modules/librefinance_import
+          persist-credentials: false
+      - name: Checkout invoicing module
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: LibreCodeCoop/librefinance-invoicing
+          ref: 85dd033f4b24461fa16b2c0d1f7229cf9beb0dcf
+          path: .ci-modules/librefinance_invoicing
+          persist-credentials: false
+      - name: Checkout NFS-e drafts module
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: LibreCodeCoop/librefinance-nfse
+          ref: 6e2a46559a2478823af8a1aebdd0125f58496d9f
+          path: .ci-modules/librefinance_nfse
+          persist-credentials: false
+      - name: Checkout obligations module
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: LibreCodeCoop/librefinance-obligations
+          ref: 062e16f1c15638c02fee2518be7057812d4b1a4d
+          path: .ci-modules/librefinance_obligations
+          persist-credentials: false
+      - name: Checkout reports module
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: LibreCodeCoop/librefinance-reports
+          ref: ad047129f3dd8916b34260b884568e5bc76059d1
+          path: .ci-modules/librefinance_reports
+          persist-credentials: false
+      - name: Set up PHP 8.5 for Nextcloud master
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2.40.0
+        with:
+          php-version: '8.5'
+          coverage: none
+      - name: Set up Node.js 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install Behat and frontend test tools
+        run: |
+          composer install --working-dir=tests/behat --no-interaction --prefer-dist --no-progress
+          npm ci --include=dev
+      - name: Install Chromium for real browser journey tests
+        if: matrix.database == 'pgsql'
+        run: npx playwright install --with-deps chromium
+      - name: Build and verify every pinned extension
+        run: |
+          set -euo pipefail
+          for module in banking import invoicing nfse obligations reports; do
+            path=".ci-modules/librefinance_${module}"
+            test -f "${path}/appinfo/info.xml"
+            test -s "${path}/js/main.js"
+            test -s "${path}/js/main.js.license"
+            test -s "${path}/css/main.css"
+          done
+      - name: Run complete synthetic integration including optional extensions
+        env:
+          LF_NEXTCLOUD_SOURCE: ${{ github.workspace }}/.ci-nextcloud-server
+          LF_BANKING_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_banking
+          LF_IMPORT_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_import
+          LF_INVOICING_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_invoicing
+          LF_NFSE_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_nfse
+          LF_OBLIGATIONS_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_obligations
+          LF_REPORTS_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_reports
+          LF_TEST_DATABASE: ${{ matrix.database }}
+          LF_RUN_PLAYWRIGHT: ${{ matrix.database == 'pgsql' && '1' || '0' }}
+        run: bash tests/ci/smoke.sh
+
+  ci-required:
+    name: LibreFinance integrated CI
+    needs: [contracts, integrated]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: none
+    env:
+      CORE_RESULT: ${{ needs.contracts.result }}
+      COMBINED_RESULT: ${{ needs.integrated.result }}
+    steps:
+      - name: Do not accept failed, cancelled, missing or skipped required jobs
+        run: |
+          test "$CORE_RESULT" = success
+          test "$COMBINED_RESULT" = success
