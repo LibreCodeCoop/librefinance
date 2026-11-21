@@ -1,0 +1,828 @@
+/*
+ * SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
+/*
+ * LibreFinance visual foundation.
+ * Structural NcContent / NcAppNavigation / NcAppContent, buttons, dialogs,
+ * controls, notifications and empty states are provided by @nextcloud/vue.
+ * Only layout, semantic data tables and brandless finance presentation
+ * are styled here, with Nextcloud theme variables (no hardcoded light theme).
+ */
+#librefinance-app {
+  color: var(--color-main-text);
+  font-family: var(--font-face, system-ui, sans-serif);
+  height: 100%;
+  min-height: 600px;
+  --lf-surface: var(--color-main-background);
+  --lf-muted: var(--color-text-maxcontrast);
+  --lf-border: var(--color-border);
+  --lf-hover: var(--color-background-hover, var(--color-background-dark));
+}
+#librefinance-app * { box-sizing: border-box; }
+#librefinance-app :focus-visible {
+  outline: 2px solid var(--color-primary-element);
+  outline-offset: 3px;
+}
+#librefinance-app .lf-workspace {
+  width: min(100%, 1520px);
+  min-width: 0;
+  padding: 0 clamp(18px, 2.8vw, 50px) 70px;
+  margin: 0 auto;
+  overflow-wrap: anywhere;
+}
+#librefinance-app .lf-navigation-context {
+  padding: 26px 14px 18px;
+  display: grid;
+  gap: 8px;
+  border-bottom: 1px solid var(--lf-border);
+}
+#librefinance-app .lf-product-name {
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -.035em;
+  color: var(--color-main-text);
+  margin: 0;
+}
+#librefinance-app .lf-muted { color: var(--lf-muted); font-size: 13px; }
+#librefinance-app .lf-navigation-context > .lf-muted { margin: -4px 0 14px; }
+#librefinance-app .lf-navigation-context .lf-field { margin-bottom: 6px; }
+#librefinance-app .lf-space-meta {
+  color: var(--lf-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0 0 10px;
+}
+#librefinance-app .lf-nav-list { padding: 12px 4px; }
+#librefinance-app .lf-nav-list > :is(li,div) { min-height: 30px; }
+#librefinance-app .lf-nav-footer {
+  color: var(--lf-muted);
+  font-size: 12px;
+  padding: 14px 18px;
+  margin: 0;
+  border-top: 1px solid var(--lf-border);
+}
+#librefinance-app .lf-context-bar {
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 0 20px;
+  border-bottom: 1px solid var(--lf-border);
+}
+#librefinance-app .lf-context-identity { display: flex; flex-direction: column; gap: 4px; }
+#librefinance-app .lf-context-identity strong {
+  font-size: 17px; font-weight: 675; letter-spacing: -.02em;
+}
+#librefinance-app .lf-context-label, #librefinance-app .lf-eyebrow {
+  color: var(--lf-muted);
+  letter-spacing: .09em;
+  font-size: 10px;
+  font-weight: 760;
+}
+#librefinance-app .lf-context-actions, #librefinance-app .lf-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#librefinance-app .lf-view { min-width: 0; padding-top: 34px; display: grid; gap: 22px; }
+#librefinance-app .lf-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 22px;
+  margin-bottom: 4px;
+}
+#librefinance-app .lf-page-header > div:first-child { min-width: 0; }
+#librefinance-app .lf-page-header .lf-eyebrow { margin: 0 0 8px; }
+#librefinance-app .lf-page-header h1 {
+  font-size: clamp(26px, 2.4vw, 33px);
+  font-weight: 750;
+  letter-spacing: -.045em;
+  line-height: 1.2;
+  margin: 0;
+}
+#librefinance-app .lf-page-description {
+  color: var(--lf-muted);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 9px 0 0;
+  max-width: 680px;
+}
+#librefinance-app .lf-surface {
+  min-width: 0;
+  background: var(--lf-surface);
+  border: 1px solid var(--lf-border);
+  border-radius: 15px;
+  padding: clamp(16px, 2vw, 26px);
+}
+#librefinance-app .lf-surface h2 {
+  color: var(--color-main-text);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -.025em;
+  margin: 0 0 14px;
+}
+#librefinance-app .lf-surface h3 {
+  color: var(--color-main-text);
+  font-size: 15px;
+  font-weight: 700;
+  margin: 12px 0;
+}
+#librefinance-app .lf-surface > p { line-height: 1.5; }
+#librefinance-app .lf-section-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0 0 19px;
+}
+#librefinance-app .lf-section-heading h2 { margin: 0; }
+#librefinance-app .lf-section-heading p {
+  font-size: 13px;
+  color: var(--lf-muted);
+  margin: 6px 0 0;
+}
+#librefinance-app .lf-section-heading .lf-field {
+  flex: 1 1 180px; max-width: 320px;
+}
+#librefinance-app .lf-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+#librefinance-app .lf-kpi {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  padding: 22px;
+  background: var(--lf-surface);
+  border: 1px solid var(--lf-border);
+  border-radius: 14px;
+}
+#librefinance-app .lf-kpi > span:first-child {
+  font-size: 12px; color: var(--lf-muted); line-height: 1.45; font-weight: 560;
+}
+#librefinance-app .lf-kpi-amount {
+  display: block;
+  font-size: clamp(18px, 1.6vw, 26px);
+  font-weight: 745;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.035em;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+#librefinance-app .lf-kpi-detail {
+  font-size: 11px;
+  color: var(--lf-muted);
+  line-height: 1.5;
+}
+#librefinance-app .lf-dashboard-grid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+#librefinance-app .lf-dashboard-grid > * { min-width: 0; height: 100%; }
+#librefinance-app :is(.lf-activity-list,.lf-account-preview) {
+  margin: 0; padding: 0; list-style: none;
+}
+#librefinance-app .lf-activity-list li,
+#librefinance-app .lf-account-preview li {
+  display: flex; align-items: center; gap: 16px;
+  padding: 17px 0;
+  border-top: 1px solid var(--lf-border);
+}
+#librefinance-app .lf-activity-list li:first-child,
+#librefinance-app .lf-account-preview li:first-child { border-top: none; }
+#librefinance-app .lf-activity-date {
+  font-size: 12px; color: var(--lf-muted); min-width: 86px;
+}
+#librefinance-app .lf-activity-label { display:flex;flex:1;flex-direction:column;gap:4px;min-width:0; }
+#librefinance-app .lf-activity-label strong { font-size: 13px; line-height:1.4; }
+#librefinance-app .lf-activity-label small,
+#librefinance-app .lf-account-preview small { font-size: 12px; color: var(--lf-muted); }
+#librefinance-app .lf-activity-value,
+#librefinance-app .lf-account-preview li > strong {
+  margin-left: auto; text-align: right;
+  font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+#librefinance-app .lf-account-preview li > span {
+  display: flex; flex-direction: column; gap: 5px;
+}
+#librefinance-app .lf-account-preview li > span strong { font-size:13px; }
+#librefinance-app .lf-shortcut-grid {
+  display: grid; grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 12px; margin-top: 20px;
+}
+#librefinance-app .lf-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 0 0 15px;
+}
+#librefinance-app .lf-filter-row > .lf-field { min-width: 200px; max-width:320px; }
+#librefinance-app .lf-field {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+#librefinance-app .lf-field-label {
+  font-size: 13px;
+  font-weight: 570;
+  color: var(--color-main-text);
+}
+#librefinance-app .lf-table-scroll {
+  min-width: 0;
+  width: 100%;
+  overflow-x: auto;
+}
+#librefinance-app .lf-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+#librefinance-app .lf-data-table th {
+  border-bottom: 1px solid var(--lf-border);
+  color: var(--lf-muted);
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: .025em;
+  padding: 14px 12px;
+  font-weight: 670;
+  white-space: nowrap;
+  background: var(--lf-surface);
+}
+#librefinance-app .lf-data-table td {
+  border-bottom: 1px solid var(--lf-border);
+  vertical-align: middle;
+  text-align: left;
+  padding: 16px 12px;
+}
+#librefinance-app .lf-data-table tbody tr:last-child td { border-bottom: none; }
+#librefinance-app .lf-data-table tbody tr:hover { background: var(--lf-hover); }
+#librefinance-app .lf-data-table td strong { font-weight: 640; }
+#librefinance-app .lf-numeric {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+#librefinance-app .lf-nowrap { white-space: nowrap; }
+#librefinance-app .lf-code {
+  color: var(--lf-muted);
+  font-family: var(--font-face-monospace, monospace);
+  font-size: 12px;
+}
+#librefinance-app .lf-state {
+  font-size: 11px;
+  font-weight: 650;
+  border: 1px solid var(--lf-border);
+  border-radius: 100px;
+  padding: 5px 9px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+#librefinance-app .lf-state-good { color: var(--color-success); }
+#librefinance-app .lf-state-warning { color: var(--color-warning-text, var(--color-warning)); }
+#librefinance-app .lf-table-footer {
+  display: flex;
+  justify-content: center;
+  padding: 22px 0 0;
+}
+#librefinance-app .lf-row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#librefinance-app .lf-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 2px;
+}
+#librefinance-app .lf-dialog-form > p { line-height: 1.5; margin: 0; }
+#librefinance-app .lf-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  align-items: end;
+  gap: 17px;
+}
+#librefinance-app .lf-form-full { grid-column: 1 / -1; }
+#librefinance-app .lf-form-actions {
+  display: flex; justify-content: flex-end;
+  align-items: center; flex-wrap: wrap;
+  gap: 10px; padding-top: 10px;
+}
+#librefinance-app .lf-loading {
+  min-height: 260px;
+  color: var(--lf-muted);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+}
+#librefinance-app .lf-loading p { margin: 0; }
+#librefinance-app .lf-search-field { max-width: 300px; }
+#librefinance-app .lf-invoice-line {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, .7fr) minmax(0,1fr) minmax(0,1.3fr);
+  gap: 10px;
+  align-items: end;
+  border: 1px solid var(--lf-border);
+  padding: 14px;
+  border-radius: 10px;
+}
+#librefinance-app .lf-settings-module {
+  display: flex;
+  align-items: center; justify-content: space-between;
+  gap: 18px;
+  padding: 20px 0;
+  border-top: 1px solid var(--lf-border);
+}
+#librefinance-app .lf-settings-module:first-of-type { margin-top: 10px; }
+#librefinance-app .lf-module-descriptor {
+  display:flex; align-items:center; gap: 13px; min-width:0;
+}
+#librefinance-app .lf-module-descriptor > div { display:flex; flex-direction:column; gap:5px; }
+#librefinance-app .lf-module-descriptor small { color:var(--lf-muted);font-size:12px; }
+#librefinance-app .lf-import-progress {
+  display: flex; flex-wrap:wrap; gap:10px;
+  align-items: center;
+}
+#librefinance-app .lf-import-actions {
+  display:flex; align-items:center; flex-wrap:wrap; gap:14px;
+  margin-bottom: 14px;
+}
+#librefinance-app .lf-technical-report,
+#librefinance-app .lf-ai-output {
+  width:100%;white-space:pre-wrap;overflow-wrap:anywhere;
+  background:var(--color-background-dark);
+  border-radius:10px;
+  border:1px solid var(--lf-border);
+  font-family: var(--font-face-monospace,monospace);
+  font-size:12px;
+  padding:18px;
+  max-height:450px;
+  overflow:auto;
+}
+#librefinance-app .lf-visually-hidden {
+  position:absolute;width:1px;height:1px;overflow:hidden;
+  clip-path:inset(50%);white-space:nowrap;
+}
+@media (max-width:1100px) {
+  #librefinance-app .lf-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #librefinance-app .lf-dashboard-grid { grid-template-columns:1fr; }
+  #librefinance-app .lf-invoice-line { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:700px) {
+  #librefinance-app .lf-workspace { padding: 0 14px 48px; }
+  #librefinance-app .lf-view { padding-top: 22px; gap: 16px; }
+  #librefinance-app .lf-context-bar { min-height: 74px; gap:12px;flex-wrap:wrap; }
+  #librefinance-app .lf-context-actions { width:100%;justify-content:space-between; }
+  #librefinance-app .lf-page-header { align-items: flex-start; flex-direction: column; }
+  #librefinance-app .lf-page-header h1 { font-size: 25px; }
+  #librefinance-app .lf-surface { border-radius:12px; padding: 14px; }
+  #librefinance-app .lf-form-grid { grid-template-columns:1fr; }
+  #librefinance-app .lf-invoice-line { grid-template-columns:1fr; }
+  #librefinance-app .lf-activity-list li { flex-wrap:wrap;gap:8px; }
+  #librefinance-app .lf-activity-date { min-width:100%; }
+  #librefinance-app .lf-shortcut-grid { grid-template-columns:1fr; }
+  #librefinance-app .lf-filter-row > .lf-field { min-width:160px;flex:1; }
+}
+@media (max-width:450px) {
+  #librefinance-app .lf-kpis { grid-template-columns:1fr; }
+  #librefinance-app .lf-form-actions > button { flex:1; }
+  #librefinance-app .lf-context-bar { padding:14px 0; }
+}
+@media (prefers-reduced-motion:reduce) {
+  #librefinance-app * { scroll-behavior:auto !important; transition-duration:0s !important; }
+}
+
+/* NcDialog portals its content outside #librefinance-app. Keep only the
+   LibreFinance-prefixed form layout outside the root CSS scope. */
+.lf-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 2px;
+}
+.lf-dialog-form > p { margin: 0; line-height: 1.5; }
+.lf-dialog-form .lf-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  gap: 14px;
+}
+.lf-dialog-form .lf-form-full { grid-column: 1 / -1; }
+.lf-dialog-form .lf-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+}
+.lf-dialog-form .lf-field { min-width: 0; display: grid; gap: 5px; }
+.lf-dialog-form .lf-field-label { font-size: 13px; font-weight: 570; }
+.lf-dialog-form .lf-invoice-line {
+  display: grid;
+  grid-template-columns: minmax(0,2fr) minmax(0,.7fr) minmax(0,1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+@media (max-width: 700px) {
+  .lf-dialog-form .lf-form-grid,
+  .lf-dialog-form .lf-invoice-line { grid-template-columns: 1fr; }
+}
+
+/* 2026 workspace refinement: task-first navigation, finance dashboard and
+   secondary administration. Theme-aware, no hardcoded light-only surfaces. */
+#librefinance-app {
+  --lf-accent: var(--color-primary-element);
+  --lf-positive: var(--color-success-text, #158264);
+  --lf-negative: var(--color-error-text, #b04a42);
+  --lf-card-tint: color-mix(in srgb, var(--color-primary-element) 5%, var(--color-main-background));
+  --lf-card-hover: color-mix(in srgb, var(--color-primary-element) 4%, var(--color-main-background));
+}
+#librefinance-app .lf-navigation-context {
+  padding: 22px 15px 14px;
+  gap: 11px;
+}
+#librefinance-app .lf-product-lockup {
+  display: flex; align-items: center; gap: 11px;
+  padding: 2px 0 11px;
+}
+#librefinance-app .lf-product-lockup > div { min-width: 0; }
+#librefinance-app .lf-product-symbol {
+  flex: 0 0 36px; width: 36px; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--lf-accent) 18%, transparent);
+  background: color-mix(in srgb, var(--lf-accent) 11%, var(--color-main-background));
+  color: var(--lf-accent); border-radius: 12px;
+}
+#librefinance-app .lf-product-name { font-size: 19px; line-height: 1.17; }
+#librefinance-app .lf-product-lockup .lf-muted {
+  margin: 4px 0 0; font-size: 11px; line-height: 1.3;
+}
+#librefinance-app .lf-space-meta {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  font-size: 11px; margin: -3px 0 1px; line-height: 1.5;
+}
+#librefinance-app .lf-nav-list { padding: 8px 6px 16px; }
+#librefinance-app .lf-nav-list .app-navigation-entry {
+  border-radius: 9px;
+}
+#librefinance-app .lf-nav-list .app-navigation-entry__children {
+  margin-top: 2px; margin-bottom: 4px;
+}
+#librefinance-app .lf-nav-list .app-navigation-entry__children .app-navigation-entry {
+  font-size: 13px;
+}
+#librefinance-app .lf-nav-footer { padding: 14px 16px 18px; font-size: 11px; }
+#librefinance-app .lf-context-bar {
+  min-height: 86px; padding: 19px 0; gap: 12px;
+}
+#librefinance-app .lf-context-identity { gap: 7px; }
+#librefinance-app .lf-context-identity strong {
+  font-size: clamp(17px, 1.5vw, 20px); font-weight: 760;
+}
+#librefinance-app .lf-context-label {
+  display: inline-flex; gap: 7px; align-items: center;
+  font-size: 10px; line-height: 1.3; letter-spacing: .04em;
+  font-weight: 670;
+}
+#librefinance-app .lf-context-currency {
+  border: 1px solid var(--lf-border);
+  border-radius: 7px; padding: 6px 10px;
+  font-size: 11px; color: var(--lf-muted); font-weight: 720;
+  line-height: 1.4;
+}
+#librefinance-app .lf-view { padding-top: 30px; gap: 22px; }
+#librefinance-app .lf-page-header .lf-eyebrow { margin-bottom: 9px; }
+#librefinance-app .lf-page-description { margin-top: 7px; }
+#librefinance-app .lf-surface {
+  border-radius: 15px;
+  box-shadow: 0 5px 24px rgba(25, 35, 52, .025);
+}
+#librefinance-app .lf-overview {
+  --lf-panel-gap: 17px;
+  gap: 21px;
+}
+#librefinance-app .lf-overview .lf-page-header { align-items: center; margin-bottom: 0; }
+#librefinance-app .lf-period-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; min-height: 37px; padding: 7px 13px;
+  border: 1px solid var(--lf-border); border-radius: 9px;
+  font-size: 12px; font-weight: 640;
+  color: var(--color-main-text); white-space: nowrap;
+}
+#librefinance-app .lf-period-chip svg { color: var(--lf-muted); }
+#librefinance-app .lf-overview-subhead {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 10px;
+  margin-top: 3px;
+}
+#librefinance-app .lf-overview-subhead > div {
+  display: grid; gap: 5px;
+}
+#librefinance-app .lf-overview-subhead strong {
+  font-size: 14px; font-weight: 700;
+}
+#librefinance-app .lf-overview-subhead > div > span {
+  font-size: 12px; color: var(--lf-muted);
+}
+#librefinance-app .lf-data-source {
+  display: inline-flex; align-items: center; gap: 7px;
+  color: var(--lf-muted); font-size: 11px; font-weight: 620;
+}
+#librefinance-app .lf-data-source-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--lf-positive);
+}
+#librefinance-app .lf-overview-kpis { gap: var(--lf-panel-gap); }
+#librefinance-app .lf-overview-kpi {
+  position: relative; overflow: hidden;
+  align-items: stretch; justify-content: flex-start; gap: 15px;
+  min-height: 166px; padding: 20px 21px 18px;
+  box-shadow: 0 5px 22px rgba(25, 35, 52, .025);
+  --lf-tone: var(--lf-accent);
+}
+#librefinance-app .lf-overview-kpi::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0;
+  height: 3px; background: var(--lf-tone);
+}
+#librefinance-app .lf-overview-kpi--cash {
+  background: var(--lf-card-tint);
+}
+#librefinance-app .lf-overview-kpi--income { --lf-tone: var(--lf-positive); }
+#librefinance-app .lf-overview-kpi--expense { --lf-tone: var(--lf-negative); }
+#librefinance-app .lf-overview-kpi--result { --lf-tone: var(--lf-accent); }
+#librefinance-app .lf-kpi-topline {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+#librefinance-app .lf-kpi-label {
+  color: var(--lf-muted); font-size: 12px; font-weight: 670; line-height: 1.35;
+}
+#librefinance-app .lf-kpi-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; flex: 0 0 34px;
+  background: color-mix(in srgb, var(--lf-tone) 10%, var(--color-main-background));
+  color: var(--lf-tone); border-radius: 10px;
+}
+#librefinance-app .lf-overview-kpi .lf-kpi-amount {
+  font-size: clamp(20px, 2.05vw, 29px); font-weight: 770;
+  line-height: 1.13; letter-spacing: -.035em;
+  white-space: normal; overflow-wrap: normal;
+}
+#librefinance-app .lf-overview-kpi .lf-kpi-detail {
+  margin-top: auto; font-size: 11px; line-height: 1.38;
+}
+#librefinance-app .lf-overview .lf-dashboard-grid {
+  gap: var(--lf-panel-gap);
+}
+#librefinance-app .lf-overview-insights {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+}
+#librefinance-app .lf-overview-detail {
+  grid-template-columns: minmax(0, 1.22fr) minmax(0, 1fr);
+}
+#librefinance-app .lf-trend-panel, #librefinance-app .lf-bank-panel,
+#librefinance-app .lf-activity-panel, #librefinance-app .lf-shortcuts-panel {
+  padding: 23px 24px 21px;
+}
+#librefinance-app .lf-overview .lf-section-heading {
+  align-items: flex-start; margin-bottom: 16px; gap: 12px;
+}
+#librefinance-app .lf-overview .lf-section-heading h2 {
+  font-size: 16px; letter-spacing: -.025em;
+}
+#librefinance-app .lf-overview .lf-section-heading p { font-size: 12px; line-height: 1.45; }
+#librefinance-app .lf-trend-chart {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: end; gap: 8px; min-height: 204px; padding: 9px 6px 0;
+  border-bottom: 1px solid var(--lf-border);
+}
+#librefinance-app .lf-trend-month { min-width: 0; }
+#librefinance-app .lf-trend-plot {
+  height: 170px; display: flex; flex-direction: column; align-items: stretch;
+}
+#librefinance-app .lf-trend-positive, #librefinance-app .lf-trend-negative {
+  height: 50%; min-height: 0; width: 100%;
+  display: flex; justify-content: center; position: relative;
+}
+#librefinance-app .lf-trend-positive {
+  align-items: flex-end; border-bottom: 1px dashed var(--lf-border);
+}
+#librefinance-app .lf-trend-negative { align-items: flex-start; }
+#librefinance-app .lf-trend-bar {
+  display: block; width: min(36px, 55%); min-height: 3px;
+  border-radius: 6px 6px 2px 2px;
+}
+#librefinance-app .lf-trend-bar--positive { background: var(--lf-positive); }
+#librefinance-app .lf-trend-bar--negative {
+  background: var(--lf-negative); border-radius: 2px 2px 6px 6px;
+}
+#librefinance-app .lf-trend-month-label {
+  display: block; text-align: center; text-transform: capitalize;
+  color: var(--lf-muted); font-size: 11px; margin: 10px 0 12px;
+}
+#librefinance-app .lf-trend-empty {
+  min-height: 200px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 9px;
+  text-align: center; color: var(--lf-muted);
+  padding: 20px;
+  background: var(--lf-card-tint); border-radius: 10px;
+}
+#librefinance-app .lf-trend-empty strong {
+  font-size: 13px; font-weight: 670; color: var(--color-main-text);
+}
+#librefinance-app .lf-trend-empty p {
+  font-size: 12px; max-width: 280px; line-height: 1.55; margin: 0;
+}
+#librefinance-app .lf-trend-legend {
+  display: flex; align-items: center; flex-wrap: wrap;
+  column-gap: 8px; row-gap: 8px; font-size: 11px;
+  color: var(--lf-muted); padding-top: 18px;
+}
+#librefinance-app .lf-legend-positive, #librefinance-app .lf-legend-negative {
+  display: inline-block; height: 8px; width: 8px; border-radius: 3px;
+}
+#librefinance-app .lf-legend-positive { background: var(--lf-positive); }
+#librefinance-app .lf-legend-negative { background: var(--lf-negative); margin-left: 15px; }
+#librefinance-app .lf-bank-panel .lf-account-preview li { gap: 11px; padding: 15px 0; }
+#librefinance-app .lf-bank-account-symbol, #librefinance-app .lf-activity-symbol {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 0 0 35px; width: 35px; height: 35px;
+  border: 1px solid var(--lf-border); border-radius: 10px;
+  background: var(--lf-card-tint);
+  color: var(--lf-accent);
+}
+#librefinance-app .lf-bank-panel .lf-account-identity {
+  min-width: 0; display: flex; flex-direction: column; gap: 4px;
+}
+#librefinance-app .lf-bank-panel .lf-account-preview li > strong {
+  font-size: 13px; font-weight: 760; margin-left: auto;
+}
+#librefinance-app .lf-bank-panel-footer {
+  padding-top: 14px; margin-top: 10px;
+  border-top: 1px solid var(--lf-border);
+}
+#librefinance-app .lf-activity-panel .lf-activity-list li { gap: 13px; padding: 14px 0; }
+#librefinance-app .lf-activity-panel .lf-activity-value {
+  font-size: 13px; font-weight: 720;
+}
+#librefinance-app .lf-activity-panel .lf-activity-label strong { font-weight: 630; }
+#librefinance-app .lf-quick-action-list {
+  margin: 0; padding: 0; list-style: none;
+}
+#librefinance-app .lf-quick-action-list li + li { border-top: 1px solid var(--lf-border); }
+#librefinance-app .lf-quick-action {
+  width: 100%; min-width: 0; display: flex; align-items: center; gap: 13px;
+  padding: 13px 7px; border: 0; background: transparent; cursor: pointer;
+  color: var(--color-main-text); text-align: left; border-radius: 8px;
+  font: inherit;
+}
+#librefinance-app .lf-quick-action:hover { background: var(--lf-card-hover); }
+#librefinance-app .lf-quick-action-icon {
+  width: 38px; height: 38px; flex: 0 0 38px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 11px; background: var(--lf-card-tint); color: var(--lf-accent);
+}
+#librefinance-app .lf-quick-action-text {
+  display: flex; flex: 1; min-width: 0;
+  flex-direction: column; gap: 4px;
+}
+#librefinance-app .lf-quick-action-text strong { font-size: 13px; font-weight: 680; }
+#librefinance-app .lf-quick-action-text small { color: var(--lf-muted); font-size: 11px; line-height: 1.4; }
+#librefinance-app .lf-quick-action > svg { color: var(--lf-muted); flex: 0 0 18px; }
+#librefinance-app .lf-data-methodology {
+  border-top: 1px solid var(--lf-border);
+  padding: 14px 3px; color: var(--lf-muted);
+}
+#librefinance-app .lf-data-methodology summary {
+  cursor: pointer; color: var(--color-main-text);
+  font-size: 12px; font-weight: 670;
+}
+#librefinance-app .lf-data-methodology p {
+  margin: 12px 0 0; line-height: 1.6; font-size: 12px; max-width: 840px;
+}
+#librefinance-app .lf-settings-tabs {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--lf-border);
+}
+#librefinance-app .lf-admin-feature { display: flex; align-items: flex-start; gap: 18px; }
+#librefinance-app .lf-admin-feature-icon {
+  display: flex; align-items: center; justify-content: center;
+  flex: 0 0 56px; width: 56px; height: 56px;
+  color: var(--lf-accent); background: var(--lf-card-tint);
+  border-radius: 14px; border: 1px solid var(--lf-border);
+}
+#librefinance-app .lf-admin-feature-content { display: grid; justify-items: start; gap: 14px; min-width: 0; }
+#librefinance-app .lf-admin-feature-content h3 { margin: 0; }
+#librefinance-app .lf-admin-feature-content p { margin: 0; font-size: 13px; max-width: 730px; line-height: 1.65; }
+#librefinance-app .lf-admin-feature-content .lf-muted { font-size: 12px; }
+
+@media (max-width: 1200px) {
+  #librefinance-app .lf-overview-kpi { padding: 17px; }
+  #librefinance-app .lf-overview-kpi .lf-kpi-amount { font-size: clamp(19px, 2.1vw, 25px); }
+}
+@media (max-width: 1100px) {
+  #librefinance-app .lf-overview-insights, #librefinance-app .lf-overview-detail { grid-template-columns: 1fr; }
+  #librefinance-app .lf-trend-panel, #librefinance-app .lf-bank-panel,
+  #librefinance-app .lf-activity-panel, #librefinance-app .lf-shortcuts-panel { padding: 20px; }
+}
+@media (max-width: 700px) {
+  #librefinance-app .lf-overview .lf-page-header { align-items: flex-start; }
+  #librefinance-app .lf-overview-kpis { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+  #librefinance-app .lf-overview-kpi { min-height: 152px; padding: 15px; gap: 10px; }
+  #librefinance-app .lf-overview-kpi .lf-kpi-amount { font-size: 21px; }
+  #librefinance-app .lf-context-currency { display: none; }
+  #librefinance-app .lf-overview .lf-dashboard-grid { gap: 12px; }
+  #librefinance-app .lf-trend-panel, #librefinance-app .lf-bank-panel,
+  #librefinance-app .lf-activity-panel, #librefinance-app .lf-shortcuts-panel { padding: 16px; }
+  #librefinance-app .lf-admin-feature { flex-direction: column; }
+  #librefinance-app .lf-activity-panel .lf-activity-list li { flex-wrap: nowrap; }
+  #librefinance-app .lf-activity-panel .lf-activity-value { white-space: normal; text-align: right; }
+}
+@media (max-width: 430px) {
+  #librefinance-app .lf-overview-kpi .lf-kpi-amount { font-size: 18px; }
+  #librefinance-app .lf-kpi-icon { width: 29px; height: 29px; flex-basis: 29px; }
+  #librefinance-app .lf-overview-kpi .lf-kpi-detail { font-size: 10px; }
+  #librefinance-app .lf-overview .lf-section-heading { flex-direction: column; align-items: flex-start; }
+  #librefinance-app .lf-activity-panel .lf-activity-list li { gap: 8px; }
+  #librefinance-app .lf-activity-symbol { display: none; }
+}
+
+/* The navigation list and the top context have independent scroll regions in
+   NcAppNavigation. Put the "new space" action in the dedicated footer, not on
+   top of a section caption. */
+#librefinance-app .lf-navigation-context { padding-bottom: 8px; }
+#librefinance-app .lf-nav-footer {
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 9px 15px 12px;
+}
+#librefinance-app .lf-nav-footer p {
+  margin: 0; padding: 4px 2px 0;
+  color: var(--lf-muted); font-size: 10px; line-height: 1.4;
+}
+
+#librefinance-app .lf-period-controls {
+  display: flex; align-items: center; flex-wrap: wrap;
+  justify-content: flex-end; gap: 12px;
+}
+#librefinance-app .lf-period-switch {
+  display: inline-flex; gap: 3px; align-items: center;
+  border: 1px solid var(--lf-border); border-radius: 10px;
+  padding: 3px;
+}
+#librefinance-app .lf-period-switch > button { font-size: 12px; min-height: 30px; }
+@media (max-width:700px) {
+  #librefinance-app .lf-period-controls { justify-content: flex-start; }
+  #librefinance-app .lf-period-chip { font-size: 11px; }
+}
+
+/* The native Nextcloud navigation is transparent on desktop so user-selected
+   wallpaper artwork can show through. Financial navigation needs an opaque,
+   readable surface even with vivid instance backgrounds. Respect all themes. */
+#librefinance-app .app-navigation {
+  background-color: var(--color-main-background);
+  background-color: color-mix(in srgb, var(--color-main-background) 96%, var(--color-primary-element) 4%);
+  backdrop-filter: none;
+}
+
+/* Section labels must remain legible in the native Nextcloud list. The caption
+   component's shrink/overflow behavior made its text invisible in screenshots
+   at common viewport sizes, despite remaining in the accessibility tree. */
+#librefinance-app .lf-nav-list .lf-nav-section {
+  display: flex; align-items: flex-end; flex-shrink: 0;
+  min-height: 29px; margin: 0;
+  padding: 10px 13px 4px;
+  list-style: none;
+  color: var(--color-text-maxcontrast-default, var(--color-text-maxcontrast));
+  font-size: 11px; font-weight: 750;
+  line-height: 16px; letter-spacing: .075em;
+  opacity: 1;
+}
+#librefinance-app .lf-nav-list .lf-nav-section > span {
+  display: block; overflow: visible; white-space: nowrap;
+}
+
+/* The Nextcloud navigation-collapse control reaches into the content header.
+   Keep the context eyebrow clear of that control at desktop widths. */
+#librefinance-app .lf-context-identity .lf-context-label {
+  padding-inline-start: 12px;
+}

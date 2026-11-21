@@ -1,0 +1,71 @@
+<!--
+SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
+# Contratos JSON preliminares v0.8
+
+Todos os caminhos abaixo usam `/index.php/apps/librefinance/api`. Identidade é fornecida pela autenticação Nextcloud. IDs de espaço pertencem aos dados da aplicação; não são grupos Nextcloud nem IDs da empresa fiscal.
+
+## Criar espaço
+`POST /spaces`: `{"name":"Tesouraria","kind":"collective","currency":"BRL"}`
+Resposta 201: `{"id":1,"name":"Tesouraria","kind":"collective","currency":"BRL","role":"owner"}`
+
+Tipos: personal, collective, organization. Moeda: somente BRL com duas casas decimais nesta versão. Multimoedas e regras de precisão por moeda permanecem futuros.
+
+## Compartilhar
+`POST /spaces/1/members`: `{"uid":"user2","role":"operator"}`
+`POST /spaces/1/groups`: `{"gid":"cooperados","role":"viewer"}`
+Resposta: `{"ok":true}`.
+
+`DELETE /spaces/1/members/{uid}` e `DELETE /spaces/1/groups/{gid}` revogam imediatamente a concessão correspondente. Não é permitido revogar a propriedade do espaço.
+
+Papéis: viewer (consulta), auditor (consulta), operator (lançamentos), manager (lançamentos, contas, acessos), owner (total). Acesso a outro espaço resulta em 404; violação de papel em espaço acessível resulta em 403. Owner não é transferível nesta versão.
+
+## Contas
+`POST /spaces/1/accounts`: `{"code":"1010","name":"Checking account","class":"asset","isBank":true}`
+Resposta 201: conta criada com saldo inicial zero; moeda herdada do espaço.
+
+Classes: asset, liability, equity, revenue, expense. Código é único por espaço.
+
+## Lançamento
+`POST /spaces/1/journals`:
+```json
+{
+  "debitId": 1, "creditId": 3, "amountMinor": 2599,
+  "date": "2026-11-20", "memo": "Receita de teste",
+  "externalKey": "api:synthetic-example-001"
+}
+```
+Resposta 201: `{"id":1,"replayed":false}`. A segunda submissão com a mesma chave e o mesmo conteúdo retorna o mesmo ID com `replayed:true`. Mesma chave com dados diferentes retorna 409. O valor sempre usa unidades menores inteiras, sem ponto flutuante.
+
+O débito registra `+amountMinor`, o crédito registra `-amountMinor`; a soma é zero. A API é deliberadamente restrita a um par de contas neste marco. Lançamentos multi-linha exigirão contrato versionado.
+
+`GET /spaces/1/journals?beforeId=100` devolve até 50 registros, com `nextBeforeId` para paginação autorizada.
+`POST /spaces/1/journals/10/reverse` cria lançamento oposto, não exclui histórico.
+
+## Contatos de clientes e fornecedores
+
+`GET /spaces/1/contacts?afterId=0` lista até 50 por página e retorna `nextAfterId` para continuação. Leitura exige vínculo ao espaço; criação/edição exige manager ou owner.
+
+`POST /spaces/1/contacts`: `{"name":"Cliente sintético","kind":"customer","email":"user@example.invalid","taxId":"00.000.000/0000-00"}`
+Resposta 201: objeto de contato com id, nome, tipo, email, tax_id e ativo.
+`PUT /spaces/1/contacts/{contactId}`: exige nome, kind e admite email, taxId e active.
+Kind é customer, vendor ou both. Tax ID é um identificador cadastral, não uma verificação fiscal de CPF/CNPJ. IDs de outro espaço retornam 404.
+
+## Catálogo de produtos e serviços
+
+`GET /spaces/1/items?afterId=0` lista de forma paginada.
+`POST /spaces/1/items`:
+`{"sku":"SERV-001","name":"Serviço sintético","kind":"service","unitPriceMinor":25000,"description":"Descrição"}`
+Resposta 201: objeto de item com id, sku, name, kind, unit_price_minor, currency e active.
+`PUT /spaces/1/items/{itemId}`: atualização com sku, name, kind, unitPriceMinor, description e active.
+
+Preços são inteiros em centavos (BRL) no domínio atual, inclusive zero. Estoque, tabelas de preços, unidades de medida e descontos ainda não estão presentes. Os módulos opcionais de fatura comercial e regras genéricas de imposto estão disponíveis, mas não equivalem a controle fiscal certificado ou emissão de nota.
+
+## Erros
+`{"error":"permission_denied"}` 403; `{"error":"space_not_found"}` 404; `{"error":"idempotency_conflict"}` 409; entrada inválida 422.
+Falhas internas não devem revelar SQL, caminhos do host nem configurações.
+
+## Contratos não implementados
+Permissões granulares adicionais, estoque, contabilidade de múltiplas moedas, notas fiscais efetivamente emitidas, sincronização bancária online, migração integral do Akaunting, fechamento fiscal e demonstrações contábeis formais continuam fora desta versão. **Seis aplicativos opcionais** estão instaláveis nativamente e mantêm seus próprios contratos. A interface IA usa `OCP\\TaskProcessing` com prévia de dados e consentimento; o transporte MCP oferece quatro ferramentas de leitura, sem ferramentas de pagamento/contabilização. Ver [OpenAPI](OPENAPI.md), [MCP/IA](MCP-AI.md) e [testes](TESTING.md).

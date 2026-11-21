@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Application under test: Nextcloud server from git master, NOT from the runtime image.
+services:
+  db:
+    image: postgres:17-alpine
+    mem_limit: 512m
+    cpus: 1.0
+    environment:
+      POSTGRES_DB: nextcloud
+      POSTGRES_USER: nextcloud
+      POSTGRES_PASSWORD: ${LF_TEST_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nextcloud -d nextcloud"]
+      interval: 5s
+      timeout: 3s
+      retries: 25
+    volumes:
+      - db_data:/var/lib/postgresql/data
+  mariadb:
+    profiles: [mariadb]
+    image: mariadb:11.8.9
+    mem_limit: 1g
+    cpus: 1.0
+    environment:
+      MARIADB_DATABASE: nextcloud
+      MARIADB_USER: nextcloud
+      MARIADB_PASSWORD: ${LF_TEST_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${LF_TEST_DB_ROOT_PASSWORD}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - mariadb_data:/var/lib/mysql
+  nextcloud:
+    # Provides only Apache and PHP. The official nextcloud/server master source
+    # is mounted over the image's /var/www/html.
+    image: nextcloud:35-apache
+    mem_limit: 1536m
+    cpus: 2.0
+    entrypoint: ["apache2-foreground"]
+    command: []
+    ports:
+      - "127.0.0.1::80"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ${LF_NEXTCLOUD_SOURCE}:/var/www/html:ro
+      - ./.runtime-config:/var/www/html/config
+      - nc_data:/var/www/html/data
+      - ../../:/var/www/html/custom_apps/librefinance:ro
+volumes:
+  db_data:
+  mariadb_data:
+  nc_data:

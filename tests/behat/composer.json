@@ -1,0 +1,9 @@
+{
+  "name": "librecodecoop/librefinance-behat",
+  "description": "PHP Behat API tests for Nextcloud finance",
+  "type": "project",
+  "license": "AGPL-3.0-or-later",
+  "require-dev": { "behat/behat": "^3.18" },
+  "autoload": { "psr-4": { "LibreFinance\\Behat\\": "features/bootstrap/" } },
+  "config": { "sort-packages": true, "allow-plugins": false }
+}

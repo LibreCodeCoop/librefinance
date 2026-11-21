@@ -1,0 +1,226 @@
+<?php
+
+/*
+ * SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
+declare(strict_types=1);
+
+namespace OCA\LibreFinance\Service;
+
+use DomainException;
+use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\IDBConnection;
+use OCP\IGroupManager;
+use OCP\IUserManager;
+
+final class SpaceService {
+    public function __construct(
+        private IDBConnection $db,
+        private WriteService $writer,
+        private AccessService $access,
+        private IUserManager $users,
+        private IGroupManager $groups,
+    ) {}
+
+    /** @return array<int, array<string, mixed>> */
+    public function list(): array {
+        return $this->access->accessibleSpaces();
+    }
+
+    /** @return array<string,mixed> */
+    public function create(string $name, string $kind, string $currency): array {
+        $uid = $this->access->uid();
+        $name = trim($name);
+        $currency = strtoupper(trim($currency));
+        if ($name === '' || mb_strlen($name) > 150) {
+            throw new DomainException('invalid_name');
+        }
+        if (!in_array($kind, ['personal', 'collective', 'organization'], true)) {
+            throw new DomainException('invalid_space_kind');
+        }
+        if ($currency !== 'BRL') {
+            throw new DomainException('invalid_currency');
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $this->writer->insert('lf_spaces', [
+                'name' => $name,
+                'kind' => $kind,
+                'currency' => $currency,
+                'owner_uid' => $uid,
+                'created_at' => time(),
+                'archived' => 0,
+            ]);
+            $spaceId = $this->db->lastInsertId('*PREFIX*lf_spaces');
+            $this->writer->insert('lf_members', ['space_id' => $spaceId, 'uid' => $uid, 'role' => 'owner']);
+            foreach ([
+                ['1000', 'Caixa', 'asset', true],
+                ['3000', 'Patrimônio líquido', 'equity', false],
+                ['4000', 'Receitas', 'revenue', false],
+                ['5000', 'Despesas', 'expense', false],
+            ] as [$code, $label, $class, $bank]) {
+                $this->writer->insert('lf_accounts', [
+                    'space_id' => $spaceId, 'code' => $code,
+                    'name' => $label, 'class' => $class, 'currency' => $currency,
+                    'is_bank' => $bank ? 1 : 0, 'active' => 1,
+                ]);
+            }
+            foreach ([['Dinheiro', 'cash'], ['Transferência bancária', 'bank_transfer']]
+                as [$methodName, $methodKind]) {
+                $this->writer->insert('lf_payment_methods', [
+                    'space_id' => $spaceId, 'name' => $methodName, 'kind' => $methodKind,
+                    'bank_account_id' => null, 'active' => true,
+                    'created_at' => time(), 'updated_at' => time(),
+                ]);
+            }
+            $this->audit($spaceId, 'space.created', 'space', $spaceId);
+            $this->db->commit();
+            return ['id' => $spaceId, 'name' => $name, 'kind' => $kind, 'currency' => $currency, 'role' => 'owner'];
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function shareUser(int $spaceId, string $uid, string $role): void {
+        $this->access->requireRole($spaceId, 'manager');
+        AccessService::validateGrantRole($role);
+        $uid = trim($uid);
+        if ($uid === '' || !$this->users->userExists($uid)) {
+            throw new DomainException('user_not_found');
+        }
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('owner_uid')->from('lf_spaces')
+            ->where($qb->expr()->eq('id', $qb->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
+        if ($qb->executeQuery()->fetchOne() === $uid) {
+            throw new DomainException('cannot_change_owner');
+        }
+        $this->db->beginTransaction();
+        try {
+            $existing = $this->db->getQueryBuilder();
+            $existing->select('id')->from('lf_members')
+                ->where($existing->expr()->eq('space_id', $existing->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($existing->expr()->eq('uid', $existing->createNamedParameter($uid, IQueryBuilder::PARAM_STR)));
+            $id = $existing->executeQuery()->fetchOne();
+            if ($id === false) {
+                $this->writer->insert('lf_members', ['space_id' => $spaceId, 'uid' => $uid, 'role' => $role]);
+            } else {
+                $this->writer->update('lf_members', ['role' => $role], ['id' => (int)$id, 'space_id' => $spaceId]);
+            }
+            $this->audit($spaceId, 'membership.granted', 'member', (int)($id === false ? $this->db->lastInsertId('*PREFIX*lf_members') : $id));
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function shareGroup(int $spaceId, string $gid, string $role): void {
+        $this->access->requireRole($spaceId, 'manager');
+        AccessService::validateGrantRole($role);
+        $gid = trim($gid);
+        if ($gid === '' || $this->groups->get($gid) === null) {
+            throw new DomainException('group_not_found');
+        }
+        $this->db->beginTransaction();
+        try {
+            $q = $this->db->getQueryBuilder();
+            $q->select('id')->from('lf_group_grants')
+                ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('group_gid', $q->createNamedParameter($gid, IQueryBuilder::PARAM_STR)));
+            $id = $q->executeQuery()->fetchOne();
+            if ($id === false) {
+                $this->writer->insert('lf_group_grants', ['space_id' => $spaceId, 'group_gid' => $gid, 'role' => $role]);
+            } else {
+                $this->writer->update('lf_group_grants', ['role' => $role], ['id' => (int)$id, 'space_id' => $spaceId]);
+            }
+            $this->audit($spaceId, 'group.granted', 'group_grant', (int)($id === false ? $this->db->lastInsertId('*PREFIX*lf_group_grants') : $id));
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function revokeUser(int $spaceId, string $uid): void {
+        $this->access->requireRole($spaceId, 'manager');
+        $this->db->beginTransaction();
+        try {
+            $q = $this->db->getQueryBuilder();
+            $q->select('id', 'role')->from('lf_members')
+                ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('uid', $q->createNamedParameter($uid, IQueryBuilder::PARAM_STR)));
+            $member = $q->executeQuery()->fetchAssociative();
+            if (!$member) {
+                throw new DomainException('membership_not_found');
+            }
+            if ($member['role'] === 'owner') {
+                throw new DomainException('cannot_change_owner');
+            }
+            $q = $this->db->getQueryBuilder();
+            $q->delete('lf_members')
+                ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('id', $q->createNamedParameter((int)$member['id'], IQueryBuilder::PARAM_INT)))
+                ->executeStatement();
+            $this->audit($spaceId, 'membership.revoked', 'member', (int)$member['id']);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function revokeGroup(int $spaceId, string $gid): void {
+        $this->access->requireRole($spaceId, 'manager');
+        $this->db->beginTransaction();
+        try {
+            $q = $this->db->getQueryBuilder();
+            $q->select('id')->from('lf_group_grants')
+                ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('group_gid', $q->createNamedParameter($gid, IQueryBuilder::PARAM_STR)));
+            $id = $q->executeQuery()->fetchOne();
+            if ($id === false) {
+                throw new DomainException('membership_not_found');
+            }
+            $q = $this->db->getQueryBuilder();
+            $q->delete('lf_group_grants')
+                ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('id', $q->createNamedParameter((int)$id, IQueryBuilder::PARAM_INT)))
+                ->executeStatement();
+            $this->audit($spaceId, 'group.revoked', 'group_grant', (int)$id);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function members(int $spaceId): array {
+        $this->access->requireRole($spaceId, 'manager');
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('uid', 'role')->from('lf_members')
+            ->where($qb->expr()->eq('space_id', $qb->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
+        return $qb->executeQuery()->fetchAllAssociative();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function groupGrants(int $spaceId): array {
+        $this->access->requireRole($spaceId, 'manager');
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('group_gid', 'role')->from('lf_group_grants')
+            ->where($qb->expr()->eq('space_id', $qb->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
+        return $qb->executeQuery()->fetchAllAssociative();
+    }
+
+    private function audit(int $spaceId, string $action, string $entity, int $entityId): void {
+        $this->writer->insert('lf_audit', [
+            'space_id' => $spaceId, 'actor_uid' => $this->access->uid(),
+            'action' => $action, 'entity' => $entity, 'entity_id' => $entityId,
+            'occurred_at' => time(),
+        ]);
+    }
+}

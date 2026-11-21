@@ -1,0 +1,74 @@
+/*
+ * SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+/* Nextcloud NcDialog teleports to <body>; app-root selectors do not cover it.
+   Target only dialogs explicitly tagged by LibreFinance. */
+.lf-finance-dialog-content .lf-dialog-form {
+  display: flex; flex-direction: column; gap: 16px;
+  width: 100%; min-width: 0; margin: 0;
+  padding: 8px 1px 4px;
+}
+.lf-finance-dialog-content .lf-dialog-form > p {
+  margin: 0; color: var(--color-text-maxcontrast);
+  font-size: 13px; line-height: 1.55;
+}
+.lf-finance-dialog-content .lf-form-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 17px 16px; align-items: end; width: 100%; min-width: 0;
+}
+.lf-finance-dialog-content .lf-form-grid > * { min-width: 0; max-width: 100%; }
+.lf-finance-dialog-content .lf-form-full { grid-column: 1 / -1; }
+.lf-finance-dialog-content .lf-form-actions {
+  display: flex; flex-wrap: wrap; gap: 9px;
+  align-items: center; justify-content: flex-end;
+  padding-top: 12px; margin-top: 4px;
+  border-top: 1px solid var(--color-border);
+}
+.lf-finance-dialog-content .lf-field { min-width: 0; }
+.lf-finance-dialog-content .lf-field .vs__dropdown-toggle { max-width: 100%; }
+.lf-finance-dialog-content .lf-dialog-help {
+  color: var(--color-text-maxcontrast); font-size: 12px;
+  line-height: 1.55; margin: 0;
+}
+.lf-finance-dialog-content .lf-dialog-summary {
+  display: grid; gap: 7px;
+  padding: 14px 15px;
+  border: 1px solid var(--color-border);
+  background: var(--color-background-hover);
+  border-radius: 11px;
+  font-size: 13px; line-height: 1.55;
+}
+.lf-finance-dialog-content .lf-dialog-summary strong { color: var(--color-main-text); }
+.lf-finance-dialog-content .lf-dialog-summary p { margin: 0; }
+.lf-finance-dialog-content .lf-dialog-summary small {
+  color: var(--color-text-maxcontrast); font-size: 12px;
+}
+.lf-finance-dialog-content .lf-dialog-section-heading {
+  margin: 4px 0 0; font-size: 13px; font-weight: 700;
+}
+.lf-finance-dialog-content :focus-visible {
+  outline: 2px solid var(--color-primary-element); outline-offset: 2px;
+}
+@media (max-width: 650px) {
+  .lf-finance-dialog-content .lf-form-grid { grid-template-columns: minmax(0, 1fr); gap: 13px; }
+  .lf-finance-dialog-content .lf-form-full { grid-column: 1; }
+  .lf-finance-dialog-content .lf-form-actions > * { max-width: 100%; }
+}
+.lf-finance-dialog-content .lf-reconciliation-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 8px 12px; align-items: baseline;
+}
+.lf-finance-dialog-content .lf-reconciliation-details > span {
+  color: var(--color-text-maxcontrast); font-size: 12px;
+}
+.lf-finance-dialog-content .lf-reconciliation-details > strong {
+  font-size: 13px; min-width: 0; overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  .lf-finance-dialog-content .lf-reconciliation-details {
+    grid-template-columns: minmax(0, 1fr); gap: 4px;
+  }
+  .lf-finance-dialog-content .lf-reconciliation-details > strong { margin-bottom: 7px; }
+}

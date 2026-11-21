@@ -1,0 +1,125 @@
+<!--
+SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+# Estratégia de qualidade — Nextcloud Server master
+
+## Ambientes e segurança
+
+O sistema sob teste é o checkout **oficial da branch master** do
+`nextcloud/server`, com PHP/Apache fornecidos pela imagem Docker e a árvore
+real do servidor montada somente leitura. O código é integralmente PHP
+(serviços e contratos OCP) e Vue 3 compilado antes do uso, sem Python ou
+sidecars em produção.
+
+NUNCA executar a suíte contra a instância real da cooperativa: o script de
+laboratório cria usuários sintéticos, um banco descartável, senhas aleatórias
+temporárias, várias empresas e movimentos contábeis de teste, e elimina
+os volumes ao concluir. O teste exige os diretórios adjacentes de todas as
+extensões para habilitar todas as funcionalidades.
+
+A suíte usa um bloqueio exclusivo não bloqueante (`flock`) em
+`tests/ci/.runtime-config/.smoke.lock`: **não execute matrizes de banco simultaneamente
+no mesmo checkout**, pois compartilham configuração mutável e a árvore do
+Nextcloud. Uma segunda execução sai imediatamente com código 75, sem alterar
+contêineres. Para paralelismo no CI, utilize checkouts independentes.
+O Compose de laboratório limita CPU/memória dos serviços para não concorrer sem
+limites com outros trabalhos da máquina. Em falhas, o script registra o estado
+dos contêineres e sinais de OOM antes da limpeza; não oferece repetição
+automática de requisições financeiras.
+
+## API: PHPUnit/integração e Behat por shards
+
+O laboratório executa suites nativas PHP HTTP separadas por regras e
+interfaces dos aplicativos. Behat roda contra o mesmo Nextcloud e usa
+somente contas sintéticas, sem simular controlador nem pular regras de
+autorização.
+
+```sh
+cd tests/behat
+composer install --no-interaction --prefer-dist
+sh run-shards.sh 1/2
+sh run-shards.sh 2/2
+```
+
+Os shards 1/2 e 2/2 são identificados explicitamente nas features
+`@shard1` e `@shard2`, com contextos PHP reais. Como a credencial e
+`LF_BASE_URL` são fornecidas **somente pelo laboratório**, essas chamadas
+isoladas não podem ser executadas contra uma produção sem adaptar o
+script. O fluxo recomendado é `bash tests/ci/smoke.sh` em instalações
+descartáveis com o Nextcloud master e extensões instaladas.
+
+## Playwright: Chromium com navegação nativa real
+
+```sh
+npm ci --include=dev
+npx playwright install --with-deps chromium
+LF_RUN_PLAYWRIGHT=1 bash tests/ci/smoke.sh
+```
+
+O script descobre a porta local publicada pelo Docker, configura o domínio
+confiável **no laboratório**, e executa `--shard=1/2` e `--shard=2/2`.
+As suites verificam login real, criação de organização, navegação em apps
+instalados, categorias, troca rápida de espaços, layout móvel, fluxo de caixa
+realizado e consentimento para IA. Os casos marcados com `@extensions`
+dependem dos módulos adicionais e só são excluídos quando o laboratório
+é executado deliberadamente com `LF_E2E_CORE_ONLY=1`. Ao rodar
+individualmente, a variável `LF_PLAYWRIGHT_SHARD=1/2` escolhe o shard.
+
+Em Ubuntu 26.04, os instaladores de certas versões do Playwright podem
+não oferecer binário compatível. Em ambiente de desenvolvimento, é possível usar o
+Chromium **já instalado** na máquina por meio de
+`LF_E2E_CHROMIUM_PATH`, sem compartilhar credenciais. Essa escolha é
+somente para ambiente de desenvolvimento; o CI Ubuntu deve usar a
+instalação padrão `npx playwright install --with-deps chromium`.
+
+**Segurança:** a configuração desativa screenshots, gravações e traces
+automáticos por padrão; relatórios JSON e diretório de testes ficam
+ignorados no Git para não expor capturas ou dados fictícios em PRs.
+
+## Contratos OpenAPI
+
+```sh
+php tests/openapi/generate.php --check
+npm run test:openapi
+```
+
+O gerador recusa rotas mutáveis novas sem contrato e o parser verifica o
+formato OpenAPI. Tipos genéricos de resposta serão refinados; não tratar
+quantidade de rotas como medida de maturidade.
+
+## Gates de entrega
+
+- Instalação limpa e isolamento em SQLite, PostgreSQL e MariaDB
+- Testes de acesso negativo para empresa, grupo, módulo e perfil
+- Idempotência e condições de corrida para lançamentos, impostos e importações
+- Behat com cenário executado em ambos os shards, sem skips disfarçados
+- Playwright com browser real, teclado, telas móveis e troca rápida de estado
+- Lint PHP 8.3/8.5, build e testes Vue, licenças REUSE e verificação de OpenAPI
+- PHPUnit/PSALM ou PHPStan, acessibilidade completa, migrações de atualização,
+  matriz de perfis de carga, auditoria e validação com especialista fiscal:
+  **ainda pendentes**, a menos que relatórios comprovem sua execução
+
+Sem login de servidor de produção, sem mudança de rulesets e sem merge
+automático. Só aprovar um PR depois de rever as verificações de todos os
+jobs necessários no mesmo SHA.
+
+## CI integrada e workflows organizacionais
+
+Os workflows comuns de lint PHP, validação de manifesto, build npm, REUSE e
+sincronização são cópias gerenciadas do catálogo público
+`LibreCodeCoop/.github/workflow-templates/`, rastreadas em
+`.github/actions-lock.txt`. Não edite as cópias diretamente; use o mecanismo
+de atualização por PR e patches locais quando necessários.
+
+O workflow **específico** `.github/workflows/finance-integration.yml` fixa o
+Nextcloud Server e as revisões Git dos seis módulos independentes. Executa
+o núcleo e **todas** as extensões instaladas em PostgreSQL, SQLite e MariaDB,
+mais Playwright real com PostgreSQL. Se faltar qualquer módulo ou etapa, o
+status `LibreFinance integrated CI` falha (ou fica ausente), não é aprovado
+silenciosamente. O workflow deve ser validado em execução remota no mesmo SHA
+antes de servir como requisito de merge.
+
+Atualize os SHAs dos módulos com revisão e CI antes de integrar mudanças
+entre repositórios. O app permanece em desenvolvimento: testes no laboratório
+não certificam conexão bancária, emissão fiscal ou migração de dados reais.

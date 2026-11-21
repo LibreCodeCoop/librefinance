@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+node_modules/
+.ci-nextcloud-server/
+tests/ci/.runtime-config/
+dist/
+.phpunit.cache/
+coverage/
+tests/behat/vendor/
+tests/e2e-results-*.json
+test-results/
+playwright-report/
+vendor/
+*.env
+*.log
+.DS_Store
+
+# Local engineering handoffs, QA screenshots/log locations and migration research
+# are not public product documentation. Keep the maintained docs/ROADMAP.md instead.
+docs/RECOVERY-*.md
+docs/REQUIREMENTS-TRACEABILITY-*.md
+docs/PARITY-EVIDENCE.md
+docs/UI-REVIEW-*.md
+docs/UX-*.md
+docs/VALIDATION-*.md
+
+.github/workflow-sync-summary.md
+
+tests/e2e-results.json
+.ci-modules/

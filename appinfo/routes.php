@@ -1,0 +1,66 @@
+<?php
+
+/*
+ * SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
+declare(strict_types=1);
+
+return [
+    'routes' => [
+        ['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
+        ['name' => 'space#index', 'url' => '/api/spaces', 'verb' => 'GET'],
+        ['name' => 'space#create', 'url' => '/api/spaces', 'verb' => 'POST'],
+        ['name' => 'space#members', 'url' => '/api/spaces/{spaceId}/members', 'verb' => 'GET'],
+        ['name' => 'space#share', 'url' => '/api/spaces/{spaceId}/members', 'verb' => 'POST'],
+        ['name' => 'space#unshare', 'url' => '/api/spaces/{spaceId}/members/{uid}', 'verb' => 'DELETE'],
+        ['name' => 'dashboardLayout#index', 'url' => '/api/spaces/{spaceId}/dashboard-layout', 'verb' => 'GET'],
+        ['name' => 'dashboardLayout#save', 'url' => '/api/spaces/{spaceId}/dashboard-layout', 'verb' => 'PUT'],
+        ['name' => 'dashboardLayout#reset', 'url' => '/api/spaces/{spaceId}/dashboard-layout', 'verb' => 'DELETE'],
+        ['name' => 'space#groups', 'url' => '/api/spaces/{spaceId}/groups', 'verb' => 'GET'],
+        ['name' => 'space#shareGroup', 'url' => '/api/spaces/{spaceId}/groups', 'verb' => 'POST'],
+        ['name' => 'space#unshareGroup', 'url' => '/api/spaces/{spaceId}/groups/{gid}', 'verb' => 'DELETE'],
+        ['name' => 'company#index', 'url' => '/api/spaces/{spaceId}/companies', 'verb' => 'GET'],
+        ['name' => 'company#create', 'url' => '/api/spaces/{spaceId}/companies', 'verb' => 'POST'],
+        ['name' => 'company#update', 'url' => '/api/spaces/{spaceId}/companies/{companyId}', 'verb' => 'PUT'],
+        ['name' => 'companyLogo#upload', 'url' => '/api/spaces/{spaceId}/companies/{companyId}/logo', 'verb' => 'POST'],
+        ['name' => 'companyLogo#image', 'url' => '/api/spaces/{spaceId}/companies/{companyId}/logo', 'verb' => 'GET'],
+        ['name' => 'companyLogo#delete', 'url' => '/api/spaces/{spaceId}/companies/{companyId}/logo', 'verb' => 'DELETE'],
+        ['name' => 'customField#index', 'url' => '/api/spaces/{spaceId}/company-fields', 'verb' => 'GET'],
+        ['name' => 'customField#create', 'url' => '/api/spaces/{spaceId}/company-fields', 'verb' => 'POST'],
+        ['name' => 'customField#update', 'url' => '/api/spaces/{spaceId}/company-fields/{fieldId}', 'verb' => 'PUT'],
+        ['name' => 'customField#indexForEntity', 'url' => '/api/spaces/{spaceId}/custom-fields/{entityKind}', 'verb' => 'GET'],
+        ['name' => 'customField#createForEntity', 'url' => '/api/spaces/{spaceId}/custom-fields/{entityKind}', 'verb' => 'POST'],
+        ['name' => 'customField#updateForEntity', 'url' => '/api/spaces/{spaceId}/custom-fields/{entityKind}/{fieldId}', 'verb' => 'PUT'],
+        ['name' => 'search#index', 'url' => '/api/spaces/{spaceId}/search', 'verb' => 'GET'],
+        ['name' => 'paymentMethod#index', 'url' => '/api/spaces/{spaceId}/payment-methods', 'verb' => 'GET'],
+        ['name' => 'paymentMethod#create', 'url' => '/api/spaces/{spaceId}/payment-methods', 'verb' => 'POST'],
+        ['name' => 'paymentMethod#update', 'url' => '/api/spaces/{spaceId}/payment-methods/{methodId}', 'verb' => 'PUT'],
+        ['name' => 'paymentMethod#delete', 'url' => '/api/spaces/{spaceId}/payment-methods/{methodId}', 'verb' => 'DELETE'],
+        ['name' => 'account#index', 'url' => '/api/spaces/{spaceId}/accounts', 'verb' => 'GET'],
+        ['name' => 'account#create', 'url' => '/api/spaces/{spaceId}/accounts', 'verb' => 'POST'],
+        ['name' => 'account#update', 'url' => '/api/spaces/{spaceId}/accounts/{accountId}', 'verb' => 'PUT'],
+        ['name' => 'account#deletionPreview', 'url' => '/api/spaces/{spaceId}/accounts/{accountId}/deletion', 'verb' => 'GET'],
+        ['name' => 'account#delete', 'url' => '/api/spaces/{spaceId}/accounts/{accountId}', 'verb' => 'DELETE'],
+        ['name' => 'category#index', 'url' => '/api/spaces/{spaceId}/categories', 'verb' => 'GET'],
+        ['name' => 'category#create', 'url' => '/api/spaces/{spaceId}/categories', 'verb' => 'POST'],
+        ['name' => 'category#update', 'url' => '/api/spaces/{spaceId}/categories/{categoryId}', 'verb' => 'PUT'],
+        ['name' => 'contact#index', 'url' => '/api/spaces/{spaceId}/contacts', 'verb' => 'GET'],
+        ['name' => 'contact#create', 'url' => '/api/spaces/{spaceId}/contacts', 'verb' => 'POST'],
+        ['name' => 'contact#update', 'url' => '/api/spaces/{spaceId}/contacts/{contactId}', 'verb' => 'PUT'],
+        ['name' => 'item#index', 'url' => '/api/spaces/{spaceId}/items', 'verb' => 'GET'],
+        ['name' => 'item#create', 'url' => '/api/spaces/{spaceId}/items', 'verb' => 'POST'],
+        ['name' => 'item#update', 'url' => '/api/spaces/{spaceId}/items/{itemId}', 'verb' => 'PUT'],
+        ['name' => 'module#index', 'url' => '/api/spaces/{spaceId}/modules', 'verb' => 'GET'],
+        ['name' => 'module#toggle', 'url' => '/api/spaces/{spaceId}/modules/{moduleId}', 'verb' => 'PUT'],
+        ['name' => 'journal#index', 'url' => '/api/spaces/{spaceId}/journals', 'verb' => 'GET'],
+        ['name' => 'journal#create', 'url' => '/api/spaces/{spaceId}/journals', 'verb' => 'POST'],
+        ['name' => 'journal#reverse', 'url' => '/api/spaces/{spaceId}/journals/{journalId}/reverse', 'verb' => 'POST'],
+        ['name' => 'ai#capabilities', 'url' => '/api/spaces/{spaceId}/ai/capabilities', 'verb' => 'GET'],
+        ['name' => 'ai#preview', 'url' => '/api/spaces/{spaceId}/ai/preview', 'verb' => 'GET'],
+        ['name' => 'ai#analyze', 'url' => '/api/spaces/{spaceId}/ai/analyze', 'verb' => 'POST'],
+        ['name' => 'ai#status', 'url' => '/api/spaces/{spaceId}/ai/tasks/{taskId}', 'verb' => 'GET'],
+        ['name' => 'mcp#handle', 'url' => '/api/mcp', 'verb' => 'POST'],
+    ],
+];

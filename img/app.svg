@@ -1,0 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="LibreFinance">
+  <rect width="64" height="64" rx="14" fill="#14615e"/>
+  <path d="M16 46V18h12c10 0 14 4 14 12s-5 12-14 12h-5v4h-7Zm7-13h6c4 0 6-1 6-4s-2-4-6-4h-6v8Z" fill="#fff"/>
+  <path d="M47 16v32M41 20h13M40 44h14" fill="none" stroke="#d6e99a" stroke-width="3" stroke-linecap="round"/>
+</svg>

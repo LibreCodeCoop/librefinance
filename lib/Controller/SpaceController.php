@@ -1,0 +1,97 @@
+<?php
+
+/*
+ * SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+
+declare(strict_types=1);
+
+namespace OCA\LibreFinance\Controller;
+
+use OCA\LibreFinance\Service\SpaceService;
+use OCP\AppFramework\Http\JSONResponse;
+use OCP\IRequest;
+
+final class SpaceController extends ApiController {
+    public function __construct(string $appName, IRequest $request, private SpaceService $spaces) {
+        parent::__construct($appName, $request);
+    }
+
+    /**
+     * @NoAdminRequired
+     */
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    public function index(): JSONResponse {
+        return $this->respond(fn() => ['spaces' => $this->spaces->list()]);
+    }
+
+    /**
+     * @NoAdminRequired
+     */
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    public function create(string $name, string $kind = 'personal', string $currency = 'BRL'): JSONResponse {
+        return $this->respond(fn() => $this->spaces->create($name, $kind, $currency), 201);
+    }
+
+    /**
+     * @NoAdminRequired
+     */
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    public function members(int $spaceId): JSONResponse {
+        return $this->respond(fn() => ['members' => $this->spaces->members($spaceId)]);
+    }
+
+    /**
+     * @NoAdminRequired
+     */
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    public function share(int $spaceId, string $uid, string $role = 'viewer'): JSONResponse {
+        return $this->respond(function () use ($spaceId, $uid, $role): array {
+            $this->spaces->shareUser($spaceId, $uid, $role);
+            return ['ok' => true];
+        });
+    }
+
+    /**
+     * @NoAdminRequired
+     */
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    public function groups(int $spaceId): JSONResponse {
+        return $this->respond(fn() => ['groups' => $this->spaces->groupGrants($spaceId)]);
+    }
+
+    /**
+     * @NoAdminRequired
+     */
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    public function shareGroup(int $spaceId, string $gid, string $role = 'viewer'): JSONResponse {
+        return $this->respond(function () use ($spaceId, $gid, $role): array {
+            $this->spaces->shareGroup($spaceId, $gid, $role);
+            return ['ok' => true];
+        });
+    }
+
+    /**
+     * @NoAdminRequired
+     */
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    public function unshare(int $spaceId, string $uid): JSONResponse {
+        return $this->respond(function () use ($spaceId, $uid): array {
+            $this->spaces->revokeUser($spaceId, $uid);
+            return ['ok' => true];
+        });
+    }
+
+    /**
+     * @NoAdminRequired
+     */
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    public function unshareGroup(int $spaceId, string $gid): JSONResponse {
+        return $this->respond(function () use ($spaceId, $gid): array {
+            $this->spaces->revokeGroup($spaceId, $gid);
+            return ['ok' => true];
+        });
+    }
+}
+
