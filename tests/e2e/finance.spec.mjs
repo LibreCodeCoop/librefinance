@@ -566,10 +566,10 @@ test('native Nextcloud dialog supports keyboard dismissal without creating a rec
   await goToView(page, 'Plano de contas')
   const rows = page.locator('.lf-data-table tbody tr')
   await expect(rows).toHaveCount(4)
-  await page.getByRole('button', { name: 'Adicionar conta' }).click()
-  await expect(page.getByRole('dialog', { name: 'Adicionar conta financeira' })).toBeVisible()
+  await page.getByRole('button', { name: 'Criar conta' }).click()
+  await expect(page.getByRole('dialog', { name: 'Criar conta financeira' })).toBeVisible()
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog', { name: 'Adicionar conta financeira' })).toHaveCount(0)
+  await expect(page.getByRole('dialog', { name: 'Criar conta financeira' })).toHaveCount(0)
   await expect(rows).toHaveCount(4)
 })
 
