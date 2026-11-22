@@ -87,6 +87,18 @@ $other = $t->checkModule('create independent receivable', $a, $app, 'POST',
         'kind' => 'receivable', 'description' => 'Synthetic customer invoice',
         'contactId' => null, 'reference' => 'REC-' . $token, 'amountMinor' => 5000]), 201);
 $otherId = (int)$other['id'];
+$t->checkModule('payables excludes unrelated receivables before pagination',
+    $a, $app, 'GET', $base . '/obligations?kind=payable', null, 200,
+    static fn(array $v): bool => count($v['obligations'] ?? []) === 1
+        && ($v['obligations'][0]['kind'] ?? null) === 'payable');
+$t->checkModule('receivables excludes unrelated payables before pagination',
+    $a, $app, 'GET', $base . '/obligations?kind=receivable', null, 200,
+    static fn(array $v): bool => count($v['obligations'] ?? []) === 1
+        && ($v['obligations'][0]['kind'] ?? null) === 'receivable');
+$t->checkModule('invalid obligation flow kind rejected',
+    $a, $app, 'GET', $base . '/obligations?kind=untrusted', null, 422,
+    static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_kind');
+
 $t->checkModule('cancel unpaid receivable', $a, $app, 'POST',
     $base . '/obligations/' . $otherId . '/cancel', null, 200,
     static fn(array $v): bool => ($v['status'] ?? null) === 'cancelled');
