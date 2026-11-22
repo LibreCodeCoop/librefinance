@@ -20,6 +20,7 @@ import {
   mdiFileUploadOutline, mdiCogOutline, mdiShapeOutline, mdiRobotOutline,
   mdiDomain, mdiFileDocumentOutline, mdiBookOpenPageVariantOutline,
   mdiPlus, mdiRefresh, mdiMagnify, mdiArrowDownLeft, mdiArrowUpRight,
+  mdiFolderAccountOutline,
 } from '@mdi/js'
 import {
   PAGE_NAMES, availableSections, canOpenView, navigationSearch,
@@ -101,7 +102,7 @@ const icons = {
   transactions: mdiSwapHorizontal,
   banking: mdiBankOutline,
   finance: mdiCashClock,
-  spaces: mdiDomain,
+  spaces: mdiFolderAccountOutline,
   receivables: mdiArrowDownLeft,
   payables: mdiArrowUpRight,
   obligations: mdiCashClock,
@@ -122,6 +123,9 @@ const icons = {
   import: mdiFileUploadOutline,
 }
 const searchQuery = ref('')
+// Browser back/forward can change a search term without changing the view.
+// Remount only when history navigation supplies a different record search.
+const urlSearchTerm = ref(new URLSearchParams(window.location.search).get('search') || '')
 const openGroups = ref({})
 const availableNav = computed(() => availableSections({
   manager: manager.value,
@@ -143,6 +147,21 @@ function visibleView(view) {
 }
 function groupHasActive(item) {
   return item.children?.some(child => child.id === readyView.value) || false
+}
+function subgroupOpen(groupName, item) {
+  if (item.children?.some(child => child.id === readyView.value && child.group === groupName)) return true
+  return openGroups.value['sub:' + groupName] ?? false
+}
+function changeSubgroup(groupName, value) {
+  setGroupOpen('sub:' + groupName, value)
+}
+function groupedChildren(item) {
+  const grouped = new Map()
+  for (const child of item.children || []) {
+    if (!grouped.has(child.group)) grouped.set(child.group, [])
+    grouped.get(child.group).push(child)
+  }
+  return [...grouped].map(([name, children]) => ({ name, children }))
 }
 function isGroupOpen(item) {
   // The active view must remain reachable in the navigation after a reload.
@@ -172,6 +191,7 @@ function viewHref(view) {
   const url = new URL(window.location.href)
   url.searchParams.set('view', view)
   url.searchParams.delete('section')
+  if (view !== readyView.value) url.searchParams.delete('search')
   if (view === 'fields') url.searchParams.set('entity', fieldStudioEntity.value)
   else url.searchParams.delete('entity')
   if (activeId.value) url.searchParams.set('spaceId', String(activeId.value))
@@ -194,7 +214,7 @@ const spaceKind = computed(() => ({ personal: 'Casa / pessoal', collective: 'Gru
   organization: 'Empresa / organização' })[space.value?.kind] || 'Espaço financeiro')
 const spaceRole = computed(() => roleNames[space.value?.role] || 'Participante')
 const selectedSpace = computed(() => spaces.value.find(s =>
-  Number(s.id) === Number(activeId.value))?.name ?? 'Selecione um espaço')
+  Number(s.id) === Number(activeId.value))?.name ?? 'Selecione uma área')
 const spaceOptions = computed(() => spaces.value.map(s => ({
   value: Number(s.id), label: s.name,
 })))
@@ -227,6 +247,8 @@ const settingPanels = ['access', 'fields', 'paymentMethods', 'modules']
 function expandParent(view) {
   const id = parentOfView(availableNav.value, view)
   if (id !== null) setGroupOpen(id, true)
+  const target = menuEntries(availableNav.value).find(item => item.id === view)
+  if (target?.group) changeSubgroup(target.group, true)
 }
 function navigate(view, options = {}) {
   if (!screens[view] || !visibleView(view)) return
@@ -249,6 +271,8 @@ function navigate(view, options = {}) {
   const url = new URL(window.location.href)
   url.searchParams.set('view', view)
   url.searchParams.delete('section')
+  url.searchParams.delete('search')
+  urlSearchTerm.value = ''
   if (view === 'fields') url.searchParams.set('entity', fieldStudioEntity.value)
   else url.searchParams.delete('entity')
   if (activeId.value) url.searchParams.set('spaceId', String(activeId.value))
@@ -267,6 +291,8 @@ function selectSpace(id) {
   const url = new URL(window.location.href)
   url.searchParams.set('spaceId', String(Number(id)))
   url.searchParams.set('view', 'dashboard')
+  url.searchParams.delete('search')
+  urlSearchTerm.value = ''
   window.history.pushState(null, '', url.pathname + url.search)
 }
 function openEntry() {
@@ -279,6 +305,7 @@ function onHistoryChange() {
   const values = new URLSearchParams(window.location.search)
   const destinationSpace = Number(values.get('spaceId'))
   const destinationView = canonicalView(values.get('view'), values.get('section'))
+  urlSearchTerm.value = values.get('search') || ''
   if (destinationView === 'fields') {
     fieldStudioEntity.value = fieldEntityKind(values.get('entity'))
   }
@@ -335,11 +362,16 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         </div>
         <LfSelect v-if="spaceOptions.length > 1" id="lf-space-select"
           :model-value="activeId" :options="spaceOptions"
-          label="Gestão financeira" placeholder="Selecione uma gestão"
+          label="Área financeira atual" placeholder="Escolha uma área"
           @update:model-value="selectSpace" />
-        <p v-else-if="space" class="lf-space-current" aria-label="Gestão financeira atual">
+        <p v-else-if="space" class="lf-space-current" aria-label="Área financeira atual">
           <strong>{{selectedSpace}}</strong>
         </p>
+        <NcButton v-if="space" class="lf-manage-spaces-link" size="small"
+          variant="tertiary" @click="navigate('spaces')">
+          <template #icon><NcIconSvgWrapper :path="mdiFolderAccountOutline" :size="18" /></template>
+          Gerenciar áreas financeiras
+        </NcButton>
         <p v-if="space" class="lf-space-meta">
           <span>{{ spaceKind }}</span><span aria-hidden="true">·</span>
           <span>{{ space.currency }}</span><span aria-hidden="true">·</span>
@@ -378,17 +410,19 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
                   :active="groupHasActive(item)" @click="onNavGroupClick($event, item.id)"
                   @update:open="setGroupOpen(item.id, $event)">
                   <template #icon><NcIconSvgWrapper :path="icons[item.icon]" :size="20" /></template>
-                  <template v-for="(child, childIndex) in item.children" :key="child.id">
-                    <li v-if="child.group && (childIndex === 0 || item.children[childIndex - 1].group !== child.group)"
-                      class="lf-nav-subsection" role="presentation">
-                      <span>{{ child.group }}</span>
-                    </li>
-                    <NcAppNavigationItem
+                  <NcAppNavigationItem v-for="subgroup in groupedChildren(item)"
+                    :key="subgroup.name" class="lf-native-management-group"
+                    :name="subgroup.name" :allow-collapse="true"
+                    :open="subgroupOpen(subgroup.name, item)"
+                    :active="subgroup.children.some(child => child.id === readyView)"
+                    @click.prevent="changeSubgroup(subgroup.name, !subgroupOpen(subgroup.name, item))"
+                    @update:open="changeSubgroup(subgroup.name, $event)">
+                    <NcAppNavigationItem v-for="child in subgroup.children" :key="child.id"
                       :name="labels[child.id]" :href="viewHref(child.id)"
                       :active="readyView === child.id" @click="onNavClick($event, child.id)">
                       <template #icon><NcIconSvgWrapper :path="icons[child.icon]" :size="18" /></template>
                     </NcAppNavigationItem>
-                  </template>
+                  </NcAppNavigationItem>
                 </NcAppNavigationItem>
                 <NcAppNavigationItem v-else :name="labels[item.id]" :href="viewHref(item.id)"
                   :active="readyView === item.id" @click="onNavClick($event, item.id)">
@@ -430,7 +464,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
           description="Crie uma gestão financeira ou restaure uma gestão arquivada.">
           <template #action>
             <NcButton variant="primary" @click="navigate('spaces')">
-              Gerenciar gestões financeiras
+              Gerenciar áreas financeiras
             </NcButton>
           </template>
         </NcEmptyContent>
@@ -448,7 +482,8 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
             </template>
           </NcEmptyContent>
         </div>
-        <component :is="currentScreen" v-else :key="activeId + ':' + readyView" />
+        <component :is="currentScreen" v-else
+          :key="activeId + ':' + readyView + ':' + urlSearchTerm" />
       </div>
     </NcAppContent>
 

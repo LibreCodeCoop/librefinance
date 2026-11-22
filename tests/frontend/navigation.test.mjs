@@ -17,15 +17,17 @@ const s = (manager = true, modules = all, modulesLoaded = true) =>
 test('one financial agenda and one management group without duplicate settings', () => {
   assert.deepEqual(s().map(g => g.label), ['LIBREFINANCE'])
   assert.deepEqual(s()[0].items.map(i => i.id),
-    ['dashboard', 'finance', 'banking', 'reports', 'management'])
+    ['dashboard', 'finance', 'banking', 'reports', 'spaces', 'management'])
   assert.deepEqual(s()[0].items.filter(i => i.children).map(i => i.id), ['management'])
-  for (const id of ['spaces', 'contacts', 'items', 'categories', 'companies',
+  for (const id of ['contacts', 'items', 'categories', 'companies',
     'accounts', 'transactions', 'taxes', 'nfse', 'ai',
     'access', 'fields', 'paymentMethods', 'modules', 'data']) {
     assert.equal(parentOfView(s(), id), 'management', id)
   }
   assert.equal(PAGE_NAMES.finance, 'A pagar e receber')
   assert.equal(PAGE_NAMES.banking, 'Bancos e caixa')
+  assert.equal(PAGE_NAMES.spaces, 'Áreas financeiras')
+  assert.equal(parentOfView(s(), 'spaces'), null)
   assert.equal(menuEntries(s()).filter(x => x.id === 'settings').length, 0)
   const children = s()[0].items.find(item => item.id === 'management').children
   assert.deepEqual([...new Set(children.map(child => child.group))],
@@ -72,7 +74,7 @@ test('navigation search includes ordinary work and administrative capabilities',
   assert.equal(navigationSearch(s(), 'clientes')[0].id, 'contacts')
   assert.equal(navigationSearch(s(), 'cobrança')[0].id, 'finance')
   assert.equal(navigationSearch(s(), 'nota fiscal')[0].id, 'nfse')
-  assert.equal(navigationSearch(s(), 'gestoes financeiras')[0].id, 'spaces')
+  assert.equal(navigationSearch(s(), 'areas financeiras')[0].id, 'spaces')
   assert.equal(navigationSearch(s(), 'fornecedor')[0].id, 'contacts')
   assert.equal(navigationSearch(s(), 'configuracoes')[0].id, 'modules')
   assert.equal(navigationSearch(s(), 'migracao', {manager:true,migrationEnabled:true})[0].id, 'data')
@@ -87,8 +89,8 @@ test('navigation search includes ordinary work and administrative capabilities',
 test('personal space uses household labels but preserves the same authorized routes', () => {
   assert.equal(pageNameForSpace('contacts', 'personal'), 'Pessoas e estabelecimentos')
   assert.equal(pageNameForSpace('contacts', 'organization'), 'Clientes e fornecedores')
-  assert.equal(pageNameForSpace('companies', 'personal'), 'Empresas (opcional)')
-  assert.equal(pageNameForSpace('companies', 'organization'), 'Empresas')
+  assert.equal(pageNameForSpace('companies', 'personal'), 'Dados fiscais (opcional)')
+  assert.equal(pageNameForSpace('companies', 'organization'), 'Dados fiscais da empresa')
   assert.equal(pageNameForSpace('finance', 'personal'), 'A pagar e receber')
   assert.equal(navigationSearch(s(), 'pessoas e estabelecimentos', {spaceKind:'personal'})[0].id,'contacts')
   assert.equal(navigationSearch(s(), 'clientes', {spaceKind:'organization'})[0].id,'contacts')

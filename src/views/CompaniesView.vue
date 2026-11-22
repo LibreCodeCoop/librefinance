@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { computed, inject, ref } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
@@ -26,6 +26,53 @@ const { companies, companyNextAfterId, manager, busy, companyEditId,
   companyActive, editCompany, saveCompany, resetCompanyForm, loadMoreCompanies } = w
 const dialog = ref(false)
 const saveError = ref('')
+const search = ref(new URLSearchParams(window.location.search).get('search') || '')
+const searchTerm = ref(search.value.trim())
+const searchResults = ref([])
+const searchNext = ref(null)
+const searchLoading = ref(false)
+const searchProblem = ref('')
+let searchSequence = 0
+let searchTimer = null
+const listedCompanies = computed(() => searchTerm.value ? searchResults.value : companies.value)
+async function loadSearch(append = false) {
+  const token = ++searchSequence
+  const term = searchTerm.value.trim().slice(0,120)
+  if (!term || !w.activeId.value) {
+    searchResults.value = []
+    searchNext.value = null
+    searchProblem.value = ''
+    return
+  }
+  searchLoading.value = true
+  searchProblem.value = ''
+  try {
+    const next = append ? searchNext.value : null
+    const data = await financeApi('librefinance', Number(w.activeId.value),
+      '/companies?search=' + encodeURIComponent(term)
+        + (next ? '&afterId=' + Number(next) : ''))
+    if (token !== searchSequence) return
+    searchResults.value = append ? [...searchResults.value, ...data.companies] : data.companies
+    searchNext.value = data.nextAfterId
+  } catch (error) {
+    if (token === searchSequence) searchProblem.value = financeError(error)
+  } finally {
+    if (token === searchSequence) searchLoading.value = false
+  }
+}
+function scheduleSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    searchTerm.value = search.value.trim().slice(0,120)
+    const url = new URL(window.location.href)
+    if (searchTerm.value) url.searchParams.set('search',searchTerm.value)
+    else url.searchParams.delete('search')
+    window.history.replaceState(null,'',url.pathname+url.search)
+  },280)
+}
+watch([searchTerm, () => w.activeId.value], () => loadSearch())
+onMounted(() => { if (searchTerm.value) loadSearch() })
+onBeforeUnmount(() => { ++searchSequence; if (searchTimer) clearTimeout(searchTimer) })
 const logoBusy = ref(false)
 const logoError = ref('')
 const logoVersion = ref(null)
@@ -87,15 +134,18 @@ async function save() {
   }
   await saveCompany()
   if (w.error.value) saveError.value = w.error.value
-  else closeCompany()
+  else {
+    if (searchTerm.value) await loadSearch()
+    closeCompany()
+  }
 }
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Empresas" eyebrow="CADASTROS"
+    <LfPageHeader title="Dados fiscais da empresa" eyebrow="DENTRO DA ÁREA FINANCEIRA"
       :description="personal
-        ? 'Opcional para finanças da casa. Você pode controlar receitas e despesas sem cadastrar uma empresa.'
-        : 'Identidades legais de organizações, com campos adicionais próprios de cada empresa.'">
+        ? 'Opcional: seu dinheiro e suas contas da casa funcionam sem empresa ou CNPJ.'
+        : 'Cadastre as empresas ou emissores fiscais vinculados à área financeira atual. Um cadastro fiscal não cria outra área nem mistura os saldos.'">
       <template #actions>
         <FieldStudioShortcut entity-kind="company" />
         <NcButton v-if="manager" variant="primary" @click="beginCreate">
@@ -106,14 +156,19 @@ async function save() {
     </LfPageHeader>
     <section class="lf-surface">
       <div class="lf-section-heading">
-        <div><h2>Entidades cadastradas</h2>
-          <p>O país e a identificação fiscal não implicam validação por autoridades.</p></div>
+        <div><h2>Empresas nesta área</h2>
+          <p>Estes dados identificam empresas em documentos; as contas, pessoas e lançamentos continuam associados à área financeira selecionada.</p></div>
+        <NcTextField v-model="search" label="Pesquisar empresas" type="search"
+          placeholder="Buscar em todas as empresas" maxlength="120"
+          class="lf-search-field" @update:model-value="scheduleSearch" />
       </div>
+      <NcNoteCard v-if="searchProblem" type="error">{{searchProblem}}</NcNoteCard>
+      <p v-if="searchLoading" role="status" class="lf-muted">Buscando empresas…</p>
       <div class="lf-table-scroll">
         <table class="lf-data-table">
           <thead><tr><th>Nome legal</th><th>País</th><th>Identificador fiscal</th>
             <th>Situação</th><th v-if="manager">Ações</th></tr></thead>
-          <tbody><tr v-for="company in companies" :key="company.id">
+          <tbody><tr v-for="company in listedCompanies" :key="company.id">
             <td><span class="lf-company-list-identity">
               <img v-if="company.logo_version" class="lf-company-mini-logo"
                 :src="generateUrl('/apps/librefinance/api/spaces/' + Number(w.activeId.value)
@@ -135,8 +190,10 @@ async function save() {
         <NcEmptyContent v-if="!companies.length" name="Nenhuma empresa cadastrada"
           description="Comece com nome legal e país; os demais dados são opcionais ou configuráveis." />
       </div>
-      <div v-if="companyNextAfterId" class="lf-table-footer">
-        <NcButton variant="secondary" @click="loadMoreCompanies">Carregar mais empresas</NcButton>
+      <div v-if="companyNextAfterId || searchNext" class="lf-table-footer">
+        <NcButton v-if="!searchTerm" variant="secondary" @click="loadMoreCompanies">Carregar mais empresas</NcButton>
+        <NcButton v-else-if="searchNext" variant="secondary"
+          :disabled="searchLoading" @click="loadSearch(true)">Mais resultados</NcButton>
       </div>
     </section>
     <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="dialog"

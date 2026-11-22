@@ -10,7 +10,10 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiPlus } from '@mdi/js'
+import NcActions from '@nextcloud/vue/components/NcActions'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import LfSortableHeader from '../components/LfSortableHeader.vue'
+import { mdiPlus, mdiLinkVariant, mdiCashCheck, mdiCheckCircleOutline, mdiCancel } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSelect from '../components/LfSelect.vue'
 import LfDateField from '../components/LfDateField.vue'
@@ -34,6 +37,32 @@ const list=ref([])
 const next=ref(null)
 const filter=ref('all')
 const dueRange=ref('all')
+const sortBy=ref('due')
+const sortDirection=ref('asc')
+const searchDraft=ref(new URLSearchParams(window.location.search).get('search') || '')
+const searchTerm=ref(searchDraft.value.trim())
+let searchTimer=null
+function applySearch() {
+  const cleaned=searchDraft.value.trim().slice(0,120)
+  if (searchTerm.value === cleaned) return
+  searchTerm.value=cleaned
+  const url=new URL(window.location.href)
+  if (cleaned) url.searchParams.set('search',cleaned)
+  else url.searchParams.delete('search')
+  window.history.replaceState(null,'',url.pathname+url.search)
+}
+function scheduleSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer=setTimeout(applySearch,260)
+}
+function sort(column) {
+  if (!['due','amount','description','reference'].includes(column)) return
+  if (sortBy.value === column) sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  else { sortBy.value=column; sortDirection.value='asc' }
+}
+function sortable(column) {
+  return sortBy.value === column ? (sortDirection.value === 'asc'?'ascending':'descending') : 'none'
+}
 const dueChoices=[
   {value:'all',label:'Todas as datas'},
   {value:'overdue',label:'Vencidas'},
@@ -122,7 +151,9 @@ async function load() {
   loading.value=true;error.value=''
   try{
     const data=await financeApi('librefinance_obligations',activeId.value,
-      '/obligations?kind='+props.kind+'&status='+filter.value+'&dueRange='+dueRange.value)
+      '/obligations?kind='+props.kind+'&status='+filter.value+'&dueRange='+dueRange.value
+        +'&search='+encodeURIComponent(searchTerm.value)
+        +'&sortBy='+sortBy.value+'&sortDirection='+sortDirection.value)
     if(token!==generation)return
     list.value=data.obligations
     next.value=data.nextAfterId
@@ -136,7 +167,9 @@ async function more() {
   try{
     const data=await financeApi('librefinance_obligations',activeId.value,
       '/obligations?kind='+props.kind+'&status='+filter.value
-        +'&dueRange='+dueRange.value+'&afterId='+next.value)
+        +'&dueRange='+dueRange.value+'&search='+encodeURIComponent(searchTerm.value)
+        +'&sortBy='+sortBy.value+'&sortDirection='+sortDirection.value
+        +'&afterId='+next.value)
     if(token!==generation)return
     list.value=[...list.value,...data.obligations];next.value=data.nextAfterId
   }catch(e){if(token===generation)error.value=financeError(e)}
@@ -193,7 +226,7 @@ async function cancel() {
     activeId.value,'/obligations/'+id+'/cancel','POST',{}),'Título cancelado.')
   if(result)cancelTarget.value=null
 }
-watch([filter,dueRange,()=>props.kind],()=>{
+watch([filter,dueRange,sortBy,sortDirection,searchTerm,()=>props.kind],()=>{
   focusedRecord.value=null
   list.value=[]
   next.value=null
@@ -202,7 +235,7 @@ watch([filter,dueRange,()=>props.kind],()=>{
 watch(activeId,()=>{focusedRecord.value=null;++focusedSequence;load()})
 watch(focusedObligation,inspectFocusedTitle,{immediate:true})
 onMounted(load)
-onBeforeUnmount(()=>{++generation;++focusedSequence})
+onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(searchTimer)})
 </script>
 <template>
   <div class="lf-view">
@@ -233,18 +266,51 @@ onBeforeUnmount(()=>{++generation;++focusedSequence})
         <div><h2>{{embedded?'Agenda de entradas e saídas':'Títulos financeiros'}}</h2>
           <p class="lf-muted">Valores previstos e baixas, sem misturar com o extrato bancário.</p>
         </div>
-        <div class="lf-obligation-filter-fields">
-          <LfSelect id="lf-obligations-filter" v-model="filter" label="Situação"
-            :options="choices" />
-          <LfSelect id="lf-obligations-due" v-model="dueRange"
-            label="Vencimento" :options="dueChoices" />
+        <div class="lf-native-agenda-filters">
+          <NcTextField v-model="searchDraft" class="lf-native-finance-search"
+            type="search" label="Pesquisar na agenda" placeholder="Descrição ou referência"
+            maxlength="120" @update:model-value="scheduleSearch" @keyup.enter="applySearch" />
+          <div id="lf-obligations-filter" class="lf-native-filter-chips"
+            role="group" aria-label="Filtrar por situação">
+            <NcButton v-for="option in choices" :key="option.value"
+              size="small" :variant="filter === option.value ? 'secondary' : 'tertiary'"
+              :aria-pressed="filter === option.value" @click="filter=option.value">
+              {{ option.label }}
+            </NcButton>
+          </div>
+          <div id="lf-obligations-due" class="lf-native-filter-chips"
+            role="group" aria-label="Filtrar por vencimento">
+            <NcButton v-for="option in dueChoices" :key="option.value"
+              size="small" :variant="dueRange === option.value ? 'secondary' : 'tertiary'"
+              :aria-pressed="dueRange === option.value" @click="dueRange=option.value">
+              {{ option.label }}
+            </NcButton>
+          </div>
         </div>
       </div>
       <div class="lf-table-scroll">
         <table class="lf-data-table">
-          <thead><tr><th>Referência</th><th>Descrição</th><th>Direção</th><th>Origem</th>
-            <th>Vencimento</th><th class="lf-numeric">Valor previsto</th>
-            <th class="lf-numeric">Saldo previsto</th><th>Situação</th><th v-if="writable">Ações</th></tr></thead>
+          <thead><tr>
+            <th :aria-sort="sortable('reference')">
+              <LfSortableHeader label="Referência" column="reference" :active-column="sortBy"
+                :direction="sortDirection" @sort="sort" />
+            </th>
+            <th :aria-sort="sortable('description')">
+              <LfSortableHeader label="Descrição" column="description" :active-column="sortBy"
+                :direction="sortDirection" @sort="sort" />
+            </th>
+            <th>Direção</th><th>Origem</th>
+            <th :aria-sort="sortable('due')">
+              <LfSortableHeader label="Vencimento" column="due" :active-column="sortBy"
+                :direction="sortDirection" @sort="sort" />
+            </th>
+            <th class="lf-numeric" :aria-sort="sortable('amount')">
+              <LfSortableHeader label="Valor previsto" column="amount" :active-column="sortBy"
+                :direction="sortDirection" @sort="sort" />
+            </th>
+            <th class="lf-numeric">Saldo previsto</th><th>Situação</th>
+            <th v-if="writable">Ações</th>
+          </tr></thead>
           <tbody><tr v-for="row in displayedRows" :key="row.id"
             :class="{'lf-row-focused':focusedRecord && Number(focusedRecord.id)===Number(row.id)}">
             <td class="lf-code">{{row.reference}}</td>
@@ -289,22 +355,29 @@ onBeforeUnmount(()=>{++generation;++focusedSequence})
               }[row.status]||row.status)}}</span></td>
             <td v-if="writable" class="lf-row-actions">
               <NcButton v-if="['open','partial'].includes(row.status)&&!row.linkedInvoiceId"
-                size="small" @click="cashTarget=row">
-                {{row.kind==='receivable'?'Registrar recebimento':'Registrar pagamento'}}
+                size="small" variant="secondary" @click="cashTarget=row">
+                <template #icon><NcIconSvgWrapper :path="mdiCashCheck" :size="18" /></template>
+                {{row.kind==='receivable'?'Receber':'Pagar'}}
               </NcButton>
-              <NcButton v-if="['open','partial'].includes(row.status)&&!row.linkedInvoiceId"
-                size="small" variant="tertiary" @click="existingTarget=row">
-                Vincular lançamento existente
-              </NcButton>
-              <NcButton v-if="['open','partial'].includes(row.status)&&!row.linkedInvoiceId"
-                size="small" variant="tertiary" @click="beginSettlement(row)">
-                Baixa sem movimentação
-              </NcButton>
+              <NcActions :aria-label="'Mais ações de ' + row.description" force-menu
+                v-if="['open','partial'].includes(row.status)&&!row.linkedInvoiceId">
+                <NcActionButton close-after-click @click="existingTarget=row">
+                  <template #icon><NcIconSvgWrapper :path="mdiLinkVariant" :size="20" /></template>
+                  Vincular lançamento existente
+                </NcActionButton>
+                <NcActionButton close-after-click @click="beginSettlement(row)">
+                  <template #icon><NcIconSvgWrapper :path="mdiCheckCircleOutline" :size="20" /></template>
+                  Baixa sem movimentação
+                </NcActionButton>
+                <NcActionButton v-if="manager&&row.status==='open'" close-after-click
+                  @click="cancelTarget=row">
+                  <template #icon><NcIconSvgWrapper :path="mdiCancel" :size="20" /></template>
+                  Cancelar título
+                </NcActionButton>
+              </NcActions>
               <span v-else-if="row.linkedInvoiceId" class="lf-state">
                 Liquidação pelo documento de origem
               </span>
-              <NcButton v-if="manager&&row.status==='open'&&!row.linkedInvoiceId"
-                size="small" variant="tertiary" @click="cancelTarget=row">Cancelar</NcButton>
             </td>
           </tr></tbody>
         </table>

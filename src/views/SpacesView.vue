@@ -9,6 +9,12 @@ import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import NcListItem from '@nextcloud/vue/components/NcListItem'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import { mdiFolderAccountOutline, mdiHomeOutline, mdiDomain,
+  mdiAccountGroupOutline, mdiPencilOutline, mdiArchiveArrowDownOutline,
+  mdiBackupRestore, mdiFolderOpenOutline } from '@mdi/js'
 import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import { financeError } from '../services/api.js'
@@ -28,10 +34,31 @@ const newKind = ref('personal')
 const kinds = [
   { value: 'personal', label: 'Pessoal ou da casa' },
   { value: 'collective', label: 'Grupo ou coletivo' },
-  { value: 'organization', label: 'Empresa ou organização' },
+  { value: 'organization', label: 'Negócio ou organização' },
 ]
-const owned = computed(() => w.spaces.value.filter(space => space.role === 'owner'))
-const other = computed(() => w.spaces.value.filter(space => space.role !== 'owner'))
+const search = ref('')
+const needle = computed(() => search.value.toLocaleLowerCase('pt-BR').trim())
+const matches = item => !needle.value
+  || item.name.toLocaleLowerCase('pt-BR').includes(needle.value)
+  || (kinds.find(k => k.value === item.kind)?.label || '').toLocaleLowerCase('pt-BR').includes(needle.value)
+const owned = computed(() => w.spaces.value.filter(space => space.role === 'owner' && matches(space)))
+const other = computed(() => w.spaces.value.filter(space => space.role !== 'owner' && matches(space)))
+const archivedFiltered = computed(() => archived.value.filter(matches))
+const typeIcon = type => ({ personal: mdiHomeOutline, collective: mdiAccountGroupOutline,
+  organization: mdiDomain })[type] || mdiFolderAccountOutline
+function href(space) {
+  const url = new URL(window.location.href)
+  url.searchParams.set('spaceId', String(Number(space.id)))
+  url.searchParams.set('view', 'dashboard')
+  url.searchParams.delete('section')
+  return url.pathname + url.search
+}
+function openSpace(event, space) {
+  if (event?.button !== 0 || event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) return
+  event.preventDefault()
+  w.activeId.value = Number(space.id)
+  navigate('dashboard')
+}
 let requestSeq = 0
 async function refreshArchived() {
   const token = ++requestSeq
@@ -78,7 +105,7 @@ async function archive() {
     archiving.value = null
     await w.refreshSpaces()
     await refreshArchived()
-    notice.value = 'Gestão arquivada sem apagar lançamentos ou documentos.'
+    notice.value = 'Área arquivada sem apagar lançamentos ou documentos.'
   } catch (error) {
     problem.value = financeError(error)
   } finally {
@@ -93,7 +120,7 @@ async function restore(space) {
     await w.call('POST', '/api/spaces/' + Number(space.id) + '/restore', {})
     await w.refreshSpaces()
     await refreshArchived()
-    notice.value = 'Gestão restaurada com seu histórico.'
+    notice.value = 'Área restaurada com seu histórico.'
   } catch (error) {
     problem.value = financeError(error)
   } finally {
@@ -112,7 +139,7 @@ async function create() {
     newName.value = ''
     await w.refreshSpaces()
     w.activeId.value = Number(created.id)
-    notice.value = 'Gestão financeira criada.'
+    notice.value = 'Área financeira criada.'
     navigate('dashboard')
   } catch (error) {
     problem.value = financeError(error)
@@ -124,79 +151,104 @@ async function create() {
 
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Gestões financeiras" eyebrow="ADMINISTRAÇÃO"
-      description="Administre os espaços financeiros que você possui e os que foram compartilhados com você.">
+    <LfPageHeader title="Áreas financeiras" eyebrow="ORGANIZAÇÃO DOS DADOS"
+      description="Uma área separa contas, histórico e permissões (casa, negócio ou grupo). Dados fiscais de empresas são cadastros dentro de cada área.">
       <template #actions>
-        <NcButton variant="primary" @click="creating=true">Criar gestão</NcButton>
+        <NcButton variant="primary" @click="creating=true">Criar área</NcButton>
       </template>
     </LfPageHeader>
     <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
     <NcNoteCard v-if="notice" type="success" role="status">{{notice}}</NcNoteCard>
+    <NcNoteCard type="info">Área financeira ≠ empresa cadastrada. Por exemplo, uma área
+      "Minha casa" não precisa de CNPJ; a área "Meu negócio" pode possuir
+      uma ou mais empresas emitentes, sem duplicar o livro financeiro.</NcNoteCard>
+    <div class="lf-native-workspace-filter" role="search">
+      <NcTextField v-model="search" label="Filtrar áreas financeiras"
+        type="search" placeholder="Nome da área ou tipo" />
+    </div>
     <section class="lf-surface">
       <div class="lf-section-heading">
-        <div><h2>Minhas gestões</h2><p>Renomeie ou arquive sem excluir o histórico financeiro.</p></div>
+        <div><h2>Minhas áreas</h2>
+          <p>Abrir acessa o livro financeiro. Renomear ou arquivar não modifica os lançamentos.</p></div>
       </div>
-      <div v-if="owned.length" class="lf-table-scroll">
-        <table class="lf-data-table">
-          <thead><tr><th>Nome</th><th>Tipo</th><th>Moeda</th><th>Ações</th></tr></thead>
-          <tbody>
-            <tr v-for="item in owned" :key="item.id">
-              <td><strong>{{item.name}}</strong></td>
-              <td>{{kinds.find(k => k.value===item.kind)?.label || item.kind}}</td>
-              <td>{{item.currency}}</td>
-              <td class="lf-row-actions">
-                <NcButton variant="tertiary" @click="w.activeId.value=Number(item.id); navigate('dashboard')">
-                  Abrir
-                </NcButton>
-                <NcButton variant="tertiary" @click="startEdit(item)">Renomear</NcButton>
-                <NcButton variant="tertiary" @click="problem=''; archiving=item">Arquivar</NcButton>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <NcEmptyContent v-else name="Nenhuma gestão ativa sua"
-        description="Crie uma gestão pessoal, de grupo ou organização, ou restaure uma gestão arquivada." />
+      <ul v-if="owned.length" class="lf-native-space-list" aria-label="Áreas de minha propriedade">
+        <NcListItem v-for="item in owned" :key="item.id"
+          :name="item.name" :details="item.currency"
+          :href="href(item)" :actions-aria-label="'Ações da área ' + item.name"
+          force-menu force-display-actions @click="openSpace($event, item)">
+          <template #icon><NcIconSvgWrapper :path="typeIcon(item.kind)" :size="26" /></template>
+          <template #subname>
+            {{ kinds.find(k => k.value===item.kind)?.label || item.kind }}
+            · Proprietário
+          </template>
+          <template #actions>
+            <NcActionButton close-after-click @click="openSpace({button:0,preventDefault(){}},item)">
+              <template #icon><NcIconSvgWrapper :path="mdiFolderOpenOutline" :size="20" /></template>
+              Abrir
+            </NcActionButton>
+            <NcActionButton close-after-click @click="startEdit(item)">
+              <template #icon><NcIconSvgWrapper :path="mdiPencilOutline" :size="20" /></template>
+              Renomear
+            </NcActionButton>
+            <NcActionButton close-after-click @click="problem=''; archiving=item">
+              <template #icon><NcIconSvgWrapper :path="mdiArchiveArrowDownOutline" :size="20" /></template>
+              Arquivar
+            </NcActionButton>
+          </template>
+        </NcListItem>
+      </ul>
+      <NcEmptyContent v-else name="Nenhuma área nesta busca"
+        description="Crie uma área, remova o filtro ou restaure uma área arquivada." />
     </section>
-    <section v-if="archived.length" class="lf-surface">
-      <div class="lf-section-heading"><h2>Gestões arquivadas</h2></div>
-      <div class="lf-table-scroll">
-        <table class="lf-data-table">
-          <thead><tr><th>Nome</th><th>Tipo</th><th>Ação</th></tr></thead>
-          <tbody>
-            <tr v-for="item in archived" :key="item.id">
-              <td><strong>{{item.name}}</strong></td>
-              <td>{{kinds.find(k => k.value===item.kind)?.label || item.kind}}</td>
-              <td><NcButton variant="secondary" :disabled="loading"
-                @click="restore(item)">Restaurar</NcButton></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <section v-if="archivedFiltered.length" class="lf-surface">
+      <div class="lf-section-heading"><h2>Áreas arquivadas</h2></div>
+      <ul class="lf-native-space-list" aria-label="Áreas financeiras arquivadas">
+        <NcListItem v-for="item in archivedFiltered" :key="item.id" :name="item.name"
+          :details="item.currency" :actions-aria-label="'Ações da área arquivada ' + item.name" force-menu force-display-actions>
+          <template #icon><NcIconSvgWrapper :path="typeIcon(item.kind)" :size="26" /></template>
+          <template #subname>
+            {{ kinds.find(k => k.value===item.kind)?.label || item.kind }} · Arquivada
+          </template>
+          <template #actions>
+            <NcActionButton :disabled="loading" close-after-click @click="restore(item)">
+              <template #icon><NcIconSvgWrapper :path="mdiBackupRestore" :size="20" /></template>
+              Restaurar
+            </NcActionButton>
+          </template>
+        </NcListItem>
+      </ul>
     </section>
     <section v-if="other.length" class="lf-surface">
       <div class="lf-section-heading"><h2>Compartilhadas comigo</h2></div>
-      <div class="lf-table-scroll">
-        <table class="lf-data-table">
-          <thead><tr><th>Nome</th><th>Meu acesso</th><th>Ação</th></tr></thead>
-          <tbody>
-            <tr v-for="item in other" :key="item.id">
-              <td><strong>{{item.name}}</strong></td><td>{{item.role}}</td>
-              <td><NcButton variant="tertiary" @click="w.activeId.value=Number(item.id); navigate('dashboard')">Abrir</NcButton></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <ul class="lf-native-space-list" aria-label="Áreas financeiras compartilhadas">
+        <NcListItem v-for="item in other" :key="item.id" :name="item.name"
+          :href="href(item)" :actions-aria-label="'Ações da área ' + item.name"
+          :details="item.currency" force-menu force-display-actions @click="openSpace($event,item)">
+          <template #icon><NcIconSvgWrapper :path="typeIcon(item.kind)" :size="26" /></template>
+          <template #subname>{{ item.role }} · Compartilhada</template>
+          <template #actions>
+            <NcActionButton close-after-click @click="openSpace({button:0,preventDefault(){}},item)">
+              <template #icon><NcIconSvgWrapper :path="mdiFolderOpenOutline" :size="20" /></template>
+              Abrir
+            </NcActionButton>
+          </template>
+        </NcListItem>
+      </ul>
     </section>
+    <p class="lf-muted lf-area-retention-note">Não há exclusão permanente de áreas
+      nesta versão. O arquivamento é reversível e preserva os registros e a
+      auditoria; uma exclusão segura requer proteger também dados e referências
+      de módulos vinculados.</p>
 
-    <NcDialog :open="creating" name="Criar gestão financeira"
+    <NcDialog :open="creating" name="Criar área financeira"
       content-classes="lf-finance-dialog-content" size="normal"
       @update:open="creating=$event">
       <form class="lf-dialog-form" @submit.prevent="create">
-        <p>Escolha o contexto: despesas pessoais ou da casa, um grupo, ou uma
-          empresa. Cada gestão separa contas, lançamentos e permissões.
-          Uma gestão pessoal não exige cadastro de empresa ou CNPJ.</p>
-        <NcTextField v-model="newName" label="Nome da gestão" maxlength="150" required />
+        <p>Crie uma área independente para a casa, para um negócio ou para um grupo.
+          Ela contém contas, compromissos, registros e permissões próprios.
+          <strong>Esta ação não cadastra uma empresa:</strong> os dados fiscais
+          são opcionais e ficam em Gerenciar → Dados fiscais da empresa.</p>
+        <NcTextField v-model="newName" label="Nome da área" maxlength="150" required />
         <LfSelect id="lf-space-kind-new" v-model="newKind"
           label="Tipo de gestão" :options="kinds" />
         <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
@@ -207,7 +259,7 @@ async function create() {
       </form>
     </NcDialog>
 
-    <NcDialog :open="Boolean(editing)" name="Renomear gestão financeira"
+    <NcDialog :open="Boolean(editing)" name="Renomear área financeira"
       content-classes="lf-finance-dialog-content" size="normal"
       @update:open="editing=$event?editing:null">
       <form class="lf-dialog-form" @submit.prevent="rename">
@@ -221,7 +273,7 @@ async function create() {
       </form>
     </NcDialog>
 
-    <NcDialog :open="Boolean(archiving)" name="Arquivar gestão financeira"
+    <NcDialog :open="Boolean(archiving)" name="Arquivar área financeira"
       content-classes="lf-finance-dialog-content" size="normal"
       @update:open="archiving=$event?archiving:null">
       <div class="lf-dialog-form">
@@ -234,7 +286,7 @@ async function create() {
         <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" @click="archiving=null">Cancelar</NcButton>
-          <NcButton variant="error" :disabled="loading" @click="archive">Arquivar gestão</NcButton>
+          <NcButton variant="error" :disabled="loading" @click="archive">Arquivar área</NcButton>
         </div>
       </div>
     </NcDialog>

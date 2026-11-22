@@ -27,9 +27,9 @@ const chooseOperation = ref('')
 const newSimple = ref(false)
 const newDetailed = ref(false)
 const directionOptions = [
-  {value:'all',label:'Entradas e saídas'},
-  {value:'receivable',label:'Somente a receber'},
-  {value:'payable',label:'Somente a pagar'},
+  {value:'all',label:'Tudo'},
+  {value:'receivable',label:'A receber'},
+  {value:'payable',label:'A pagar'},
 ]
 const documentOptions = [
   {value:'receivable',label:'Vendas'},
@@ -124,10 +124,22 @@ onBeforeUnmount(() => { chooseOperation.value = '' })
           Documentos comerciais
         </NcButton>
       </div>
-      <LfSelect v-if="mode === 'accounts'" id="lf-finance-direction"
-        v-model="direction" label="Direção" :options="directionOptions" />
-      <LfSelect v-else id="lf-commercial-direction"
-        v-model="direction" label="Documentos" :options="documentOptions" />
+      <div v-if="mode === 'accounts'" id="lf-finance-direction"
+        class="lf-native-filter-chips" role="group" aria-label="Mostrar entradas e saídas">
+        <NcButton v-for="option in directionOptions" :key="option.value"
+          size="small" :variant="direction === option.value ? 'secondary' : 'tertiary'"
+          :aria-pressed="direction === option.value" @click="direction=option.value">
+          {{ option.label }}
+        </NcButton>
+      </div>
+      <div v-else id="lf-commercial-direction"
+        class="lf-native-filter-chips" role="group" aria-label="Mostrar documentos">
+        <NcButton v-for="option in documentOptions" :key="option.value"
+          size="small" :variant="direction === option.value ? 'secondary' : 'tertiary'"
+          :aria-pressed="direction === option.value" @click="direction=option.value">
+          {{ option.label }}
+        </NcButton>
+      </div>
     </div>
 
     <p class="lf-muted lf-flow-explainer">

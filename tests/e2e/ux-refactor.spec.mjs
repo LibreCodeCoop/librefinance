@@ -69,9 +69,9 @@ test('@extensions household workspace uses personal terms without requiring a co
     await expect(page.getByRole('option',{name:option,exact:true})).toBeVisible()
   await page.keyboard.press('Escape')
   await contact.getByRole('button',{name:'Cancelar'}).click()
-  await goToView(page, 'Empresas (opcional)')
-  await expect(page.getByRole('heading',{name:'Empresas',exact:true})).toBeVisible()
-  await expect(page.getByText('Opcional para finanças da casa.',{exact:false})).toBeVisible()
+  await goToView(page, 'Dados fiscais (opcional)')
+  await expect(page.getByRole('heading',{name:'Dados fiscais da empresa',exact:true})).toBeVisible()
+  await expect(page.getByText('Opcional: seu dinheiro e suas contas da casa', {exact:false})).toBeVisible()
   const currentSpace = new URL(page.url()).searchParams.get('spaceId')
   await expect(page.locator('.lf-context-identity')).toContainText(name)
   await page.goto('/index.php/apps/librefinance/?spaceId='+currentSpace+'&view=contacts')
@@ -82,7 +82,7 @@ test('@extensions supported entity pages link quietly to the matching Field Stud
   await login(page)
   await makeSpace(page, 'organization')
   for (const [screen, entity, label] of [
-    ['Empresas', 'company','empresas'],
+    ['Dados fiscais da empresa', 'company','empresas'],
     ['Clientes e fornecedores','contact','contatos'],
     ['Produtos e serviços','item','produtos e serviços'],
     ['Lançamentos contábeis','journal','lançamentos'],
@@ -106,6 +106,55 @@ test('@extensions supported entity pages link quietly to the matching Field Stud
   }
   await goToView(page,'Acessos e compartilhamento')
   await expect(page.getByRole('button',{name:/Personalizar campos de/})).toHaveCount(0)
+})
+
+test('@extensions Nextcloud unified search finds only authorized financial contacts', async ({ page, browser }) => {
+  await login(page)
+  const area = await makeSpace(page,'organization')
+  await goToView(page,'Clientes e fornecedores')
+  await page.getByRole('button',{name:'Novo contato'}).click()
+  const editor=page.getByRole('dialog',{name:'Novo contato'})
+  const unique='FinanceSearch' + Date.now().toString(36)
+  await editor.getByRole('textbox',{name:'Nome',exact:true}).fill(unique)
+  await editor.getByRole('button',{name:'Salvar cadastro'}).click()
+  await expect(page.getByRole('row',{name:new RegExp(unique)})).toBeVisible()
+  const headers={ 'OCS-APIREQUEST':'true', Accept:'application/json' }
+  const providersResponse=await page.request.get('/ocs/v2.php/search/providers?format=json',{headers})
+  expect(providersResponse.status()).toBe(200)
+  const providers=await providersResponse.json()
+  const names=JSON.stringify(providers)
+  expect(names).toContain('librefinance-records')
+  const searchUrl='/ocs/v2.php/search/providers/librefinance-records/search?term='
+    +encodeURIComponent(unique)+'&format=json'
+  const find=await page.request.get(searchUrl,{headers})
+  expect(find.status()).toBe(200)
+  const result=await find.json()
+  const entries=result.ocs?.data?.entries || []
+  const match=entries.find(row=>row.title===unique)
+  expect(match).toBeTruthy()
+  expect(match.resourceUrl).toContain('view=contacts')
+  expect(match.resourceUrl).toContain('search=')
+  const spaceId=new URL(page.url()).searchParams.get('spaceId')
+  expect(match.resourceUrl).toContain('spaceId='+spaceId)
+  expect(match.subline).toContain(area)
+  await page.goto(match.resourceUrl)
+  await expect(page.getByRole('heading',{name:'Clientes e fornecedores'})).toBeVisible()
+  await expect(page.getByRole('row',{name:new RegExp(unique)})).toBeVisible()
+  const otherContext=await browser.newContext({baseURL:new URL(page.url()).origin})
+  try {
+    const outsider=await otherContext.newPage()
+    await outsider.goto('/index.php/login')
+    await outsider.locator('#user').fill('lfmaintestB')
+    await outsider.locator('#password').fill(process.env.LF_TEST_USER_PASS)
+    await outsider.locator('button[type=submit]').first().click()
+    await outsider.waitForURL(url => !url.pathname.endsWith('/login'), {timeout:25000})
+    const denied=await outsider.request.get(searchUrl,{headers})
+    expect(denied.status()).toBe(200)
+    const other=await denied.json()
+    expect(JSON.stringify(other.ocs?.data?.entries || [])).not.toContain(unique)
+  } finally {
+    await otherContext.close()
+  }
 })
 
 test('Field Studio targets contacts and the resulting field appears in the contact form', async ({ page }) => {

@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { computed, inject, ref } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
@@ -47,12 +47,55 @@ const contactKinds = computed(() => personal.value ? [
   {value:'both',label:'Cliente e fornecedor'},
 ])
 const itemKinds = [{value:'service',label:'Serviço'},{value:'product',label:'Produto'}]
-const search = ref('')
-const shownContacts = computed(() => contacts.value.filter(c =>
-  (c.name || '').toLowerCase().includes(search.value.trim().toLowerCase())))
-const shownItems = computed(() => items.value.filter(i =>
-  (i.name || '').toLowerCase().includes(search.value.trim().toLowerCase())
-  || (i.sku || '').toLowerCase().includes(search.value.trim().toLowerCase())))
+const search = ref(new URLSearchParams(window.location.search).get('search') || '')
+const searchTerm = ref(search.value.trim())
+const searchResults = ref([])
+const searchNext = ref(null)
+const searchLoading = ref(false)
+const searchProblem = ref('')
+let searchSequence = 0
+let searchTimer = null
+const shownContacts = computed(() => searchTerm.value ? (active.value === 'contacts' ? searchResults.value : []) : contacts.value)
+const shownItems = computed(() => searchTerm.value ? (active.value === 'items' ? searchResults.value : []) : items.value)
+async function loadSearch(append = false) {
+  const term = searchTerm.value.trim().slice(0, 120)
+  const token = ++searchSequence
+  if (!term || !activeId.value) {
+    searchResults.value = []
+    searchNext.value = null
+    searchProblem.value = ''
+    return
+  }
+  searchLoading.value = true
+  searchProblem.value = ''
+  try {
+    const entity = active.value === 'contacts' ? 'contacts' : 'items'
+    const afterId = append ? searchNext.value : null
+    const url = '/' + entity + '?search=' + encodeURIComponent(term)
+      + (afterId ? '&afterId=' + Number(afterId) : '')
+    const result = await financeApi('librefinance', Number(activeId.value), url)
+    if (token !== searchSequence) return
+    searchResults.value = append ? [...searchResults.value, ...result[entity]] : result[entity]
+    searchNext.value = result.nextAfterId
+  } catch (error) {
+    if (token === searchSequence) searchProblem.value = financeError(error)
+  } finally {
+    if (token === searchSequence) searchLoading.value = false
+  }
+}
+function scheduleSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    searchTerm.value = search.value.trim().slice(0,120)
+    const url = new URL(window.location.href)
+    if (searchTerm.value) url.searchParams.set('search', searchTerm.value)
+    else url.searchParams.delete('search')
+    window.history.replaceState(null,'',url.pathname+url.search)
+  }, 280)
+}
+watch([searchTerm, activeId, active], () => loadSearch())
+onMounted(() => { if (searchTerm.value) loadSearch() })
+onBeforeUnmount(() => { ++searchSequence; if (searchTimer) clearTimeout(searchTimer) })
 function newRecord() {
   editId.value = null
   form.value = { name:'',kind:active.value==='contacts'?'customer':'service',
@@ -98,6 +141,7 @@ async function save() {
         editId.value ? 'PUT' : 'POST',data)
     }
     await refreshCurrent()
+    if (searchTerm.value) await loadSearch()
     dialog.value = ''
   } catch (e) { problem.value = financeError(e) }
   finally { working.value = false }
@@ -127,9 +171,13 @@ async function save() {
         <h2>{{ active === 'contacts'
           ? (personal ? 'Contatos pessoais' : 'Pessoas e organizações')
           : 'Catálogo de itens' }}</h2>
-        <NcTextField v-model="search" label="Filtrar registros carregados"
-          type="search" placeholder="Pesquisar por nome" class="lf-search-field" />
+        <NcTextField v-model="search"
+          :label="active==='contacts'?'Buscar contatos':'Buscar produtos e serviços'"
+          type="search" placeholder="Pesquisar todos os cadastros" class="lf-search-field"
+          maxlength="120" @update:model-value="scheduleSearch" />
       </div>
+      <NcNoteCard v-if="searchProblem" type="error">{{searchProblem}}</NcNoteCard>
+      <p v-if="searchLoading" class="lf-muted" role="status">Buscando em todos os cadastros…</p>
       <div class="lf-table-scroll">
         <table class="lf-data-table">
           <thead v-if="active==='contacts'"><tr><th>Contato</th><th>Tipo</th><th>E-mail</th>
@@ -163,9 +211,11 @@ async function save() {
           name="Nenhum produto ou serviço nesta página" />
       </div>
       <div class="lf-table-footer">
-        <NcButton v-if="active==='contacts'&&contactNextAfterId"
+        <NcButton v-if="searchTerm && searchNext" variant="secondary"
+          :disabled="searchLoading" @click="loadSearch(true)">Mais resultados</NcButton>
+        <NcButton v-else-if="!searchTerm && active==='contacts'&&contactNextAfterId"
           variant="secondary" @click="loadMoreCatalog('contacts')">Mais contatos</NcButton>
-        <NcButton v-if="active==='items'&&itemNextAfterId"
+        <NcButton v-else-if="!searchTerm && active==='items'&&itemNextAfterId"
           variant="secondary" @click="loadMoreCatalog('items')">Mais produtos e serviços</NcButton>
       </div>
     </section>

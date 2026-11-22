@@ -973,3 +973,36 @@
 @media (max-width: 680px) {
   #librefinance-app .lf-field-studio-shortcut { font-size: 12px; }
 }
+
+/* Match the Nextcloud Files density: native buttons in sortable table heads,
+   no custom select for a three-way direction, and a single action menu/row. */
+#librefinance-app .lf-native-agenda-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  max-width: 780px;
+}
+#librefinance-app .lf-native-finance-search { min-width: 240px; flex: 1 1 245px; }
+#librefinance-app .lf-native-filter-chips {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#librefinance-app .lf-sort-header { padding-inline: 5px; min-height: 34px; font-weight: 600; }
+#librefinance-app .lf-native-workspace-filter { width: min(100%, 350px); }
+#librefinance-app .lf-native-space-list { display: grid; list-style: none; padding: 0; margin: 0; }
+#librefinance-app .lf-native-space-list > li { border-bottom: 1px solid var(--color-border); }
+#librefinance-app .lf-native-space-list > li:last-child { border-bottom: 0; }
+#librefinance-app .lf-area-retention-note { margin: 4px 12px 16px; }
+#librefinance-app .lf-manage-spaces-link { align-self: flex-start; margin-top: 2px; }
+#librefinance-app .lf-native-management-group { font-weight: 600; }
+#librefinance-app .lf-data-table { border-collapse: separate; border-spacing: 0; }
+#librefinance-app .lf-data-table thead th { background: var(--color-background-hover, var(--color-background-dark));
+  color: var(--color-main-text); font-weight: 600; }
+#librefinance-app .lf-data-table td { vertical-align: middle; }
+@media (max-width: 760px) {
+  #librefinance-app .lf-native-agenda-filters { width: 100%; }
+  #librefinance-app .lf-native-filter-chips { gap: 0; }
+}
