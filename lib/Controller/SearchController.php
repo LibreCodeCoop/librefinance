@@ -6,6 +6,7 @@
 declare(strict_types=1);
 
 namespace OCA\LibreFinance\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 
 use OCA\LibreFinance\Service\SearchService;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -18,6 +19,7 @@ final class SearchController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/search')]
     public function index(int $spaceId, string $query, string $type = 'all'): JSONResponse {
         return $this->respond(fn(): array => $this->search->search($spaceId, $query, $type));
     }

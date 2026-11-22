@@ -6,6 +6,7 @@
 declare(strict_types=1);
 
 namespace OCA\LibreFinance\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 
 use OCA\LibreFinance\Service\AiService;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -19,16 +20,19 @@ final class AiController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/ai/capabilities')]
     public function capabilities(int $spaceId): JSONResponse {
         return $this->respond(fn(): array => $this->ai->capabilities($spaceId));
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/ai/preview')]
     public function preview(int $spaceId, string $from, string $through): JSONResponse {
         return $this->respond(fn(): array => $this->ai->preview($spaceId, $from, $through));
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/ai/analyze')]
     public function analyze(int $spaceId, string $from, string $through,
         bool $consent = false, string $previewHash = ''): JSONResponse {
         return $this->respond(fn(): array =>
@@ -36,6 +40,7 @@ final class AiController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/ai/tasks/{taskId}')]
     public function status(int $spaceId, int $taskId): JSONResponse {
         return $this->respond(fn(): array => $this->ai->status($spaceId, $taskId));
     }

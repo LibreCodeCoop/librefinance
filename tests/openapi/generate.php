@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 /**
  * Explicit, reviewable OpenAPI documentation compiled from every actual
- * Nextcloud route declaration. A new write route without a declared request
+ * Nextcloud controller route attribute. A write route without a request
  * contract breaks this generator. --check detects stale committed JSON.
  *
  * Limit: response object schemas are structural at this development stage.
@@ -276,15 +276,55 @@ $responseSchemas = [
     'librefinance_reports:report#profitLoss' => 'ProfitLoss',
     'librefinance_reports:report#cashFlow' => 'CashFlow',
 ];
-$operationCount = 0;
-foreach ($apps as $app) {
-    $file = $project . '/' . $app . '/appinfo/routes.php';
-    if (!is_file($file)) {
+/**
+ * Read the source of truth from controller attributes without bootstrapping a
+ * Nextcloud server during standalone OpenAPI generation. This is restricted
+ * to explicit FrontpageRoute declarations; other attribute syntaxes must be
+ * implemented here and tested before they can be used to add API operations.
+ *
+ * @return list<array{name:string,url:string,verb:string}>
+ */
+function routesFromControllers(string $app, string $project): array {
+    $dir = $project . '/' . $app . '/lib/Controller';
+    if (!is_dir($dir)) {
         throw new RuntimeException('Missing source app checkout ' . $app);
     }
-    $definition = require $file;
+    $files = glob($dir . '/*Controller.php');
+    if ($files === false || $files === []) {
+        throw new RuntimeException('Missing Nextcloud controllers for ' . $app);
+    }
+    sort($files, SORT_STRING);
+    $routes = [];
+    foreach ($files as $file) {
+        $source = file_get_contents($file);
+        if ($source === false) {
+            throw new RuntimeException('Unreadable controller ' . $file);
+        }
+        $controller = lcfirst(substr(basename($file), 0, -strlen('Controller.php')));
+        preg_match_all(
+            "/#\\[FrontpageRoute\\(verb: *'([A-Z]+)', *url: *'([^']+)'\\)\\]\\s*public\\s+function\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*\\(/",
+            $source,
+            $matches,
+            PREG_SET_ORDER,
+        );
+        if (count($matches) !== substr_count($source, '#[FrontpageRoute(')) {
+            throw new RuntimeException('Unrecognized controller route attribute in ' . $file);
+        }
+        foreach ($matches as $match) {
+            $routes[] = [
+                'name' => $controller . '#' . $match[3],
+                'url' => $match[2],
+                'verb' => $match[1],
+            ];
+        }
+    }
+    return $routes;
+}
+
+$operationCount = 0;
+foreach ($apps as $app) {
     $spec['tags'][] = ['name' => $app, 'description' => 'Nextcloud optional app / native module'];
-    foreach ($definition['routes'] ?? [] as $route) {
+    foreach (routesFromControllers($app, $project) as $route) {
         $url = $route['url'] ?? '';
         if (!str_starts_with($url, '/api/')) {
             continue; // HTML app pages are not JSON APIs.

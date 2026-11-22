@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later */
 declare(strict_types=1);
 namespace OCA\LibreFinance\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use DomainException;
 use OCA\LibreFinance\Service\CompanyLogoService;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
@@ -17,17 +18,20 @@ final class CompanyLogoController extends ApiController {
         private CompanyLogoService $logos) { parent::__construct($appName, $request); }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/companies/{companyId}/logo')]
     public function upload(int $spaceId, int $companyId, string $imageBase64): JSONResponse {
         return $this->respond(fn() => $this->logos->upload($spaceId, $companyId, $imageBase64));
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'DELETE', url: '/api/spaces/{spaceId}/companies/{companyId}/logo')]
     public function delete(int $spaceId, int $companyId): JSONResponse {
         return $this->respond(fn() => $this->logos->remove($spaceId, $companyId));
     }
 
     #[NoAdminRequired]
     #[NoCSRFRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/companies/{companyId}/logo')]
     public function image(int $spaceId, int $companyId): Response {
         try {
             $result = $this->logos->read($spaceId, $companyId);

@@ -184,6 +184,15 @@ fi
 # schema/version migrations before browser access instead of exposing the
 # "App update required" maintenance screen during functional tests.
 compose exec -T --user www-data nextcloud php occ upgrade
+# Assert the exact 98-route contract against Nextcloud's real route resolver;
+# linting attributes or checking only one successful URL is insufficient.
+route_apps=(librefinance)
+if [ "$LF_WITH_EXTENSIONS" = 1 ]; then
+  route_apps+=(librefinance_banking librefinance_import librefinance_invoicing)
+  route_apps+=(librefinance_nfse librefinance_obligations librefinance_reports)
+fi
+compose exec -T --user www-data nextcloud php occ router:list "${route_apps[@]}" --index --output=json \
+  | python3 tests/ci/check-route-contracts.py tests/ci/routes-expected.json "${route_apps[@]}"
 compose exec -T --user www-data nextcloud php occ status | grep -E 'installed: true|versionstring:'
 if [ "$LF_TEST_DATABASE" = "pgsql" ]; then
   count="$(compose exec -T db psql -U nextcloud -d nextcloud -Atc \
@@ -243,6 +252,9 @@ if [ "$LF_WITH_EXTENSIONS" = 1 ]; then
   compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
     -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
     php /var/www/html/custom_apps/librefinance/tests/integration/account-deletion.php
+  compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
+    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
+    php /var/www/html/custom_apps/librefinance/tests/integration/account-deletion-race.php
   compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
     -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
     php /var/www/html/custom_apps/librefinance/tests/integration/modules.php

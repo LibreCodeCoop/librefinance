@@ -17,7 +17,8 @@ use OCP\IDBConnection;
  * Child inherits accounting account only if its own account is NULL.
  */
 final class CategoryService {
-    public function __construct(private IDBConnection $db, private AccessService $access, private WriteService $write) {}
+    public function __construct(private IDBConnection $db, private AccessService $access, private WriteService $write,
+        private AccountReferenceGuard $accountGuard) {}
 
     public function list(int $spaceId, int $afterId = 0): array {
         $this->access->requireRole($spaceId);
@@ -108,10 +109,17 @@ final class CategoryService {
             if ($parent['kind']!==$kind || !(bool)$parent['active']) {throw new DomainException('category_parent_incompatible');}
             $this->validateAncestors($spaceId,$parent);
         }
-        if ($accountId!==null) {$this->requireAccount($spaceId,$accountId,$kind);}
         $color = self::validColor($color);
         $this->db->beginTransaction();
         try {
+            if ($accountId !== null) {
+                try {
+                    $this->accountGuard->reserve($spaceId, $accountId);
+                } catch (DomainException $e) {
+                    throw new DomainException('category_account_incompatible', previous: $e);
+                }
+                $this->requireAccount($spaceId, $accountId, $kind);
+            }
             $q=$this->db->getQueryBuilder();
             $q->insert('lf_categories')->values([
                 'space_id'=>$q->createNamedParameter($spaceId,IQueryBuilder::PARAM_INT),

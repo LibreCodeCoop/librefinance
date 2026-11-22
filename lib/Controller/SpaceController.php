@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 namespace OCA\LibreFinance\Controller;
+use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 
 use OCA\LibreFinance\Service\SpaceService;
 use OCP\AppFramework\Http\JSONResponse;
@@ -22,6 +23,7 @@ final class SpaceController extends ApiController {
      * @NoAdminRequired
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces')]
     public function index(): JSONResponse {
         return $this->respond(fn() => ['spaces' => $this->spaces->list()]);
     }
@@ -30,6 +32,7 @@ final class SpaceController extends ApiController {
      * @NoAdminRequired
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces')]
     public function create(string $name, string $kind = 'personal', string $currency = 'BRL'): JSONResponse {
         return $this->respond(fn() => $this->spaces->create($name, $kind, $currency), 201);
     }
@@ -38,6 +41,7 @@ final class SpaceController extends ApiController {
      * @NoAdminRequired
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/members')]
     public function members(int $spaceId): JSONResponse {
         return $this->respond(fn() => ['members' => $this->spaces->members($spaceId)]);
     }
@@ -46,6 +50,7 @@ final class SpaceController extends ApiController {
      * @NoAdminRequired
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/members')]
     public function share(int $spaceId, string $uid, string $role = 'viewer'): JSONResponse {
         return $this->respond(function () use ($spaceId, $uid, $role): array {
             $this->spaces->shareUser($spaceId, $uid, $role);
@@ -57,6 +62,7 @@ final class SpaceController extends ApiController {
      * @NoAdminRequired
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/groups')]
     public function groups(int $spaceId): JSONResponse {
         return $this->respond(fn() => ['groups' => $this->spaces->groupGrants($spaceId)]);
     }
@@ -65,6 +71,7 @@ final class SpaceController extends ApiController {
      * @NoAdminRequired
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/groups')]
     public function shareGroup(int $spaceId, string $gid, string $role = 'viewer'): JSONResponse {
         return $this->respond(function () use ($spaceId, $gid, $role): array {
             $this->spaces->shareGroup($spaceId, $gid, $role);
@@ -76,6 +83,7 @@ final class SpaceController extends ApiController {
      * @NoAdminRequired
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'DELETE', url: '/api/spaces/{spaceId}/members/{uid}')]
     public function unshare(int $spaceId, string $uid): JSONResponse {
         return $this->respond(function () use ($spaceId, $uid): array {
             $this->spaces->revokeUser($spaceId, $uid);
@@ -87,6 +95,7 @@ final class SpaceController extends ApiController {
      * @NoAdminRequired
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'DELETE', url: '/api/spaces/{spaceId}/groups/{gid}')]
     public function unshareGroup(int $spaceId, string $gid): JSONResponse {
         return $this->respond(function () use ($spaceId, $gid): array {
             $this->spaces->revokeGroup($spaceId, $gid);

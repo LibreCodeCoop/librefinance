@@ -77,6 +77,32 @@ instalação padrão `npx playwright install --with-deps chromium`.
 automáticos por padrão; relatórios JSON e diretório de testes ficam
 ignorados no Git para não expor capturas ou dados fictícios em PRs.
 
+## Contrato das rotas declaradas nos controllers
+
+As 98 rotas frontpage dos sete aplicativos são declaradas por
+`#[FrontpageRoute]`, não em `appinfo/routes.php`. A suíte mantém um snapshot
+dos contratos históricos em `tests/ci/routes-expected.json` e executa
+`occ router:list <apps> --index --output=json` contra o **Nextcloud
+instalado**, comparando nome, método HTTP e URL em
+`tests/ci/check-route-contracts.py`. O teste falha em rotas ausentes,
+renomeadas, duplicadas ou inesperadas. O OpenAPI também é produzido a partir
+dos atributos e falha diante de uma rota mutável sem contrato declarado.
+
+Para alterar deliberadamente um endpoint, atualize o snapshot e o OpenAPI
+no mesmo PR, com teste HTTP de compatibilidade; não apenas mude a fixture
+para esconder uma regressão.
+
+## Migrations iniciais consolidadas
+
+Esta revisão pré-publicação reduz 23 arquivos históricos a sete migrations
+iniciais (uma por aplicativo independente). O smoke verifica instalação
+nova em SQLite, PostgreSQL e MariaDB. A migração é apenas DDL, sem
+conversão de valores, exclusão de dados ou acesso a bancos externos. Antes
+de publicar a mudança, também é obrigatório testar um upgrade de banco
+de desenvolvimento previamente instalado, verificando retenção de dados e
+conservação de índices/constraints. Em releases públicas futuros, não
+reescrever migrations já distribuídas.
+
 ## Contratos OpenAPI
 
 ```sh

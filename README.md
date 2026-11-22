@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 LibreFinance is an independent, free-software financial management application for **Nextcloud**. It is designed for individuals, shared groups, cooperatives and organizations worldwide. The software does not require an account or subscription with its maintainer, LibreCode Coop, or with any incumbent accounting vendor.
 
-> **Development preview — v0.16.0.** Not certified for production accounting, tax reporting, banking or financial migration. Its current UI is mainly Brazilian Portuguese; this is **not** yet a translated international release. The current ledger supports **BRL only**, although legal company country codes are configurable. The optional Brazilian NFS-e integration is drafts-only.
+> **Development preview — v0.16.1.** Not certified for production accounting, tax reporting, banking or financial migration. Its current UI is mainly Brazilian Portuguese; this is **not** yet a translated international release. The current ledger supports **BRL only**, although legal company country codes are configurable. The optional Brazilian NFS-e integration is drafts-only.
 
 ## Capabilities implemented in the preview
 

@@ -1,0 +1,506 @@
+{
+  "librefinance": [
+    {
+      "path": "/apps/librefinance/",
+      "request": "GET",
+      "route": "librefinance.page.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces",
+      "request": "GET",
+      "route": "librefinance.space.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces",
+      "request": "POST",
+      "route": "librefinance.space.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/members",
+      "request": "GET",
+      "route": "librefinance.space.members"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/members",
+      "request": "POST",
+      "route": "librefinance.space.share"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/members/{uid}",
+      "request": "DELETE",
+      "route": "librefinance.space.unshare"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/dashboard-layout",
+      "request": "GET",
+      "route": "librefinance.dashboardlayout.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/dashboard-layout",
+      "request": "PUT",
+      "route": "librefinance.dashboardlayout.save"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/dashboard-layout",
+      "request": "DELETE",
+      "route": "librefinance.dashboardlayout.reset"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/groups",
+      "request": "GET",
+      "route": "librefinance.space.groups"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/groups",
+      "request": "POST",
+      "route": "librefinance.space.sharegroup"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/groups/{gid}",
+      "request": "DELETE",
+      "route": "librefinance.space.unsharegroup"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/companies",
+      "request": "GET",
+      "route": "librefinance.company.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/companies",
+      "request": "POST",
+      "route": "librefinance.company.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/companies/{companyId}",
+      "request": "PUT",
+      "route": "librefinance.company.update"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/companies/{companyId}/logo",
+      "request": "POST",
+      "route": "librefinance.companylogo.upload"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/companies/{companyId}/logo",
+      "request": "GET",
+      "route": "librefinance.companylogo.image"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/companies/{companyId}/logo",
+      "request": "DELETE",
+      "route": "librefinance.companylogo.delete"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/company-fields",
+      "request": "GET",
+      "route": "librefinance.customfield.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/company-fields",
+      "request": "POST",
+      "route": "librefinance.customfield.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/company-fields/{fieldId}",
+      "request": "PUT",
+      "route": "librefinance.customfield.update"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/custom-fields/{entityKind}",
+      "request": "GET",
+      "route": "librefinance.customfield.indexforentity"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/custom-fields/{entityKind}",
+      "request": "POST",
+      "route": "librefinance.customfield.createforentity"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/custom-fields/{entityKind}/{fieldId}",
+      "request": "PUT",
+      "route": "librefinance.customfield.updateforentity"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/search",
+      "request": "GET",
+      "route": "librefinance.search.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/payment-methods",
+      "request": "GET",
+      "route": "librefinance.paymentmethod.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/payment-methods",
+      "request": "POST",
+      "route": "librefinance.paymentmethod.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/payment-methods/{methodId}",
+      "request": "PUT",
+      "route": "librefinance.paymentmethod.update"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/payment-methods/{methodId}",
+      "request": "DELETE",
+      "route": "librefinance.paymentmethod.delete"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/accounts",
+      "request": "GET",
+      "route": "librefinance.account.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/accounts",
+      "request": "POST",
+      "route": "librefinance.account.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/accounts/{accountId}",
+      "request": "PUT",
+      "route": "librefinance.account.update"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/accounts/{accountId}/deletion",
+      "request": "GET",
+      "route": "librefinance.account.deletionpreview"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/accounts/{accountId}",
+      "request": "DELETE",
+      "route": "librefinance.account.delete"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/categories",
+      "request": "GET",
+      "route": "librefinance.category.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/categories",
+      "request": "POST",
+      "route": "librefinance.category.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/categories/{categoryId}",
+      "request": "PUT",
+      "route": "librefinance.category.update"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/contacts",
+      "request": "GET",
+      "route": "librefinance.contact.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/contacts",
+      "request": "POST",
+      "route": "librefinance.contact.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/contacts/{contactId}",
+      "request": "PUT",
+      "route": "librefinance.contact.update"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/items",
+      "request": "GET",
+      "route": "librefinance.item.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/items",
+      "request": "POST",
+      "route": "librefinance.item.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/items/{itemId}",
+      "request": "PUT",
+      "route": "librefinance.item.update"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/modules",
+      "request": "GET",
+      "route": "librefinance.module.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/modules/{moduleId}",
+      "request": "PUT",
+      "route": "librefinance.module.toggle"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/journals",
+      "request": "GET",
+      "route": "librefinance.journal.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/journals",
+      "request": "POST",
+      "route": "librefinance.journal.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/journals/{journalId}/reverse",
+      "request": "POST",
+      "route": "librefinance.journal.reverse"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/ai/capabilities",
+      "request": "GET",
+      "route": "librefinance.ai.capabilities"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/ai/preview",
+      "request": "GET",
+      "route": "librefinance.ai.preview"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/ai/analyze",
+      "request": "POST",
+      "route": "librefinance.ai.analyze"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/ai/tasks/{taskId}",
+      "request": "GET",
+      "route": "librefinance.ai.status"
+    },
+    {
+      "path": "/apps/librefinance/api/mcp",
+      "request": "POST",
+      "route": "librefinance.mcp.handle"
+    }
+  ],
+  "librefinance_banking": [
+    {
+      "path": "/apps/librefinance_banking/spaces/{spaceId}",
+      "request": "GET",
+      "route": "librefinance_banking.page.index"
+    },
+    {
+      "path": "/apps/librefinance_banking/api/spaces/{spaceId}/providers",
+      "request": "GET",
+      "route": "librefinance_banking.banking.providers"
+    },
+    {
+      "path": "/apps/librefinance_banking/api/spaces/{spaceId}/transactions",
+      "request": "GET",
+      "route": "librefinance_banking.banking.index"
+    },
+    {
+      "path": "/apps/librefinance_banking/api/spaces/{spaceId}/transfers",
+      "request": "GET",
+      "route": "librefinance_banking.banking.transfers"
+    },
+    {
+      "path": "/apps/librefinance_banking/api/spaces/{spaceId}/imports",
+      "request": "POST",
+      "route": "librefinance_banking.banking.import"
+    },
+    {
+      "path": "/apps/librefinance_banking/api/spaces/{spaceId}/transactions/{transactionId}/match",
+      "request": "POST",
+      "route": "librefinance_banking.banking.match"
+    }
+  ],
+  "librefinance_import": [
+    {
+      "path": "/apps/librefinance_import/spaces/{spaceId}",
+      "request": "GET",
+      "route": "librefinance_import.page.index"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/coverage",
+      "request": "GET",
+      "route": "librefinance_import.import.coverage"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/source-accounts",
+      "request": "GET",
+      "route": "librefinance_import.import.accounts"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/preview",
+      "request": "POST",
+      "route": "librefinance_import.import.preview"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/import",
+      "request": "POST",
+      "route": "librefinance_import.import.apply"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/movement-preview",
+      "request": "POST",
+      "route": "librefinance_import.movement.preview"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/movement-import",
+      "request": "POST",
+      "route": "librefinance_import.movement.apply"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/movement-coverage",
+      "request": "GET",
+      "route": "librefinance_import.movement.coverage"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/movement-reconciliation",
+      "request": "GET",
+      "route": "librefinance_import.movement.reconciliation"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/transfer-preview",
+      "request": "POST",
+      "route": "librefinance_import.transfer.preview"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/transfer-import",
+      "request": "POST",
+      "route": "librefinance_import.transfer.apply"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/transfer-coverage",
+      "request": "GET",
+      "route": "librefinance_import.transfer.coverage"
+    },
+    {
+      "path": "/apps/librefinance_import/api/spaces/{spaceId}/inventory-preview",
+      "request": "POST",
+      "route": "librefinance_import.inventory.preview"
+    }
+  ],
+  "librefinance_invoicing": [
+    {
+      "path": "/apps/librefinance_invoicing/spaces/{spaceId}",
+      "request": "GET",
+      "route": "librefinance_invoicing.page.index"
+    },
+    {
+      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/tax-rules",
+      "request": "GET",
+      "route": "librefinance_invoicing.tax.index"
+    },
+    {
+      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/tax-rules",
+      "request": "POST",
+      "route": "librefinance_invoicing.tax.create"
+    },
+    {
+      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/invoices",
+      "request": "GET",
+      "route": "librefinance_invoicing.invoice.index"
+    },
+    {
+      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/invoices",
+      "request": "POST",
+      "route": "librefinance_invoicing.invoice.create"
+    },
+    {
+      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/invoices/{invoiceId}",
+      "request": "GET",
+      "route": "librefinance_invoicing.invoice.show"
+    },
+    {
+      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/invoices/{invoiceId}/issue",
+      "request": "POST",
+      "route": "librefinance_invoicing.invoice.issue"
+    },
+    {
+      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/invoices/{invoiceId}/allocations",
+      "request": "POST",
+      "route": "librefinance_invoicing.invoice.allocate"
+    }
+  ],
+  "librefinance_nfse": [
+    {
+      "path": "/apps/librefinance_nfse/spaces/{spaceId}",
+      "request": "GET",
+      "route": "librefinance_nfse.page.index"
+    },
+    {
+      "path": "/apps/librefinance_nfse/api/spaces/{spaceId}/drafts",
+      "request": "GET",
+      "route": "librefinance_nfse.draft.index"
+    },
+    {
+      "path": "/apps/librefinance_nfse/api/spaces/{spaceId}/drafts",
+      "request": "POST",
+      "route": "librefinance_nfse.draft.create"
+    }
+  ],
+  "librefinance_obligations": [
+    {
+      "path": "/apps/librefinance_obligations/spaces/{spaceId}",
+      "request": "GET",
+      "route": "librefinance_obligations.page.index"
+    },
+    {
+      "path": "/apps/librefinance_obligations/api/spaces/{spaceId}/obligations",
+      "request": "GET",
+      "route": "librefinance_obligations.obligation.index"
+    },
+    {
+      "path": "/apps/librefinance_obligations/api/spaces/{spaceId}/obligations",
+      "request": "POST",
+      "route": "librefinance_obligations.obligation.create"
+    },
+    {
+      "path": "/apps/librefinance_obligations/api/spaces/{spaceId}/obligations/{obligationId}/settlements",
+      "request": "POST",
+      "route": "librefinance_obligations.obligation.settle"
+    },
+    {
+      "path": "/apps/librefinance_obligations/api/spaces/{spaceId}/obligations/{obligationId}/cancel",
+      "request": "POST",
+      "route": "librefinance_obligations.obligation.cancel"
+    },
+    {
+      "path": "/apps/librefinance_obligations/api/spaces/{spaceId}/obligations/{obligationId}/settlements",
+      "request": "GET",
+      "route": "librefinance_obligations.obligation.settlements"
+    }
+  ],
+  "librefinance_reports": [
+    {
+      "path": "/apps/librefinance_reports/spaces/{spaceId}",
+      "request": "GET",
+      "route": "librefinance_reports.page.index"
+    },
+    {
+      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/profit-loss",
+      "request": "GET",
+      "route": "librefinance_reports.report.profitloss"
+    },
+    {
+      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/trial-balance",
+      "request": "GET",
+      "route": "librefinance_reports.report.trialbalance"
+    },
+    {
+      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/cash-flow",
+      "request": "GET",
+      "route": "librefinance_reports.report.cashflow"
+    },
+    {
+      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/saved-reports",
+      "request": "GET",
+      "route": "librefinance_reports.savedreport.index"
+    },
+    {
+      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/saved-reports",
+      "request": "POST",
+      "route": "librefinance_reports.savedreport.create"
+    },
+    {
+      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/saved-reports/{reportId}",
+      "request": "PUT",
+      "route": "librefinance_reports.savedreport.update"
+    },
+    {
+      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/saved-reports/{reportId}",
+      "request": "DELETE",
+      "route": "librefinance_reports.savedreport.archive"
+    },
+    {
+      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/saved-reports/{reportId}/permanent",
+      "request": "DELETE",
+      "route": "librefinance_reports.savedreport.deletepermanently"
+    }
+  ]
+}
