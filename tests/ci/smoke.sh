@@ -222,9 +222,16 @@ for script in basic advanced catalog categories companies custom-fields ux-enhan
 done
 echo "PASS: Native PHP authorization, ledger, group access and concurrency tests on Nextcloud Server master."
 for domain_test in banking obligations invoicing reports-cash-flow reports-saved; do
-  compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
+  # A Nextcloud CLI fatal handler can return a zero process code before a
+  # test's last assertion. Require the actual TestHarness::finish() marker.
+  domain_output="$(compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
     -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-    php "/var/www/html/custom_apps/librefinance/tests/integration/domains/${domain_test}.php"
+    php "/var/www/html/custom_apps/librefinance/tests/integration/domains/${domain_test}.php")"
+  printf '%s\n' "$domain_output"
+  if ! grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$domain_output"; then
+    echo "FAIL: domain suite ${domain_test} terminated before TestHarness::finish()" >&2
+    exit 1
+  fi
 done
 echo "PASS: Native banking, obligations, invoicing and reporting business integration suites."
 

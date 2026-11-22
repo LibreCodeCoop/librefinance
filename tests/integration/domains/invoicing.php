@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: AGPL-3.0-or-later
  */
 declare(strict_types=1);
+require_once dirname(__DIR__, 5) . '/lib/base.php';
 require_once dirname(__DIR__) . '/TestHarness.php';
 use LibreFinance\Tests\Integration\TestHarness;
 $t=new TestHarness();
@@ -182,11 +183,19 @@ $old = $t->checkModule('make synthetic pre-consolidation invoice draft',
     array_replace($invoicePayload, ['number'=>'LEG-'.$tag,
         'lines'=>[['description'=>'Legacy item','quantity'=>1,
             'unitPriceMinor'=>1000,'taxRuleId'=>null]]]), 201);
-require_once dirname(__DIR__, 5) . '/lib/base.php';
-$db = \OC::$server->getDatabaseConnection();
-$changed = $db->update('lfi_invoices',
-    ['status'=>'issued', 'version'=>1, 'issued_at'=>time()],
-    ['id'=>(int)$old['id'], 'space_id'=>$id, 'status'=>'draft']);
+
+$db = \OC::$server->get(\OCP\IDBConnection::class);
+$q = $db->getQueryBuilder();
+$changed = $q->update('lfi_invoices')
+    ->set('status', $q->createNamedParameter('issued'))
+    ->set('version', $q->createNamedParameter(1, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT))
+    ->set('issued_at', $q->createNamedParameter(time(), \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT))
+    ->where($q->expr()->eq('id',
+        $q->createNamedParameter((int)$old['id'], \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)))
+    ->andWhere($q->expr()->eq('space_id',
+        $q->createNamedParameter($id, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)))
+    ->andWhere($q->expr()->eq('status', $q->createNamedParameter('draft')))
+    ->executeStatement();
 $t->record('legacy issued invoice state created only in synthetic database',
     $changed===1, 'updated rows '.$changed);
 $t->checkModule('historical issued invoice has no invented link', $a, $app,
