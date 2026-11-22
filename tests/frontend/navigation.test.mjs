@@ -13,18 +13,18 @@ const all = ['librefinance_banking', 'librefinance_obligations',
 const s = (manager = true, modules = all, modulesLoaded = true) =>
   availableSections({ manager, modules, modulesLoaded })
 
-test('top-level financial work and grouping are predictable', () => {
-  assert.deepEqual(s().map(g => g.label),
-    ['INÍCIO', 'VENDAS E COMPRAS', 'FINANCEIRO', 'CONTABILIDADE', 'OUTROS RECURSOS'])
-  assert.deepEqual(s()[1].items.map(i => i.id), ['sales', 'purchases'])
-  assert.deepEqual(s()[2].items.map(i => i.id), ['obligations', 'banking'])
-  assert.deepEqual(s()[3].items.map(i => i.id), ['transactions', 'accounts', 'reports'])
-  assert.deepEqual(s()[4].items.filter(i => i.children).map(i => i.id), ['fiscal', 'registers'])
-  assert.equal(parentOfView(s(), 'accounts'), null) // accounting is now a direct entry
+test('seven common tasks are first-level and accounting is available without blocking them', () => {
+  assert.deepEqual(s().map(g => g.label), ['LIBREFINANCE'])
+  assert.deepEqual(s()[0].items.map(i => i.id),
+    ['dashboard', 'receivables', 'payables', 'banking', 'reports', 'registers', 'advanced'])
+  assert.deepEqual(s()[0].items.filter(i => i.children).map(i => i.id),
+    ['registers', 'advanced'])
+  assert.equal(parentOfView(s(), 'transactions'), 'advanced')
+  assert.equal(parentOfView(s(), 'accounts'), 'advanced')
+  assert.equal(PAGE_NAMES.receivables, 'A receber')
+  assert.equal(PAGE_NAMES.payables, 'A pagar')
+  assert.equal(PAGE_NAMES.banking, 'Bancos e caixa')
   assert.equal(PAGE_NAMES.transactions, 'Lançamentos contábeis')
-  assert.equal(PAGE_NAMES.obligations, 'Contas a pagar e receber')
-  assert.equal(PAGE_NAMES.sales, 'Faturas de venda')
-  assert.equal(PAGE_NAMES.purchases, 'Documentos de compra')
 })
 
 test('disabled and undiscovered modules never enter navigation or search', () => {
@@ -32,8 +32,8 @@ test('disabled and undiscovered modules never enter navigation or search', () =>
   const paths = menuEntries(view).map(x => x.id)
   assert.equal(paths.includes('banking'), false)
   assert.equal(paths.includes('ai'), false)
-  assert.equal(paths.includes('sales'), true)
-  assert.equal(paths.includes('purchases'), true)
+  assert.equal(paths.includes('receivables'), true)
+  assert.equal(paths.includes('payables'), true)
   assert.equal(navigationSearch(view, 'extrato').some(x => x.id === 'banking'), false)
   assert.equal(canOpenView(view, 'import', { migrationEnabled: true }), false)
   const fresh = s(true, all, false)
@@ -49,6 +49,8 @@ test('search is accent-insensitive and finds nested paths by meaning', () => {
   assert.equal(navigationSearch(s(), 'migracao', { manager: true, migrationEnabled: true })[0].id, 'import')
   assert.equal(navigationSearch(s(false), 'migracao', { manager: false, migrationEnabled: true }).length, 0)
   assert.equal(navigationSearch(s(), 'contabilidade').some(x => x.id === 'accounts'), true)
+  assert.equal(navigationSearch(s(), 'cobrança')[0].id, 'receivables')
+  assert.equal(navigationSearch(s(), 'fornecedor')[0].id, 'contacts')
 })
 
 test('optional business features are progressively expanded, never permission-gated by kind', () => {
@@ -56,9 +58,12 @@ test('optional business features are progressively expanded, never permission-ga
   assert.equal(defaultGroupOpen('billing', 'collective'), false)
   assert.equal(defaultGroupOpen('billing', 'organization'), false)
   assert.equal(defaultGroupOpen('registers', 'organization'), false)
-  assert.equal(canOpenView(s(), 'sales'), true)
-  assert.equal(canOpenView(s(), 'purchases'), true)
+  assert.equal(canOpenView(s(), 'sales'), true) // legacy shared link
+  assert.equal(canOpenView(s(), 'purchases'), true) // legacy shared link
   assert.equal(canOpenView(s(), 'invoicing'), true) // historic bookmarked route
+  assert.equal(canOpenView(s(), 'obligations'), true)
+  assert.equal(canOpenView(s(), 'receivables'), true)
+  assert.equal(canOpenView(s(), 'payables'), true)
   assert.equal(canOpenView(s(), 'taxes'), true)
   assert.equal(canOpenView(s(), 'settings', { manager: true }), true)
   assert.equal(canOpenView(s(), 'import', { manager: true, migrationEnabled: false }), false)

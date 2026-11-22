@@ -167,7 +167,7 @@ onBeforeUnmount(()=>++generation)
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Bancos e conciliação" eyebrow="FINANCEIRO"
+    <LfPageHeader title="Bancos e caixa" eyebrow="FINANCEIRO"
       description="Confira movimentações importadas, vínculos contábeis e transferências pendentes.">
       <template #actions>
         <NcButton v-if="writable" variant="primary" :disabled="busy || !banks.length"

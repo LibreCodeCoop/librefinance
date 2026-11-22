@@ -15,10 +15,15 @@ import { mdiPlus, mdiFileDocumentOutline } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSelect from '../components/LfSelect.vue'
 import LfDateField from '../components/LfDateField.vue'
+import CashPaymentDialog from '../components/CashPaymentDialog.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { toMinorUnits } from '../money.js'
-const props = defineProps({ section: { type: String, default: 'invoices' } })
+const props = defineProps({
+  section: { type: String, default: 'invoices' },
+  embedded: { type: Boolean, default: false },
+})
 const w=inject('lfWorkspace')
+const flow=inject('lfFlowContext',null)
 const documentKind=inject('lfInvoiceKind',ref('invoice'))
 const navigate=inject('lfNavigate',()=>{})
 const focusedInvoice=inject('lfFocusedInvoice',ref(null))
@@ -48,6 +53,21 @@ const success=ref('')
 const newInvoice=ref(false)
 const newRule=ref(false)
 const chosen=ref(null)
+const cashTarget=ref(null)
+function beginCashPayment() {
+  if (!chosen.value || !chosenObligationId.value) return
+  cashTarget.value=chosen.value
+  chosen.value=null
+  allocated.value=false
+}
+async function onCashPaid(result) {
+  const target=cashTarget.value
+  cashTarget.value=null
+  success.value='Recebimento ou pagamento registrado sem duplicidade. Lançamento #'
+    +result.journalId+'.'
+  await load()
+  if(target)await showInvoice(target.id)
+}
 const chosenObligationId=ref(null)
 const allocated=ref(false)
 const form=ref({
@@ -242,18 +262,26 @@ watch([activeId,documentKind],async()=>{
   await load()
   await openFocusedInvoice()
 },{immediate:true})
+// Opening a detailed document must run after the initial active-space watcher,
+// which resets forms while resolving the authorized workspace data.
+watch(() => flow?.newDetailed.value, requested => {
+  if (!requested || !w.writable.value || !w.activeId.value) return
+  newInvoice.value=true
+  flow.newDetailed.value=false
+}, { immediate:true })
 onBeforeUnmount(()=>++generation)
 function openLinkedObligation() {
   if(!canReadObligations.value||!chosenObligationId.value||!chosen.value)return
   focusedObligation.value={spaceId:Number(activeId.value),
     id:Number(chosenObligationId.value)}
   chosen.value=null
-  navigate('obligations')
+  if(flow)flow.showAccounts()
+  else navigate('obligations')
 }
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader :title="tab === 'taxes' ? 'Regras tributárias'
+    <LfPageHeader v-if="!embedded" :title="tab === 'taxes' ? 'Regras tributárias'
         : (isPurchase ? 'Documentos de compra' : 'Faturas de venda')"
       :eyebrow="tab === 'taxes' ? 'CONFIGURAÇÃO FISCAL' : 'DOCUMENTOS COMERCIAIS'"
       :description="tab === 'taxes'
@@ -272,13 +300,13 @@ function openLinkedObligation() {
     <NcNoteCard type="info">
       {{ tab === 'taxes'
         ? 'As regras configuradas são parâmetros para documentos comerciais; não representam homologação tributária.'
-        : 'Faturas comerciais não são notas fiscais. A emissão de NFS-e permanece em recurso separado.' }}
+        : 'Este é o documento de origem. Ao confirmar, a conta a receber ou pagar aparece na mesma operação, sem novo cadastro. Documentos comerciais não são notas fiscais.' }}
     </NcNoteCard>
     <NcNoteCard v-if="error" type="error" role="alert">{{error}}</NcNoteCard>
     <NcNoteCard v-if="success" type="success" role="status">{{success}}</NcNoteCard>
     <section v-if="tab==='invoices'" class="lf-surface">
       <div class="lf-section-heading">
-        <h2>{{ isPurchase ? 'Compras documentadas' : 'Vendas documentadas' }}</h2>
+        <h2>{{ isPurchase ? 'Compras detalhadas e rascunhos' : 'Vendas detalhadas e rascunhos' }}</h2>
       </div>
       <NcNoteCard type="info">
         {{ isPurchase
@@ -389,6 +417,10 @@ function openLinkedObligation() {
       </form>
     </NcDialog>
 
+    <CashPaymentDialog :open="Boolean(cashTarget)" source="invoice"
+      :record="cashTarget" :kind="isPurchase?'payable':'receivable'"
+      @update:open="cashTarget=$event?cashTarget:null"
+      @paid="onCashPaid" />
     <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="Boolean(chosen)" name="Detalhes da fatura"
       @update:open="closeDetails($event)">
       <div v-if="chosen" class="lf-dialog-form">
@@ -412,8 +444,18 @@ function openLinkedObligation() {
         <NcButton v-if="manager&&chosen.status==='draft'" variant="primary"
           :disabled="busy" @click="issue">Confirmar emissão comercial</NcButton>
         <template v-if="writable&&chosenObligationId&&['issued','partially_paid'].includes(chosen.status)">
-          <NcButton v-if="!allocated" @click="allocated=true">
-            {{isPurchase?'Associar pagamento contabilizado':'Associar recebimento contabilizado'}}
+          <NcNoteCard v-if="Number(chosen.tax_minor)||Number(chosen.withheld_minor)"
+            type="warning">
+            Este documento contém tributos ou retenções. Não é seguro
+            contabilizar o total bruto como receita ou despesa.
+            Registre as partidas tributárias corretas em Lançamentos contábeis
+            e utilize Vincular movimentação já registrada.
+          </NcNoteCard>
+          <NcButton v-else variant="primary" @click="beginCashPayment">
+            {{isPurchase?'Registrar pagamento':'Registrar recebimento'}}
+          </NcButton>
+          <NcButton v-if="!allocated" variant="secondary" @click="allocated=true">
+            Vincular movimentação já registrada
           </NcButton>
           <form v-else class="lf-dialog-form" @submit.prevent="allocate">
             <NcNoteCard type="info">

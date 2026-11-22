@@ -21,7 +21,7 @@ import {
   mdiReceiptTextOutline, mdiCashClock, mdiChartLine, mdiAccountMultipleOutline,
   mdiFileUploadOutline, mdiCogOutline, mdiShapeOutline, mdiRobotOutline,
   mdiDomain, mdiFileDocumentOutline, mdiBookOpenPageVariantOutline,
-  mdiPlus, mdiRefresh, mdiMagnify,
+  mdiPlus, mdiRefresh, mdiMagnify, mdiArrowDownLeft, mdiArrowUpRight,
 } from '@mdi/js'
 import {
   PAGE_NAMES, availableSections, canOpenView, navigationSearch,
@@ -42,6 +42,7 @@ import ReportsView from './views/ReportsView.vue'
 import BankingView from './views/BankingView.vue'
 import ObligationsView from './views/ObligationsView.vue'
 import InvoicesView from './views/InvoicesView.vue'
+import CashflowView from './views/CashflowView.vue'
 import TaxRulesView from './views/TaxRulesView.vue'
 import NfseView from './views/NfseView.vue'
 import ImportView from './views/ImportView.vue'
@@ -68,10 +69,13 @@ const screens = {
   transactions: TransactionsView,
   accounts: AccountsView,
   banking: BankingView,
-  obligations: ObligationsView,
-  sales: InvoicesView,
-  purchases: InvoicesView,
-  invoicing: InvoicesView, // existing bookmarks
+  receivables: CashflowView,
+  payables: CashflowView,
+  // Old route IDs remain recognized but are canonicalized to the unified view.
+  obligations: CashflowView,
+  sales: CashflowView,
+  purchases: CashflowView,
+  invoicing: CashflowView,
   taxes: TaxRulesView,
   contacts: ContactsView,
   items: ItemsView,
@@ -87,6 +91,8 @@ const icons = {
   home: mdiViewDashboardOutline,
   transactions: mdiSwapHorizontal,
   banking: mdiBankOutline,
+  receivables: mdiArrowDownLeft,
+  payables: mdiArrowUpRight,
   obligations: mdiCashClock,
   reports: mdiChartLine,
   billing: mdiReceiptTextOutline,
@@ -181,7 +187,7 @@ const readyView = computed(() => (
 const currentScreen = computed(() => screens[readyView.value] || DashboardView)
 // Shared commercial screen receives its context from the authorized route,
 // never from a self-supplied document ID or an untrusted URL.
-const invoiceKind = computed(() => readyView.value === 'purchases' ? 'bill' : 'invoice')
+const invoiceKind = computed(() => readyView.value === 'payables' ? 'bill' : 'invoice')
 provide('lfInvoiceKind', invoiceKind)
 const focusedInvoice = ref(null)
 provide('lfFocusedInvoice', focusedInvoice)
@@ -379,9 +385,9 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
           </div>
           <div class="lf-context-actions">
             <span class="lf-context-currency">{{ space.currency }}</span>
-            <NcButton v-if="writable && readyView !== 'transactions'" variant="primary" @click="openEntry">
+            <NcButton v-if="writable && readyView === 'dashboard'" variant="primary" @click="openEntry">
               <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-              Novo lançamento
+              Registrar entrada ou saída
             </NcButton>
             <NcButton variant="tertiary" aria-label="Atualizar dados"
               :disabled="busy" @click="refreshCurrent">

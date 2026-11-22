@@ -14,8 +14,14 @@ import { mdiPlus } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSelect from '../components/LfSelect.vue'
 import LfDateField from '../components/LfDateField.vue'
+import CashPaymentDialog from '../components/CashPaymentDialog.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { toMinorUnits } from '../money.js'
+const props=defineProps({
+  kind: { type: String, default: 'all' },
+  embedded: { type: Boolean, default: false },
+})
+const flow=inject('lfFlowContext',null)
 const w=inject('lfWorkspace')
 const navigate=inject('lfNavigate',()=>{})
 const focusedInvoice=inject('lfFocusedInvoice',ref(null))
@@ -32,6 +38,20 @@ const error=ref('')
 const success=ref('')
 const formOpen=ref(false)
 const settlement=ref(null)
+const cashTarget=ref(null)
+const existingTarget=ref(null)
+async function onExistingLinked(result) {
+  existingTarget.value=null
+  success.value='Lançamento existente vinculado ao compromisso, sem nova movimentação. #'
+    +result.journalId+'.'
+  await load()
+}
+async function onCashPaid(result) {
+  cashTarget.value=null
+  success.value='Movimentação e compromisso atualizados juntos. Lançamento #'
+    +result.journalId+'.'
+  await load()
+}
 const cancelTarget=ref(null)
 const focusedRecord=ref(null)
 const focusedError=ref('')
@@ -45,7 +65,8 @@ function openLinkedDocument(row) {
     id:Number(row.linkedInvoiceId),
     kind:row.kind==='receivable'?'invoice':'bill'}
   focusedRecord.value=null
-  navigate(row.kind==='receivable'?'sales':'purchases')
+  if(flow)flow.showDocument()
+  else navigate(row.kind==='receivable'?'sales':'purchases')
 }
 async function inspectFocusedTitle() {
   const target=focusedObligation.value
@@ -63,8 +84,15 @@ async function inspectFocusedTitle() {
     if(token===focusedSequence)focusedError.value=financeError(e)
   }
 }
-const draft=ref({kind:'payable',reference:'',description:'',amount:'',
-  issuedOn:today,dueOn:today,contactId:0})
+const draft=ref({kind:props.kind==='all'?'payable':props.kind,
+  reference:'',description:'',amount:'',issuedOn:today,dueOn:today,contactId:0})
+watch(() => flow?.newSimple.value, value => {
+  if (!value || !writable.value || !activeId.value) return
+  draft.value={kind:props.kind==='all'?'payable':props.kind,
+    reference:'',description:'',amount:'',issuedOn:today,dueOn:today,contactId:0}
+  formOpen.value=true
+  flow.newSimple.value=false
+}, { immediate:true })
 const settleForm=ref({amount:'',paidOn:today,note:''})
 const choices=[
   {value:'all',label:'Todas'},
@@ -86,7 +114,7 @@ async function load() {
   loading.value=true;error.value=''
   try{
     const data=await financeApi('librefinance_obligations',activeId.value,
-      '/obligations?status='+filter.value)
+      '/obligations?kind='+props.kind+'&status='+filter.value)
     if(token!==generation)return
     list.value=data.obligations
     next.value=data.nextAfterId
@@ -99,7 +127,7 @@ async function more() {
   loading.value=true
   try{
     const data=await financeApi('librefinance_obligations',activeId.value,
-      '/obligations?status='+filter.value+'&afterId='+next.value)
+      '/obligations?kind='+props.kind+'&status='+filter.value+'&afterId='+next.value)
     if(token!==generation)return
     list.value=[...list.value,...data.obligations];next.value=data.nextAfterId
   }catch(e){if(token===generation)error.value=financeError(e)}
@@ -122,15 +150,15 @@ async function create() {
   if(!draft.value.description.trim()||!draft.value.amount||!draft.value.dueOn)return
   const result=await perform(async()=>financeApi('librefinance_obligations',
     activeId.value,'/obligations','POST',{
-      kind:draft.value.kind,reference:draft.value.reference.trim(),
+      kind:props.kind==='all'?draft.value.kind:props.kind,reference:draft.value.reference.trim(),
       description:draft.value.description.trim(),amountMinor:toMinorUnits(draft.value.amount),
       issuedOn:draft.value.issuedOn,dueOn:draft.value.dueOn,
       contactId:Number(draft.value.contactId)||null,
     }),'Título registrado.')
   if(result){
     formOpen.value=false
-    draft.value={kind:'payable',reference:'',description:'',amount:'',
-      issuedOn:today,dueOn:today,contactId:0}
+    draft.value={kind:props.kind==='all'?'payable':props.kind,
+      reference:'',description:'',amount:'',issuedOn:today,dueOn:today,contactId:0}
   }
 }
 function beginSettlement(row) {
@@ -164,7 +192,7 @@ onBeforeUnmount(()=>{++generation;++focusedSequence})
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Contas a pagar e receber" eyebrow="FINANCEIRO"
+    <LfPageHeader v-if="!embedded" title="Contas a pagar e receber" eyebrow="FINANCEIRO"
       description="Acompanhe vencimentos e compromissos pendentes. Documentos comerciais confirmados criam o título vinculado automaticamente.">
       <template #actions>
         <NcButton v-if="writable" variant="primary" @click="formOpen=true">
@@ -173,7 +201,7 @@ onBeforeUnmount(()=>{++generation;++focusedSequence})
         </NcButton>
       </template>
     </LfPageHeader>
-    <NcNoteCard type="info">
+    <NcNoteCard v-if="!embedded" type="info">
       Documentos comerciais confirmados geram o título financeiro vinculado.
       A baixa de um título avulso é administrativa: não gera movimentação bancária
       ou lançamento contábil. Títulos vinculados são liquidados pelo documento
@@ -187,7 +215,9 @@ onBeforeUnmount(()=>{++generation;++focusedSequence})
       {{money(outstanding(focusedRecord))}} em aberto.
     </NcNoteCard>
     <section class="lf-surface">
-      <div class="lf-section-heading"><h2>Títulos financeiros</h2>
+      <div class="lf-section-heading"><h2>{{embedded
+        ? (props.kind==='receivable'?'Cobranças e recebimentos':'Contas e pagamentos')
+        : 'Títulos financeiros'}}</h2>
         <LfSelect id="lf-obligations-filter" v-model="filter" label="Situação"
           :options="choices" /></div>
       <div class="lf-table-scroll">
@@ -211,16 +241,37 @@ onBeforeUnmount(()=>{++generation;++focusedSequence})
             </td>
             <td>{{row.due_on}}</td>
             <td class="lf-numeric">{{money(row.amount_minor)}}</td>
-            <td class="lf-numeric"><strong>{{money(outstanding(row))}}</strong></td>
+            <td class="lf-numeric">
+              <strong>{{money(outstanding(row))}}</strong>
+              <span v-if="row.ledgerPaidMinor" class="lf-muted">
+                Movimentado: {{money(row.ledgerPaidMinor)}}
+              </span>
+              <span v-if="row.administrativePaidMinor" class="lf-muted">
+                Baixa sem movimentação: {{money(row.administrativePaidMinor)}}
+              </span>
+            </td>
             <td><span :class="overdue(row)?'lf-state lf-state-warning':'lf-state'">
               {{overdue(row)?'Vencido':({
-                open:'Aberto',partial:'Parcial',settled:row.linkedInvoiceId
-                  ?'Liquidado por lançamento':'Baixado administrativamente',
+                open:'Aberto',partial:'Parcial',
+                settled:row.administrativePaidMinor>0 && row.ledgerPaidMinor>0
+                  ?'Liquidado: movimentação e baixa administrativa'
+                  : row.ledgerPaidMinor>0
+                    ?'Liquidado por lançamento':'Baixado administrativamente',
                 cancelled:'Cancelado'
               }[row.status]||row.status)}}</span></td>
             <td v-if="writable" class="lf-row-actions">
               <NcButton v-if="['open','partial'].includes(row.status)&&!row.linkedInvoiceId"
-                size="small" @click="beginSettlement(row)">Baixa administrativa</NcButton>
+                size="small" @click="cashTarget=row">
+                {{row.kind==='receivable'?'Registrar recebimento':'Registrar pagamento'}}
+              </NcButton>
+              <NcButton v-if="['open','partial'].includes(row.status)&&!row.linkedInvoiceId"
+                size="small" variant="tertiary" @click="existingTarget=row">
+                Vincular lançamento existente
+              </NcButton>
+              <NcButton v-if="['open','partial'].includes(row.status)&&!row.linkedInvoiceId"
+                size="small" variant="tertiary" @click="beginSettlement(row)">
+                Baixa sem movimentação
+              </NcButton>
               <span v-else-if="row.linkedInvoiceId" class="lf-state">
                 Liquidação pelo documento de origem
               </span>
@@ -235,14 +286,20 @@ onBeforeUnmount(()=>{++generation;++focusedSequence})
         <NcButton :disabled="loading" @click="more">Carregar mais títulos</NcButton>
       </div>
     </section>
-    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="formOpen" name="Novo título financeiro"
+    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="formOpen"
+      :name="embedded ? (props.kind==='receivable'?'Cobrança simples':'Conta simples')
+        : 'Novo título financeiro'"
       @update:open="formOpen=$event">
       <form class="lf-dialog-form" @submit.prevent="create">
         <NcNoteCard type="warning">
           Cadastre somente compromissos sem fatura ou documento comercial
           já confirmado. As vendas e compras confirmadas criam os títulos automaticamente.
         </NcNoteCard>
-        <LfSelect id="lf-title-type" v-model="draft.kind" :options="kinds" label="Tipo" />
+        <LfSelect v-if="props.kind==='all'" id="lf-title-type"
+          v-model="draft.kind" :options="kinds" label="Tipo" />
+        <p v-else class="lf-muted">
+          {{props.kind==='receivable'?'Cobrança simples':'Conta simples'}}
+        </p>
         <NcTextField v-model="draft.description" label="Descrição" maxlength="255" required />
         <NcTextField v-model="draft.reference" label="Referência (opcional)"
           maxlength="80" />
@@ -283,6 +340,14 @@ onBeforeUnmount(()=>{++generation;++focusedSequence})
         </div>
       </form>
     </NcDialog>
+    <CashPaymentDialog :open="Boolean(cashTarget)" source="obligation"
+      :record="cashTarget" :kind="cashTarget?.kind ?? props.kind"
+      @update:open="cashTarget=$event?cashTarget:null"
+      @paid="onCashPaid" />
+    <CashPaymentDialog :open="Boolean(existingTarget)" source="obligation"
+      :record="existingTarget" :kind="existingTarget?.kind ?? props.kind"
+      :existing="true" @update:open="existingTarget=$event?existingTarget:null"
+      @paid="onExistingLinked" />
     <NcDialog content-classes="lf-finance-dialog-content" :open="Boolean(cancelTarget)" name="Cancelar título"
       @update:open="cancelTarget = $event ? cancelTarget : null">
       <div class="lf-dialog-form">

@@ -6,12 +6,14 @@
 export const PAGE_NAMES = Object.freeze({
   dashboard: 'Visão geral',
   transactions: 'Lançamentos contábeis',
-  banking: 'Bancos e conciliação',
-  obligations: 'Contas a pagar e receber',
+  banking: 'Bancos e caixa',
+  obligations: 'A receber', // historic combined-list bookmark
   reports: 'Relatórios',
   invoicing: 'Faturas de venda', // legacy deep-link alias
-  sales: 'Faturas de venda',
-  purchases: 'Documentos de compra',
+  sales: 'A receber', // historic commercial bookmark
+  receivables: 'A receber',
+  payables: 'A pagar',
+  purchases: 'A pagar', // historic commercial bookmark
   taxes: 'Regras tributárias',
   nfse: 'NFS-e Brasil',
   contacts: 'Clientes e fornecedores',
@@ -27,36 +29,16 @@ export const PAGE_NAMES = Object.freeze({
 // Icon names are mapped to local @mdi/js paths in the shell. No extension is
 // allowed to supply remote JS, HTML, arbitrary URL or user-controlled markup.
 export const MENU_STRUCTURE = Object.freeze([
-  { id: 'home', label: 'INÍCIO', items: [
-    { id: 'dashboard', icon: 'home', keywords: 'inicio painel resumo home' },
-  ] },
-  { id: 'commercial', label: 'VENDAS E COMPRAS', items: [
-    { id: 'sales', icon: 'billing', module: 'librefinance_invoicing',
-      keywords: 'fatura de venda cobranças clientes vendas documentos receita' },
-    { id: 'purchases', icon: 'billing', module: 'librefinance_invoicing',
-      keywords: 'compra fornecedores faturas recebidas contas de fornecedor despesas documento' },
-  ] },
-  { id: 'financial', label: 'FINANCEIRO', items: [
-    { id: 'obligations', icon: 'obligations', module: 'librefinance_obligations',
-      keywords: 'a pagar a receber titulos vencimento compromissos pagamentos recebimentos contas' },
+  { id: 'operations', label: 'LIBREFINANCE', items: [
+    { id: 'dashboard', icon: 'home', keywords: 'inicio visao geral resumo painel home' },
+    { id: 'receivables', icon: 'receivables', module: 'librefinance_obligations',
+      keywords: 'receber cliente cobranca venda fatura receita pagamento entrada pendente' },
+    { id: 'payables', icon: 'payables', module: 'librefinance_obligations',
+      keywords: 'pagar fornecedor conta despesa compra fatura pagamento saida vencimento' },
     { id: 'banking', icon: 'banking', module: 'librefinance_banking',
-      keywords: 'banco extrato conciliacao transferencia movimentacao conta bancaria' },
-  ] },
-  { id: 'accounting', label: 'CONTABILIDADE', items: [
-    { id: 'transactions', icon: 'transactions',
-      keywords: 'lancamentos contabeis movimentos contabilizados receita paga despesa paga diario debito credito' },
-    { id: 'accounts', icon: 'accounts',
-      keywords: 'plano de contas contas contabilidade patrimonio ativo passivo' },
+      keywords: 'bancos caixa extrato saldo transferencia conciliacao movimento' },
     { id: 'reports', icon: 'reports', module: 'librefinance_reports',
-      keywords: 'analise relatorios balancete dre resultado demonstrativos caixa' },
-  ] },
-  { id: 'resources', label: 'OUTROS RECURSOS', items: [
-    { id: 'fiscal', label: 'Tributação', icon: 'fiscal', children: [
-      { id: 'taxes', icon: 'fiscal', module: 'librefinance_invoicing',
-        keywords: 'impostos jurisdicao tributacao regras aliquotas vat retencao' },
-      { id: 'nfse', icon: 'fiscal', module: 'librefinance_nfse',
-        keywords: 'nota fiscal servico rascunho nacional' },
-    ] },
+      keywords: 'relatorios demonstrativos fluxo de caixa resultados dre balancete' },
     { id: 'registers', label: 'Cadastros', icon: 'contacts', children: [
       { id: 'contacts', icon: 'contacts',
         keywords: 'clientes fornecedores pessoas contatos' },
@@ -67,8 +49,18 @@ export const MENU_STRUCTURE = Object.freeze([
       { id: 'companies', icon: 'companies',
         keywords: 'empresa cnpj organizacao identificacao legal' },
     ] },
-    { id: 'ai', icon: 'assistant', managerOnly: true,
-      keywords: 'inteligencia artificial resumo analise' },
+    { id: 'advanced', label: 'Mais ferramentas', icon: 'settings', children: [
+      { id: 'transactions', icon: 'transactions',
+        keywords: 'lancamentos contabeis diario debito credito movimentacao' },
+      { id: 'accounts', icon: 'accounts',
+        keywords: 'plano de contas contabilidade patrimonio ativo passivo' },
+      { id: 'taxes', icon: 'fiscal', module: 'librefinance_invoicing',
+        keywords: 'impostos jurisdicao tributacao aliquotas retencao' },
+      { id: 'nfse', icon: 'fiscal', module: 'librefinance_nfse',
+        keywords: 'nota fiscal servico rascunho nacional' },
+      { id: 'ai', icon: 'assistant', managerOnly: true,
+        keywords: 'assistente inteligencia artificial resumo analise' },
+    ] },
   ] },
 ])
 
@@ -99,7 +91,11 @@ export function menuEntries(sections) {
 // Preserve existing ?view=invoicing bookmarks while giving each operation
 // a distinct, user-facing route. Never use freeform view names as URLs.
 export function canonicalView(id) {
-  return id === 'invoicing' ? 'sales' : id
+  // Preserve previously shared bookmarks. Legacy commercial URLs open the
+  // same financial operation in its document-detail mode.
+  if (id === 'invoicing' || id === 'sales' || id === 'obligations') return 'receivables'
+  if (id === 'purchases') return 'payables'
+  return id
 }
 
 export function canOpenView(sections, id, { manager = false, migrationEnabled = false } = {}) {

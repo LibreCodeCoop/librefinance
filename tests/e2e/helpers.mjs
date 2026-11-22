@@ -51,8 +51,11 @@ export async function goToView(page, view) {
     return
   }
   const parent = ({
-    'Regras tributárias': 'Tributação',
-    'NFS-e Brasil': 'Tributação',
+    'Regras tributárias': 'Mais ferramentas',
+    'NFS-e Brasil': 'Mais ferramentas',
+    'Plano de contas': 'Mais ferramentas',
+    'Lançamentos contábeis': 'Mais ferramentas',
+    'Assistente financeiro': 'Mais ferramentas',
     'Clientes e fornecedores': 'Cadastros',
     'Produtos e serviços': 'Cadastros',
     'Categorias': 'Cadastros',

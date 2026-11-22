@@ -854,3 +854,17 @@
   background: var(--color-background-hover);
   box-shadow: inset 3px 0 var(--color-primary-element);
 }
+
+/* One financial workspace, two views. Keep the navigation usable on mobile
+   without introducing another permanent application sidebar. */
+.lf-flow-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--default-grid-baseline, 4px) * 2);
+  margin-block: calc(var(--default-grid-baseline, 4px) * 3);
+}
+@media (max-width: 560px) {
+  .lf-flow-tabs > * {
+    flex: 1 1 100%;
+  }
+}
