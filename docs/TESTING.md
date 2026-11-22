@@ -79,7 +79,7 @@ ignorados no Git para não expor capturas ou dados fictícios em PRs.
 
 ## Contrato das rotas declaradas nos controllers
 
-As 98 rotas frontpage dos sete aplicativos são declaradas por
+As 94 rotas frontpage dos três aplicativos são declaradas por
 `#[FrontpageRoute]`, não em `appinfo/routes.php`. A suíte mantém um snapshot
 dos contratos históricos em `tests/ci/routes-expected.json` e executa
 `occ router:list <apps> --index --output=json` contra o **Nextcloud
@@ -94,9 +94,10 @@ para esconder uma regressão.
 
 ## Migrations iniciais consolidadas
 
-Esta revisão pré-publicação reduz 23 arquivos históricos a sete migrations
-iniciais (uma por aplicativo independente). O smoke verifica instalação
-nova em SQLite, PostgreSQL e MariaDB. A migração é apenas DDL, sem
+Esta revisão pré-publicação consolidou antes 23 migrations em sete baselines. Agora o core
+preserva sua baseline anterior e acrescenta a migration de integração dos
+quatro domínios. Import e NFS-e seguem com migrations independentes. O smoke verifica instalação nova em SQLite, PostgreSQL e MariaDB, com
+78 rotas do núcleo e 16 rotas externas quando instaladas. A migração é apenas DDL, sem
 conversão de valores, exclusão de dados ou acesso a bancos externos. Antes
 de publicar a mudança, também é obrigatório testar um upgrade de banco
 de desenvolvimento previamente instalado, verificando retenção de dados e

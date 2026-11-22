@@ -5,12 +5,19 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Modelo de dados e nomes de tabelas — LibreFinance
 
-## Esquema físico do núcleo (migration inicial consolidada)
+## Esquema físico consolidado do núcleo
 
-O núcleo possui uma única migration `Version000100Date20261121190000`, que
-cria as tabelas definitivas na instalação limpa. Os módulos opcionais mantêm
-suas **próprias** migrations iniciais, sem assumir a propriedade das tabelas
-do núcleo. O app de obrigações já tinha uma só migration e a manteve.
+`Version000100Date20261121190000` permanece intacta, criando as 16
+tabelas originais do livro financeiro. A nova migration aditiva
+`Version000200Date20261122120000` incorpora os quatro domínios:
+`lfb_*` (4 tabelas), `lfob_*` (3), `lfi_*` (6) e
+`lfr_saved_reports` (1). Além delas, cria
+`lf_invoice_obligation_links` e acrescenta a coluna opcional
+`lfob_settlements.journal_id` mais o índice único correspondente.
+
+São **31 tabelas no core**; as extensões Import e NFS-e mantêm seus próprios
+dados e migrations. Os nomes físicos anteriores são preservados para
+instalações de desenvolvimento sem remoção/descarte de linhas.
 
 Tabelas no banco do Nextcloud, com prefixo da instalação (por exemplo `oc_`); não exigem banco independente.
 
@@ -31,9 +38,21 @@ Tabelas no banco do Nextcloud, com prefixo da instalação (por exemplo `oc_`); 
 
 O isolamento **não** depende de um filtro frontend. Serviço PHP valida ator/empresa antes de acessar entidades. A versão inicial só admite duas pernas de lançamento e uma moeda por espaço; saldo é derivado da soma das postagens em cada conta e nunca editado diretamente. Fechamento de competência e restrições de calendário ainda não estão implementados.
 
-## Evolução de domínios — não confundir proposta com migração instalada
+## Domínios integrados e integridade
 
-As extensões independentes já criadas possuem tabelas próprias: `librefinance_obligations` mantém `lfob_obligations`, `lfob_settlements` e `lfob_audit`; `librefinance_banking` mantém `lfb_transactions` e `lfb_audit`; `librefinance_invoicing` mantém `lfi_tax_rules`, `lfi_tax_series`, `lfi_invoices`, `lfi_invoice_lines`, `lfi_allocations` e `lfi_audit`; `librefinance_nfse` mantém `lfn_drafts`; `librefinance_import` mantém `lfm_records` (mapeamento imutável de IDs por sistema/empresa/origem) e `lfm_audit` (contagem e hash dos lotes, sem dados brutos). `librefinance_reports` apenas consulta a API do núcleo. As outras nomenclaturas abaixo são **propostas**, não tabelas presentes no esquema físico. Conferir `docs/MODULES.md`.
+As tabelas bancárias, de contas a pagar/receber, faturamento e relatórios
+são agora **internas ao núcleo**, não dependências de aplicativos externos.
+O vínculo 1:1 de fatura/obrigação é imposto por índices únicos com
+`space_id`. Um pagamento de fatura exige lançamento bancário já
+registrado, reserva transacional da conta e reivindicação exclusiva do
+lançamento. A liquidação e a posição de pagamento são atualizadas na mesma
+transação. Não é permitida a baixa operacional direta de uma obrigação
+originada de fatura.
+
+`lfm_records`, `lfm_audit`, `lfm_liquid_origins`
+e `lfn_drafts` ainda pertencem, respectivamente, aos aplicativos
+externos Import e NFS-e. As entidades abaixo permanecem propostas futuras,
+**não** tabelas assumidamente existentes nesta versão.
 
 - Identidade legal: `lf_legal_entities`, `lf_fiscal_profiles`, `lf_membership_history`.
 - Parceiros e catálogo: `lf_contacts`, `lf_contact_roles`, `lf_items`, `lf_item_prices`.
