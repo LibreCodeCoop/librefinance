@@ -15,8 +15,8 @@ tabelas originais do livro financeiro. A nova migration aditiva
 `lf_invoice_obligation_links` e acrescenta a coluna opcional
 `lfob_settlements.journal_id` mais o índice único correspondente.
 
-São **31 tabelas no core**; as extensões Import e NFS-e mantêm seus próprios
-dados e migrations. Os nomes físicos anteriores são preservados para
+São **34 tabelas no core**, incluindo `lfm_records`, `lfm_audit` e `lfm_liquid_origins`.
+Somente a NFS-e mantém migrações e dados próprios. Os nomes físicos anteriores são preservados para
 instalações de desenvolvimento sem remoção/descarte de linhas.
 
 Tabelas no banco do Nextcloud, com prefixo da instalação (por exemplo `oc_`); não exigem banco independente.
@@ -49,9 +49,9 @@ lançamento. A liquidação e a posição de pagamento são atualizadas na mesma
 transação. Não é permitida a baixa operacional direta de uma obrigação
 originada de fatura.
 
-`lfm_records`, `lfm_audit`, `lfm_liquid_origins`
-e `lfn_drafts` ainda pertencem, respectivamente, aos aplicativos
-externos Import e NFS-e. As entidades abaixo permanecem propostas futuras,
+`lfm_records`, `lfm_audit` e `lfm_liquid_origins`
+agora pertencem ao core, preservando nomes e índices físicos.
+`lfn_drafts` continua na NFS-e opcional. As entidades abaixo permanecem propostas futuras,
 **não** tabelas assumidamente existentes nesta versão.
 
 - Identidade legal: `lf_legal_entities`, `lf_fiscal_profiles`, `lf_membership_history`.

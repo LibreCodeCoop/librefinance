@@ -3,10 +3,10 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-# Domains and external integrations — v0.17 (development)
+# Domains and external integrations — v0.18 (development)
 
 The original six optional finance apps were consolidated into **one core
-Nextcloud app plus two optional integrations**. These boundaries are determined
+Nextcloud app plus one independent NFS-e integration**. These boundaries are determined
 by who owns financial data and by independent compliance/release requirements.
 
 | Runtime owner | Functions | Physical data |
@@ -16,21 +16,43 @@ by who owns financial data and by independent compliance/release requirements.
 | LibreFinance core | Payables, receivables, partial settlements | `lfob_*` |
 | LibreFinance core | Commercial invoices, generic tax rules and allocations | `lfi_*` |
 | LibreFinance core | Accounting reports and saved report templates | `lfr_saved_reports` |
-| Independent Import app | Approved preview and migration of normalized data | `lfm_*` |
+| LibreFinance core | Manager-approved import/migration, source mapping and connector read previews | `lfm_*` |
 | Independent NFS-e app | Brazilian NFS-e preparation only, not live fiscal issuance | `lfn_drafts` |
 
 The former module names remain *logical feature keys* used by
 `FinanceApi::requireModule()`, the access flags in `lf_module_flags` and
 the single canonical Vue shell. They are **not** required as separate
-Nextcloud installations. Their historical Git repositories are kept for
-review/traceability, not as active runtime dependencies. No repository is
-deleted or archived as a side effect of this work.
+Nextcloud installations. The retired separate banking, invoicing, obligations and reporting
+repositories are not runtime dependencies. Legacy Import data is covered by a pinned synthetic historical-schema fixture
+in core CI; installing the old Import app is not required for new installs.
+
+## Built-in normalized data imports
+
+The three lfm_* tables belong to the core and remain non-destructive on upgrade.
+The manager-only import engine accepts explicitly supplied normalized JSON for
+companies, contacts, categories, accounts, pending bank movements, transfers
+and read-only inventory reconciliation. Existing source IDs, hashes, bank
+references and audit history are retained. Source balances are snapshots,
+not posted ledger transactions.
+
+Direct Akaunting connector and live Akaunting-to-LibreFinance migration are
+OUT OF SCOPE for incorporation. No remote credentials or API endpoints are
+accepted by this feature. Provider discovery, pagination and mapping will
+be reviewed in a separate change.
+
+Before upgrading an installation with the independent Import app, make and
+verify a complete database backup. Disable but NEVER UNINSTALL the old app:
+uninstall hooks could delete historical data. Upgrade the core, verify record
+counts and references, and only then remove old app code from the runtime.
+Keep a verified archive for rollback. Tests cover historical table preservation
+on SQLite, MariaDB and PostgreSQL in disposable fixtures. Third-party data
+completeness and financial equivalence remain unverified.
 
 ## Server-side module contract
 
-Only Import and NFS-e register independent `ModuleDescriptor` instances
+Only NFS-e registers an independent `ModuleDescriptor` instance
 through `RegisterModulesEvent` and OCP event listeners. Their PHP endpoints
-check the current user, permissions and per-space feature flag. The four
+check the current user, permissions and per-space feature flag. The five
 trusted built-in domain IDs are registered by `ModuleService` directly and
 their controller routes belong to `librefinance`. An external app cannot
 claim a built-in feature ID, inject HTML/JavaScript into the main app, or
@@ -65,7 +87,7 @@ Before upgrading an existing development installation, record the exact
 seven-app SHAs and take a **verified, restorable** database snapshot.
 Temporarily stop financial writes. Disable, **do not uninstall**, the former
 Banking, Invoicing, Obligations and Reports apps; uninstall handlers may remove
-historic financial tables. Upgrade the core and Import app together, run
+historic financial tables. Upgrade core while keeping the former Import app disabled, run
 `occ upgrade` and compare row counts, per-space balances, foreign references
 and the installed route contract with the snapshot. The core retains historic
 table names and does not infer or recreate old invoice payment relationships.
@@ -78,8 +100,8 @@ For schema ownership and testing details, see [schema](SCHEMA.md) and
 
 ## Extension development requirements
 
-Keep imports and fiscal issuance separate, secure, reviewable and disabled
-until explicitly enabled by a Nextcloud administrator. A workspace manager
+Keep migration a manager-only built-in feature and fiscal integrations separately
+installed, secure, reviewable and enabled deliberately by administrators. A workspace manager
 may toggle availability **for that workspace** but cannot install arbitrary
 PHP code. Data writes must use a transaction-scoped bank account reservation
 `FinanceApi::reserveBankAccountsForWrite()`, and must not import

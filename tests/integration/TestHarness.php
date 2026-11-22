@@ -67,10 +67,10 @@ final class TestHarness {
         }
         $url = $this->baseUrl . $path;
         if ($appId !== null) {
-            if (!preg_match('/^librefinance_[a-z][a-z0-9_]+$/', $appId)) {
+            if ($appId !== 'librefinance' && !preg_match('/^librefinance_[a-z][a-z0-9_]+$/', $appId)) {
                 throw new \InvalidArgumentException('Invalid synthetic test module');
             }
-            $internal = in_array($appId, [
+            $internal = $appId === 'librefinance' || in_array($appId, [
                 'librefinance_reports', 'librefinance_banking',
                 'librefinance_invoicing', 'librefinance_obligations',
             ], true);

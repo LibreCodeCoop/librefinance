@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Synthetic, one-shot upgrade test. Historical Import schema is a fixture.
+services:
+  nextcloud:
+    volumes:
+      - ${LF_UPGRADE_CORE_SOURCE:?Old/new core source is required}:/var/www/html/custom_apps/librefinance:ro
+      - ${LF_UPGRADE_CONFIG_DIR:?Disposable config directory is required}:/var/www/html/config
+      - ${LF_UPGRADE_SEED_SOURCE:?Disposable test seed is required}:/tmp/upgrade-import-seed.php:ro
+      - ${LF_UPGRADE_SNAPSHOT_SOURCE:?Disposable DB-independent snapshot is required}:/tmp/upgrade-import-snapshot.php:ro
+      - ${LF_UPGRADE_SCHEMA_SOURCE:?Historical source schema fixture is required}:/tmp/legacy-import-schema.php:ro

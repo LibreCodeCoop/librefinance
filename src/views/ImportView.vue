@@ -98,7 +98,7 @@ async function review() {
     const body = step.value === 'inventory'
       ? { inventoryJson: sourceText.value }
       : { exportJson: sourceText.value }
-    const data = await financeApi('librefinance_import', activeId.value,
+    const data = await financeApi('librefinance', activeId.value,
       selected.value.preview, 'POST', body)
     if (token === generation) preview.value = data
   } catch (cause) {
@@ -113,7 +113,7 @@ async function apply() {
   busy.value = true
   error.value = ''
   try {
-    const response = await financeApi('librefinance_import', activeId.value,
+    const response = await financeApi('librefinance', activeId.value,
       selected.value.apply, 'POST', {
         exportJson: sourceText.value,
         previewHash: preview.value.previewHash,
@@ -144,7 +144,7 @@ async function apply() {
     try {
       const query = '?sourceSystem=' + encodeURIComponent(origin.system)
         + '&sourceCompanyId=' + encodeURIComponent(origin.companyId)
-      const report = await financeApi('librefinance_import', activeId.value,
+      const report = await financeApi('librefinance', activeId.value,
         route + query)
       if (token === generation) coverage.value = report
     } catch (cause) {
@@ -175,7 +175,7 @@ const rows = computed(() => isInventory.value
 const count = computed(() => isInventory.value
   ? preview.value?.summary || {}
   : preview.value?.counts || {})
-onBeforeUnmount(() => ++generation)
+onBeforeUnmount(() => { ++generation })
 </script>
 <template>
   <div class="lf-view">
@@ -184,9 +184,9 @@ onBeforeUnmount(() => ++generation)
       <template #actions><NcButton variant="secondary" @click="backToSettings">Voltar às configurações</NcButton></template>
     </LfPageHeader>
     <NcNoteCard type="warning">
-      A migração exige lotes JSON previamente normalizados, com identidade da empresa
-      de origem. Este fluxo não recebe credenciais de sistemas externos. Nenhuma etapa
-      contabiliza saldos de origem automaticamente ou certifica paridade por contagem.
+      Importe somente dados normalizados de empresas autorizadas e revise cada
+      prévia antes de confirmar. Os saldos de origem são mantidos como referência;
+      nenhuma importação contabiliza lançamentos automaticamente.
     </NcNoteCard>
     <div class="lf-import-progress" aria-label="Fluxos da migração">
       <NcButton v-for="item in kinds" :key="item.id"
@@ -199,7 +199,7 @@ onBeforeUnmount(() => ++generation)
     <section class="lf-surface">
       <div class="lf-section-heading">
         <div><h2>{{selected.title}}</h2><p>{{selected.detail}}</p></div>
-        <span class="lf-state">Somente arquivos normalizados</span>
+        <span class="lf-state">Arquivo normalizado</span>
       </div>
       <p class="lf-muted">
         {{isInventory?'Manifesto de cobertura, até 32 KiB. Não grava dados.':

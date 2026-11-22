@@ -15,7 +15,7 @@ declare(strict_types=1);
  */
 $project = dirname(__DIR__, 3);
 $core = $project . '/librefinance';
-$apps = ['librefinance', 'librefinance_nfse', 'librefinance_import'];
+$apps = ['librefinance', 'librefinance_nfse'];
 
 /**
  * Format: field:type! (required), ? optional; types s/i/b/date/array/object.
@@ -64,16 +64,13 @@ $writeForms = [
         'journalId:i!,bankAccountId:i!,amountMinor:i!',
     'librefinance_nfse:draft#create' =>
         'operationKey:s!,issuerCnpj:s!,municipalityCode:s!,competence:date!,serviceCode:s!,description:s!,amountMinor:i!,companyId:i',
-    'librefinance_import:import#preview' => 'exportJson:s!',
-    'librefinance_import:import#apply' =>
-        'exportJson:s!,previewHash:s!,confirmed:b!',
-    'librefinance_import:movement#preview' => 'exportJson:s!',
-    'librefinance_import:movement#apply' =>
-        'exportJson:s!,previewHash:s!,confirmed:b!',
-    'librefinance_import:transfer#preview' => 'exportJson:s!',
-    'librefinance_import:transfer#apply' =>
-        'exportJson:s!,previewHash:s!,confirmed:b!',
-    'librefinance_import:inventory#preview' => 'inventoryJson:s!',
+    'librefinance:import#preview' => 'exportJson:s!',
+    'librefinance:import#apply' => 'exportJson:s!,previewHash:s!,confirmed:b!',
+    'librefinance:movement#preview' => 'exportJson:s!',
+    'librefinance:movement#apply' => 'exportJson:s!,previewHash:s!,confirmed:b!',
+    'librefinance:transfer#preview' => 'exportJson:s!',
+    'librefinance:transfer#apply' => 'exportJson:s!,previewHash:s!,confirmed:b!',
+    'librefinance:inventory#preview' => 'inventoryJson:s!',
 ];
 $noBody = [
     'librefinance:dashboardLayout#reset',
@@ -86,11 +83,11 @@ $noBody = [
     'librefinance:invoice#issue',
 ];
 $query = [
-    'librefinance_import:import#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
-    'librefinance_import:import#accounts' => 'sourceCompanyId:s!,sourceSystem:s,afterId:i',
-    'librefinance_import:movement#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
-    'librefinance_import:movement#reconciliation' => 'sourceCompanyId:s!,sourceSystem:s,afterId:i',
-    'librefinance_import:transfer#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
+    'librefinance:import#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
+    'librefinance:import#accounts' => 'sourceCompanyId:s!,sourceSystem:s,afterId:i',
+    'librefinance:movement#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
+    'librefinance:movement#reconciliation' => 'sourceCompanyId:s!,sourceSystem:s,afterId:i',
+    'librefinance:transfer#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
     'librefinance:banking#transfers' => 'afterId:i',
     'librefinance:search#index' => 'query:s!,type:s',
     'librefinance:journal#index' => 'beforeId:i',
@@ -116,10 +113,10 @@ $descriptions = [
     'librefinance:ai#analyze' => 'TaskProcessing: only aggregate totals, read-only, requires human consent; provider may be external.',
     'librefinance:invoice#issue' => 'Internal commercial issue status only. This is NOT a fiscal authorization.',
     'librefinance_nfse:draft#create' => 'Staging only. Does not issue DPS, NFS-e, DANFSe or authorized XML.',
-    'librefinance_import:import#apply' => 'Approved normalized JSON only; no Akaunting password, screen scraping or direct data extraction.',
-    'librefinance_import:movement#apply' => 'Explicitly approved historical bank movement import. Creates pending bank statements only, never ledger postings or transfers.',
-    'librefinance_import:transfer#apply' => 'Stages linked source bank transfers without duplicating statement lines or ledger postings. Source transfer legs remain unmatched.',
-    'librefinance_import:inventory#preview' => 'Read-only coverage audit against an externally supplied untrusted source inventory. Count parity is never proof of financial or fiscal functional parity.',
+    'librefinance:import#apply' => 'Explicitly confirmed normalized JSON only; no direct source API access or automatic ledger posting.',
+    'librefinance:movement#apply' => 'Explicitly approved historical bank movement import. Creates pending bank statements only, never ledger postings or transfers.',
+    'librefinance:transfer#apply' => 'Stages linked source bank transfers without duplicating statement lines or ledger postings. Source transfer legs remain unmatched.',
+    'librefinance:inventory#preview' => 'Read-only coverage audit against an externally supplied untrusted source inventory. Count parity is never proof of financial or fiscal functional parity.',
     'librefinance:banking#import' => 'CSV import only; does not initiate bank API synchronization.',
 ];
 
@@ -332,7 +329,7 @@ foreach ($apps as $app) {
         $parameters = [];
         preg_match_all('/\\{([a-zA-Z][a-zA-Z0-9]*)\\}/', $url, $matches);
         foreach ($matches[1] as $variable) {
-            $isText = in_array($variable, ['uid', 'gid', 'moduleId'], true);
+            $isText = in_array($variable, ['uid', 'gid', 'moduleId', 'sourceId'], true);
             $parameters[] = [
                 'name' => $variable, 'in' => 'path', 'required' => true,
                 'schema' => $isText ? ['type' => 'string']
@@ -355,8 +352,13 @@ foreach ($apps as $app) {
             $key === 'librefinance:ai#analyze' => '202',
             $key === 'librefinance:mcp#handle' => '200',
             in_array($key, [
-                'librefinance_import:import#preview',
-                'librefinance_import:import#apply',
+                'librefinance:import#preview',
+                'librefinance:import#apply',
+                'librefinance:movement#preview',
+                'librefinance:movement#apply',
+                'librefinance:transfer#preview',
+                'librefinance:transfer#apply',
+                'librefinance:inventory#preview',
                 'librefinance:banking#match',
                 'librefinance:module#toggle',
             ], true) => '200',

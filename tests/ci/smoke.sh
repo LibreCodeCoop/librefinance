@@ -29,15 +29,10 @@ case "$LF_TEST_DATABASE" in
 esac
 export COMPOSE_PROJECT_NAME="lf-domains-${LF_TEST_DATABASE}"
 export LF_WITH_EXTENSIONS=0
-if [ -n "${LF_IMPORT_SOURCE:-}" ] || [ -n "${LF_NFSE_SOURCE:-}" ]; then
-  : "${LF_IMPORT_SOURCE:?Provide external import checkout}"
-  : "${LF_NFSE_SOURCE:?Provide external NFS-e checkout}"
-  export LF_IMPORT_SOURCE="$(realpath "$LF_IMPORT_SOURCE")"
+if [ -n "$(printenv LF_NFSE_SOURCE || true)" ]; then
   export LF_NFSE_SOURCE="$(realpath "$LF_NFSE_SOURCE")"
-  for path in "$LF_IMPORT_SOURCE" "$LF_NFSE_SOURCE"; do
-    test -f "$path/appinfo/info.xml"
-    test -s "$path/js/main.js"
-  done
+  test -f "$LF_NFSE_SOURCE/appinfo/info.xml"
+  test -s "$LF_NFSE_SOURCE/js/main.js"
   export LF_WITH_EXTENSIONS=1
 fi
 
@@ -54,7 +49,7 @@ grep -F '$OC_VersionString' "$LF_NEXTCLOUD_SOURCE/version.php"
 
 mkdir -p "$LF_NEXTCLOUD_SOURCE/data" "$LF_NEXTCLOUD_SOURCE/custom_apps/librefinance"
 if [ "$LF_WITH_EXTENSIONS" = 1 ]; then
-  mkdir -p "$LF_NEXTCLOUD_SOURCE/custom_apps/librefinance_nfse" "$LF_NEXTCLOUD_SOURCE/custom_apps/librefinance_import"
+  mkdir -p "$LF_NEXTCLOUD_SOURCE/custom_apps/librefinance_nfse"
 fi
 chmod 755 "$LF_NEXTCLOUD_SOURCE/custom_apps" "$LF_NEXTCLOUD_SOURCE/custom_apps/librefinance"
 mkdir -p tests/ci/.runtime-config
@@ -151,7 +146,7 @@ else
     --data-dir /var/www/html/data
 fi
 
-# Source is read-only: register both app roots without changing server checkout.
+# Source is read-only: register core and optional NFS-e without changing server checkout.
 compose exec -T --user www-data nextcloud php -r '
 require "/var/www/html/config/config.php";
 $CONFIG["appstoreenabled"] = false;
@@ -162,9 +157,9 @@ $CONFIG["apps_paths"] = [
 file_put_contents("/var/www/html/config/config.php", "<?php\n\$CONFIG = " . var_export($CONFIG, true) . ";\n");
 '
 compose exec -T --user www-data nextcloud php occ app:enable librefinance
+compose exec -T nextcloud php /var/www/html/custom_apps/librefinance/tests/import/source-system.php
 if [ "$LF_WITH_EXTENSIONS" = 1 ]; then
   compose exec -T --user www-data nextcloud php occ app:enable librefinance_nfse
-  compose exec -T --user www-data nextcloud php occ app:enable librefinance_import
   # Source-backed OpenAPI gate across core + all separately installed apps.
   compose exec -T nextcloud php /var/www/html/custom_apps/librefinance/tests/openapi/generate.php --check
 fi
@@ -176,7 +171,7 @@ compose exec -T --user www-data nextcloud php occ upgrade
 # linting attributes or checking only one successful URL is insufficient.
 route_apps=(librefinance)
 if [ "$LF_WITH_EXTENSIONS" = 1 ]; then
-  route_apps+=(librefinance_import librefinance_nfse)
+  route_apps+=(librefinance_nfse)
 fi
 compose exec -T --user www-data nextcloud php occ router:list "${route_apps[@]}" --index --output=json \
   | python3 tests/ci/check-route-contracts.py tests/ci/routes-expected.json "${route_apps[@]}"
@@ -199,6 +194,28 @@ else
   ' | tr -d '\r')"
 fi
 test "$count" -eq 17
+
+# Imported provenance tables use the lfm_ physical prefix, not lf_.
+# Verify the three durable origin tables independently in every engine.
+if [ "$LF_TEST_DATABASE" = "pgsql" ]; then
+  import_tables="$(compose exec -T db psql -U nextcloud -d nextcloud -Atc \
+    "SELECT COUNT(*) FROM pg_tables WHERE schemaname='public' AND tablename IN ('oc_lfm_records','oc_lfm_audit','oc_lfm_liquid_origins');" | tr -d '\r')"
+elif [ "$LF_TEST_DATABASE" = "mariadb" ]; then
+  import_tables="$(compose exec -T -e MYSQL_PWD="$LF_TEST_PASSWORD" mariadb \
+    mariadb -u nextcloud -D nextcloud -N -B -e \
+    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='nextcloud' AND table_name IN ('oc_lfm_records','oc_lfm_audit','oc_lfm_liquid_origins');" | tr -d '\r')"
+else
+  import_tables="$(compose exec -T --user www-data nextcloud php -r '
+    foreach (glob("/var/www/html/data/*.db") as $file) {
+      $pdo = new PDO("sqlite:" . $file);
+      $q = $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type='\''table'\'' AND name IN ('\''oc_lfm_records'\'','\''oc_lfm_audit'\'','\''oc_lfm_liquid_origins'\'')");
+      echo $q->fetchColumn();
+    }
+  ' | tr -d '\r')"
+fi
+test "$import_tables" -eq 3
+echo "PASS: Three core-owned source identity/audit/balance-snapshot import tables."
+
 http_status="$(compose exec -T nextcloud curl -sS --max-time 12 -o /dev/null -w '%{http_code}' http://127.0.0.1/status.php)"
 test "$http_status" = 200
 echo "PASS: Nextcloud Server master install, LibreFinance activation, seventeen core tables and HTTP 200."
@@ -212,28 +229,33 @@ compose exec -T --user www-data nextcloud php occ group:add lf_synth_finance_gro
 compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_finance_group lfmaintestB
 # Browser diagnostics can run independently for fast feedback on layout and
 # CSRF. Official CI always runs full API+Behat+browser suites.
-if [ "${LF_BROWSER_DEBUG_ONLY:-0}" != 1 ]; then
-# Run native PHP integration suites inside the same Nextcloud PHP runtime.
-# The internal URL stays on loopback; no external host/test runtime is necessary.
-for script in basic advanced catalog categories companies custom-fields ux-enhancements company-logo payment-methods; do
-  compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
-    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-    php "/var/www/html/custom_apps/librefinance/tests/integration/${script}.php"
-done
-echo "PASS: Native PHP authorization, ledger, group access and concurrency tests on Nextcloud Server master."
-for domain_test in banking obligations invoicing reports-cash-flow reports-saved; do
-  # A Nextcloud CLI fatal handler can return a zero process code before a
-  # test's last assertion. Require the actual TestHarness::finish() marker.
-  domain_output="$(compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
-    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-    php "/var/www/html/custom_apps/librefinance/tests/integration/domains/${domain_test}.php")"
-  printf '%s\n' "$domain_output"
-  if ! grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$domain_output"; then
-    echo "FAIL: domain suite ${domain_test} terminated before TestHarness::finish()" >&2
+# Nextcloud CLI fatal handlers may exit successfully after a test abort. Require
+# a real completion marker and no failure marker from every integration suite.
+assert_integration_complete() {
+  local script="$1"
+  local output
+  if ! output="$(compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS"     -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud     php "$script" 2>&1)"; then
+    printf '%s\n' "$output" >&2
+    echo "FAIL: PHP integration $script exited nonzero" >&2
     exit 1
   fi
+  printf '%s\n' "$output"
+  if grep -Eq '^FAIL([ :]|$)' <<< "$output"     || ! grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$output"; then
+    echo "FAIL: PHP integration $script had failed or missing assertions" >&2
+    exit 1
+  fi
+}
+
+if [ "$(printenv LF_BROWSER_DEBUG_ONLY || echo 0)" != 1 ]; then
+# Run native PHP integration suites inside the same Nextcloud PHP runtime.
+for script in basic advanced catalog categories companies custom-fields ux-enhancements company-logo payment-methods; do
+  assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/$script.php"
 done
-echo "PASS: Native banking, obligations, invoicing and reporting business integration suites."
+echo "PASS: Native PHP authorization, ledger, group access and concurrency tests on Nextcloud Server master."
+for domain_test in banking obligations invoicing reports-cash-flow reports-saved import; do
+  assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/domains/$domain_test.php"
+done
+echo "PASS: Native banking, obligations, invoicing, reporting and core-import integration suites."
 
 if [ "${LF_RUN_BEHAT:-1}" = 1 ]; then
   test -x tests/behat/vendor/bin/behat || {
@@ -249,25 +271,11 @@ if [ "${LF_RUN_BEHAT:-1}" = 1 ]; then
   echo "PASS: Both Behat API shards completed, without skipped scenarios."
 fi
 if [ "$LF_WITH_EXTENSIONS" = 1 ]; then
-  compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
-    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-    php /var/www/html/custom_apps/librefinance/tests/integration/account-deletion.php
-  compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
-    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-    php /var/www/html/custom_apps/librefinance/tests/integration/account-deletion-race.php
-  compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
-    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-    php /var/www/html/custom_apps/librefinance/tests/integration/modules.php
-  compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
-    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-    php /var/www/html/custom_apps/librefinance/tests/integration/mcp-ai.php
-  compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
-    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-    php /var/www/html/custom_apps/librefinance_nfse/tests/integration.php
-  compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
-    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-    php /var/www/html/custom_apps/librefinance_import/tests/integration.php
-  echo "PASS: Both separately installed external integrations passed their PHP suites."
+  for script in account-deletion account-deletion-race modules mcp-ai; do
+    assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/$script.php"
+  done
+  assert_integration_complete /var/www/html/custom_apps/librefinance_nfse/tests/integration.php
+  echo "PASS: Independently installed NFS-e draft app passed its PHP suite."
 fi
 else
   echo "SKIPPED: Native PHP and Behat suites, browser-only local diagnostics explicitly requested."

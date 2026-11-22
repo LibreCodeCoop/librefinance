@@ -57,7 +57,7 @@ final class FinanceApi {
 
     /** Create a legal entity from an explicitly approved, normalized migration batch. */
     public function importCompany(int $spaceId, string $moduleId, string $legalName,
-        string $country, string $taxId, ?string $tradeName,
+        string $country, ?string $taxId, ?string $tradeName,
         ?string $municipalRegistration, ?string $stateRegistration): array {
         $this->requireModule($spaceId, $moduleId, 'manager');
         return $this->companies->create($spaceId, $legalName, $country,

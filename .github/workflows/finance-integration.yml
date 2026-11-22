@@ -37,7 +37,7 @@ jobs:
         run: git diff --exit-code -- js/main.js css/main.css js/main.js.license
 
   integrated:
-    name: Installed Nextcloud + two external apps / ${{ matrix.database }}
+    name: Installed Nextcloud + NFS-e draft app / ${{ matrix.database }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
     strategy:
@@ -57,13 +57,6 @@ jobs:
           path: .ci-nextcloud-server
           submodules: recursive
           persist-credentials: false
-      - name: Checkout import module
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: LibreCodeCoop/librefinance-import
-          ref: 2deb8cc2b22a178dfdce32472bc636364c0aebab
-          path: .ci-modules/librefinance_import
-          persist-credentials: false
       - name: Checkout NFS-e drafts module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -78,10 +71,10 @@ jobs:
           coverage: none
       - name: Install Behat API test dependencies
         run: composer install --working-dir=tests/behat --no-interaction --prefer-dist --no-progress
-      - name: Verify pinned external apps
+      - name: Verify pinned NFS-e draft app
         run: |
           set -euo pipefail
-          for module in import nfse; do
+          for module in nfse; do
             path=".ci-modules/librefinance_${module}"
             test -f "${path}/appinfo/info.xml"
             test -s "${path}/js/main.js"
@@ -91,11 +84,74 @@ jobs:
       - name: Run complete synthetic core and external-app integration
         env:
           LF_NEXTCLOUD_SOURCE: ${{ github.workspace }}/.ci-nextcloud-server
-          LF_IMPORT_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_import
           LF_NFSE_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_nfse
           LF_TEST_DATABASE: ${{ matrix.database }}
           LF_RUN_PLAYWRIGHT: '0'
         run: bash tests/ci/smoke.sh
+
+  core-only:
+    name: LibreFinance without optional apps / sqlite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout LibreFinance core
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Checkout reviewed Nextcloud Server
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: nextcloud/server
+          ref: 7a89690a1ca17aae3113da13070487c191eb1f4b
+          path: .ci-nextcloud-server
+          submodules: recursive
+          persist-credentials: false
+      - name: Install and test core, including built-in importer
+        env:
+          LF_NEXTCLOUD_SOURCE: ${{ github.workspace }}/.ci-nextcloud-server
+          LF_TEST_DATABASE: sqlite
+          LF_RUN_BEHAT: '0'
+          LF_RUN_PLAYWRIGHT: '0'
+        run: bash tests/ci/smoke.sh
+
+  upgrade-import:
+    name: Preserve historic Import app data / ${{ matrix.database }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [pgsql, sqlite, mariadb]
+    steps:
+      - name: Checkout LibreFinance core
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Checkout reviewed Nextcloud Server
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: nextcloud/server
+          ref: 7a89690a1ca17aae3113da13070487c191eb1f4b
+          path: .ci-nextcloud-server
+          submodules: recursive
+          persist-credentials: false
+      - name: Checkout pinned pre-consolidation LibreFinance
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: LibreCodeCoop/librefinance
+          ref: caf8fddd9335af9732ac6b1971b9a1c4c998477a
+          path: .ci-legacy-core
+          persist-credentials: false
+      - name: Verify pre-upgrade core and stored-schema fixture
+        run: |
+          test -s .ci-legacy-core/appinfo/info.xml
+          test -s tests/ci/legacy-import-schema.php
+      - name: Verify original source IDs, references and balances survive
+        env:
+          LF_TEST_DATABASE: ${{ matrix.database }}
+          LF_NEXTCLOUD_SOURCE: ${{ github.workspace }}/.ci-nextcloud-server
+          LF_UPGRADE_OLD_CORE_SOURCE: ${{ github.workspace }}/.ci-legacy-core
+        run: bash tests/ci/upgrade-import.sh
 
   # Each Chromium shard has its own disposable Nextcloud and PostgreSQL lab.
   # Do not increase workers inside one shared financial workspace/session.
@@ -120,13 +176,6 @@ jobs:
           path: .ci-nextcloud-server
           submodules: recursive
           persist-credentials: false
-      - name: Checkout import module
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: LibreCodeCoop/librefinance-import
-          ref: 2deb8cc2b22a178dfdce32472bc636364c0aebab
-          path: .ci-modules/librefinance_import
-          persist-credentials: false
       - name: Checkout NFS-e drafts module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -143,10 +192,10 @@ jobs:
         run: |
           npm ci --include=dev
           npx playwright install --with-deps chromium
-      - name: Verify pinned external app builds
+      - name: Verify pinned NFS-e draft app build
         run: |
           set -euo pipefail
-          for module in import nfse; do
+          for module in nfse; do
             path=".ci-modules/librefinance_${module}"
             test -f "${path}/appinfo/info.xml"
             test -s "${path}/js/main.js"
@@ -156,7 +205,6 @@ jobs:
       - name: Run isolated browser shard against installed Nextcloud
         env:
           LF_NEXTCLOUD_SOURCE: ${{ github.workspace }}/.ci-nextcloud-server
-          LF_IMPORT_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_import
           LF_NFSE_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_nfse
           LF_TEST_DATABASE: pgsql
           LF_BROWSER_DEBUG_ONLY: '1'
@@ -167,7 +215,7 @@ jobs:
 
   ci-required:
     name: LibreFinance integrated CI
-    needs: [contracts, integrated, browser]
+    needs: [contracts, integrated, browser, core-only, upgrade-import]
     if: always()
     runs-on: ubuntu-latest
     permissions:
@@ -176,9 +224,13 @@ jobs:
       CORE_RESULT: ${{ needs.contracts.result }}
       COMBINED_RESULT: ${{ needs.integrated.result }}
       BROWSER_RESULT: ${{ needs.browser.result }}
+      CORE_ONLY_RESULT: ${{ needs.core-only.result }}
+      UPGRADE_RESULT: ${{ needs.upgrade-import.result }}
     steps:
       - name: Do not accept failed, cancelled, missing or skipped required jobs
         run: |
           test "$CORE_RESULT" = success
           test "$COMBINED_RESULT" = success
           test "$BROWSER_RESULT" = success
+          test "$CORE_ONLY_RESULT" = success
+          test "$UPGRADE_RESULT" = success

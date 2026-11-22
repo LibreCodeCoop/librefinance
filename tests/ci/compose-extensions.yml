@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Only the data-import and country-specific fiscal apps remain separate.
+# Only country-specific fiscal drafts remain in a separate Nextcloud app.
 services:
   nextcloud:
     volumes:
       - ${LF_NFSE_SOURCE:?LF_NFSE_SOURCE is required}:/var/www/html/custom_apps/librefinance_nfse:ro
-      - ${LF_IMPORT_SOURCE:?LF_IMPORT_SOURCE is required}:/var/www/html/custom_apps/librefinance_import:ro

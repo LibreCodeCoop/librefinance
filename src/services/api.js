@@ -9,6 +9,7 @@ import { generateUrl } from '@nextcloud/router'
 const internalDomains = new Set([
   'librefinance_reports', 'librefinance_banking',
   'librefinance_invoicing', 'librefinance_obligations',
+  'librefinance_import',
 ])
 
 const accepted = new Set([
