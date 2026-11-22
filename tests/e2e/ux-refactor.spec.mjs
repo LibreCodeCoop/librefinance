@@ -54,6 +54,60 @@ test('contacts, items, and account management have independent purpose-built pag
   await expect(page.getByRole('row', { name: /Conta UX ajustada/ })).toBeVisible()
 })
 
+test('@extensions household workspace uses personal terms without requiring a company', async ({ page }) => {
+  await login(page)
+  const name=await makeSpace(page, 'personal')
+  await expect(page.getByText('Sua gestão da casa está pronta')).toBeVisible()
+  await expect(page.locator('.lf-space-meta')).toContainText('Casa / pessoal')
+  await expect(page.getByText('Não é necessário cadastrar uma empresa.', {exact:false})).toBeVisible()
+  await goToView(page, 'Pessoas e estabelecimentos')
+  await expect(page.getByRole('heading',{name:'Pessoas e estabelecimentos',exact:true})).toBeVisible()
+  await page.getByRole('button',{name:'Novo contato'}).click()
+  const contact = page.getByRole('dialog',{name:'Novo contato'})
+  await contact.locator('#lf-contact-kind').click()
+  for (const option of ['De quem recebo','A quem pago','Pago e recebo'])
+    await expect(page.getByRole('option',{name:option,exact:true})).toBeVisible()
+  await page.keyboard.press('Escape')
+  await contact.getByRole('button',{name:'Cancelar'}).click()
+  await goToView(page, 'Empresas (opcional)')
+  await expect(page.getByRole('heading',{name:'Empresas',exact:true})).toBeVisible()
+  await expect(page.getByText('Opcional para finanças da casa.',{exact:false})).toBeVisible()
+  const currentSpace = new URL(page.url()).searchParams.get('spaceId')
+  await expect(page.locator('.lf-context-identity')).toContainText(name)
+  await page.goto('/index.php/apps/librefinance/?spaceId='+currentSpace+'&view=contacts')
+  await expect(page.getByRole('heading',{name:'Pessoas e estabelecimentos',exact:true})).toBeVisible()
+})
+
+test('@extensions supported entity pages link quietly to the matching Field Studio', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'organization')
+  for (const [screen, entity, label] of [
+    ['Empresas', 'company','empresas'],
+    ['Clientes e fornecedores','contact','contatos'],
+    ['Produtos e serviços','item','produtos e serviços'],
+    ['Lançamentos contábeis','journal','lançamentos'],
+  ]) {
+    await goToView(page, screen)
+    const btn=page.getByRole('button',{name:'Personalizar campos de '+label})
+    await expect(btn).toBeVisible()
+    await expect(btn).toHaveClass(/lf-field-studio-shortcut/)
+    await btn.click()
+    await expect(page).toHaveURL(new RegExp('view=fields'))
+    await expect(page).toHaveURL(new RegExp('entity='+entity))
+    await expect(page.locator('#lf-field-studio-entity')).toBeVisible()
+    const picked = {
+      company:'Empresa',contact:'Cliente ou fornecedor',
+      item:'Produto ou serviço',journal:'Receita ou despesa',
+    }[entity]
+    await expect(page.locator('.lf-field-studio').getByText(picked,{exact:true})).toBeVisible()
+    await page.reload()
+    await expect(page).toHaveURL(new RegExp('entity='+entity))
+    await expect(page.locator('.lf-field-studio').getByText(picked,{exact:true})).toBeVisible()
+  }
+  await goToView(page,'Acessos e compartilhamento')
+  await expect(page.getByRole('button',{name:/Personalizar campos de/})).toHaveCount(0)
+})
+
 test('Field Studio targets contacts and the resulting field appears in the contact form', async ({ page }) => {
   await login(page)
   await makeSpace(page)

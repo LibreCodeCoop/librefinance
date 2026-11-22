@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import {
   availableSections, canOpenView, defaultGroupOpen, menuEntries,
   navigationSearch, normalizeNavigationText, parentOfView, PAGE_NAMES,
-  canonicalView, financeDirectionForView,
+  canonicalView, financeDirectionForView, pageNameForSpace, fieldEntityKind,
 } from '../../src/navigation.js'
 const all = ['librefinance_banking', 'librefinance_obligations',
   'librefinance_reports', 'librefinance_invoicing', 'librefinance_nfse', 'librefinance_import']
@@ -78,7 +78,27 @@ test('navigation search includes ordinary work and administrative capabilities',
   assert.equal(navigationSearch(s(), 'migracao', {manager:true,migrationEnabled:true})[0].id, 'data')
   assert.equal(navigationSearch(s(), 'formas de pagamento')[0].id, 'paymentMethods')
   assert.equal(navigationSearch(s(), 'campos personalizados')[0].id, 'fields')
+  assert.equal(navigationSearch(s(), 'acessos e compartilhamento')[0].id, 'access')
   assert.equal(navigationSearch(s(), 'pessoas e grupos')[0].id, 'access')
   assert.equal(navigationSearch(s(false),'migracao',{manager:false,migrationEnabled:true}).length,0)
   assert.equal(defaultGroupOpen('management', 'organization'), false)
+})
+
+test('personal space uses household labels but preserves the same authorized routes', () => {
+  assert.equal(pageNameForSpace('contacts', 'personal'), 'Pessoas e estabelecimentos')
+  assert.equal(pageNameForSpace('contacts', 'organization'), 'Clientes e fornecedores')
+  assert.equal(pageNameForSpace('companies', 'personal'), 'Empresas (opcional)')
+  assert.equal(pageNameForSpace('companies', 'organization'), 'Empresas')
+  assert.equal(pageNameForSpace('finance', 'personal'), 'A pagar e receber')
+  assert.equal(navigationSearch(s(), 'pessoas e estabelecimentos', {spaceKind:'personal'})[0].id,'contacts')
+  assert.equal(navigationSearch(s(), 'clientes', {spaceKind:'organization'})[0].id,'contacts')
+  assert.equal(menuEntries(s()).some(item => item.id === 'companies'), true)
+})
+
+test('only currently supported field entity kinds may be deep-linked', () => {
+  for (const kind of ['company', 'contact', 'item', 'journal']) {
+    assert.equal(fieldEntityKind(kind), kind)
+  }
+  for (const invalid of ['member', 'group', '../../user', '<script>', ''])
+    assert.equal(fieldEntityKind(invalid), 'company')
 })

@@ -25,7 +25,7 @@ const props = defineProps({
 })
 const sections = {
   access: {
-    panel: 'access', title: 'Pessoas e grupos',
+    panel: 'access', title: 'Acessos e compartilhamento',
     description: 'Defina quem pode consultar e operar esta gestão financeira.',
   },
   fields: {
@@ -83,7 +83,9 @@ async function confirmRemoval() {
       :description="current.description" />
     <section v-if="section==='access'" class="lf-surface">
       <div class="lf-section-heading"><div><h2>Acessos ao espaço</h2>
-        <p>As permissões são verificadas pelo servidor em cada operação.</p></div>
+        <p>As permissões são verificadas pelo servidor em cada operação.
+          Contas e grupos do Nextcloud não são cadastros financeiros personalizáveis:
+          os campos extras pertencem a empresas, contatos, itens e lançamentos.</p></div>
         <div class="lf-header-actions">
           <NcButton variant="secondary" @click="shareDialog='member'">
             <template #icon><NcIconSvgWrapper :path="mdiAccountPlusOutline" :size="20" /></template>

@@ -81,7 +81,7 @@ test('@extensions task-oriented navigation has one agenda and one management gro
   await expect(nav.getByRole('link', { name: 'Mais ferramentas' })).toHaveCount(0)
   await expect(nav.getByRole('button', { name: 'Configurações' })).toHaveCount(0)
   await expect(nav.getByRole('link', { name: 'Configurações', exact: true })).toHaveCount(0)
-  for (const entry of ['Pessoas e grupos','Campos personalizados','Formas de pagamento',
+  for (const entry of ['Acessos e compartilhamento','Campos personalizados','Formas de pagamento',
     'Recursos instalados','Dados e migração']) {
     await goToView(page, entry)
     await expect(page).toHaveURL(/[?&]view=/)
@@ -117,7 +117,7 @@ test('@extensions old settings bookmarks open the direct management function', a
   const id = new URL(page.url()).searchParams.get('spaceId')
   const base = '/index.php/apps/librefinance/?spaceId=' + id
   for (const [legacy, title] of [
-    ['access', 'Pessoas e grupos'],
+    ['access', 'Acessos e compartilhamento'],
     ['fields', 'Campos personalizados'],
     ['payments', 'Formas de pagamento'],
     ['modules', 'Recursos instalados'],

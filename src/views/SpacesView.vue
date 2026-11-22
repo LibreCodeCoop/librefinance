@@ -26,9 +26,9 @@ const name = ref('')
 const newName = ref('')
 const newKind = ref('personal')
 const kinds = [
-  { value: 'personal', label: 'Finanças pessoais' },
+  { value: 'personal', label: 'Pessoal ou da casa' },
   { value: 'collective', label: 'Grupo ou coletivo' },
-  { value: 'organization', label: 'Organização' },
+  { value: 'organization', label: 'Empresa ou organização' },
 ]
 const owned = computed(() => w.spaces.value.filter(space => space.role === 'owner'))
 const other = computed(() => w.spaces.value.filter(space => space.role !== 'owner'))
@@ -193,7 +193,9 @@ async function create() {
       content-classes="lf-finance-dialog-content" size="normal"
       @update:open="creating=$event">
       <form class="lf-dialog-form" @submit.prevent="create">
-        <p>Uma gestão é um conjunto separado de contas, compromissos, registros e permissões.</p>
+        <p>Escolha o contexto: despesas pessoais ou da casa, um grupo, ou uma
+          empresa. Cada gestão separa contas, lançamentos e permissões.
+          Uma gestão pessoal não exige cadastro de empresa ou CNPJ.</p>
         <NcTextField v-model="newName" label="Nome da gestão" maxlength="150" required />
         <LfSelect id="lf-space-kind-new" v-model="newKind"
           label="Tipo de gestão" :options="kinds" />

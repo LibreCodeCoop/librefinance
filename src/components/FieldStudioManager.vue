@@ -1,7 +1,7 @@
 <!-- SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
-import { inject, onMounted, ref, watch } from 'vue'
+import { computed, inject, onMounted, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
@@ -19,11 +19,17 @@ const types = [
   { value:'date', label:'Data' }, { value:'boolean', label:'Sim / Não' },
   { value:'select', label:'Lista de opções' },
 ]
-const entities = [
+const entities = computed(() => w.space.value?.kind === 'personal' ? [
+  { value:'company', label:'Empresa (opcional)' }, { value:'contact', label:'Contato pessoal' },
+  { value:'item', label:'Produto ou serviço' }, { value:'journal', label:'Receita ou despesa' },
+] : [
   { value:'company', label:'Empresa' }, { value:'contact', label:'Cliente ou fornecedor' },
   { value:'item', label:'Produto ou serviço' }, { value:'journal', label:'Receita ou despesa' },
-]
-const entity = ref('company')
+])
+const selectedEntity = inject('lfFieldStudioEntity', ref('company'))
+const entity = ref(
+  ['company', 'contact', 'item', 'journal'].includes(selectedEntity.value)
+    ? selectedEntity.value : 'company')
 const fields = ref([])
 const loading = ref(false)
 const problem = ref('')
@@ -43,6 +49,17 @@ async function load() {
   finally { if (token === generation) loading.value = false }
 }
 watch([entity, () => w.activeId.value], load)
+watch(selectedEntity, next => {
+  if (entities.value.some(entry => entry.value === next)) entity.value = next
+})
+watch(entity, next => {
+  if (!entities.value.some(entry => entry.value === next)) return
+  selectedEntity.value = next
+  const url = new URL(window.location.href)
+  if (url.searchParams.get('view') !== 'fields') return
+  url.searchParams.set('entity', next)
+  window.history.replaceState(null, '', url.pathname + url.search)
+})
 onMounted(load)
 function begin(field = null) {
   problem.value = ''

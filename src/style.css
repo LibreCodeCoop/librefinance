@@ -962,3 +962,14 @@
 #librefinance-app .lf-nav-subsection:first-child {
   border-top: 0;
 }
+
+/* Secondary discovery of the existing Field Studio; keep the main CRUD
+   action prominent and the customizing link unobtrusive. */
+#librefinance-app .lf-field-studio-shortcut {
+  color: var(--color-text-maxcontrast, var(--color-main-text));
+  font-weight: normal;
+  white-space: nowrap;
+}
+@media (max-width: 680px) {
+  #librefinance-app .lf-field-studio-shortcut { font-size: 12px; }
+}

@@ -24,8 +24,8 @@ export const PAGE_NAMES = Object.freeze({
   accounts: 'Plano de contas',
   companies: 'Empresas',
   ai: 'Assistente financeiro',
-  settings: 'Pessoas e grupos', // obsolete menu route maps to the access panel
-  access: 'Pessoas e grupos',
+  settings: 'Acessos e compartilhamento', // legacy route aliases access control
+  access: 'Acessos e compartilhamento',
   fields: 'Campos personalizados',
   paymentMethods: 'Formas de pagamento',
   modules: 'Recursos instalados',
@@ -68,7 +68,7 @@ export const MENU_STRUCTURE = Object.freeze([
         keywords: 'nota fiscal servico rascunho nacional' },
 
       { id: 'access', icon: 'contacts', group: 'Equipe e personalização', managerOnly: true,
-        keywords: 'acessos equipe permissoes membros usuarios grupos compartilhar' },
+        keywords: 'acessos equipe permissoes membros usuarios grupos compartilhar pessoas e grupos' },
       { id: 'fields', icon: 'categories', group: 'Equipe e personalização', managerOnly: true,
         keywords: 'campos personalizados customizados formularios entidades' },
 
@@ -81,6 +81,20 @@ export const MENU_STRUCTURE = Object.freeze([
     ] },
   ] },
 ])
+
+/** Context changes presentation labels, never server rights or stored kinds. */
+export function pageNameForSpace(id, kind) {
+  if (kind === 'personal') {
+    if (id === 'contacts') return 'Pessoas e estabelecimentos'
+    if (id === 'companies') return 'Empresas (opcional)'
+  }
+  return PAGE_NAMES[id] || id
+}
+
+/** Only the four entity types already supported by the PHP Field Studio. */
+export function fieldEntityKind(value) {
+  return ['company', 'contact', 'item', 'journal'].includes(value) ? value : 'company'
+}
 
 export function normalizeNavigationText(value) {
   return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -132,13 +146,14 @@ export function canOpenView(sections, id, { manager = false, migrationEnabled = 
   return menuEntries(sections).some(item => item.id === canonicalView(id))
 }
 
-export function navigationSearch(sections, query, { manager = false, migrationEnabled = false } = {}) {
+export function navigationSearch(sections, query,
+  { manager = false, migrationEnabled = false, spaceKind = null } = {}) {
   const search = normalizeNavigationText(query).slice(0, 90)
   if (!search) return []
   // A direct screen-name match is more useful than a keyword hit on a
   // different screen (e.g. "clientes" must prioritize customer records).
   const rank = item => {
-    const title = normalizeNavigationText(PAGE_NAMES[item.id])
+    const title = normalizeNavigationText(pageNameForSpace(item.id, spaceKind))
     const parent = normalizeNavigationText(item.parent)
     const keywords = normalizeNavigationText(item.keywords)
     if (title === search) return 0

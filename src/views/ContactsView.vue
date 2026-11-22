@@ -16,6 +16,7 @@ import { mdiPlus, mdiPencilOutline } from '@mdi/js'
 import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
+import FieldStudioShortcut from '../components/FieldStudioShortcut.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { toMinorUnits } from '../money.js'
 
@@ -24,6 +25,9 @@ const w = inject('lfWorkspace')
 const { activeId, manager, busy, contacts, items, contactNextAfterId,
   itemNextAfterId, money, refreshCurrent, loadMoreCatalog } = w
 const active = computed(() => props.section === 'items' ? 'items' : 'contacts')
+const personal = computed(() => w.space.value?.kind === 'personal')
+const pageTitle = computed(() => active.value === 'items' ? 'Produtos e serviços'
+  : personal.value ? 'Pessoas e estabelecimentos' : 'Clientes e fornecedores')
 const editId = ref(null)
 const dialog = ref('')
 const working = ref(false)
@@ -32,11 +36,16 @@ const form = ref({
   name:'', kind:'customer', email:'', taxId:'', active:true,
   sku:'', description:'', price:'', customFields:{},
 })
-const contactKinds = [
+// Existing customer/vendor/both enum is unchanged; only the labels change.
+const contactKinds = computed(() => personal.value ? [
+  {value:'customer',label:'De quem recebo'},
+  {value:'vendor',label:'A quem pago'},
+  {value:'both',label:'Pago e recebo'},
+] : [
   {value:'customer',label:'Cliente'},
   {value:'vendor',label:'Fornecedor'},
   {value:'both',label:'Cliente e fornecedor'},
-]
+])
 const itemKinds = [{value:'service',label:'Serviço'},{value:'product',label:'Produto'}]
 const search = ref('')
 const shownContacts = computed(() => contacts.value.filter(c =>
@@ -96,12 +105,17 @@ async function save() {
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader :title="active === 'contacts' ? 'Clientes e fornecedores' : 'Produtos e serviços'"
+    <LfPageHeader :title="pageTitle"
       eyebrow="CADASTROS"
       :description="active === 'contacts'
-        ? 'Organize quem compra de você, de quem você compra e seus dados de contato.'
-        : 'Gerencie os produtos e serviços utilizados em vendas e compras.'">
+        ? (personal
+          ? 'Registre pessoas e estabelecimentos de quem você recebe ou a quem paga na vida pessoal.'
+          : 'Organize quem compra de você, de quem você compra e seus dados de contato.')
+        : (personal
+          ? 'Itens opcionais para detalhar compras e serviços usados em casa.'
+          : 'Gerencie os produtos e serviços utilizados em vendas e compras.')">
       <template #actions>
+        <FieldStudioShortcut :entity-kind="active==='contacts'?'contact':'item'" />
         <NcButton v-if="manager" variant="primary" @click="newRecord">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
           {{ active === 'contacts' ? 'Novo contato' : 'Novo produto ou serviço' }}
@@ -110,7 +124,9 @@ async function save() {
     </LfPageHeader>
     <section class="lf-surface">
       <div class="lf-section-heading">
-        <h2>{{ active === 'contacts' ? 'Pessoas e organizações' : 'Catálogo de itens' }}</h2>
+        <h2>{{ active === 'contacts'
+          ? (personal ? 'Contatos pessoais' : 'Pessoas e organizações')
+          : 'Catálogo de itens' }}</h2>
         <NcTextField v-model="search" label="Filtrar registros carregados"
           type="search" placeholder="Pesquisar por nome" class="lf-search-field" />
       </div>

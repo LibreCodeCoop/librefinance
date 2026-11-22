@@ -21,6 +21,7 @@ const store = inject('lfWorkspace')
 const navigate = inject('lfNavigate')
 const entryDialog = inject('lfEntryDialog')
 const { activeId, accounts, journals, money, naturalBalance, modules, writable, error: workspaceError } = store
+const personal = computed(() => store.space.value?.kind === 'personal')
 const enabled = (id) => modules.value.some(m => m.id === id && m.enabled)
 const reportEnabled = computed(() => enabled('librefinance_reports'))
 const billingEnabled = computed(() => enabled('librefinance_invoicing'))
@@ -245,7 +246,9 @@ function go(view) { navigate(view) }
 <template>
   <div class="lf-view lf-overview">
     <LfPageHeader title="Visão geral" eyebrow="PAINEL FINANCEIRO"
-      description="Uma leitura objetiva da posição financeira e dos movimentos registrados.">
+      :description="personal
+        ? 'Acompanhe as entradas e saídas realizadas da casa. Contas futuras ficam na agenda A pagar e receber.'
+        : 'Uma leitura objetiva da posição financeira e dos movimentos registrados.'">
       <template #actions>
         <NcButton v-if="!editingWidgets" variant="secondary" @click="startWidgetEditing">
           Personalizar painel
@@ -272,9 +275,11 @@ function go(view) { navigate(view) }
 
     <div v-if="firstUse" class="lf-overview-subhead lf-overview-first-use">
       <div>
-        <strong>Seu espaço financeiro está pronto</strong>
+        <strong>{{personal ? 'Sua gestão da casa está pronta' : 'Seu espaço financeiro está pronto'}}</strong>
         <span>{{ namedAccounts.length
-          ? 'Comece registrando uma despesa já paga ou uma receita já recebida.'
+          ? (personal
+            ? 'Comece com uma despesa da casa já paga. Não é necessário cadastrar uma empresa.'
+            : 'Comece registrando uma despesa já paga ou uma receita já recebida.')
           : 'Antes do primeiro registro, cadastre uma conta financeira no plano de contas.' }}</span>
       </div>
       <NcButton v-if="namedAccounts.length" variant="primary" @click="firstExpense">Registrar primeira despesa</NcButton>

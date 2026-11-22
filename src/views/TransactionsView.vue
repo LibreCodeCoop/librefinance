@@ -15,6 +15,7 @@ import LfSelect from '../components/LfSelect.vue'
 import LfDateField from '../components/LfDateField.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
+import FieldStudioShortcut from '../components/FieldStudioShortcut.vue'
 import LfMarkdownEditor from '../components/LfMarkdownEditor.vue'
 import { toMinorUnits } from '../money.js'
 import { financeApi, financeError } from '../services/api.js'
@@ -126,6 +127,7 @@ const formatted = row => money(Math.abs(row.postings?.[0]?.amountMinor || 0))
     <LfPageHeader title="Lançamentos contábeis" eyebrow="MOVIMENTAÇÕES FINANCEIRAS"
       description="Consulte o registro contábil de entradas e saídas já realizadas. Para valores ainda devidos, utilize Contas a pagar e receber.">
       <template #actions>
+        <FieldStudioShortcut entity-kind="journal" />
         <NcButton v-if="writable" variant="primary" @click="dialog = true">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
           Novo lançamento

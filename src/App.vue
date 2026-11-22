@@ -27,6 +27,7 @@ import {
 } from './navigation.js'
 import { useFinanceWorkspace } from './state/useFinanceWorkspace.js'
 import LfSelect from './components/LfSelect.vue'
+import { pageNameForSpace, fieldEntityKind } from './navigation.js'
 import DashboardView from './views/DashboardView.vue'
 import TransactionsView from './views/TransactionsView.vue'
 import AccountsView from './views/AccountsView.vue'
@@ -60,7 +61,11 @@ const quickEntry = ref(false)
 provide('lfEntryDialog', quickEntry)
 // The navigation follows user tasks, not the internal extension layout.
 // Server-authorized module discovery is still the only source of availability.
-const labels = PAGE_NAMES
+const labels = computed(() => Object.fromEntries(
+  Object.keys(PAGE_NAMES).map(id => [id, pageNameForSpace(id, space.value?.kind)])))
+const fieldStudioEntity = ref(fieldEntityKind(
+  new URLSearchParams(window.location.search).get('entity')))
+provide('lfFieldStudioEntity', fieldStudioEntity)
 const screens = {
   dashboard: DashboardView,
   transactions: TransactionsView,
@@ -128,6 +133,7 @@ const migrationAvailable = computed(() => manager.value
   && modules.value.some(m => m.id === 'librefinance_import' && m.enabled))
 const searchResults = computed(() => navigationSearch(availableNav.value, searchQuery.value, {
   manager: manager.value, migrationEnabled: migrationAvailable.value,
+  spaceKind: space.value?.kind,
 }))
 const isSearching = computed(() => searchQuery.value.trim().length > 0)
 function visibleView(view) {
@@ -166,6 +172,8 @@ function viewHref(view) {
   const url = new URL(window.location.href)
   url.searchParams.set('view', view)
   url.searchParams.delete('section')
+  if (view === 'fields') url.searchParams.set('entity', fieldStudioEntity.value)
+  else url.searchParams.delete('entity')
   if (activeId.value) url.searchParams.set('spaceId', String(activeId.value))
   return url.pathname + url.search
 }
@@ -182,8 +190,8 @@ function onNavGroupClick(event, groupId) {
 }
 const roleNames = { owner: 'Proprietário', manager: 'Gestor', operator: 'Operador',
   auditor: 'Auditor', viewer: 'Visualizador' }
-const spaceKind = computed(() => ({ personal: 'Pessoal', collective: 'Coletivo',
-  organization: 'Organização' })[space.value?.kind] || 'Espaço financeiro')
+const spaceKind = computed(() => ({ personal: 'Casa / pessoal', collective: 'Grupo / coletivo',
+  organization: 'Empresa / organização' })[space.value?.kind] || 'Espaço financeiro')
 const spaceRole = computed(() => roleNames[space.value?.role] || 'Participante')
 const selectedSpace = computed(() => spaces.value.find(s =>
   Number(s.id) === Number(activeId.value))?.name ?? 'Selecione um espaço')
@@ -220,8 +228,13 @@ function expandParent(view) {
   const id = parentOfView(availableNav.value, view)
   if (id !== null) setGroupOpen(id, true)
 }
-function navigate(view) {
+function navigate(view, options = {}) {
   if (!screens[view] || !visibleView(view)) return
+  // An explicit entity identifies which existing form definition to edit;
+  // no second editor or new writable endpoint is introduced.
+  if (view === 'fields') {
+    fieldStudioEntity.value = fieldEntityKind(options.entityKind || 'company')
+  }
   if (canonicalView(view) === 'finance') {
     financeDirectionHint.value = financeDirectionForView(view)
   }
@@ -236,6 +249,8 @@ function navigate(view) {
   const url = new URL(window.location.href)
   url.searchParams.set('view', view)
   url.searchParams.delete('section')
+  if (view === 'fields') url.searchParams.set('entity', fieldStudioEntity.value)
+  else url.searchParams.delete('entity')
   if (activeId.value) url.searchParams.set('spaceId', String(activeId.value))
   window.history.pushState(null, '', url.pathname + url.search)
 }
@@ -264,6 +279,9 @@ function onHistoryChange() {
   const values = new URLSearchParams(window.location.search)
   const destinationSpace = Number(values.get('spaceId'))
   const destinationView = canonicalView(values.get('view'), values.get('section'))
+  if (destinationView === 'fields') {
+    fieldStudioEntity.value = fieldEntityKind(values.get('entity'))
+  }
   if (Number.isSafeInteger(destinationSpace) && spaces.value.some(s =>
     Number(s.id) === destinationSpace)) {
     activeId.value = destinationSpace
@@ -312,7 +330,8 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         <div class="lf-product-lockup">
           <span class="lf-product-symbol" aria-hidden="true"><NcIconSvgWrapper :path="mdiChartLine" :size="22" /></span>
           <div><p class="lf-product-name">LibreFinance</p>
-            <p class="lf-muted">Finanças pessoais e de organizações</p></div>
+            <p class="lf-muted">{{space?.kind==='personal'
+              ? 'Finanças da casa' : 'Finanças pessoais e de organizações'}}</p></div>
         </div>
         <LfSelect v-if="spaceOptions.length > 1" id="lf-space-select"
           :model-value="activeId" :options="spaceOptions"

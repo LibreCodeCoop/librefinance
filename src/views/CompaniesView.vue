@@ -11,10 +11,11 @@ import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwit
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiPlus, mdiPencilOutline, mdiTuneVariant } from '@mdi/js'
+import { mdiPlus, mdiPencilOutline } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSelect from '../components/LfSelect.vue'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
+import FieldStudioShortcut from '../components/FieldStudioShortcut.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { generateUrl } from '@nextcloud/router'
 import { countryOptions } from '../countries.js'
@@ -72,11 +73,8 @@ async function removeLogo() {
   } catch (e) { logoError.value = financeError(e) }
   finally { logoBusy.value = false }
 }
-const navigate = inject('lfNavigate')
+const personal = computed(() => w.space.value?.kind === 'personal')
 const countryChoices = countryOptions()
-function configureFields() {
-  navigate('fields')
-}
 const countryValid = computed(() => /^[A-Za-z]{2}$/.test(companyCountry.value.trim()))
 function beginCreate() { resetCompanyForm(); logoVersion.value = null; logoError.value = ''; saveError.value = ''; dialog.value = true }
 function beginEdit(company) { editCompany(company); logoVersion.value = company.logo_version; logoError.value = ''; saveError.value = ''; dialog.value = true }
@@ -95,12 +93,11 @@ async function save() {
 <template>
   <div class="lf-view">
     <LfPageHeader title="Empresas" eyebrow="CADASTROS"
-      description="Identidades legais por espaço financeiro, com campos adicionais próprios de cada organização.">
+      :description="personal
+        ? 'Opcional para finanças da casa. Você pode controlar receitas e despesas sem cadastrar uma empresa.'
+        : 'Identidades legais de organizações, com campos adicionais próprios de cada empresa.'">
       <template #actions>
-        <NcButton v-if="manager" variant="secondary" @click="configureFields">
-          <template #icon><NcIconSvgWrapper :path="mdiTuneVariant" :size="20" /></template>
-          Configurar campos
-        </NcButton>
+        <FieldStudioShortcut entity-kind="company" />
         <NcButton v-if="manager" variant="primary" @click="beginCreate">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
           Cadastrar empresa
