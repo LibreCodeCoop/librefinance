@@ -34,8 +34,29 @@ final class ModuleService {
         $this->events->dispatchTyped($event);
         $user = $this->session->getUser();
         $enabled = $user !== null ? $this->apps->getEnabledAppsForUser($user) : [];
-        return array_filter($event->modules(), static fn(ModuleDescriptor $d): bool =>
-            in_array($d->appId, $enabled, true));
+        $internal = [
+            'librefinance_banking' => new ModuleDescriptor(
+                'librefinance_banking', 'Banking and reconciliation',
+                'Bank statements, transfers and reconciliation',
+                'librefinance.page.index'),
+            'librefinance_obligations' => new ModuleDescriptor(
+                'librefinance_obligations', 'Payables and receivables',
+                'Bills, obligations, due dates and settlements',
+                'librefinance.page.index'),
+            'librefinance_invoicing' => new ModuleDescriptor(
+                'librefinance_invoicing', 'Sales, purchases and taxes',
+                'Commercial invoices and jurisdiction-specific tax rules',
+                'librefinance.page.index'),
+            'librefinance_reports' => new ModuleDescriptor(
+                'librefinance_reports', 'Financial reports',
+                'Profit and loss, cash flow, trial balance and saved reports',
+                'librefinance.page.index'),
+        ];
+        // A legacy optional app might still be enabled during a developer
+        // upgrade. It must never shadow a built-in domain or its permissions.
+        $external = array_filter($event->modules(), static fn(ModuleDescriptor $d): bool =>
+            in_array($d->appId, $enabled, true) && !isset($internal[$d->appId]));
+        return $internal + $external;
     }
 
     /** @return array<string,mixed> */

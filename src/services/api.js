@@ -4,6 +4,13 @@
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 
+// Internal domains retain their feature IDs for per-space authorization,
+// but their HTTP controllers now belong to the single LibreFinance app.
+const internalDomains = new Set([
+  'librefinance_reports', 'librefinance_banking',
+  'librefinance_invoicing', 'librefinance_obligations',
+])
+
 const accepted = new Set([
   'librefinance', 'librefinance_reports', 'librefinance_banking',
   'librefinance_invoicing', 'librefinance_obligations',
@@ -21,7 +28,8 @@ export async function financeApi(app, spaceId, route, method = 'GET', data) {
     || route.includes('..')) {
     throw new Error('Requisição financeira inválida')
   }
-  const base = '/apps/' + app + '/api/spaces/' + Number(spaceId) + route
+  const owner = internalDomains.has(app) ? 'librefinance' : app
+  const base = '/apps/' + owner + '/api/spaces/' + Number(spaceId) + route
   const response = await axios({
     url: generateUrl(base), method,
     data, headers: { Accept: 'application/json' },

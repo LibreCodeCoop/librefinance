@@ -163,9 +163,12 @@ onBeforeUnmount(()=>++generation)
                 open:'Aberto',partial:'Parcial',settled:'Liquidado',cancelled:'Cancelado'
               }[row.status]||row.status)}}</span></td>
             <td v-if="writable" class="lf-row-actions">
-              <NcButton v-if="['open','partial'].includes(row.status)"
+              <NcButton v-if="['open','partial'].includes(row.status)&&!row.linkedInvoiceId"
                 size="small" @click="beginSettlement(row)">Registrar baixa</NcButton>
-              <NcButton v-if="manager&&row.status==='open'"
+              <span v-else-if="row.linkedInvoiceId" class="lf-state">
+                Vinculado à fatura #{{ row.linkedInvoiceId }} · baixa via lançamento
+              </span>
+              <NcButton v-if="manager&&row.status==='open'&&!row.linkedInvoiceId"
                 size="small" variant="tertiary" @click="cancelTarget=row">Cancelar</NcButton>
             </td>
           </tr></tbody>
