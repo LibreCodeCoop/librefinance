@@ -487,6 +487,9 @@ test('@extensions commercial invoice is created in a native dialog and is not NF
   const invoiceDialog = page.getByRole('dialog', { name: 'Nova fatura comercial' })
   const number = 'E2E-INV-' + Date.now().toString(36)
   await invoiceDialog.getByRole('textbox', { name: 'Número' }).fill(number)
+  // A commercial invoice must declare its jurisdiction explicitly.
+  // Do not reintroduce a Brazil-only default to make this test pass.
+  await invoiceDialog.getByRole('textbox', { name: 'País (ISO 2, obrigatório)' }).fill('PT')
   await invoiceDialog.locator('#lf-invoice-contact').click()
   await page.getByRole('option').first().click()
   await invoiceDialog.getByRole('textbox', { name: 'Descrição da linha 1' }).fill('Synthetic service')
