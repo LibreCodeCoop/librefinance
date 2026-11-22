@@ -37,6 +37,30 @@ final class SpaceController extends ApiController {
         return $this->respond(fn() => $this->spaces->create($name, $kind, $currency), 201);
     }
 
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/archived')]
+    public function archived(): JSONResponse {
+        return $this->respond(fn() => ['spaces' => $this->spaces->archived()]);
+    }
+
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'PUT', url: '/api/spaces/{spaceId}')]
+    public function rename(int $spaceId, string $name): JSONResponse {
+        return $this->respond(fn() => $this->spaces->rename($spaceId, $name));
+    }
+
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/archive')]
+    public function archive(int $spaceId): JSONResponse {
+        return $this->respond(fn() => $this->spaces->archive($spaceId));
+    }
+
+    #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/restore')]
+    public function restore(int $spaceId): JSONResponse {
+        return $this->respond(fn() => $this->spaces->restore($spaceId));
+    }
+
     /**
      * @NoAdminRequired
      */
