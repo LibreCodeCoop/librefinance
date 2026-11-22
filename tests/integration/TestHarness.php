@@ -70,7 +70,13 @@ final class TestHarness {
             if (!preg_match('/^librefinance_[a-z][a-z0-9_]+$/', $appId)) {
                 throw new \InvalidArgumentException('Invalid synthetic test module');
             }
-            $url = str_replace('/apps/librefinance/api', '/apps/' . $appId . '/api', $url);
+            $internal = in_array($appId, [
+                'librefinance_reports', 'librefinance_banking',
+                'librefinance_invoicing', 'librefinance_obligations',
+            ], true);
+            if (!$internal) {
+                $url = str_replace('/apps/librefinance/api', '/apps/' . $appId . '/api', $url);
+            }
         }
         $handle = curl_init($url);
         if ($handle === false) {

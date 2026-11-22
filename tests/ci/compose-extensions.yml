@@ -1,13 +1,8 @@
 # SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Optional integration-test volumes for separately installable Nextcloud apps.
-# Supply both LF_REPORTS_SOURCE and LF_OBLIGATIONS_SOURCE.
+# Only the data-import and country-specific fiscal apps remain separate.
 services:
   nextcloud:
     volumes:
-      - ${LF_REPORTS_SOURCE:?LF_REPORTS_SOURCE is required}:/var/www/html/custom_apps/librefinance_reports:ro
-      - ${LF_OBLIGATIONS_SOURCE:?LF_OBLIGATIONS_SOURCE is required}:/var/www/html/custom_apps/librefinance_obligations:ro
-      - ${LF_BANKING_SOURCE:?LF_BANKING_SOURCE is required}:/var/www/html/custom_apps/librefinance_banking:ro
-      - ${LF_INVOICING_SOURCE:?LF_INVOICING_SOURCE is required}:/var/www/html/custom_apps/librefinance_invoicing:ro
       - ${LF_NFSE_SOURCE:?LF_NFSE_SOURCE is required}:/var/www/html/custom_apps/librefinance_nfse:ro
       - ${LF_IMPORT_SOURCE:?LF_IMPORT_SOURCE is required}:/var/www/html/custom_apps/librefinance_import:ro

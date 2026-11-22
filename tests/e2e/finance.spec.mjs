@@ -52,19 +52,16 @@ test('@extensions one Nextcloud navigation switches operational views without if
   }
 })
 
-test('@extensions a former module page redirects to canonical native workspace with permissions', async ({ page }) => {
+test('reporting works inside the core without its former standalone app', async ({ page }) => {
   await login(page)
   await makeSpace(page)
   const spaceId = new URL(page.url()).searchParams.get('spaceId')
   expect(Number(spaceId)).toBeGreaterThan(0)
-  const response = await page.request.get(
-    '/index.php/apps/librefinance_reports/spaces/' + spaceId,
-    { maxRedirects: 0 },
-  )
-  expect(response.status()).toBe(303)
-  expect(response.headers().location).toContain('/apps/librefinance/')
-  expect(response.headers().location).toContain('view=reports')
-  expect(response.headers().location).toContain('spaceId=' + spaceId)
+  await goToView(page, 'Relatórios')
+  await expect(page.getByRole('heading', { name: 'Relatórios', exact: true })).toBeVisible()
+  const response = await page.request.get('/index.php/apps/librefinance/api/spaces/'
+    + spaceId + '/profit-loss?from=2026-01-01&through=2026-12-31')
+  expect(response.status()).toBe(200)
 })
 
 test('@extensions task-oriented navigation keeps migration administrative and supports native submenus', async ({ page }) => {
@@ -185,7 +182,7 @@ test('@extensions dashboard uses genuine cash-flow aggregates and no duplicate e
   const expectedMonth = new Date().getFullYear() + '-'
     + String(new Date().getMonth() + 1).padStart(2, '0') + '-01'
   const monthRequest = page.waitForResponse(response =>
-    response.url().includes('/librefinance_reports/api/spaces/')
+    response.url().includes('/librefinance/api/spaces/')
       && response.url().includes('/profit-loss?from=' + expectedMonth)
       && response.status() === 200)
   await page.getByRole('button', { name: 'Este mês' }).click()

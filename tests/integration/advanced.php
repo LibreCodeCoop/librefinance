@@ -47,6 +47,27 @@ $payload = [
 ];
 $req = ['user' => $a, 'method' => 'POST', 'path' => $path . '/journals', 'data' => $payload];
 [$one, $two] = $t->parallel($req, $req);
+// On SQLite a transaction cannot always promote an outdated reader snapshot
+// to writer while another writer commits. The endpoint may explicitly signal
+// a transient 409, but retrying the SAME idempotency key must return the
+// already committed entry, never a second posting.
+foreach ([$one, $two] as $index => $result) {
+    if ($result['code'] !== 409) {
+        continue;
+    }
+    $t->record('transient account conflict has a retryable error contract',
+        ($result['body']['error'] ?? null) === 'account_reference_busy',
+        'HTTP 409', $result['body']);
+    $retry = $t->request($a, 'POST', $path . '/journals', $payload);
+    $t->record('retry after concurrent lock returns existing journal',
+        $retry['code'] === 201 && ($retry['body']['replayed'] ?? null) === true,
+        'HTTP ' . $retry['code'], $retry['body']);
+    if ($index === 0) {
+        $one = $retry;
+    } else {
+        $two = $retry;
+    }
+}
 $statuses = [$one['code'], $two['code']];
 sort($statuses);
 $replayed = [$one['body']['replayed'] ?? null, $two['body']['replayed'] ?? null];

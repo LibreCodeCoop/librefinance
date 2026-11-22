@@ -37,8 +37,8 @@ const schemaChecks = [
   ['/librefinance/api/spaces/{spaceId}/ai/preview', 'get', 'AiPreview'],
   ['/librefinance/api/spaces/{spaceId}/ai/analyze', 'post', 'AiTaskQueued'],
   ['/librefinance/api/mcp', 'post', 'McpJsonRpc'],
-  ['/librefinance_reports/api/spaces/{spaceId}/profit-loss', 'get', 'ProfitLoss'],
-  ['/librefinance_reports/api/spaces/{spaceId}/cash-flow', 'get', 'CashFlow'],
+  ['/librefinance/api/spaces/{spaceId}/profit-loss', 'get', 'ProfitLoss'],
+  ['/librefinance/api/spaces/{spaceId}/cash-flow', 'get', 'CashFlow'],
 ]
 for (const [path, method, name] of schemaChecks) {
   const op = spec.paths[path]?.[method]

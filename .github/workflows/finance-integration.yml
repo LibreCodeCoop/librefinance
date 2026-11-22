@@ -37,7 +37,7 @@ jobs:
         run: git diff --exit-code -- js/main.js css/main.css js/main.js.license
 
   integrated:
-    name: Installed Nextcloud + six modules / ${{ matrix.database }}
+    name: Installed Nextcloud + two external apps / ${{ matrix.database }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
     strategy:
@@ -57,26 +57,12 @@ jobs:
           path: .ci-nextcloud-server
           submodules: recursive
           persist-credentials: false
-      - name: Checkout banking module
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: LibreCodeCoop/librefinance-banking
-          ref: a9b220569dcb99f38904006e86a47f234cf75f34
-          path: .ci-modules/librefinance_banking
-          persist-credentials: false
       - name: Checkout import module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: LibreCodeCoop/librefinance-import
-          ref: d28d30c6fdb05554918870ed4e338eddafac48e5
+          ref: 2deb8cc2b22a178dfdce32472bc636364c0aebab
           path: .ci-modules/librefinance_import
-          persist-credentials: false
-      - name: Checkout invoicing module
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: LibreCodeCoop/librefinance-invoicing
-          ref: f32a0e3f78436f238dc5f5fe0bde27602363401b
-          path: .ci-modules/librefinance_invoicing
           persist-credentials: false
       - name: Checkout NFS-e drafts module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -84,20 +70,6 @@ jobs:
           repository: LibreCodeCoop/librefinance-nfse
           ref: b5a20a0b611ad7f0e530cfe0dc8cae300a2a5e31
           path: .ci-modules/librefinance_nfse
-          persist-credentials: false
-      - name: Checkout obligations module
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: LibreCodeCoop/librefinance-obligations
-          ref: cec1ec64a87968d522297741e39e4633be971684
-          path: .ci-modules/librefinance_obligations
-          persist-credentials: false
-      - name: Checkout reports module
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: LibreCodeCoop/librefinance-reports
-          ref: 94b9b85087d310488270e99a294a1b075e69fd2f
-          path: .ci-modules/librefinance_reports
           persist-credentials: false
       - name: Set up PHP 8.5 for Nextcloud master
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2.40.0
@@ -116,25 +88,21 @@ jobs:
       - name: Install Chromium for real browser journey tests
         if: matrix.database == 'pgsql'
         run: npx playwright install --with-deps chromium
-      - name: Build and verify every pinned extension
+      - name: Verify pinned external apps
         run: |
           set -euo pipefail
-          for module in banking import invoicing nfse obligations reports; do
+          for module in import nfse; do
             path=".ci-modules/librefinance_${module}"
             test -f "${path}/appinfo/info.xml"
             test -s "${path}/js/main.js"
             test -s "${path}/js/main.js.license"
             test -s "${path}/css/main.css"
           done
-      - name: Run complete synthetic integration including optional extensions
+      - name: Run complete synthetic core and external-app integration
         env:
           LF_NEXTCLOUD_SOURCE: ${{ github.workspace }}/.ci-nextcloud-server
-          LF_BANKING_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_banking
           LF_IMPORT_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_import
-          LF_INVOICING_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_invoicing
           LF_NFSE_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_nfse
-          LF_OBLIGATIONS_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_obligations
-          LF_REPORTS_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_reports
           LF_TEST_DATABASE: ${{ matrix.database }}
           LF_RUN_PLAYWRIGHT: ${{ matrix.database == 'pgsql' && '1' || '0' }}
         run: bash tests/ci/smoke.sh

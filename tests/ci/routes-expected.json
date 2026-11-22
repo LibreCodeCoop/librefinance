@@ -264,38 +264,131 @@
       "path": "/apps/librefinance/api/mcp",
       "request": "POST",
       "route": "librefinance.mcp.handle"
-    }
-  ],
-  "librefinance_banking": [
-    {
-      "path": "/apps/librefinance_banking/spaces/{spaceId}",
-      "request": "GET",
-      "route": "librefinance_banking.page.index"
     },
     {
-      "path": "/apps/librefinance_banking/api/spaces/{spaceId}/providers",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/providers",
       "request": "GET",
-      "route": "librefinance_banking.banking.providers"
+      "route": "librefinance.banking.providers"
     },
     {
-      "path": "/apps/librefinance_banking/api/spaces/{spaceId}/transactions",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/transactions",
       "request": "GET",
-      "route": "librefinance_banking.banking.index"
+      "route": "librefinance.banking.index"
     },
     {
-      "path": "/apps/librefinance_banking/api/spaces/{spaceId}/transfers",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/transfers",
       "request": "GET",
-      "route": "librefinance_banking.banking.transfers"
+      "route": "librefinance.banking.transfers"
     },
     {
-      "path": "/apps/librefinance_banking/api/spaces/{spaceId}/imports",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/imports",
       "request": "POST",
-      "route": "librefinance_banking.banking.import"
+      "route": "librefinance.banking.import"
     },
     {
-      "path": "/apps/librefinance_banking/api/spaces/{spaceId}/transactions/{transactionId}/match",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/transactions/{transactionId}/match",
       "request": "POST",
-      "route": "librefinance_banking.banking.match"
+      "route": "librefinance.banking.match"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/tax-rules",
+      "request": "GET",
+      "route": "librefinance.tax.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/tax-rules",
+      "request": "POST",
+      "route": "librefinance.tax.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/invoices",
+      "request": "GET",
+      "route": "librefinance.invoice.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/invoices",
+      "request": "POST",
+      "route": "librefinance.invoice.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/invoices/{invoiceId}",
+      "request": "GET",
+      "route": "librefinance.invoice.show"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/invoices/{invoiceId}/issue",
+      "request": "POST",
+      "route": "librefinance.invoice.issue"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/invoices/{invoiceId}/allocations",
+      "request": "POST",
+      "route": "librefinance.invoice.allocate"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/obligations",
+      "request": "GET",
+      "route": "librefinance.obligation.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/obligations",
+      "request": "POST",
+      "route": "librefinance.obligation.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/obligations/{obligationId}/settlements",
+      "request": "POST",
+      "route": "librefinance.obligation.settle"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/obligations/{obligationId}/cancel",
+      "request": "POST",
+      "route": "librefinance.obligation.cancel"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/obligations/{obligationId}/settlements",
+      "request": "GET",
+      "route": "librefinance.obligation.settlements"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/profit-loss",
+      "request": "GET",
+      "route": "librefinance.report.profitloss"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/trial-balance",
+      "request": "GET",
+      "route": "librefinance.report.trialbalance"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/cash-flow",
+      "request": "GET",
+      "route": "librefinance.report.cashflow"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/saved-reports",
+      "request": "GET",
+      "route": "librefinance.savedreport.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/saved-reports",
+      "request": "POST",
+      "route": "librefinance.savedreport.create"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/saved-reports/{reportId}",
+      "request": "PUT",
+      "route": "librefinance.savedreport.update"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/saved-reports/{reportId}",
+      "request": "DELETE",
+      "route": "librefinance.savedreport.archive"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/saved-reports/{reportId}/permanent",
+      "request": "DELETE",
+      "route": "librefinance.savedreport.deletepermanently"
     }
   ],
   "librefinance_import": [
@@ -365,48 +458,6 @@
       "route": "librefinance_import.inventory.preview"
     }
   ],
-  "librefinance_invoicing": [
-    {
-      "path": "/apps/librefinance_invoicing/spaces/{spaceId}",
-      "request": "GET",
-      "route": "librefinance_invoicing.page.index"
-    },
-    {
-      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/tax-rules",
-      "request": "GET",
-      "route": "librefinance_invoicing.tax.index"
-    },
-    {
-      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/tax-rules",
-      "request": "POST",
-      "route": "librefinance_invoicing.tax.create"
-    },
-    {
-      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/invoices",
-      "request": "GET",
-      "route": "librefinance_invoicing.invoice.index"
-    },
-    {
-      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/invoices",
-      "request": "POST",
-      "route": "librefinance_invoicing.invoice.create"
-    },
-    {
-      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/invoices/{invoiceId}",
-      "request": "GET",
-      "route": "librefinance_invoicing.invoice.show"
-    },
-    {
-      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/invoices/{invoiceId}/issue",
-      "request": "POST",
-      "route": "librefinance_invoicing.invoice.issue"
-    },
-    {
-      "path": "/apps/librefinance_invoicing/api/spaces/{spaceId}/invoices/{invoiceId}/allocations",
-      "request": "POST",
-      "route": "librefinance_invoicing.invoice.allocate"
-    }
-  ],
   "librefinance_nfse": [
     {
       "path": "/apps/librefinance_nfse/spaces/{spaceId}",
@@ -422,85 +473,6 @@
       "path": "/apps/librefinance_nfse/api/spaces/{spaceId}/drafts",
       "request": "POST",
       "route": "librefinance_nfse.draft.create"
-    }
-  ],
-  "librefinance_obligations": [
-    {
-      "path": "/apps/librefinance_obligations/spaces/{spaceId}",
-      "request": "GET",
-      "route": "librefinance_obligations.page.index"
-    },
-    {
-      "path": "/apps/librefinance_obligations/api/spaces/{spaceId}/obligations",
-      "request": "GET",
-      "route": "librefinance_obligations.obligation.index"
-    },
-    {
-      "path": "/apps/librefinance_obligations/api/spaces/{spaceId}/obligations",
-      "request": "POST",
-      "route": "librefinance_obligations.obligation.create"
-    },
-    {
-      "path": "/apps/librefinance_obligations/api/spaces/{spaceId}/obligations/{obligationId}/settlements",
-      "request": "POST",
-      "route": "librefinance_obligations.obligation.settle"
-    },
-    {
-      "path": "/apps/librefinance_obligations/api/spaces/{spaceId}/obligations/{obligationId}/cancel",
-      "request": "POST",
-      "route": "librefinance_obligations.obligation.cancel"
-    },
-    {
-      "path": "/apps/librefinance_obligations/api/spaces/{spaceId}/obligations/{obligationId}/settlements",
-      "request": "GET",
-      "route": "librefinance_obligations.obligation.settlements"
-    }
-  ],
-  "librefinance_reports": [
-    {
-      "path": "/apps/librefinance_reports/spaces/{spaceId}",
-      "request": "GET",
-      "route": "librefinance_reports.page.index"
-    },
-    {
-      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/profit-loss",
-      "request": "GET",
-      "route": "librefinance_reports.report.profitloss"
-    },
-    {
-      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/trial-balance",
-      "request": "GET",
-      "route": "librefinance_reports.report.trialbalance"
-    },
-    {
-      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/cash-flow",
-      "request": "GET",
-      "route": "librefinance_reports.report.cashflow"
-    },
-    {
-      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/saved-reports",
-      "request": "GET",
-      "route": "librefinance_reports.savedreport.index"
-    },
-    {
-      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/saved-reports",
-      "request": "POST",
-      "route": "librefinance_reports.savedreport.create"
-    },
-    {
-      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/saved-reports/{reportId}",
-      "request": "PUT",
-      "route": "librefinance_reports.savedreport.update"
-    },
-    {
-      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/saved-reports/{reportId}",
-      "request": "DELETE",
-      "route": "librefinance_reports.savedreport.archive"
-    },
-    {
-      "path": "/apps/librefinance_reports/api/spaces/{spaceId}/saved-reports/{reportId}/permanent",
-      "request": "DELETE",
-      "route": "librefinance_reports.savedreport.deletepermanently"
     }
   ]
 }
