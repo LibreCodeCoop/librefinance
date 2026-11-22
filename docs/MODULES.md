@@ -56,8 +56,25 @@ trail and blocking duplicate payment paths.
 
 Invoices issued **before** this version are not auto-linked by number or
 contact: their identity and pre-existing payments need a reconciliation
-procedure, not a guessed data migration. See the upgrade guide. A new
-commercial invoice is not a government-issued fiscal document.
+procedure, not a guessed data migration. A new commercial invoice is not
+a government-issued fiscal document.
+
+## Upgrade from the former four separate finance modules
+
+Before upgrading an existing development installation, record the exact
+seven-app SHAs and take a **verified, restorable** database snapshot.
+Temporarily stop financial writes. Disable, **do not uninstall**, the former
+Banking, Invoicing, Obligations and Reports apps; uninstall handlers may remove
+historic financial tables. Upgrade the core and Import app together, run
+`occ upgrade` and compare row counts, per-space balances, foreign references
+and the installed route contract with the snapshot. The core retains historic
+table names and does not infer or recreate old invoice payment relationships.
+If an upgrade check fails, restore the matched database and original app
+versions, not a partial schema. An issued invoice without a verified
+obligation link must be reconciled before payment allocation.
+
+For schema ownership and testing details, see [schema](SCHEMA.md) and
+[testing](TESTING.md).
 
 ## Extension development requirements
 

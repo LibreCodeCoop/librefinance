@@ -40,7 +40,7 @@ php occ app:enable librefinance
 
 The full financial product is installed with just `librefinance`. Import (`librefinance_import`) and Brazil-specific NFS-e (`librefinance_nfse`) are available to install separately only when needed. Workspace managers can switch built-in features on/off without installing arbitrary PHP.
 
-For an existing development instance that has the four former module apps, first back up the full Nextcloud database, stop financial writes, **disable but do not uninstall** those four apps, then upgrade the core and compatible Import/NFS-e integrations. The core preserves old physical table names and never fabricates historical payment matches. See [consolidation and upgrade notes](docs/CONSOLIDATION-2026-11-22.md).
+For an existing development instance that has the four former module apps, first back up the full Nextcloud database, stop financial writes, **disable but do not uninstall** those four apps, then upgrade the core and compatible Import/NFS-e integrations. The core preserves old physical table names and never fabricates historical payment matches. See [module architecture and safe upgrade requirements](docs/MODULES.md).
 
 To build the frontend in a development checkout:
 
