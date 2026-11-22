@@ -6,12 +6,15 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 import { computed, inject, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiPlus, mdiPencilOutline } from '@mdi/js'
+import { mdiPlus, mdiPencilOutline, mdiFilterVariant } from '@mdi/js'
 import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
+import LfSortableHeader from '../components/LfSortableHeader.vue'
+import { useLoadedSort } from '../composables/useLoadedSort.js'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcColorPicker from '@nextcloud/vue/components/NcColorPicker'
@@ -26,8 +29,17 @@ const editWorking = ref(false)
 const editProblem = ref('')
 const editForm = ref({ id: 0, name: '', color: '#64748B', active: true })
 const filter = ref('all')
-const categories = computed(() => filter.value === 'all' ? categoryRecords.value
-  : categoryRecords.value.filter(c => c.kind === filter.value))
+const localSort = useLoadedSort('code')
+const categoryFilters = [
+  {value:'all',label:'Todas'},
+  {value:'income',label:'Receitas'},
+  {value:'expense',label:'Despesas'},
+]
+const categories = computed(() => localSort.order(
+  filter.value === 'all' ? categoryRecords.value
+    : categoryRecords.value.filter(c => c.kind === filter.value),
+  {parent: row => categoryRecords.value.find(c => c.id===row.parent_id)?.name || '',
+    account: row => accounts.value.find(a => a.id===row.effective_account_id)?.name || ''}))
 const parents = computed(() => [{value:0,label:'Sem categoria superior'},
   ...categoryRecords.value.filter(c => c.kind===categoryKind.value && c.active)
     .map(c=>({value:c.id,label:c.code+' · '+c.name}))])
@@ -72,15 +84,33 @@ async function save() {
       </template>
     </LfPageHeader>
     <section class="lf-surface">
-      <div class="lf-filter-row" aria-label="Filtrar categorias">
-        <NcButton v-for="tab in [{id:'all',name:'Todas'},{id:'income',name:'Receitas'},{id:'expense',name:'Despesas'}]"
-          :key="tab.id" :variant="filter===tab.id?'primary':'tertiary'"
-          :pressed="filter===tab.id" @click="filter=tab.id">{{tab.name}}</NcButton>
+      <div class="lf-list-filter-toolbar">
+        <NcPopover popup-role="dialog">
+          <template #trigger>
+            <NcButton id="lf-categories-filter" variant="tertiary" :pressed="filter!=='all'">
+              <template #icon><NcIconSvgWrapper :path="mdiFilterVariant" :size="20" /></template>
+              Tipo: {{categoryFilters.find(item=>item.value===filter)?.label}}
+            </NcButton>
+          </template>
+          <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar categorias por tipo">
+            <NcButton v-for="choice in categoryFilters" :key="choice.value" variant="tertiary"
+              :aria-pressed="filter===choice.value" @click="filter=choice.value">{{choice.label}}</NcButton>
+          </div>
+        </NcPopover>
       </div>
-      <div class="lf-table-scroll">
+      <div v-if="categories.length" class="lf-table-scroll">
         <table class="lf-data-table">
-          <thead><tr><th>Código</th><th>Categoria</th><th>Tipo</th>
-            <th>Categoria superior</th><th>Conta vinculada</th><th v-if="manager">Ações</th></tr></thead>
+          <thead><tr>
+            <th v-for="col in [
+              {key:'code',label:'Código'}, {key:'name',label:'Categoria'},
+              {key:'kind',label:'Tipo'}, {key:'parent',label:'Categoria superior'},
+              {key:'account',label:'Conta vinculada'}]" :key="col.key"
+              :aria-sort="localSort.ariaSort(col.key)">
+              <LfSortableHeader :label="col.label" :column="col.key"
+                :active-column="localSort.column.value" :direction="localSort.direction.value"
+                scope="loaded" @sort="localSort.sort" />
+            </th>
+            <th v-if="manager">Ações</th></tr></thead>
           <tbody><tr v-for="cat in categories" :key="cat.id">
             <td class="lf-code">{{cat.code}}</td><td>
               <span class="lf-category-name"><span class="lf-category-dot"
@@ -97,8 +127,8 @@ async function save() {
             </NcButton></td>
           </tr></tbody>
         </table>
-        <NcEmptyContent v-if="!categories.length" name="Nenhuma categoria cadastrada" />
       </div>
+      <NcEmptyContent v-else name="Nenhuma categoria cadastrada" />
       <div v-if="categoryNextAfterId" class="lf-table-footer">
         <NcButton @click="loadMoreCategories">Mais categorias</NcButton>
       </div>

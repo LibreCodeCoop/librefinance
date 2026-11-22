@@ -13,6 +13,7 @@ export const PAGE_NAMES = Object.freeze({
   sales: 'A pagar e receber', // historic commercial bookmark
   receivables: 'A pagar e receber',
   finance: 'A pagar e receber',
+  documents: 'Documentos comerciais',
   spaces: 'Áreas financeiras',
   payables: 'A pagar e receber',
   purchases: 'A pagar e receber', // historic commercial bookmark
@@ -40,6 +41,8 @@ export const MENU_STRUCTURE = Object.freeze([
     { id: 'dashboard', icon: 'home', keywords: 'inicio visao geral resumo painel home' },
     { id: 'finance', icon: 'obligations', module: 'librefinance_obligations',
       keywords: 'a pagar receber cliente fornecedor cobranca venda fatura receita despesa vencimentos agenda entradas saidas' },
+    { id: 'documents', icon: 'billing', module: 'librefinance_invoicing',
+      keywords: 'documentos comerciais faturas vendas compras impostos itens rascunhos' },
     { id: 'banking', icon: 'banking', module: 'librefinance_banking',
       keywords: 'bancos caixa extrato conciliacao entradas saidas saldo transferencia movimento' },
     { id: 'reports', icon: 'reports', module: 'librefinance_reports',
@@ -129,8 +132,8 @@ const LEGACY_SETTINGS = Object.freeze({
 export function canonicalView(id, section = null) {
   if (id === 'settings') return LEGACY_SETTINGS[section] || 'access'
   if (id === 'import') return 'data'
-  if (['invoicing', 'sales', 'purchases', 'obligations', 'receivables', 'payables'].includes(id))
-    return 'finance'
+  if (['invoicing', 'sales', 'purchases'].includes(id)) return 'documents'
+  if (['obligations', 'receivables', 'payables'].includes(id)) return 'finance'
   return id
 }
 

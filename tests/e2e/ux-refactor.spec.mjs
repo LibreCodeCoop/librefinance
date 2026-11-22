@@ -329,3 +329,96 @@ test('accounts page provides a direct contextual shortcut to payment methods', a
   await expect(page.getByRole('heading', { name: 'Formas de pagamento' })).toBeVisible()
   await expect(page.getByRole('row', { name: /Transferência bancária/ })).toBeVisible()
 })
+
+
+test('financial agenda fills a 4K workspace and hides columns in an empty result', async ({ page }) => {
+  await page.setViewportSize({ width: 3840, height: 2160 })
+  await login(page)
+  await makeSpace(page)
+  await goToView(page, 'A pagar e receber')
+  const dimensions = await page.locator('.lf-workspace').evaluate(element => ({
+    width: element.getBoundingClientRect().width,
+    parent: element.parentElement.getBoundingClientRect().width,
+  }))
+  expect(dimensions.width).toBeGreaterThan(2500)
+  expect(dimensions.width / dimensions.parent).toBeGreaterThan(0.95)
+  const search = page.getByRole('searchbox',{name:'Pesquisar na agenda'})
+  await search.fill('sem-titulo-este-resultado-nao-existe-2026')
+  await expect(page.getByText('Nenhum resultado para os filtros')).toBeVisible()
+  await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
+  await page.locator('#lf-obligations-filter').click()
+  await expect(page.getByRole('group',{name:'Filtrar por situação'})
+    .getByRole('button',{name:'Em aberto'})).toBeVisible()
+  await page.getByRole('group',{name:'Filtrar por situação'})
+    .getByRole('button',{name:'Em aberto'}).click()
+  await expect(page.locator('#lf-obligations-filter')).toContainText('Em aberto')
+  await page.getByRole('button',{name:'Limpar filtros'}).click()
+  await expect(page.locator('#lf-obligations-filter')).toContainText('Todas')
+})
+
+test('empty contacts and companies show native empty state instead of header-only tables', async ({ page }) => {
+  await login(page)
+  await makeSpace(page)
+  await goToView(page, 'Clientes e fornecedores')
+  await page.getByRole('searchbox',{name:'Buscar contatos'}).fill('zz-no-finance-contact-found-999')
+  await expect(page.getByText('Nenhum contato encontrado')).toBeVisible()
+  await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
+  await goToView(page, 'Dados fiscais da empresa')
+  await page.getByRole('searchbox',{name:'Pesquisar empresas'}).fill('zz-no-finance-company-found-999')
+  await expect(page.getByText('Nenhuma empresa encontrada')).toBeVisible()
+  await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
+})
+
+
+test('list pages use an unboxed Nextcloud content surface and sortable headers', async ({ page }) => {
+  await login(page)
+  await makeSpace(page)
+  await goToView(page, 'Plano de contas')
+  await expect(page.locator('.lf-data-table tbody tr')).toHaveCount(4)
+  const surface = await page.locator('.lf-surface').first().evaluate(element => ({
+    border: getComputedStyle(element).borderTopWidth,
+    padding: getComputedStyle(element).paddingLeft,
+    shadow: getComputedStyle(element).boxShadow,
+  }))
+  expect(surface.border).toBe('0px')
+  expect(surface.padding).toBe('0px')
+  expect(surface.shadow).toBe('none')
+  const column = page.getByRole('columnheader', {name: /Conta/}).first()
+  await column.getByRole('button',{name:/Ordenar registros carregados por Conta/}).click()
+  await expect(column).toHaveAttribute('aria-sort','ascending')
+  await column.getByRole('button',{name:/Ordenar registros carregados por Conta/}).click()
+  await expect(column).toHaveAttribute('aria-sort','descending')
+  await expect(page.locator('.lf-data-table tbody tr')).toHaveCount(4)
+})
+
+test('banking empty states and top-right filters use native Nextcloud controls', async ({ page }) => {
+  await login(page)
+  await makeSpace(page)
+  await goToView(page, 'Bancos e caixa')
+  await expect(page.locator('#lf-bank-filter')).toBeVisible()
+  await page.locator('#lf-bank-status').click()
+  await expect(page.getByRole('group',{name:'Filtrar movimentações por situação'})
+    .getByRole('button',{name:'Pendentes'})).toBeVisible()
+  await page.getByRole('group',{name:'Filtrar movimentações por situação'})
+    .getByRole('button',{name:'Pendentes'}).click()
+  await expect(page.locator('#lf-bank-status')).toContainText('Pendentes')
+  await page.getByRole('tab',{name:'Transferências'}).click()
+  await expect(page.getByText('Nenhuma transferência registrada')).toBeVisible()
+  await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
+})
+
+test('@extensions commercial documents have their own route and create actions', async ({ page }) => {
+  await login(page)
+  await makeSpace(page,'organization')
+  await goToView(page,'Documentos comerciais')
+  await expect(page).toHaveURL(/[?&]view=documents/)
+  await expect(page.locator('.lf-flow-tabs')).toHaveCount(0)
+  await page.getByRole('button',{name:'Nova compra'}).click()
+  await expect(page.getByRole('dialog',{name:'Novo documento de compra'})).toBeVisible()
+  await page.getByRole('dialog',{name:'Novo documento de compra'})
+    .getByRole('button',{name:'Cancelar'}).click()
+  await page.locator('#lf-commercial-direction').click()
+  await page.getByRole('group',{name:'Filtrar documentos por tipo'})
+    .getByRole('button',{name:'Vendas'}).click()
+  await expect(page.getByRole('heading',{name:'Vendas detalhadas e rascunhos'})).toBeVisible()
+})

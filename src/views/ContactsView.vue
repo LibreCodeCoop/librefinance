@@ -15,6 +15,8 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { mdiPlus, mdiPencilOutline } from '@mdi/js'
 import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
+import LfSortableHeader from '../components/LfSortableHeader.vue'
+import { useLoadedSort } from '../composables/useLoadedSort.js'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import FieldStudioShortcut from '../components/FieldStudioShortcut.vue'
 import { financeApi, financeError } from '../services/api.js'
@@ -55,8 +57,9 @@ const searchLoading = ref(false)
 const searchProblem = ref('')
 let searchSequence = 0
 let searchTimer = null
-const shownContacts = computed(() => searchTerm.value ? (active.value === 'contacts' ? searchResults.value : []) : contacts.value)
-const shownItems = computed(() => searchTerm.value ? (active.value === 'items' ? searchResults.value : []) : items.value)
+const localSort = useLoadedSort('')
+const shownContacts = computed(() => localSort.order(searchTerm.value ? (active.value === 'contacts' ? searchResults.value : []) : contacts.value))
+const shownItems = computed(() => localSort.order(searchTerm.value ? (active.value === 'items' ? searchResults.value : []) : items.value))
 async function loadSearch(append = false) {
   const term = searchTerm.value.trim().slice(0, 120)
   const token = ++searchSequence
@@ -178,12 +181,31 @@ async function save() {
       </div>
       <NcNoteCard v-if="searchProblem" type="error">{{searchProblem}}</NcNoteCard>
       <p v-if="searchLoading" class="lf-muted" role="status">Buscando em todos os cadastros…</p>
-      <div class="lf-table-scroll">
+      <div v-if="active==='contacts' ? shownContacts.length : shownItems.length" class="lf-table-scroll">
         <table class="lf-data-table">
-          <thead v-if="active==='contacts'"><tr><th>Contato</th><th>Tipo</th><th>E-mail</th>
-            <th>Identificação</th><th>Situação</th><th v-if="manager">Ações</th></tr></thead>
-          <thead v-else><tr><th>Código</th><th>Nome</th><th>Tipo</th>
-            <th class="lf-numeric">Preço</th><th>Situação</th><th v-if="manager">Ações</th></tr></thead>
+          <thead v-if="active==='contacts'"><tr>
+            <th v-for="col in [
+              {key:'name',label:'Contato'}, {key:'kind',label:'Tipo'},
+              {key:'email',label:'E-mail'}, {key:'tax_id',label:'Identificação'},
+              {key:'active',label:'Situação'}]" :key="col.key"
+              :aria-sort="localSort.ariaSort(col.key)">
+              <LfSortableHeader :label="col.label" :column="col.key"
+                :active-column="localSort.column.value" :direction="localSort.direction.value"
+                scope="loaded" @sort="localSort.sort" />
+            </th><th v-if="manager">Ações</th>
+          </tr></thead>
+          <thead v-else><tr>
+            <th v-for="col in [
+              {key:'sku',label:'Código'}, {key:'name',label:'Nome'},
+              {key:'kind',label:'Tipo'}, {key:'unit_price_minor',label:'Preço'},
+              {key:'active',label:'Situação'}]" :key="col.key"
+              :class="{'lf-numeric':col.key==='unit_price_minor'}"
+              :aria-sort="localSort.ariaSort(col.key)">
+              <LfSortableHeader :label="col.label" :column="col.key"
+                :active-column="localSort.column.value" :direction="localSort.direction.value"
+                scope="loaded" @sort="localSort.sort" />
+            </th><th v-if="manager">Ações</th>
+          </tr></thead>
           <tbody v-if="active==='contacts'"><tr v-for="c in shownContacts" :key="c.id">
             <td><strong>{{ c.name }}</strong></td>
             <td>{{ contactKinds.find(k=>k.value===c.kind)?.label || c.kind }}</td>
@@ -205,11 +227,10 @@ async function save() {
             </NcButton></td>
           </tr></tbody>
         </table>
-        <NcEmptyContent v-if="active==='contacts' && !shownContacts.length"
-          name="Nenhum contato nesta página" />
-        <NcEmptyContent v-if="active==='items' && !shownItems.length"
-          name="Nenhum produto ou serviço nesta página" />
       </div>
+      <NcEmptyContent v-else-if="!searchLoading"
+        :name="active==='contacts' ? 'Nenhum contato encontrado' : 'Nenhum produto ou serviço encontrado'"
+        :description="searchTerm ? 'Altere a pesquisa para ver outros resultados.' : 'Os cadastros aparecerão aqui quando forem criados.'" />
       <div class="lf-table-footer">
         <NcButton v-if="searchTerm && searchNext" variant="secondary"
           :disabled="searchLoading" @click="loadSearch(true)">Mais resultados</NcButton>

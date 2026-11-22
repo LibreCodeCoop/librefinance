@@ -139,7 +139,7 @@ async function create() {
     newName.value = ''
     await w.refreshSpaces()
     w.activeId.value = Number(created.id)
-    notice.value = 'Área financeira criada.'
+    notice.value = 'Gestão financeira independente criada.'
     navigate('dashboard')
   } catch (error) {
     problem.value = financeError(error)
@@ -152,16 +152,17 @@ async function create() {
 <template>
   <div class="lf-view">
     <LfPageHeader title="Áreas financeiras" eyebrow="ORGANIZAÇÃO DOS DADOS"
-      description="Uma área separa contas, histórico e permissões (casa, negócio ou grupo). Dados fiscais de empresas são cadastros dentro de cada área.">
+      description="Cada área financeira tem caixa, contas, saldos e permissões independentes. Cadastre empresas e filiais na mesma área quando compartilharem o mesmo financeiro." >
       <template #actions>
         <NcButton variant="primary" @click="creating=true">Criar área</NcButton>
       </template>
     </LfPageHeader>
     <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
     <NcNoteCard v-if="notice" type="success" role="status">{{notice}}</NcNoteCard>
-    <NcNoteCard type="info">Área financeira ≠ empresa cadastrada. Por exemplo, uma área
-      "Minha casa" não precisa de CNPJ; a área "Meu negócio" pode possuir
-      uma ou mais empresas emitentes, sem duplicar o livro financeiro.</NcNoteCard>
+    <NcNoteCard type="info">Uma área não é um departamento nem uma empresa:
+      é uma gestão financeira completa e isolada. Para cadastrar outra empresa ou filial
+      que compartilha o mesmo caixa, use <strong>Gerenciar → Dados fiscais da empresa</strong>.
+      Só crie uma segunda área se precisar separar também saldos, contas, histórico e acessos.</NcNoteCard>
     <div class="lf-native-workspace-filter" role="search">
       <NcTextField v-model="search" label="Filtrar áreas financeiras"
         type="search" placeholder="Nome da área ou tipo" />
@@ -244,17 +245,21 @@ async function create() {
       content-classes="lf-finance-dialog-content" size="normal"
       @update:open="creating=$event">
       <form class="lf-dialog-form" @submit.prevent="create">
-        <p>Crie uma área independente para a casa, para um negócio ou para um grupo.
-          Ela contém contas, compromissos, registros e permissões próprios.
-          <strong>Esta ação não cadastra uma empresa:</strong> os dados fiscais
-          são opcionais e ficam em Gerenciar → Dados fiscais da empresa.</p>
+        <NcNoteCard type="warning">
+          <strong>Esta opção cria uma gestão financeira independente.</strong>
+          Contas, caixa, títulos, saldos e acessos ficarão separados.
+          Se você quer apenas cadastrar outra empresa ou filial com o mesmo financeiro,
+          cancele e use Gerenciar → Dados fiscais da empresa.
+        </NcNoteCard>
+        <p>Use uma área separada somente para um financeiro realmente independente,
+          como sua casa, outro negócio ou um grupo que não compartilha o caixa.</p>
         <NcTextField v-model="newName" label="Nome da área" maxlength="150" required />
         <LfSelect id="lf-space-kind-new" v-model="newKind"
           label="Tipo de gestão" :options="kinds" />
         <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" @click="creating=false">Cancelar</NcButton>
-          <NcButton variant="primary" type="submit" :disabled="loading || !newName.trim()">Criar</NcButton>
+          <NcButton variant="primary" type="submit" :disabled="loading || !newName.trim()">Criar gestão independente</NcButton>
         </div>
       </form>
     </NcDialog>

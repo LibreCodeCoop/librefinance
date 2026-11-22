@@ -17,7 +17,7 @@ const s = (manager = true, modules = all, modulesLoaded = true) =>
 test('one financial agenda and one management group without duplicate settings', () => {
   assert.deepEqual(s().map(g => g.label), ['LIBREFINANCE'])
   assert.deepEqual(s()[0].items.map(i => i.id),
-    ['dashboard', 'finance', 'banking', 'reports', 'spaces', 'management'])
+    ['dashboard', 'finance', 'documents', 'banking', 'reports', 'spaces', 'management'])
   assert.deepEqual(s()[0].items.filter(i => i.children).map(i => i.id), ['management'])
   for (const id of ['contacts', 'items', 'categories', 'companies',
     'accounts', 'transactions', 'taxes', 'nfse', 'ai',
@@ -38,11 +38,17 @@ test('one financial agenda and one management group without duplicate settings',
   assert.equal(canonicalView('settings', 'data'), 'data')
   assert.equal(canonicalView('import'), 'data')
 })
-test('old pay/receive links are routed to the common agenda with direction intent', () => {
-  for (const alias of ['obligations','sales','purchases','invoicing','receivables','payables']) {
+test('historic URLs preserve finance or commercial document intent', () => {
+  for (const alias of ['obligations','receivables','payables']) {
     assert.equal(canonicalView(alias), 'finance')
     assert.equal(canOpenView(s(),alias), true)
   }
+  for (const alias of ['invoicing','sales','purchases']) {
+    assert.equal(canonicalView(alias), 'documents')
+    assert.equal(canOpenView(s(),alias), true)
+  }
+  assert.equal(canonicalView('documents'), 'documents')
+  assert.equal(PAGE_NAMES.documents, 'Documentos comerciais')
   for (const alias of ['sales','invoicing','receivables'])
     assert.equal(financeDirectionForView(alias),'receivable')
   for (const alias of ['purchases','payables'])
@@ -50,6 +56,7 @@ test('old pay/receive links are routed to the common agenda with direction inten
   assert.equal(financeDirectionForView('obligations'),'all')
   assert.equal(financeDirectionForView('finance'),'all')
 })
+
 test('module and role checks still hide disabled or manager-only actions', () => {
   const view = s(false, all.filter(x => x.id !== 'librefinance_banking'), true)
   const names = menuEntries(view).map(x => x.id)
@@ -62,6 +69,7 @@ test('module and role checks still hide disabled or manager-only actions', () =>
   assert.equal(names.includes('spaces'), true) // every user may create an owned space
   assert.equal(navigationSearch(view, 'extrato').some(x => x.id === 'banking'), false)
   assert.equal(canOpenView(view,'settings',{manager:false}),false)
+  assert.equal(menuEntries(view).some(x => x.id === 'documents'), true)
   assert.equal(canOpenView(view,'import',{manager:false,migrationEnabled:true}),false)
   assert.equal(canOpenView(s(),'settings',{manager:true}),true)
   assert.equal(canOpenView(s(),'import',{manager:true,migrationEnabled:true}),true)
@@ -74,6 +82,7 @@ test('navigation search includes ordinary work and administrative capabilities',
   assert.equal(navigationSearch(s(), 'clientes')[0].id, 'contacts')
   assert.equal(navigationSearch(s(), 'cobrança')[0].id, 'finance')
   assert.equal(navigationSearch(s(), 'nota fiscal')[0].id, 'nfse')
+  assert.equal(navigationSearch(s(), 'documentos comerciais')[0].id, 'documents')
   assert.equal(navigationSearch(s(), 'areas financeiras')[0].id, 'spaces')
   assert.equal(navigationSearch(s(), 'fornecedor')[0].id, 'contacts')
   assert.equal(navigationSearch(s(), 'configuracoes')[0].id, 'modules')

@@ -147,7 +147,7 @@ const formatted = row => money(Math.abs(row.postings?.[0]?.amountMinor || 0))
           diferenças precisam ser corrigidas por outro registro. A busca filtra apenas as páginas carregadas.
           Extratos importados e ainda pendentes são revisados em Bancos e conciliação.</p>
       </details>
-      <div class="lf-table-scroll">
+      <div v-if="filtered.length" class="lf-table-scroll">
         <table class="lf-data-table">
           <thead><tr>
             <th>Data</th><th>Descrição</th><th>Classificação</th>
@@ -168,10 +168,10 @@ const formatted = row => money(Math.abs(row.postings?.[0]?.amountMinor || 0))
             </tr>
           </tbody>
         </table>
-        <NcEmptyContent v-if="!filtered.length"
-          :name="search ? 'Nenhum lançamento encontrado nesta página' : 'Nenhum lançamento contabilizado'"
-          description="Utilize a ação Novo lançamento ou carregue mais páginas do histórico." />
       </div>
+      <NcEmptyContent v-else
+        :name="search ? 'Nenhum lançamento encontrado nesta página' : 'Nenhum lançamento contabilizado'"
+        description="Utilize a ação Novo lançamento ou carregue mais páginas do histórico." />
       <div v-if="nextBeforeId" class="lf-table-footer">
         <NcButton variant="secondary" :disabled="busy" @click="loadMore">Carregar mais lançamentos</NcButton>
       </div>

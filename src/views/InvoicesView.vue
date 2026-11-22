@@ -6,13 +6,16 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiPlus, mdiFileDocumentOutline } from '@mdi/js'
+import { mdiPlus, mdiFileDocumentOutline, mdiFilterVariant } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
+import LfSortableHeader from '../components/LfSortableHeader.vue'
+import { useLoadedSort } from '../composables/useLoadedSort.js'
 import LfSelect from '../components/LfSelect.vue'
 import LfDateField from '../components/LfDateField.vue'
 import CashPaymentDialog from '../components/CashPaymentDialog.vue'
@@ -44,6 +47,8 @@ const current='librefinance_invoicing'
 const today=new Date().toLocaleDateString('sv-SE')
 const tab=computed(() => props.section === 'taxes' ? 'taxes' : 'invoices')
 const invoices=ref([])
+const localSort=useLoadedSort('')
+const orderedInvoices=computed(()=>localSort.order(invoices.value))
 const taxes=ref([])
 const invoiceNext=ref(null)
 const taxNext=ref(null)
@@ -307,18 +312,41 @@ function openLinkedObligation() {
     <section v-if="tab==='invoices'" class="lf-surface">
       <div class="lf-section-heading">
         <h2>{{ isPurchase ? 'Compras detalhadas e rascunhos' : 'Vendas detalhadas e rascunhos' }}</h2>
+        <NcPopover v-if="flow" popup-role="dialog">
+          <template #trigger>
+            <NcButton id="lf-commercial-direction" variant="tertiary">
+              <template #icon><NcIconSvgWrapper :path="mdiFilterVariant" :size="20" /></template>
+              Tipo: {{ isPurchase ? 'Compras' : 'Vendas' }}
+            </NcButton>
+          </template>
+          <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar documentos por tipo">
+            <NcButton variant="tertiary" :aria-pressed="!isPurchase"
+              @click="flow.setDocumentDirection('receivable')">Vendas</NcButton>
+            <NcButton variant="tertiary" :aria-pressed="isPurchase"
+              @click="flow.setDocumentDirection('payable')">Compras</NcButton>
+          </div>
+        </NcPopover>
       </div>
       <NcNoteCard type="info">
         {{ isPurchase
           ? 'Uma compra documentada e confirmada gera uma conta a pagar vinculada. Não cadastre outro título para o mesmo documento.'
           : 'Uma fatura de venda confirmada gera uma conta a receber vinculada. Não cadastre outro título para a mesma venda.' }}
       </NcNoteCard>
-      <div class="lf-table-scroll">
+      <div v-if="invoices.length" class="lf-table-scroll">
         <table class="lf-data-table">
-          <thead><tr><th>Número</th><th>Tipo</th><th>Situação</th>
-            <th>Vencimento</th><th class="lf-numeric">Total</th>
-            <th class="lf-numeric">Liquidado</th><th>Ações</th></tr></thead>
-          <tbody><tr v-for="invoice in invoices" :key="invoice.id">
+          <thead><tr>
+            <th v-for="col in [
+              {key:'number',label:'Número'}, {key:'kind',label:'Tipo'},
+              {key:'status',label:'Situação'}, {key:'due_on',label:'Vencimento'},
+              {key:'total_minor',label:'Total'}, {key:'paid_minor',label:'Liquidado'}]"
+              :key="col.key" :class="{'lf-numeric':['total_minor','paid_minor'].includes(col.key)}"
+              :aria-sort="localSort.ariaSort(col.key)">
+              <LfSortableHeader :label="col.label" :column="col.key"
+                :active-column="localSort.column.value" :direction="localSort.direction.value"
+                scope="loaded" @sort="localSort.sort" />
+            </th><th>Ações</th>
+          </tr></thead>
+          <tbody><tr v-for="invoice in orderedInvoices" :key="invoice.id">
             <td class="lf-code">{{invoice.number}}</td>
             <td>{{invoice.kind==='invoice'?'Venda':'Compra'}}</td>
             <td><span class="lf-state">{{commercialStatus(invoice.status)}}</span></td>
@@ -330,18 +358,20 @@ function openLinkedObligation() {
             </NcButton></td>
           </tr></tbody>
         </table>
-        <NcEmptyContent v-if="!invoices.length"
-          :name="isPurchase ? 'Nenhuma compra documentada' : 'Nenhuma fatura de venda'"
-          :description="isPurchase ? 'Cadastre a compra recebida de um fornecedor.'
-            : 'Crie uma fatura de venda para um cliente.'" />
       </div>
+      <NcEmptyContent v-else
+        :name="isPurchase ? 'Nenhuma compra documentada' : 'Nenhuma fatura de venda'"
+        :description="isPurchase ? 'Cadastre a compra recebida de um fornecedor.'
+          : 'Crie uma fatura de venda para um cliente.'" />
+      <p v-if="localSort.column.value && invoiceNext" class="lf-muted">
+        Ordenação aplicada somente aos documentos carregados.</p>
       <div v-if="invoiceNext" class="lf-table-footer">
         <NcButton :disabled="busy" @click="more('invoice')">Carregar mais</NcButton>
       </div>
     </section>
     <section v-else class="lf-surface">
       <div class="lf-section-heading"><h2>Regras de imposto</h2></div>
-      <div class="lf-table-scroll"><table class="lf-data-table">
+      <div v-if="taxes.length" class="lf-table-scroll"><table class="lf-data-table">
         <thead><tr><th>Código</th><th>Jurisdição</th><th>Tipo</th>
           <th>Alíquota</th><th>Vigência</th><th>Fonte</th></tr></thead>
         <tbody><tr v-for="tax in taxes" :key="tax.id">
@@ -351,7 +381,8 @@ function openLinkedObligation() {
           <td>{{tax.valid_from}} a {{tax.valid_through||'indeterminado'}}</td>
           <td>{{tax.source_ref}}</td>
         </tr></tbody>
-      </table><NcEmptyContent v-if="!taxes.length" name="Nenhuma regra cadastrada" /></div>
+      </table></div>
+      <NcEmptyContent v-else name="Nenhuma regra cadastrada" />
       <div v-if="taxNext" class="lf-table-footer">
         <NcButton :disabled="busy" @click="more('tax')">Carregar mais regras</NcButton>
       </div>

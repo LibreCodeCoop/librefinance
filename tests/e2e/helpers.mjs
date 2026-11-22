@@ -125,7 +125,7 @@ export async function makeSpace(page, kind = 'organization') {
   // NcSelect's highlighted accessibility text may contain injected whitespace.
   await page.getByRole('option').nth(index).click()
   await page.getByRole('dialog', { name: 'Criar área financeira' })
-    .getByRole('button', { name: 'Criar', exact: true }).click()
+    .getByRole('button', { name: 'Criar gestão independente', exact: true }).click()
   await expect(page.locator('.lf-context-identity')).toContainText(name)
   // Do not pass while a previous space is still being refreshed. Wait for the
   // actual module-discovery contract for the new active space to complete.

@@ -13,6 +13,8 @@ import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { mdiPlus, mdiPencilOutline } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
+import LfSortableHeader from '../components/LfSortableHeader.vue'
+import { useLoadedSort } from '../composables/useLoadedSort.js'
 import LfSelect from '../components/LfSelect.vue'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import FieldStudioShortcut from '../components/FieldStudioShortcut.vue'
@@ -34,7 +36,9 @@ const searchLoading = ref(false)
 const searchProblem = ref('')
 let searchSequence = 0
 let searchTimer = null
-const listedCompanies = computed(() => searchTerm.value ? searchResults.value : companies.value)
+const localSort = useLoadedSort('')
+const listedCompanies = computed(() => localSort.order(
+  searchTerm.value ? searchResults.value : companies.value))
 async function loadSearch(append = false) {
   const token = ++searchSequence
   const term = searchTerm.value.trim().slice(0,120)
@@ -164,10 +168,18 @@ async function save() {
       </div>
       <NcNoteCard v-if="searchProblem" type="error">{{searchProblem}}</NcNoteCard>
       <p v-if="searchLoading" role="status" class="lf-muted">Buscando empresas…</p>
-      <div class="lf-table-scroll">
+      <div v-if="listedCompanies.length" class="lf-table-scroll">
         <table class="lf-data-table">
-          <thead><tr><th>Nome legal</th><th>País</th><th>Identificador fiscal</th>
-            <th>Situação</th><th v-if="manager">Ações</th></tr></thead>
+          <thead><tr>
+            <th v-for="col in [
+              {key:'legal_name',label:'Nome legal'}, {key:'country',label:'País'},
+              {key:'tax_id',label:'Identificador fiscal'}, {key:'active',label:'Situação'}]"
+              :key="col.key" :aria-sort="localSort.ariaSort(col.key)">
+              <LfSortableHeader :label="col.label" :column="col.key"
+                :active-column="localSort.column.value" :direction="localSort.direction.value"
+                scope="loaded" @sort="localSort.sort" />
+            </th>
+            <th v-if="manager">Ações</th></tr></thead>
           <tbody><tr v-for="company in listedCompanies" :key="company.id">
             <td><span class="lf-company-list-identity">
               <img v-if="company.logo_version" class="lf-company-mini-logo"
@@ -187,9 +199,13 @@ async function save() {
             </NcButton></td>
           </tr></tbody>
         </table>
-        <NcEmptyContent v-if="!companies.length" name="Nenhuma empresa cadastrada"
-          description="Comece com nome legal e país; os demais dados são opcionais ou configuráveis." />
       </div>
+      <NcEmptyContent v-else-if="!searchLoading"
+        :name="searchTerm ? 'Nenhuma empresa encontrada' : 'Nenhuma empresa cadastrada'"
+        :description="searchTerm ? 'Altere a pesquisa para localizar outras empresas.'
+          : 'Comece com nome legal e país; os demais dados são opcionais ou configuráveis.'" />
+      <p v-if="localSort.column.value && (companyNextAfterId || searchNext)"
+        class="lf-muted">A ordenação considera somente os registros já carregados.</p>
       <div v-if="companyNextAfterId || searchNext" class="lf-table-footer">
         <NcButton v-if="!searchTerm" variant="secondary" @click="loadMoreCompanies">Carregar mais empresas</NcButton>
         <NcButton v-else-if="searchNext" variant="secondary"

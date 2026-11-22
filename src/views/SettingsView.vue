@@ -94,7 +94,7 @@ async function confirmRemoval() {
           <NcButton variant="secondary" @click="shareDialog='group'">Grupo</NcButton>
         </div>
       </div>
-      <div class="lf-table-scroll">
+      <div v-if="members.length || groupGrants.length" class="lf-table-scroll">
         <table class="lf-data-table">
           <thead><tr><th>Tipo</th><th>Identificador</th><th>Permissão</th><th>Ações</th></tr></thead>
           <tbody>
@@ -116,9 +116,9 @@ async function confirmRemoval() {
             </tr>
           </tbody>
         </table>
-        <NcEmptyContent v-if="!members.length&&!groupGrants.length"
-          name="Sem outros acessos" description="Convide pessoas ou grupos quando precisar colaborar." />
       </div>
+      <NcEmptyContent v-else name="Sem outros acessos"
+        description="Convide pessoas ou grupos quando precisar colaborar." />
     </section>
     <section v-if="section==='fields'" class="lf-surface">
       <FieldStudioManager />

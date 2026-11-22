@@ -6,12 +6,16 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiFileUploadOutline, mdiRefresh, mdiLinkVariant } from '@mdi/js'
+import { mdiFileUploadOutline, mdiRefresh, mdiLinkVariant, mdiFilterVariant } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
+import LfSortableHeader from '../components/LfSortableHeader.vue'
+import { useLoadedSort } from '../composables/useLoadedSort.js'
 import LfSelect from '../components/LfSelect.vue'
 import { financeApi, financeError } from '../services/api.js'
 const w=inject('lfWorkspace')
@@ -24,6 +28,16 @@ const filter=ref('all')
 const transfers=ref([])
 const transferCursor=ref(null)
 const rows=ref([])
+const localSort=useLoadedSort('')
+const orderedRows=computed(()=>localSort.order(rows.value,{
+  bank_account_id:row=>bankName(row.bank_account_id),
+}))
+const orderedTransfers=computed(()=>localSort.order(transfers.value,{
+  booking_date:row=>row.bookingDate,
+  fromAccountId:row=>bankName(row.fromAccountId),
+  toAccountId:row=>bankName(row.toAccountId),
+  amount_minor:row=>Number(row.amountMinor),
+}))
 const next=ref(null)
 const providers=ref([])
 const busy=ref(false)
@@ -170,7 +184,7 @@ onBeforeUnmount(()=>++generation)
     <LfPageHeader title="Bancos e caixa" eyebrow="FINANCEIRO"
       description="Confira movimentações importadas, vínculos contábeis e transferências pendentes.">
       <template #actions>
-        <NcButton v-if="writable" variant="primary" :disabled="busy || !banks.length"
+        <NcButton v-if="writable && banks.length" variant="primary" :disabled="busy"
           @click="openImportDialog">
           <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
           Importar extrato CSV
@@ -180,45 +194,96 @@ onBeforeUnmount(()=>++generation)
         </NcButton>
       </template>
     </LfPageHeader>
-    <NcNoteCard type="info">
-      O extrato é uma lista para conferência: movimentos importados não alteram o saldo contábil
-      até serem vinculados a um lançamento existente.
-    </NcNoteCard>
     <details class="lf-finance-explanation">
       <summary>Como funciona a conciliação?</summary>
-      <p>1. Importe um extrato CSV para revisão. 2. Localize uma movimentação pendente.
+      <p>Movimentos importados não alteram o saldo contábil até serem conciliados.
+        1. Importe um extrato CSV para revisão. 2. Localize uma movimentação pendente.
         3. Vincule-a a um lançamento contábil da mesma conta e valor.
         Transferências históricas exigem a conferência das duas pontas.
         Não existe sincronização bancária em tempo real homologada aqui.</p>
     </details>
-    <NcNoteCard v-if="writable && !banks.length" type="info">
-      Antes de importar um extrato, cadastre uma conta financeira no Plano de contas.
-      <NcButton variant="tertiary" @click="navigate('accounts')">Abrir plano de contas</NcButton>
-    </NcNoteCard>
     <NcNoteCard v-if="error" type="error" role="alert">{{error}}</NcNoteCard>
     <NcNoteCard v-if="success" type="success" role="status">{{success}}</NcNoteCard>
     <section class="lf-surface">
-      <div class="lf-filter-row">
-        <NcButton :variant="tab==='statements'?'primary':'tertiary'"
-          :pressed="tab==='statements'" @click="tab='statements'">Movimentações do extrato</NcButton>
-        <NcButton :variant="tab==='transfers'?'primary':'tertiary'"
-          :pressed="tab==='transfers'" @click="tab='transfers'">Transferências entre contas</NcButton>
-      </div>
-      <div v-if="tab==='statements'" class="lf-filter-row">
-        <LfSelect id="lf-bank-filter" v-model="chosenAccount" label="Conta financeira"
-          :options="bankChoices" />
-        <LfSelect id="lf-bank-status" v-model="filter" label="Situação"
-          :options="statuses" />
+      <div class="lf-section-heading lf-banking-toolbar">
+        <div class="lf-banking-tabs" role="tablist" aria-label="Visualizar extratos ou transferências">
+          <NcButton role="tab" :aria-selected="tab==='statements'"
+            :variant="tab==='statements'?'secondary':'tertiary'"
+            @click="tab='statements'">Extratos</NcButton>
+          <NcButton role="tab" :aria-selected="tab==='transfers'"
+            :variant="tab==='transfers'?'secondary':'tertiary'"
+            @click="tab='transfers'">Transferências</NcButton>
+        </div>
+        <div v-if="tab==='statements'" class="lf-native-agenda-filters">
+          <NcPopover popup-role="dialog">
+            <template #trigger>
+              <NcButton id="lf-bank-filter" variant="tertiary" :pressed="chosenAccount !== 0">
+                <template #icon><NcIconSvgWrapper :path="mdiFilterVariant" :size="20" /></template>
+                Conta: {{ bankChoices.find(option=>Number(option.value)===Number(chosenAccount))?.label }}
+              </NcButton>
+            </template>
+            <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar por conta financeira">
+              <NcButton v-for="choice in bankChoices" :key="choice.value"
+                variant="tertiary" :aria-pressed="Number(chosenAccount)===Number(choice.value)"
+                @click="chosenAccount=Number(choice.value)">{{choice.label}}</NcButton>
+            </div>
+          </NcPopover>
+          <NcPopover popup-role="dialog">
+            <template #trigger>
+              <NcButton id="lf-bank-status" variant="tertiary" :pressed="filter!=='all'">
+                <template #icon><NcIconSvgWrapper :path="mdiFilterVariant" :size="20" /></template>
+                Situação: {{ statuses.find(option=>option.value===filter)?.label }}
+              </NcButton>
+            </template>
+            <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar movimentações por situação">
+              <NcButton v-for="choice in statuses" :key="choice.value"
+                variant="tertiary" :aria-pressed="filter===choice.value"
+                @click="filter=choice.value">{{choice.label}}</NcButton>
+            </div>
+          </NcPopover>
+        </div>
       </div>
       <p v-if="tab==='statements' && rows.length" class="lf-dialog-help">
         {{rows.length}} movimentação(ões) carregada(s) neste filtro{{next ? '; há outras páginas disponíveis' : ''}}.
         Os totais de um extrato completo não são estimados a partir desta lista.
       </p>
-      <div class="lf-table-scroll">
+      <div v-if="busy && (tab==='statements'? !rows.length : !transfers.length)"
+        class="lf-loading" role="status">
+        <NcLoadingIcon :size="44" /> Carregando dados bancários…
+      </div>
+      <NcEmptyContent v-else-if="tab==='statements'&&!banks.length"
+        name="Nenhuma conta financeira disponível"
+        description="Cadastre uma conta de banco ou caixa no Plano de contas para poder importar extratos.">
+        <template v-if="writable" #action>
+          <NcButton variant="primary" @click="navigate('accounts')">Abrir plano de contas</NcButton>
+        </template>
+      </NcEmptyContent>
+      <NcEmptyContent v-else-if="tab==='statements'&&!rows.length"
+        :name="chosenAccount || filter!=='all' ? 'Nenhuma movimentação neste filtro' : 'Nenhuma movimentação importada'"
+        description="Importe um extrato CSV para conferir movimentos, sem alterar o saldo contábil.">
+        <template #action>
+          <NcButton v-if="chosenAccount || filter!=='all'" @click="chosenAccount=0;filter='all'">Limpar filtros</NcButton>
+          <NcButton v-else-if="writable" variant="primary" @click="openImportDialog">Importar extrato CSV</NcButton>
+        </template>
+      </NcEmptyContent>
+      <NcEmptyContent v-else-if="tab==='transfers'&&!transfers.length"
+        name="Nenhuma transferência registrada"
+        description="Transferências históricas aparecerão aqui quando houver registros para conferência." />
+      <div v-else class="lf-table-scroll">
         <table v-if="tab==='statements'" class="lf-data-table">
-          <thead><tr><th>Data</th><th>Conta</th><th>Descrição</th>
-            <th class="lf-numeric">Valor</th><th>Estado</th><th v-if="writable">Ações</th></tr></thead>
-          <tbody><tr v-for="row in rows" :key="row.id">
+          <thead><tr>
+            <th v-for="col in [
+              {key:'booking_date',label:'Data'}, {key:'bank_account_id',label:'Conta'},
+              {key:'description',label:'Descrição'}, {key:'amount_minor',label:'Valor'},
+              {key:'status',label:'Estado'}]" :key="col.key"
+              :class="{'lf-numeric':col.key==='amount_minor'}"
+              :aria-sort="localSort.ariaSort(col.key)">
+              <LfSortableHeader :label="col.label" :column="col.key"
+                :active-column="localSort.column.value" :direction="localSort.direction.value"
+                scope="loaded" @sort="localSort.sort" />
+            </th><th v-if="writable">Ações</th>
+          </tr></thead>
+          <tbody><tr v-for="row in orderedRows" :key="row.id">
             <td>{{row.booking_date}}</td>
             <td>{{bankName(row.bank_account_id)}}</td>
             <td><strong>{{row.description}}</strong></td>
@@ -234,21 +299,27 @@ onBeforeUnmount(()=>++generation)
           </tr></tbody>
         </table>
         <table v-else class="lf-data-table">
-          <thead><tr><th>Data</th><th>Conta de origem</th><th>Conta de destino</th>
-            <th class="lf-numeric">Valor</th><th>Situação</th></tr></thead>
-          <tbody><tr v-for="item in transfers" :key="item.id">
+          <thead><tr>
+            <th v-for="col in [
+              {key:'booking_date',label:'Data'}, {key:'fromAccountId',label:'Conta de origem'},
+              {key:'toAccountId',label:'Conta de destino'}, {key:'amount_minor',label:'Valor'}]"
+              :key="col.key" :class="{'lf-numeric':col.key==='amount_minor'}"
+              :aria-sort="localSort.ariaSort(col.key)">
+              <LfSortableHeader :label="col.label" :column="col.key"
+                :active-column="localSort.column.value" :direction="localSort.direction.value"
+                scope="loaded" @sort="localSort.sort" />
+            </th><th>Situação</th>
+          </tr></thead>
+          <tbody><tr v-for="item in orderedTransfers" :key="item.id">
             <td>{{item.bookingDate}}</td><td>{{bankName(item.fromAccountId)}}</td>
             <td>{{bankName(item.toAccountId)}}</td>
             <td class="lf-numeric">{{money(item.amountMinor)}}</td>
             <td><span class="lf-state lf-state-warning">Aguardando conferência</span></td>
           </tr></tbody>
         </table>
-        <NcEmptyContent v-if="tab==='statements'&&!rows.length"
-          name="Nenhuma movimentação para o filtro selecionado"
-          description="Ajuste os filtros ou importe um CSV para conferir movimentos. Nenhum saldo contábil muda durante a importação." />
-        <NcEmptyContent v-if="tab==='transfers'&&!transfers.length"
-          name="Nenhuma transferência histórica registrada" />
       </div>
+      <p v-if="localSort.column.value && ((tab==='statements'&&next)||(tab==='transfers'&&transferCursor))"
+        class="lf-muted">Ordenação aplicada somente aos registros carregados.</p>
       <div v-if="(tab==='statements'&&next)||(tab==='transfers'&&transferCursor)"
         class="lf-table-footer"><NcButton :disabled="busy" @click="more">
           Carregar mais

@@ -8,12 +8,14 @@ import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import NcActions from '@nextcloud/vue/components/NcActions'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
 import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import LfSortableHeader from '../components/LfSortableHeader.vue'
-import { mdiPlus, mdiLinkVariant, mdiCashCheck, mdiCheckCircleOutline, mdiCancel } from '@mdi/js'
+import { mdiPlus, mdiLinkVariant, mdiCashCheck, mdiCheckCircleOutline, mdiCancel, mdiFilterVariant } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSelect from '../components/LfSelect.vue'
 import LfDateField from '../components/LfDateField.vue'
@@ -36,6 +38,12 @@ const today=new Date().toLocaleDateString('sv-SE')
 const list=ref([])
 const next=ref(null)
 const filter=ref('all')
+const kindFilter=ref(props.kind)
+const directionChoices=[
+  {value:'all',label:'Tudo'},
+  {value:'receivable',label:'A receber'},
+  {value:'payable',label:'A pagar'},
+]
 const dueRange=ref('all')
 const sortBy=ref('due')
 const sortDirection=ref('asc')
@@ -151,7 +159,7 @@ async function load() {
   loading.value=true;error.value=''
   try{
     const data=await financeApi('librefinance_obligations',activeId.value,
-      '/obligations?kind='+props.kind+'&status='+filter.value+'&dueRange='+dueRange.value
+      '/obligations?kind='+kindFilter.value+'&status='+filter.value+'&dueRange='+dueRange.value
         +'&search='+encodeURIComponent(searchTerm.value)
         +'&sortBy='+sortBy.value+'&sortDirection='+sortDirection.value)
     if(token!==generation)return
@@ -166,7 +174,7 @@ async function more() {
   loading.value=true
   try{
     const data=await financeApi('librefinance_obligations',activeId.value,
-      '/obligations?kind='+props.kind+'&status='+filter.value
+      '/obligations?kind='+kindFilter.value+'&status='+filter.value
         +'&dueRange='+dueRange.value+'&search='+encodeURIComponent(searchTerm.value)
         +'&sortBy='+sortBy.value+'&sortDirection='+sortDirection.value
         +'&afterId='+next.value)
@@ -226,7 +234,8 @@ async function cancel() {
     activeId.value,'/obligations/'+id+'/cancel','POST',{}),'Título cancelado.')
   if(result)cancelTarget.value=null
 }
-watch([filter,dueRange,sortBy,sortDirection,searchTerm,()=>props.kind],()=>{
+watch(()=>props.kind, value=>{kindFilter.value=value})
+watch([kindFilter,filter,dueRange,sortBy,sortDirection,searchTerm],()=>{
   focusedRecord.value=null
   list.value=[]
   next.value=null
@@ -270,25 +279,71 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
           <NcTextField v-model="searchDraft" class="lf-native-finance-search"
             type="search" label="Pesquisar na agenda" placeholder="Descrição ou referência"
             maxlength="120" @update:model-value="scheduleSearch" @keyup.enter="applySearch" />
-          <div id="lf-obligations-filter" class="lf-native-filter-chips"
-            role="group" aria-label="Filtrar por situação">
-            <NcButton v-for="option in choices" :key="option.value"
-              size="small" :variant="filter === option.value ? 'secondary' : 'tertiary'"
-              :aria-pressed="filter === option.value" @click="filter=option.value">
-              {{ option.label }}
-            </NcButton>
-          </div>
-          <div id="lf-obligations-due" class="lf-native-filter-chips"
-            role="group" aria-label="Filtrar por vencimento">
-            <NcButton v-for="option in dueChoices" :key="option.value"
-              size="small" :variant="dueRange === option.value ? 'secondary' : 'tertiary'"
-              :aria-pressed="dueRange === option.value" @click="dueRange=option.value">
-              {{ option.label }}
-            </NcButton>
-          </div>
+          <NcPopover popup-role="dialog">
+            <template #trigger>
+              <NcButton id="lf-finance-direction" variant="tertiary"
+                :pressed="kindFilter !== 'all'"
+                :aria-label="'Direção: ' + directionChoices.find(option => option.value === kindFilter)?.label">
+                <template #icon><NcIconSvgWrapper :path="mdiFilterVariant" :size="20" /></template>
+                Direção: {{ directionChoices.find(option => option.value === kindFilter)?.label }}
+              </NcButton>
+            </template>
+            <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar por direção">
+              <NcButton v-for="option in directionChoices" :key="option.value"
+                variant="tertiary" :aria-pressed="kindFilter === option.value"
+                @click="kindFilter=option.value">{{option.label}}</NcButton>
+            </div>
+          </NcPopover>
+          <NcPopover popup-role="dialog">
+            <template #trigger>
+              <NcButton id="lf-obligations-filter" variant="tertiary"
+                :aria-label="'Situação: ' + choices.find(option => option.value === filter)?.label"
+                :pressed="filter !== 'all'">
+                <template #icon><NcIconSvgWrapper :path="mdiFilterVariant" :size="20" /></template>
+                Situação: {{ choices.find(option => option.value === filter)?.label }}
+              </NcButton>
+            </template>
+            <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar por situação">
+              <NcButton v-for="option in choices" :key="option.value"
+                variant="tertiary" :aria-pressed="filter === option.value"
+                @click="filter=option.value">{{option.label}}</NcButton>
+            </div>
+          </NcPopover>
+          <NcPopover popup-role="dialog">
+            <template #trigger>
+              <NcButton id="lf-obligations-due" variant="tertiary"
+                :aria-label="'Vencimento: ' + dueChoices.find(option => option.value === dueRange)?.label"
+                :pressed="dueRange !== 'all'">
+                <template #icon><NcIconSvgWrapper :path="mdiFilterVariant" :size="20" /></template>
+                Vencimento: {{ dueChoices.find(option => option.value === dueRange)?.label }}
+              </NcButton>
+            </template>
+            <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar por vencimento">
+              <NcButton v-for="option in dueChoices" :key="option.value"
+                variant="tertiary" :aria-pressed="dueRange === option.value"
+                @click="dueRange=option.value">{{option.label}}</NcButton>
+            </div>
+          </NcPopover>
         </div>
       </div>
-      <div class="lf-table-scroll">
+      <div v-if="loading && !displayedRows.length" class="lf-agenda-empty lf-loading" role="status">
+        <NcLoadingIcon :size="44" />
+        <span>Carregando títulos financeiros…</span>
+      </div>
+      <NcEmptyContent v-else-if="!error && !displayedRows.length"
+        class="lf-agenda-empty"
+        :name="kindFilter !== 'all' || filter !== 'all' || dueRange !== 'all' || searchTerm ? 'Nenhum resultado para os filtros' : 'Nenhum título financeiro'"
+        :description="kindFilter !== 'all' || filter !== 'all' || dueRange !== 'all' || searchTerm
+          ? 'Altere os filtros ou a pesquisa para ver outros títulos.'
+          : 'Os títulos de contas a pagar e receber aparecerão aqui quando forem cadastrados.'">
+        <template v-if="kindFilter !== 'all' || filter !== 'all' || dueRange !== 'all' || searchTerm" #action>
+          <NcButton @click="kindFilter='all'; filter='all'; dueRange='all'; searchDraft=''; applySearch()">Limpar filtros</NcButton>
+        </template>
+        <template v-else-if="writable" #action>
+          <NcButton variant="primary" @click="formOpen=true">Novo título</NcButton>
+        </template>
+      </NcEmptyContent>
+      <div v-else-if="displayedRows.length" class="lf-table-scroll">
         <table class="lf-data-table">
           <thead><tr>
             <th :aria-sort="sortable('reference')">
@@ -381,7 +436,6 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
             </td>
           </tr></tbody>
         </table>
-        <NcEmptyContent v-if="!displayedRows.length" name="Nenhum título neste filtro" />
       </div>
       <div v-if="next" class="lf-table-footer">
         <NcButton :disabled="loading" @click="more">Carregar mais títulos</NcButton>

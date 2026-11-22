@@ -73,6 +73,7 @@ const screens = {
   accounts: AccountsView,
   banking: BankingView,
   finance: CashflowView,
+  documents: CashflowView,
   spaces: SpacesView,
   receivables: CashflowView,
   payables: CashflowView,
@@ -233,6 +234,8 @@ const invoiceKind = computed(() => financeDirectionHint.value === 'payable' ? 'b
 provide('lfInvoiceKind', invoiceKind)
 const focusedInvoice = ref(null)
 provide('lfFocusedInvoice', focusedInvoice)
+const newDetailed = ref(false)
+provide('lfNewDetailed', newDetailed)
 const focusedObligation = ref(null)
 provide('lfFocusedObligation', focusedObligation)
 const activeLocation = computed(() => {
@@ -257,7 +260,8 @@ function navigate(view, options = {}) {
   if (view === 'fields') {
     fieldStudioEntity.value = fieldEntityKind(options.entityKind || 'company')
   }
-  if (canonicalView(view) === 'finance') {
+  if (canonicalView(view) === 'finance'
+    || (canonicalView(view) === 'documents' && (view !== 'documents' || !options.preserveDirection))) {
     financeDirectionHint.value = financeDirectionForView(view)
   }
   view = canonicalView(view)
@@ -284,6 +288,7 @@ function selectSpace(id) {
   activeId.value = Number(id)
   focusedInvoice.value = null
   focusedObligation.value = null
+  newDetailed.value = false
   clearSearch()
   openGroups.value = {}
   pendingInitialView = null
@@ -314,8 +319,8 @@ function onHistoryChange() {
     activeId.value = destinationSpace
   }
   pendingInitialView = destinationView
-  if (canonicalView(destinationView) === 'finance') {
-    financeDirectionHint.value = financeDirectionForView(destinationView)
+  if (destinationView === 'finance' || values.get('view') !== 'documents') {
+    financeDirectionHint.value = financeDirectionForView(values.get('view'))
   }
   if (visibleView(destinationView)
     && modulesLoadedFor.value === Number(activeId.value)) {
@@ -483,7 +488,8 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
           </NcEmptyContent>
         </div>
         <component :is="currentScreen" v-else
-          :key="activeId + ':' + readyView + ':' + urlSearchTerm" />
+          :key="activeId + ':' + readyView + ':' + urlSearchTerm"
+          v-bind="['finance', 'documents'].includes(readyView) ? { section: readyView } : {}" />
       </div>
     </NcAppContent>
 

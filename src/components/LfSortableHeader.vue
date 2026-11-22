@@ -10,6 +10,7 @@ const props = defineProps({
   column: { type: String, required: true },
   activeColumn: { type: String, default: '' },
   direction: { type: String, default: 'asc' },
+  scope: { type: String, default: 'all' },
 })
 defineEmits(['sort'])
 const current = computed(() => props.activeColumn === props.column)
@@ -18,8 +19,8 @@ const icon = computed(() => !current.value ? mdiUnfoldMoreHorizontal
 </script>
 <template>
   <NcButton variant="tertiary" size="small" class="lf-sort-header"
-    :aria-label="'Ordenar por ' + label"
-    :title="'Ordenar por ' + label"
+    :aria-label="(scope === 'loaded' ? 'Ordenar registros carregados por ' : 'Ordenar por ') + label"
+    :title="(scope === 'loaded' ? 'Ordenar registros carregados por ' : 'Ordenar por ') + label"
     @click="$emit('sort', column)">
     <template #icon>
       <NcIconSvgWrapper :path="icon" :size="18" aria-hidden="true" />

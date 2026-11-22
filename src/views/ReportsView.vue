@@ -286,17 +286,18 @@ onBeforeUnmount(() => ++generation)
             <div><span>Saldo final</span><strong>{{ money(result.closingMinor) }}</strong></div>
           </div>
           <h3>Movimentos por mês</h3>
-          <div class="lf-table-scroll"><table class="lf-data-table">
+          <div v-if="result.months.length" class="lf-table-scroll"><table class="lf-data-table">
             <thead><tr><th>Mês</th><th class="lf-numeric">Variação líquida</th></tr></thead>
             <tbody><tr v-for="month in result.months" :key="month.month">
               <td>{{ month.month }}</td><td class="lf-numeric">{{ money(month.netMinor) }}</td>
             </tr></tbody>
-          </table><NcEmptyContent v-if="!result.months.length" name="Sem movimentação neste período" /></div>
+          </table></div>
+          <NcEmptyContent v-else name="Sem movimentação neste período" />
         </template>
         <template v-if="result && currentKind === 'trial_balance'">
           <p v-if="activeAccountClass" class="lf-muted">Filtrado por natureza: {{ classes[activeAccountClass] }}.
             O filtro é aplicado no servidor antes da paginação.</p>
-          <div class="lf-table-scroll"><table class="lf-data-table">
+          <div v-if="trial.length" class="lf-table-scroll"><table class="lf-data-table">
             <thead><tr><th v-for="column in activeBalanceColumns" :key="column"
               :class="{ 'lf-numeric': column === 'balanceMinor' }">
               {{ balanceColumns.find(field => field.id === column)?.label }}</th></tr></thead>
@@ -309,7 +310,8 @@ onBeforeUnmount(() => ++generation)
                 <template v-else>{{ account.code }}</template>
               </td>
             </tr></tbody>
-          </table><NcEmptyContent v-if="!trial.length" name="Nenhuma conta encontrada" /></div>
+          </table></div>
+          <NcEmptyContent v-else name="Nenhuma conta encontrada" />
           <div v-if="trialNext" class="lf-table-footer"><NcButton :disabled="busy" @click="loadMore">Mais contas</NcButton></div>
         </template>
         <details class="lf-finance-explanation">

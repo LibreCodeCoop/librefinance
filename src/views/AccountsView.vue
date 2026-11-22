@@ -4,14 +4,17 @@ SPDX-License-Identifier: AGPL-3.0-or-later -->
 import { computed, inject, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiPlus, mdiPencilOutline, mdiDeleteOutline } from '@mdi/js'
+import { mdiPlus, mdiPencilOutline, mdiDeleteOutline, mdiFilterVariant } from '@mdi/js'
 import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
+import LfSortableHeader from '../components/LfSortableHeader.vue'
+import { useLoadedSort } from '../composables/useLoadedSort.js'
 import { financeApi, financeError } from '../services/api.js'
 const w = inject('lfWorkspace')
 const { activeId, accounts, naturalBalance, manager, refreshCurrent } = w
@@ -65,6 +68,7 @@ const working = ref(false)
 const problem = ref('')
 const filter = ref('all')
 const search = ref('')
+const localSort = useLoadedSort('code')
 const form = ref({ id: 0, code: '', name: '', class: 'asset', isBank: true, active: true })
 const filters = [
   { value: 'all', label: 'Todas as classes' },
@@ -79,10 +83,13 @@ const explanations = [
   ['Receita', 'o que foi ganho com vendas, serviços ou outras atividades'],
   ['Despesa', 'gastos com atividades e manutenção'],
 ]
-const listed = computed(() => accounts.value.filter(a =>
+const listed = computed(() => localSort.order(accounts.value.filter(a =>
   (filter.value === 'all' || a.class === filter.value)
   && (!search.value.trim() || (a.code + ' ' + a.name).toLocaleLowerCase('pt-BR')
-    .includes(search.value.trim().toLocaleLowerCase('pt-BR')))))
+    .includes(search.value.trim().toLocaleLowerCase('pt-BR')))), {
+      balance: account => (['liability','equity','revenue'].includes(account.class)
+        ? -1 : 1) * Number(account.balance_minor),
+    }))
 function create() {
   problem.value = ''
   form.value = { id: 0, code: '', name: '', class: 'asset', isBank: true, active: true }
@@ -141,13 +148,32 @@ async function submit() {
           placeholder="Código ou nome" class="lf-search-field" />
       </div>
       <div class="lf-filter-row lf-account-filter">
-        <LfSelect id="lf-account-class-filter" v-model="filter" label="Mostrar classe"
-          :options="filters" />
         <span class="lf-muted">{{ listed.length }} de {{ accounts.length }} contas</span>
+        <NcPopover popup-role="dialog">
+          <template #trigger>
+            <NcButton id="lf-account-class-filter" variant="tertiary" :pressed="filter!=='all'">
+              <template #icon><NcIconSvgWrapper :path="mdiFilterVariant" :size="20" /></template>
+              Classe: {{filters.find(item=>item.value===filter)?.label}}
+            </NcButton>
+          </template>
+          <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar plano de contas por classe">
+            <NcButton v-for="choice in filters" :key="choice.value" variant="tertiary"
+              :aria-pressed="filter===choice.value" @click="filter=choice.value">{{choice.label}}</NcButton>
+          </div>
+        </NcPopover>
       </div>
-      <div class="lf-table-scroll"><table class="lf-data-table">
-        <thead><tr><th>Código</th><th>Conta</th><th>Natureza</th><th>Situação</th>
-          <th class="lf-numeric">Saldo</th><th v-if="manager">Ações</th></tr></thead>
+      <div v-if="listed.length" class="lf-table-scroll"><table class="lf-data-table">
+        <thead><tr>
+          <th v-for="col in [
+            {key:'code',label:'Código'}, {key:'name',label:'Conta'},
+            {key:'class',label:'Natureza'}, {key:'active',label:'Situação'},
+            {key:'balance',label:'Saldo'}]" :key="col.key"
+            :class="{ 'lf-numeric': col.key==='balance' }" :aria-sort="localSort.ariaSort(col.key)">
+            <LfSortableHeader :label="col.label" :column="col.key"
+              :active-column="localSort.column.value" :direction="localSort.direction.value"
+              scope="loaded" @sort="localSort.sort" />
+          </th>
+          <th v-if="manager">Ações</th></tr></thead>
         <tbody><tr v-for="account in listed" :key="account.id">
           <td class="lf-code">{{ account.code }}</td><td><strong>{{ account.name }}</strong>
             <small v-if="account.is_bank" class="lf-muted">Conta financeira (banco ou caixa)</small></td>
@@ -168,9 +194,9 @@ async function submit() {
             </div>
           </td>
         </tr></tbody></table>
-        <NcEmptyContent v-if="!listed.length" name="Nenhuma conta encontrada"
-          description="Mude o filtro ou crie uma conta nesta gestão financeira." />
       </div>
+      <NcEmptyContent v-else name="Nenhuma conta encontrada"
+        description="Mude o filtro ou crie uma conta nesta gestão financeira." />
       <details class="lf-finance-explanation">
         <summary>O que significam Ativo, Passivo, Patrimônio, Receita e Despesa?</summary>
         <ul><li v-for="[label, description] in explanations" :key="label">
