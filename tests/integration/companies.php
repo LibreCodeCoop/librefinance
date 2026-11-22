@@ -20,7 +20,13 @@ $t->check('initial company registry empty', $a, 'GET', $base, null, 200,
 $t->check('other user cannot enumerate companies', $b, 'GET', $base, null, 404);
 $payload = ['legalName' => 'Synthetic Cooperative Alpha',
     'country' => 'BR', 'taxId' => '12345678000190',
-    'tradeName' => 'Alpha', 'municipalRegistration' => 'TEST-123'];
+    'tradeName' => 'Alpha', 'municipalRegistration' => 'TEST-123',
+    'profile' => [
+        'contactEmail' => 'financeiro@example.org', 'contactPhone' => '+55 21 99999-0000',
+        'website' => 'https://example.org', 'addressLine1' => 'Rua Exemplo 10',
+        'addressLine2' => 'Sala 200', 'city' => 'Rio de Janeiro',
+        'region' => 'RJ', 'postalCode' => '20000-000',
+    ]];
 $first = $t->check('register legal entity in permitted finance space', $a, 'POST',
     $base, $payload, 201,
     static fn(array $v): bool => ($v['legal_name'] ?? null) === 'Synthetic Cooperative Alpha'
@@ -30,11 +36,26 @@ $t->check('duplicate entity in same space denied', $a, 'POST',
     $base, $payload, 409, static fn(array $v): bool => ($v['error'] ?? null) === 'company_tax_id_conflict');
 $t->check('company list returns scoped record', $a, 'GET', $base, null, 200,
     static fn(array $v): bool => count($v['companies'] ?? []) === 1
-        && $v['companies'][0]['trade_name'] === 'Alpha');
+        && $v['companies'][0]['trade_name'] === 'Alpha'
+        && $v['companies'][0]['contact_email'] === 'financeiro@example.org'
+        && $v['companies'][0]['city'] === 'Rio de Janeiro'
+        && $v['companies'][0]['address_line1'] === 'Rua Exemplo 10');
 $t->check('invalid legal country rejected', $a, 'POST', $base,
     [...$payload, 'country' => 'XX'], 422);
 $t->check('invalid tax identifier rejected', $a, 'POST', $base,
     [...$payload, 'taxId' => 'WRONG'], 422);
+$t->check('malformed contact email rejected', $a, 'POST', $base,
+    [...$payload, 'taxId' => '98765432000188',
+        'profile' => ['contactEmail' => 'not-email']], 422);
+$t->check('non-http website rejected', $a, 'POST', $base,
+    [...$payload, 'taxId' => '98765432000188',
+        'profile' => ['website' => 'javascript:alert(1)']], 422);
+$t->check('oversized address rejected', $a, 'POST', $base,
+    [...$payload, 'taxId' => '98765432000188',
+        'profile' => ['addressLine1' => str_repeat('x', 256)]], 422);
+$t->check('unknown company profile keys rejected', $a, 'POST', $base,
+    [...$payload, 'taxId' => '98765432000188',
+        'profile' => ['unsafeColumn' => 'bad']], 422);
 $t->check('other user cannot update company', $b, 'PUT',
     $base . '/' . $companyId, $payload, 404);
 $t->check('missing company cannot be updated', $a, 'PUT',
@@ -46,8 +67,10 @@ $t->check('manager edits company attributes without replacing identity', $a, 'PU
     static fn(array $v): bool => ($v['legal_name'] ?? null) === 'Synthetic Cooperative Alpha Edited'
         && ($v['state_registration'] ?? null) === 'EXEMPT'
         && $v['active'] === false);
-$t->check('inactive record remains auditable', $a, 'GET', $base, null, 200,
-    static fn(array $v): bool => ($v['companies'][0]['active'] ?? null) === false);
+$t->check('inactive company retains identity profile', $a, 'GET', $base, null, 200,
+    static fn(array $v): bool => ($v['companies'][0]['active'] ?? null) === false
+        && ($v['companies'][0]['contact_email'] ?? null) === 'financeiro@example.org'
+        && ($v['companies'][0]['postal_code'] ?? null) === '20000-000');
 $t->check('viewer group can inspect the permitted company', $a, 'POST',
     '/spaces/' . $id . '/members', ['uid' => $b, 'role' => 'viewer'], 200);
 $t->check('viewer can list scoped company', $b, 'GET', $base, null, 200);

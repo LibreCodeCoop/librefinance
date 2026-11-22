@@ -215,7 +215,8 @@ test('a saved trial balance report selects and persists real table columns and a
 test('new journal form shows accessible short description and optional Markdown notes', async ({ page }) => {
   await login(page)
   await makeSpace(page)
-  await page.getByRole('button', { name: 'Novo lançamento', exact: true }).first().click()
+  await goToView(page, 'Lançamentos contábeis')
+  await page.getByRole('button', { name: 'Novo lançamento', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Novo lançamento contábil' })
   await expect(dialog.getByRole('textbox', { name: 'Descrição breve' })).toBeVisible()
   const notes = dialog.getByRole('textbox', { name: 'Notas em Markdown' })
@@ -272,7 +273,7 @@ test('category colors use the official Nextcloud color picker, not a custom inpu
 test('company private AppData logo is uploaded, displayed, retrieved and removed in a browser', async ({ page }) => {
   await login(page)
   await makeSpace(page)
-  await goToView(page, 'Empresas')
+  await goToView(page, 'Dados fiscais da empresa')
   await page.getByRole('button', { name: 'Cadastrar empresa' }).click()
   const create = page.getByRole('dialog', { name: 'Cadastrar empresa' })
   await create.getByRole('textbox', { name: 'Nome legal' }).fill('Empresa com logo')
@@ -300,7 +301,7 @@ test('manual payment methods can be named, edited, and selected without claiming
   await makeSpace(page)
   await goToView(page, 'Formas de pagamento')
   await expect(page.getByRole('row', { name: /Dinheiro/ })).toBeVisible()
-  await expect(page.getByText(/não conecta esses serviços/)).toBeVisible()
+  await expect(page.getByText(/não movimentam dinheiro/)).toBeVisible()
   await page.getByRole('button', { name: 'Nova forma de pagamento' }).click()
   const editor = page.getByRole('dialog', { name: 'Criar forma de pagamento' })
   await editor.getByRole('textbox', { name: 'Nome da forma de pagamento' }).fill('Carteira de teste')
@@ -308,7 +309,9 @@ test('manual payment methods can be named, edited, and selected without claiming
   await page.getByRole('option').nth(5).click()
   await editor.getByRole('button', { name: 'Salvar forma' }).click()
   await expect(page.getByRole('row', { name: /Carteira de teste/ })).toBeVisible()
-  await page.getByRole('button', { name: 'Editar forma Carteira de teste' }).click()
+  await page.getByRole('row', { name: /Carteira de teste/ })
+    .getByRole('button', { name: 'Ações da forma Carteira de teste' }).click()
+  await page.getByRole('menuitem', { name: 'Editar' }).click()
   const update = page.getByRole('dialog', { name: 'Editar forma de pagamento' })
   await update.getByRole('textbox', { name: 'Nome da forma de pagamento' }).fill('Carteira para pagamentos')
   await update.getByRole('button', { name: 'Salvar forma' }).click()
@@ -326,7 +329,7 @@ test('accounts page provides a direct contextual shortcut to payment methods', a
   await makeSpace(page)
   await goToView(page, 'Plano de contas')
   await page.getByRole('button', { name: 'Formas de pagamento', exact: true }).click()
-  await expect(page.getByRole('heading', { name: 'Formas de pagamento' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Formas de pagamento', level: 1 })).toBeVisible()
   await expect(page.getByRole('row', { name: /Transferência bancária/ })).toBeVisible()
 })
 
@@ -391,17 +394,15 @@ test('list pages use an unboxed Nextcloud content surface and sortable headers',
   await expect(page.locator('.lf-data-table tbody tr')).toHaveCount(4)
 })
 
-test('banking empty states and top-right filters use native Nextcloud controls', async ({ page }) => {
+test('banking hides filters and columns on empty lists', async ({ page }) => {
   await login(page)
   await makeSpace(page)
   await goToView(page, 'Bancos e caixa')
-  await expect(page.locator('#lf-bank-filter')).toBeVisible()
-  await page.locator('#lf-bank-status').click()
-  await expect(page.getByRole('group',{name:'Filtrar movimentações por situação'})
-    .getByRole('button',{name:'Pendentes'})).toBeVisible()
-  await page.getByRole('group',{name:'Filtrar movimentações por situação'})
-    .getByRole('button',{name:'Pendentes'}).click()
-  await expect(page.locator('#lf-bank-status')).toContainText('Pendentes')
+  await expect(page.locator('#lf-bank-filter')).toHaveCount(0)
+  await expect(page.locator('#lf-bank-status')).toHaveCount(0)
+  await expect(page.getByText('Nenhuma movimentação importada')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Importar extrato CSV' })).toHaveCount(1)
+  await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
   await page.getByRole('tab',{name:'Transferências'}).click()
   await expect(page.getByText('Nenhuma transferência registrada')).toBeVisible()
   await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
@@ -421,4 +422,58 @@ test('@extensions commercial documents have their own route and create actions',
   await page.getByRole('group',{name:'Filtrar documentos por tipo'})
     .getByRole('button',{name:'Vendas'}).click()
   await expect(page.getByRole('heading',{name:'Vendas detalhadas e rascunhos'})).toBeVisible()
+})
+
+
+test('payment methods empty state has one native action and no empty columns', async ({ page }) => {
+  await login(page)
+  await makeSpace(page)
+  await page.route('**/api/spaces/*/payment-methods*', async route => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ status: 200, contentType: 'application/json',
+        body: JSON.stringify({methods: [], nextAfterId: null}) })
+    } else {
+      await route.continue()
+    }
+  })
+  await goToView(page, 'Formas de pagamento')
+  await expect(page.getByRole('heading', { name: 'Formas de pagamento', level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Formas de pagamento' })).toHaveCount(1)
+  await expect(page.getByText('Nenhuma forma de pagamento cadastrada')).toBeVisible()
+  await expect(page.locator('.lf-payment-settings .lf-data-table')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Nova forma de pagamento' })).toHaveCount(1)
+  await page.getByRole('button', { name: 'Nova forma de pagamento' }).click()
+  await expect(page.getByRole('dialog', { name: 'Criar forma de pagamento' })).toBeVisible()
+})
+
+test('company editor exposes fiscal, contact, address and scope without hidden accordion', async ({ page }) => {
+  await login(page)
+  const area = await makeSpace(page, 'organization')
+  await goToView(page, 'Dados fiscais da empresa')
+  await expect(page.getByRole('searchbox', { name: 'Pesquisar empresas' })).toHaveCount(0)
+  await page.getByRole('button',{name:'Cadastrar empresa'}).click()
+  const form = page.getByRole('dialog',{name:'Cadastrar empresa'})
+  await expect(form.getByText('Contas, saldos, histórico e acessos permanecem na área financeira atual', {exact:false})).toBeVisible()
+  for (const field of ['Nome legal','Nome comercial','Identificador fiscal local',
+    'Inscrição estadual ou regional','Inscrição municipal ou local', 'E-mail da empresa',
+    'Telefone da empresa','Site da empresa (URL)', 'Endereço (logradouro e número)',
+    'Cidade', 'Estado, província ou região', 'Código postal (CEP)']) {
+    await expect(form.getByRole('textbox', {name:field, exact:true})).toBeVisible()
+  }
+  await form.getByRole('textbox',{name:'Nome legal'}).fill('Empresa com dados completos')
+  await form.locator('#lf-company-country').click()
+  await page.getByRole('option').filter({hasText:'Brasil (BR)'}).click()
+  await form.getByRole('textbox',{name:'Inscrição municipal ou local'}).fill('REG-401')
+  await form.getByRole('textbox',{name:'E-mail da empresa'}).fill('financeiro@example.org')
+  await form.getByRole('textbox',{name:'Cidade'}).fill('Rio de Janeiro')
+  await form.getByRole('button',{name:'Salvar empresa'}).click()
+  await expect(page.getByRole('row',{name:/Empresa com dados completos/})).toBeVisible()
+  await page.reload()
+  await expect(page.locator('.lf-context-identity')).toContainText(area)
+  await goToView(page,'Dados fiscais da empresa')
+  await page.getByRole('button',{name:'Editar Empresa com dados completos'}).click()
+  const edit=page.getByRole('dialog',{name:'Editar empresa'})
+  await expect(edit.getByRole('textbox',{name:'Inscrição municipal ou local'})).toHaveValue('REG-401')
+  await expect(edit.getByRole('textbox',{name:'E-mail da empresa'})).toHaveValue('financeiro@example.org')
+  await expect(edit.getByRole('textbox',{name:'Cidade'})).toHaveValue('Rio de Janeiro')
 })
