@@ -27,7 +27,7 @@ Banking, obligations, invoicing and reports are now built-in feature areas with 
 
 It cannot automatically connect to a bank, process Stripe/PayPal payments, issue an authorized Brazilian NFS-e, migrate an entire legacy accounting system, or deliver formally certified financial statements. Bank statement entries remain separate from posted accounting entries until explicitly reconciled. There are no live bank API credentials or fiscal certificates in this repository.
 
-See [functional coverage](docs/FUNCTIONAL-COVERAGE.md), [module contracts](docs/MODULES.md), [roadmap](docs/ROADMAP.md) and [test strategy](docs/TESTING.md).
+See the [guide to sales, payables and accounting entries](docs/FINANCIAL-WORKFLOW.md), [functional coverage](docs/FUNCTIONAL-COVERAGE.md), [module contracts](docs/MODULES.md), [roadmap](docs/ROADMAP.md) and [test strategy](docs/TESTING.md).
 
 ## Requirements and installation
 
