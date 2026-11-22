@@ -69,7 +69,8 @@ Legenda: [I] implementado neste código (requer homologação), [P] planejado, [
 - [I parcial, extensão opcional] `librefinance_nfse`: rascunho preparatório com identificação do prestador, município, competência, serviço e valor; vínculo opcional da empresa juridicamente cadastrada com confirmação de CNPJ; sem emissão nem validade fiscal
 - [E] Emissão e consulta de NFS-e Nacional, DPS, DANFSe, ADN e fechamento fiscal com `nfse-php`, certificado e homologação
 - [P] Códigos de serviço, regras municipais e transição tributária versionadas
-- [I parcial, extensão opcional] `librefinance_import`: importação transacional de empresa jurídica, contatos, categorias, contas financeiras, movimentações bancárias pendentes e transferências pareadas; prévia não mutante, identidades estáveis por empresa, prevenção de duplicidade, comparação de saldos diagnóstica e auditoria de inventário por recurso (`inventory-preview`) sem declarar paridade por coincidência de contagens
+- [I parcial, nativo no núcleo] `librefinance_import`: importação transacional de empresa jurídica, contatos, categorias, contas financeiras, movimentações bancárias pendentes e transferências pareadas; prévia não mutante, identidades estáveis por empresa, prevenção de duplicidade, comparação de saldos diagnóstica e auditoria de inventário por recurso (`inventory-preview`) sem declarar paridade por coincidência de contagens
+- [Pendente, fora deste PR] Migração direta do Akaunting: conexão, credenciais, leitura paginada da API, mapeamento completo e conciliação financeira, em trabalho separado
 - [P] Adaptador autenticado e auditável para API de origem; migração real de documentos, impostos, arquivos fiscais, histórico de empregados/campos, partidas dobradas, conciliação das pontas das transferências e validação de integridade contábil/fiscal por data de corte
 
 ## Critério para paridade futura

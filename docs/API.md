@@ -68,4 +68,18 @@ Preços são inteiros em centavos (BRL) no domínio atual, inclusive zero. Estoq
 Falhas internas não devem revelar SQL, caminhos do host nem configurações.
 
 ## Contratos não implementados
-Permissões granulares adicionais, estoque, contabilidade de múltiplas moedas, notas fiscais efetivamente emitidas, sincronização bancária online, migração integral do Akaunting, fechamento fiscal e demonstrações contábeis formais continuam fora desta versão. **Seis aplicativos opcionais** estão instaláveis nativamente e mantêm seus próprios contratos. A interface IA usa `OCP\\TaskProcessing` com prévia de dados e consentimento; o transporte MCP oferece quatro ferramentas de leitura, sem ferramentas de pagamento/contabilização. Ver [OpenAPI](OPENAPI.md), [MCP/IA](MCP-AI.md) e [testes](TESTING.md).
+Permissões granulares adicionais, estoque, contabilidade de múltiplas moedas, notas fiscais efetivamente emitidas, sincronização bancária online, migração integral do Akaunting, fechamento fiscal e demonstrações contábeis formais continuam fora desta versão. A importação pertence ao core; a NFS-e brasileira permanece um aplicativo opcional independente. A interface IA usa `OCP\\TaskProcessing` com prévia de dados e consentimento; o transporte MCP oferece quatro ferramentas de leitura, sem ferramentas de pagamento/contabilização. Ver [OpenAPI](OPENAPI.md), [MCP/IA](MCP-AI.md) e [testes](TESTING.md).
+
+
+## Core normalized import contract
+
+The manager-only core API accepts normalized JSON to preview and confirm
+catalog, historical bank statement and paired-transfer imports. Source
+identity coverage is read-only, including account references and audit
+snapshots. Apply requires the exact returned preview hash and explicit
+confirmation. Existing mapped records remain idempotent, source conflicts
+are rejected, and bank movements are not posted to the ledger automatically.
+
+Akaunting API client, remote connection setup, credentials, direct
+extraction and full migration are not part of this PR. Source mapping
+and historical reconciliation will be implemented separately.

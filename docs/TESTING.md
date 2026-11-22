@@ -15,9 +15,9 @@ sidecars em produção.
 NUNCA executar a suíte contra a instância real da cooperativa: o script de
 laboratório cria usuários sintéticos, um banco descartável, senhas aleatórias
 temporárias, várias empresas e movimentos contábeis de teste, e elimina
-os volumes ao concluir. Apenas Import e NFS-e precisam de checkouts
-externos para o teste conjunto; os quatro domínios restantes pertencem
-ao núcleo.
+os volumes ao concluir. A NFS-e continua opcional e externa; o Import antigo pode ser montado
+apenas em testes de atualização/compatibilidade. A instalação limpa deve
+funcionar apenas com o núcleo, incluindo o motor de importação.
 
 A suíte usa um bloqueio exclusivo não bloqueante (`flock`) em
 `tests/ci/.runtime-config/.smoke.lock`: **não execute matrizes de banco simultaneamente
@@ -84,7 +84,8 @@ ignorados no Git para não expor capturas ou dados fictícios em PRs.
 
 ## Contrato das rotas declaradas nos controllers
 
-As 94 rotas frontpage dos três aplicativos são declaradas por
+As 92 rotas do núcleo (incluindo importação) e as rotas legadas opcionais
+(13 do antigo Import e três da NFS-e) são declaradas por
 `#[FrontpageRoute]`, não em `appinfo/routes.php`. A suíte mantém um snapshot
 dos contratos históricos em `tests/ci/routes-expected.json` e executa
 `occ router:list <apps> --index --output=json` contra o **Nextcloud
@@ -101,8 +102,11 @@ para esconder uma regressão.
 
 Esta revisão pré-publicação consolidou antes 23 migrations em sete baselines. Agora o core
 preserva sua baseline anterior e acrescenta a migration de integração dos
-quatro domínios. Import e NFS-e seguem com migrations independentes. O smoke verifica instalação nova em SQLite, PostgreSQL e MariaDB, com
-78 rotas do núcleo e 16 rotas externas quando instaladas. A migração é apenas DDL, sem
+quatro domínios. A migration adicional de importação possui três
+tabelas de origem duráveis, sem excluir ou substituir dados do antigo app Import.
+A NFS-e permanece separada. O smoke testa instalação limpa em SQLite,
+PostgreSQL e MariaDB, com 92 rotas nativas do núcleo e 16 rotas legadas
+externas somente quando os aplicativos anteriores estiverem instalados. A migração é apenas DDL, sem
 conversão de valores, exclusão de dados ou acesso a bancos externos. Antes
 de publicar a mudança, também é obrigatório testar um upgrade de banco
 de desenvolvimento previamente instalado, verificando retenção de dados e
@@ -145,7 +149,7 @@ sincronização são cópias gerenciadas do catálogo público
 de atualização por PR e patches locais quando necessários.
 
 O workflow **específico** `.github/workflows/finance-integration.yml` fixa o
-Nextcloud Server e os SHAs de **Import e NFS-e**. A matriz financeira
+Nextcloud Server e os SHAs de **Import legado e NFS-e**. A matriz financeira
 instala os três apps e mantém testes HTTP/PHP, autorização, concorrência e
 Behat em SQLite, PostgreSQL e MariaDB, **sem instalar Node/Chromium**.
 Em paralelo, a matriz Playwright distribui os mesmos testes de navegador
