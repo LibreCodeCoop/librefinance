@@ -39,8 +39,8 @@ test('@extensions one Nextcloud navigation switches operational views without if
   await makeSpace(page, 'organization')
   for (const [entry, heading] of [
     ['Bancos e conciliação', 'Bancos e conciliação'],
-    ['A pagar e receber', 'A pagar e receber'],
-    ['Faturas e compras', 'Faturas e compras'],
+    ['Contas a pagar e receber', 'Contas a pagar e receber'],
+    ['Faturas de venda', 'Faturas de venda'],
     ['Relatórios', 'Relatórios'],
     ['Migração de dados', 'Migração e conferência'],
     ['NFS-e Brasil', 'NFS-e Brasil'],
@@ -70,33 +70,53 @@ test('@extensions task-oriented navigation keeps migration administrative and su
   await login(page)
   await makeSpace(page, 'organization')
   const nav = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
-  await expect(nav.getByText('FINANÇAS', { exact: true })).toHaveText('FINANÇAS')
-  await expect(nav.getByText('OUTROS RECURSOS', { exact: true })).toHaveText('OUTROS RECURSOS')
-  await expect(nav.locator('.lf-nav-section')).toHaveCount(2)
-  await expect(nav.getByRole('link', { name: 'A pagar e receber' })).toBeVisible()
+  for (const heading of ['INÍCIO', 'VENDAS E COMPRAS', 'FINANCEIRO',
+    'CONTABILIDADE', 'OUTROS RECURSOS']) {
+    await expect(nav.getByText(heading, { exact: true })).toBeVisible()
+  }
+  await expect(nav.locator('.lf-nav-section')).toHaveCount(5)
+  await expect(nav.getByRole('link', { name: 'Contas a pagar e receber' })).toBeVisible()
   await expect(nav.getByRole('link', { name: 'Relatórios' })).toBeVisible()
-  await expect(nav.getByRole('link', { name: 'Vendas e compras' })).toHaveAttribute('aria-expanded', 'true')
+  await expect(nav.getByRole('link', { name: 'Faturas de venda' })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'Documentos de compra' })).toBeVisible()
   await expect(nav.getByRole('link', { name: 'Tributação' })).toBeVisible()
   await goToView(page, 'Regras tributárias')
   await expect(page.getByRole('heading', { name: 'Regras tributárias' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Faturas e compras' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Faturas de venda' })).toHaveCount(0)
   await expect(nav.getByText('Migração de dados', { exact: true })).toHaveCount(0)
   await goToView(page, 'Plano de contas')
   await expect(page.getByRole('heading', { name: 'Plano de contas' })).toBeVisible()
-  await goToView(page, 'Lançamentos')
+  await goToView(page, 'Lançamentos contábeis')
   await expect(page.getByRole('button', { name: 'Novo lançamento', exact: true })).toHaveCount(1)
-  await goToView(page, 'Faturas e compras')
-  await expect(page.getByRole('heading', { name: 'Faturas e compras' })).toBeVisible()
+  await goToView(page, 'Faturas de venda')
+  await expect(page.getByRole('heading', { name: 'Faturas de venda' })).toBeVisible()
   await nav.getByRole('searchbox', { name: 'Buscar no menu' }).fill('nota fiscal')
   await expect(nav.getByRole('link', { name: 'NFS-e Brasil' })).toBeVisible()
-  await expect(nav.getByRole('link', { name: 'A pagar e receber' })).toHaveCount(0)
+  await expect(nav.getByRole('link', { name: 'Contas a pagar e receber' })).toHaveCount(0)
   await nav.getByRole('searchbox', { name: 'Buscar no menu' }).press('Escape')
-  await expect(nav.getByRole('link', { name: 'A pagar e receber' })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'Contas a pagar e receber' })).toBeVisible()
   await goToView(page, 'Migração de dados')
   await expect(page.getByRole('heading', { name: 'Migração e conferência' })).toBeVisible()
   await page.getByRole('button', { name: 'Voltar às configurações' }).click()
   await expect(page.getByRole('heading', { name: 'Configurações' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Dados e migração' })).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('@extensions sales and purchase documents have distinct screens and canonical URLs', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'organization')
+  await goToView(page, 'Faturas de venda')
+  await expect(page.getByRole('heading', { name: 'Faturas de venda' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Nova fatura de venda' })).toBeVisible()
+  await expect(page).toHaveURL(/[?&]view=sales/)
+  await goToView(page, 'Documentos de compra')
+  await expect(page.getByRole('heading', { name: 'Documentos de compra' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Novo documento de compra' })).toBeVisible()
+  await expect(page).toHaveURL(/[?&]view=purchases/)
+  const spaceId = new URL(page.url()).searchParams.get('spaceId')
+  await page.goto('/index.php/apps/librefinance/?spaceId=' + spaceId + '&view=invoicing')
+  await expect(page.getByRole('heading', { name: 'Faturas de venda' })).toBeVisible()
+  await expect(page).toHaveURL(/[?&]view=sales/)
 })
 
 test('browser history restores finance views without creating new history entries', async ({ page }) => {
@@ -118,13 +138,12 @@ test('@extensions personal workspace reveals business tools progressively withou
   await login(page)
   await makeSpace(page, 'personal')
   const nav = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
-  const billing = nav.getByRole('link', { name: 'Vendas e compras' })
-  await expect(billing).toHaveAttribute('aria-expanded', 'false')
-  await billing.click()
-  await expect(billing).toHaveAttribute('aria-expanded', 'true')
-  await expect(nav.getByRole('link', { name: 'Faturas e compras' })).toBeVisible()
-  await goToView(page, 'Faturas e compras')
-  await expect(page.getByRole('heading', { name: 'Faturas e compras' })).toBeVisible()
+  // Authorized commercial screens are named, not hidden in an ambiguous submenu.
+  await expect(nav.getByText('VENDAS E COMPRAS', { exact: true })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'Documentos de compra' })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'Faturas de venda' })).toBeVisible()
+  await goToView(page, 'Faturas de venda')
+  await expect(page.getByRole('heading', { name: 'Faturas de venda' })).toBeVisible()
   await nav.getByRole('searchbox', { name: 'Buscar no menu' }).fill('migracao')
   await expect(nav.getByRole('link', { name: 'Migração de dados' })).toBeVisible()
   await nav.getByRole('searchbox', { name: 'Buscar no menu' }).fill('naoexiste123')
@@ -138,7 +157,7 @@ test('@extensions search respects per-space module disable and canonical deep-li
   const nav = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
   const search = nav.getByRole('searchbox', { name: 'Buscar no menu' })
   await search.fill('faturas')
-  await expect(nav.getByRole('link', { name: 'Faturas e compras' })).toBeVisible()
+  await expect(nav.getByRole('link', { name: 'Faturas de venda' })).toBeVisible()
   await search.press('Escape')
   await nav.getByRole('button', { name: 'Configurações' }).click()
   await page.getByRole('button', { name: 'Recursos instalados' }).click()
@@ -148,13 +167,13 @@ test('@extensions search respects per-space module disable and canonical deep-li
   await invoiceModule.getByRole('button', { name: 'Desativar' }).click()
   await expect(invoiceModule.getByText('Desativado neste espaço')).toBeVisible()
   await search.fill('faturas')
-  await expect(nav.getByRole('link', { name: 'Faturas e compras' })).toHaveCount(0)
+  await expect(nav.getByRole('link', { name: 'Faturas de venda' })).toHaveCount(0)
   await expect(nav.getByText('Nenhuma função encontrada')).toBeVisible()
   await search.press('Escape')
   const spaceId = new URL(page.url()).searchParams.get('spaceId')
   await page.goto('/index.php/apps/librefinance/?spaceId=' + spaceId + '&view=invoicing')
   await expect(page.getByRole('heading', { name: 'Visão geral' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Faturas e compras' })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Faturas de venda' })).toHaveCount(0)
 })
 
 test('keyboard menu search opens the unique authorized page without inventing browser routes', async ({ page }) => {
@@ -457,7 +476,7 @@ test('@extensions financial assistant never submits provider data without explic
 test('@extensions payable is created and settled operationally without claiming a ledger posting', async ({ page }) => {
   await login(page)
   await makeSpace(page)
-  await goToView(page, 'A pagar e receber')
+  await goToView(page, 'Contas a pagar e receber')
   await page.getByRole('button', { name: 'Novo título' }).click()
   const dialog = page.getByRole('dialog', { name: 'Novo título financeiro' })
   await dialog.getByRole('textbox', { name: 'Descrição' }).fill('Synthetic operating obligation')
@@ -465,12 +484,12 @@ test('@extensions payable is created and settled operationally without claiming 
   await dialog.getByRole('button', { name: 'Cadastrar título' }).click()
   const row = page.getByRole('row', { name: /Synthetic operating obligation/ })
   await expect(row).toBeVisible()
-  await row.getByRole('button', { name: 'Registrar baixa' }).click()
-  const settling = page.getByRole('dialog', { name: 'Registrar baixa operacional' })
+  await row.getByRole('button', { name: 'Baixa administrativa' }).click()
+  const settling = page.getByRole('dialog', { name: 'Registrar baixa administrativa (sem banco)' })
   await expect(settling.getByRole('textbox', { name: 'Valor da baixa' })).toHaveValue('350,00')
   await settling.getByRole('button', { name: 'Registrar baixa' }).click()
   await expect(page.getByText('Nenhum lançamento contábil foi feito', { exact: false })).toBeVisible()
-  await expect(row).toContainText('Liquidado')
+  await expect(row).toContainText('Baixado administrativamente')
 })
 
 test('@extensions commercial invoice is created in a native dialog and is not NFS-e', async ({ page }) => {
@@ -482,9 +501,9 @@ test('@extensions commercial invoice is created in a native dialog and is not NF
   await contactDialog.getByRole('textbox', { name: 'Nome', exact: true }).fill('Synthetic commercial client')
   await contactDialog.getByRole('button', { name: 'Salvar cadastro' }).click()
   await expect(page.getByRole('row', { name: /Synthetic commercial client/ })).toBeVisible()
-  await goToView(page, 'Faturas e compras')
-  await page.getByRole('button', { name: 'Nova fatura' }).click()
-  const invoiceDialog = page.getByRole('dialog', { name: 'Nova fatura comercial' })
+  await goToView(page, 'Faturas de venda')
+  await page.getByRole('button', { name: 'Nova fatura de venda' }).click()
+  const invoiceDialog = page.getByRole('dialog', { name: 'Nova fatura de venda' })
   const number = 'E2E-INV-' + Date.now().toString(36)
   await invoiceDialog.getByRole('textbox', { name: 'Número' }).fill(number)
   // A commercial invoice must declare its jurisdiction explicitly.
@@ -502,6 +521,13 @@ test('@extensions commercial invoice is created in a native dialog and is not NF
   await expect(page.getByRole('dialog', { name: 'Detalhes da fatura' })).toBeVisible()
   await page.getByRole('button', { name: 'Confirmar emissão comercial' }).click()
   await expect(page.getByText('Não é uma NFS-e', { exact: false })).toBeVisible()
+  await page.getByRole('button', { name: 'Ver conta vinculada' }).click()
+  await expect(page.getByRole('heading', { name: 'Contas a pagar e receber' })).toBeVisible()
+  const linked = page.getByRole('row', { name: new RegExp(number, 'i') })
+  await expect(linked).toContainText('Documento comercial #')
+  await linked.getByRole('button', { name: 'Abrir documento' }).click()
+  await expect(page.getByRole('heading', { name: 'Faturas de venda' })).toBeVisible()
+  await expect(page.getByRole('dialog', { name: 'Detalhes da fatura' })).toBeVisible()
 })
 
 test('@extensions fiscal staging stays a draft and cannot be mistaken for a national service invoice', async ({ page }) => {

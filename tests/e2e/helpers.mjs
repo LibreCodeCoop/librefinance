@@ -51,13 +51,11 @@ export async function goToView(page, view) {
     return
   }
   const parent = ({
-    'Faturas e compras': 'Vendas e compras',
     'Regras tributárias': 'Tributação',
     'NFS-e Brasil': 'Tributação',
     'Clientes e fornecedores': 'Cadastros',
     'Produtos e serviços': 'Cadastros',
     'Categorias': 'Cadastros',
-    'Plano de contas': 'Cadastros',
     'Empresas': 'Cadastros',
   })[view]
   const target = nav.getByText(view, { exact: true })

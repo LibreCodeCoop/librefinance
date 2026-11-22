@@ -848,3 +848,9 @@
   font-family: var(--font-face-monospace, monospace);
   font-size: 12px;
 }
+
+/* Only a navigated, server-authorized title is highlighted. */
+.lf-data-table tbody tr.lf-row-focused {
+  background: var(--color-background-hover);
+  box-shadow: inset 3px 0 var(--color-primary-element);
+}

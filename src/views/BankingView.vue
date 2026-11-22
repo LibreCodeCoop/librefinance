@@ -310,7 +310,7 @@ onBeforeUnmount(()=>++generation)
         <NcButton v-if="nextBeforeId" variant="tertiary" :disabled="busy"
           @click="loadMoreJournals">Procurar em lançamentos mais antigos</NcButton>
         <p v-else-if="journalCandidates.length===0" class="lf-dialog-help">
-          Se o lançamento ainda não foi contabilizado, registre-o separadamente em Lançamentos e volte para conciliar.
+          Se o lançamento ainda não foi contabilizado, registre-o em Lançamentos contábeis e volte para conciliar.
         </p>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" @click="closeReconciliation">Cancelar</NcButton>

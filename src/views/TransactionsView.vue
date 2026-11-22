@@ -123,8 +123,8 @@ const formatted = row => money(Math.abs(row.postings?.[0]?.amountMinor || 0))
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Lançamentos" eyebrow="MOVIMENTAÇÕES FINANCEIRAS"
-      description="Registre receitas e despesas efetivamente movimentadas e consulte o histórico contabilizado.">
+    <LfPageHeader title="Lançamentos contábeis" eyebrow="MOVIMENTAÇÕES FINANCEIRAS"
+      description="Consulte o registro contábil de entradas e saídas já realizadas. Para valores ainda devidos, utilize Contas a pagar e receber.">
       <template #actions>
         <NcButton v-if="writable" variant="primary" @click="dialog = true">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>

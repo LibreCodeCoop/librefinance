@@ -25,7 +25,7 @@ import {
 } from '@mdi/js'
 import {
   PAGE_NAMES, availableSections, canOpenView, navigationSearch,
-  menuEntries, parentOfView, defaultGroupOpen,
+  menuEntries, parentOfView, defaultGroupOpen, canonicalView,
 } from './navigation.js'
 import { useFinanceWorkspace } from './state/useFinanceWorkspace.js'
 import LfSelect from './components/LfSelect.vue'
@@ -69,7 +69,9 @@ const screens = {
   accounts: AccountsView,
   banking: BankingView,
   obligations: ObligationsView,
-  invoicing: InvoicesView,
+  sales: InvoicesView,
+  purchases: InvoicesView,
+  invoicing: InvoicesView, // existing bookmarks
   taxes: TaxRulesView,
   contacts: ContactsView,
   items: ItemsView,
@@ -173,14 +175,22 @@ const spaceOptions = computed(() => spaces.value.map(s => ({
 })))
 const readyView = computed(() => (
   visibleView(activeTab.value)
-    ? activeTab.value
+    ? canonicalView(activeTab.value)
     : 'dashboard'
 ))
 const currentScreen = computed(() => screens[readyView.value] || DashboardView)
+// Shared commercial screen receives its context from the authorized route,
+// never from a self-supplied document ID or an untrusted URL.
+const invoiceKind = computed(() => readyView.value === 'purchases' ? 'bill' : 'invoice')
+provide('lfInvoiceKind', invoiceKind)
+const focusedInvoice = ref(null)
+provide('lfFocusedInvoice', focusedInvoice)
+const focusedObligation = ref(null)
+provide('lfFocusedObligation', focusedObligation)
 const activeLocation = computed(() => {
   if (readyView.value === 'settings' || readyView.value === 'import') return 'Administração'
   const match = menuEntries(availableNav.value).find(item => item.id === readyView.value)
-  return match?.parent || (match?.section === 'FINANÇAS' ? 'Financeiro' : 'Ferramentas')
+  return match?.parent || match?.section || 'LibreFinance'
 })
 
 let pendingInitialView = new URLSearchParams(window.location.search).get('view')
@@ -190,6 +200,7 @@ function expandParent(view) {
 }
 function navigate(view) {
   if (!screens[view] || !visibleView(view)) return
+  view = canonicalView(view)
   expandParent(view)
   clearSearch()
   pendingInitialView = null
@@ -207,6 +218,8 @@ provide('lfNavigate', navigate)
 function selectSpace(id) {
   if (!spaces.value.some(s => Number(s.id) === Number(id))) return
   activeId.value = Number(id)
+  focusedInvoice.value = null
+  focusedObligation.value = null
   clearSearch()
   openGroups.value = {}
   pendingInitialView = null
