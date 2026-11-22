@@ -136,7 +136,7 @@ async function confirmRemoval() {
         Ativar um recurso neste espaço não instala código novo nem concede permissão adicional.
         Aplicativos regionais, como NFS-e, permanecem opcionais.
       </NcNoteCard>
-      <div v-for="module in modules" :key="module.id" class="lf-settings-module">
+      <div v-for="module in modules" :key="module.id" class="lf-settings-module" :data-module-id="module.id">
         <div class="lf-module-descriptor">
           <NcIconSvgWrapper :path="mdiPuzzleOutline" :size="22" />
           <div><strong>{{ module.name }}</strong><small>{{module.description}}</small>

@@ -60,7 +60,9 @@ test('reporting works inside the core without its former standalone app', async 
   await goToView(page, 'Relatórios')
   await expect(page.getByRole('heading', { name: 'Relatórios', exact: true })).toBeVisible()
   const response = await page.request.get('/index.php/apps/librefinance/api/spaces/'
-    + spaceId + '/profit-loss?from=2026-01-01&through=2026-12-31')
+    + spaceId + '/profit-loss?from=2026-01-01&through=2026-12-31', {
+    headers: { 'OCS-APIREQUEST': 'true' },
+  })
   expect(response.status()).toBe(200)
 })
 
@@ -140,8 +142,9 @@ test('@extensions search respects per-space module disable and canonical deep-li
   await search.press('Escape')
   await nav.getByRole('button', { name: 'Configurações' }).click()
   await page.getByRole('button', { name: 'Recursos instalados' }).click()
-  const invoiceModule = page.locator('.lf-settings-module')
-    .filter({ hasText: 'Faturas comerciais e tributação' })
+  const invoiceModule = page.locator(
+    '.lf-settings-module[data-module-id="librefinance_invoicing"]',
+  )
   await invoiceModule.getByRole('button', { name: 'Desativar' }).click()
   await expect(invoiceModule.getByText('Desativado neste espaço')).toBeVisible()
   await search.fill('faturas')
