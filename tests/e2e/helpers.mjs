@@ -45,20 +45,27 @@ export async function goToView(page, view) {
   const nav = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
   await expect(nav).toBeVisible()
   if (view === 'Migração de dados') {
-    await nav.getByText('Configurações', { exact: true }).click()
-    await page.getByRole('button', { name: 'Dados e migração' }).click()
-    await page.getByRole('button', { name: 'Abrir migração de dados' }).click()
+    await goToView(page, 'Dados e migração')
     return
   }
   const parent = ({
-    'Faturas e compras': 'Vendas e compras',
-    'Regras tributárias': 'Tributação',
-    'NFS-e Brasil': 'Tributação',
-    'Clientes e fornecedores': 'Cadastros',
-    'Produtos e serviços': 'Cadastros',
-    'Categorias': 'Cadastros',
-    'Plano de contas': 'Cadastros',
-    'Empresas': 'Cadastros',
+    'Regras tributárias': 'Gerenciar',
+    'NFS-e Brasil': 'Gerenciar',
+    'Plano de contas': 'Gerenciar',
+    'Lançamentos contábeis': 'Gerenciar',
+    'Assistente financeiro': 'Gerenciar',
+    'Clientes e fornecedores': 'Gerenciar',
+    'Pessoas e estabelecimentos': 'Gerenciar',
+    'Dados fiscais (opcional)': 'Gerenciar',
+    'Produtos e serviços': 'Gerenciar',
+    'Categorias': 'Gerenciar',
+    'Dados fiscais da empresa': 'Gerenciar',
+
+    'Acessos e compartilhamento': 'Gerenciar',
+    'Campos personalizados': 'Gerenciar',
+    'Formas de pagamento': 'Gerenciar',
+    'Recursos instalados': 'Gerenciar',
+    'Dados e migração': 'Gerenciar',
   })[view]
   const target = nav.getByText(view, { exact: true })
   if (parent) {
@@ -71,6 +78,25 @@ export async function goToView(page, view) {
     // DOM element that may be detached during the module refresh.
     await expect(trigger).toBeVisible({ timeout: 20_000 })
     if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click()
+  }
+  if (parent) {
+    const subgroup = ({
+      'Clientes e fornecedores':'Cadastros', 'Pessoas e estabelecimentos':'Cadastros',
+      'Produtos e serviços':'Cadastros', 'Categorias':'Cadastros',
+      'Dados fiscais da empresa':'Financeiro e fiscal', 'Dados fiscais (opcional)':'Financeiro e fiscal',
+      'Plano de contas':'Financeiro e fiscal', 'Lançamentos contábeis':'Financeiro e fiscal',
+      'Formas de pagamento':'Financeiro e fiscal',
+      'Regras tributárias':'Financeiro e fiscal','NFS-e Brasil':'Financeiro e fiscal',
+      'Acessos e compartilhamento':'Equipe e personalização',
+      'Campos personalizados':'Equipe e personalização',
+      'Recursos instalados':'Recursos e dados','Dados e migração':'Recursos e dados',
+      'Assistente financeiro':'Recursos e dados',
+    })[view]
+    if (subgroup) {
+      const link=nav.getByRole('link', { name: subgroup, exact:true })
+      await expect(link).toBeVisible({timeout:20_000})
+      if ((await link.getAttribute('aria-expanded')) !== 'true') await link.click()
+    }
   }
   await target.click({ timeout: 20_000 })
 }
@@ -85,15 +111,21 @@ export async function selectFinanceSpace(page, name) {
 
 export async function makeSpace(page, kind = 'organization') {
   const name = 'E2E ' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-  await page.getByRole('button', { name: 'Nova gestão financeira' }).click()
-  await expect(page.getByRole('dialog', { name: 'Criar gestão financeira' })).toBeVisible()
-  await page.getByRole('textbox', { name: 'Nome desta gestão financeira' }).fill(name)
-  await page.locator('#lf-new-space-kind').click()
+  if (await page.getByRole('button', { name: 'Gerenciar áreas financeiras' }).count()) {
+    await page.getByRole('button', { name: 'Gerenciar áreas financeiras' }).click()
+  } else {
+    await goToView(page, 'Áreas financeiras')
+  }
+  await page.getByRole('button', { name: 'Criar área', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Criar área financeira' })).toBeVisible()
+  await page.getByRole('dialog', { name: 'Criar área financeira' })
+    .getByRole('textbox', { name: 'Nome da área' }).fill(name)
+  await page.locator('#lf-space-kind-new').click()
   const index = ({ personal: 0, collective: 1, organization: 2 })[kind]
   // NcSelect's highlighted accessibility text may contain injected whitespace.
   await page.getByRole('option').nth(index).click()
-  await page.getByRole('dialog', { name: 'Criar gestão financeira' })
-    .getByRole('button', { name: 'Criar gestão' }).click()
+  await page.getByRole('dialog', { name: 'Criar área financeira' })
+    .getByRole('button', { name: 'Criar gestão independente', exact: true }).click()
   await expect(page.locator('.lf-context-identity')).toContainText(name)
   // Do not pass while a previous space is still being refreshed. Wait for the
   // actual module-discovery contract for the new active space to complete.

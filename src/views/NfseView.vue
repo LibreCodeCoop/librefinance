@@ -129,7 +129,7 @@ onBeforeUnmount(() => ++generation)
         <h2>Rascunhos de serviços</h2>
         <p class="lf-muted">Documentos ainda não transmitidos</p>
       </div>
-      <div class="lf-table-scroll">
+      <div v-if="drafts.length" class="lf-table-scroll">
         <table class="lf-data-table">
           <thead><tr><th>Identificador</th><th>Prestador</th><th>Competência</th>
             <th>Código serviço</th><th>Descrição</th>
@@ -144,9 +144,9 @@ onBeforeUnmount(() => ++generation)
             <td><span class="lf-state lf-state-warning">Rascunho</span></td>
           </tr></tbody>
         </table>
-        <NcEmptyContent v-if="!drafts.length" name="Nenhum rascunho de serviço"
-          description="Crie um rascunho pelo botão superior, sem transmitir uma nota fiscal." />
       </div>
+      <NcEmptyContent v-else-if="!busy" name="Nenhum rascunho de serviço"
+        description="Crie um rascunho pelo botão superior, sem transmitir uma nota fiscal." />
       <div v-if="next" class="lf-table-footer">
         <NcButton :disabled="busy" @click="more">Carregar mais</NcButton>
       </div>

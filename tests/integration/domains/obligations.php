@@ -35,6 +35,13 @@ $obligation = $t->checkModule('create payable', $a, $app, 'POST', $base . '/obli
     $data, 201, static fn(array $v): bool => ($v['amount_minor'] ?? null) === 12345
         && ($v['status'] ?? null) === 'open');
 $obligationId = (int)$obligation['id'];
+$t->checkModule('detail returns the same title and its source without duplicating it',
+    $a, $app, 'GET', $base.'/obligations/'.$obligationId, null, 200,
+    static fn(array $v): bool=>(int)($v['obligation']['id']??0)===$obligationId
+        && array_key_exists('linkedInvoiceId', $v['obligation'])
+        && $v['obligation']['linkedInvoiceId']===null);
+$t->checkModule('missing title returns 404 without falling back to another workspace',
+    $a, $app, 'GET', $base.'/obligations/99999999', null, 404);
 $t->checkModule('reject duplicate reference', $a, $app, 'POST', $base . '/obligations',
     array_replace($data, ['amountMinor' => 1000]), 409,
     static fn(array $v): bool => ($v['error'] ?? null) === 'reference_conflict');
@@ -80,6 +87,42 @@ $other = $t->checkModule('create independent receivable', $a, $app, 'POST',
         'kind' => 'receivable', 'description' => 'Synthetic customer invoice',
         'contactId' => null, 'reference' => 'REC-' . $token, 'amountMinor' => 5000]), 201);
 $otherId = (int)$other['id'];
+$t->checkModule('payables excludes unrelated receivables before pagination',
+    $a, $app, 'GET', $base . '/obligations?kind=payable', null, 200,
+    static fn(array $v): bool => count($v['obligations'] ?? []) === 1
+        && ($v['obligations'][0]['kind'] ?? null) === 'payable');
+$t->checkModule('receivables excludes unrelated payables before pagination',
+    $a, $app, 'GET', $base . '/obligations?kind=receivable', null, 200,
+    static fn(array $v): bool => count($v['obligations'] ?? []) === 1
+        && ($v['obligations'][0]['kind'] ?? null) === 'receivable');
+$t->checkModule('invalid obligation flow kind rejected',
+    $a, $app, 'GET', $base . '/obligations?kind=untrusted', null, 422,
+    static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_kind');
+
+$utcToday=(new DateTimeImmutable('today',new DateTimeZone('UTC')));
+$dueSoon=$utcToday->modify('+3 days')->format('Y-m-d');
+$duePast=$utcToday->modify('-1 day')->format('Y-m-d');
+$dueSoonId=$t->checkModule('create a payment due in the coming week',
+    $a, $app, 'POST', $base.'/obligations',
+    array_replace($data, ['reference'=>'SOON-'.$token,
+        'contactId'=>null,'dueOn'=>$dueSoon,'amountMinor'=>700,
+        'description'=>'Synthetic due in 3 days']), 201);
+$t->checkModule('create an overdue payable', $a, $app, 'POST',
+    $base.'/obligations', array_replace($data, ['reference'=>'LATE-'.$token,
+        'contactId'=>null,'dueOn'=>$duePast,'amountMinor'=>800,
+        'description'=>'Synthetic overdue bill']), 201);
+$t->checkModule('filter next week before pagination', $a, $app,
+    'GET',$base.'/obligations?kind=payable&dueRange=next7',null,200,
+    static fn(array $v):bool=>count($v['obligations']??[])===1
+        && (int)$v['obligations'][0]['id']===(int)$dueSoonId['id']);
+$t->checkModule('filter overdue open titles before pagination', $a, $app,
+    'GET',$base.'/obligations?kind=payable&dueRange=overdue',null,200,
+    static fn(array $v):bool=>count($v['obligations']??[])===1
+        && ($v['obligations'][0]['description']??null)==='Synthetic overdue bill');
+$t->checkModule('invalid due window rejected by PHP', $a, $app,
+    'GET',$base.'/obligations?dueRange=all%20OR%201=1',null,422,
+    static fn(array $v):bool=>($v['error']??null)==='invalid_due_range');
+
 $t->checkModule('cancel unpaid receivable', $a, $app, 'POST',
     $base . '/obligations/' . $otherId . '/cancel', null, 200,
     static fn(array $v): bool => ($v['status'] ?? null) === 'cancelled');
@@ -96,6 +139,8 @@ $t->checkModule('viewer B cannot settle', $b, $app, 'POST',
 $t->checkModule('viewer B cannot create', $b, $app, 'POST',
     $base . '/obligations', array_replace($data, ['reference' => 'VIEW-' . $token]), 403);
 $t->check('revoke B', $a, 'DELETE', $base . '/members/' . $b, null, 200);
+$t->checkModule('revoked B cannot inspect title detail', $b, $app,
+    'GET', $base . '/obligations/' . $obligationId, null, 404);
 $t->checkModule('revoked B cannot read obligations', $b, $app, 'GET',
     $base . '/obligations', null, 404);
 $t->finish();

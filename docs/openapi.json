@@ -224,6 +224,115 @@
                 }
             }
         },
+        "/librefinance/api/spaces/archived": {
+            "get": {
+                "operationId": "librefinance_space_archived",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "space archived",
+                "description": "Only workspaces owned by the authenticated caller that are archived.",
+                "parameters": [],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/spaces/{spaceId}": {
+            "put": {
+                "operationId": "librefinance_space_rename",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "space rename",
+                "description": "Only the owner may rename an active finance space.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/librefinance/api/spaces/{spaceId}/accounts": {
             "get": {
                 "operationId": "librefinance_account_index",
@@ -777,6 +886,56 @@
                     },
                     {
                         "name": "taskId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/spaces/{spaceId}/archive": {
+            "post": {
+                "operationId": "librefinance_space_archive",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "space archive",
+                "description": "Owner-only reversible archival. Preserves all accounting records and suspends other access.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
                         "in": "path",
                         "required": true,
                         "schema": {
@@ -2957,6 +3116,14 @@
                             "type": "integer",
                             "minimum": 1
                         }
+                    },
+                    {
+                        "name": "kind",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "security": [
@@ -3228,6 +3395,102 @@
                                     "journalId",
                                     "bankAccountId",
                                     "amountMinor"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/librefinance/api/spaces/{spaceId}/invoices/{invoiceId}/cash-payments": {
+            "post": {
+                "operationId": "librefinance_paymentWorkflow_invoice",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "paymentWorkflow invoice",
+                "description": "One atomic, idempotent cash journal and allocation to a confirmed invoice, with explicit cash-basis revenue/expense classification. No remote bank transfer.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "invoiceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "bankAccountId": {
+                                        "type": "integer"
+                                    },
+                                    "counterAccountId": {
+                                        "type": "integer"
+                                    },
+                                    "amountMinor": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "paidOn": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "operationKey": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "bankAccountId",
+                                    "counterAccountId",
+                                    "amountMinor",
+                                    "paidOn",
+                                    "operationKey"
                                 ],
                                 "additionalProperties": false
                             }
@@ -4378,6 +4641,30 @@
                             "type": "integer",
                             "minimum": 1
                         }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "kind",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "dueRange",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "security": [
@@ -4503,6 +4790,65 @@
                 }
             }
         },
+        "/librefinance/api/spaces/{spaceId}/obligations/{obligationId}": {
+            "get": {
+                "operationId": "librefinance_obligation_show",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "obligation show",
+                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "obligationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
         "/librefinance/api/spaces/{spaceId}/obligations/{obligationId}/cancel": {
             "post": {
                 "operationId": "librefinance_obligation_cancel",
@@ -4558,6 +4904,199 @@
                     },
                     "422": {
                         "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/spaces/{spaceId}/obligations/{obligationId}/cash-payments": {
+            "post": {
+                "operationId": "librefinance_paymentWorkflow_obligation",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "paymentWorkflow obligation",
+                "description": "One atomic, idempotent cash journal and settlement to a standalone obligation. The posted journal is claimed and cannot be silently reversed.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "obligationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "bankAccountId": {
+                                        "type": "integer"
+                                    },
+                                    "counterAccountId": {
+                                        "type": "integer"
+                                    },
+                                    "amountMinor": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "paidOn": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "operationKey": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "bankAccountId",
+                                    "counterAccountId",
+                                    "amountMinor",
+                                    "paidOn",
+                                    "operationKey"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/librefinance/api/spaces/{spaceId}/obligations/{obligationId}/existing-journal-payments": {
+            "post": {
+                "operationId": "librefinance_paymentWorkflow_existing",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "paymentWorkflow existing",
+                "description": "Claims and links a pre-existing posted bank journal to a standalone obligation, without creating a second cash journal. Effective dates must match.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "obligationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "bankAccountId": {
+                                        "type": "integer"
+                                    },
+                                    "journalId": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "amountMinor": {
+                                        "type": "integer",
+                                        "minimum": 0
+                                    },
+                                    "paidOn": {
+                                        "type": "string",
+                                        "format": "date"
+                                    },
+                                    "operationKey": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "bankAccountId",
+                                    "journalId",
+                                    "amountMinor",
+                                    "paidOn",
+                                    "operationKey"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
                     }
                 }
             }
@@ -5138,6 +5677,56 @@
                 ],
                 "summary": "banking providers",
                 "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/spaces/{spaceId}/restore": {
+            "post": {
+                "operationId": "librefinance_space_restore",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "space restore",
+                "description": "Owner-only restore of an archived finance space and its historical records.",
                 "parameters": [
                     {
                         "name": "spaceId",

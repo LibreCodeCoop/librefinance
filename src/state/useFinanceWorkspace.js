@@ -24,6 +24,11 @@ const companyFields = ref([])
 const companyCustomValues = ref({})
 const companyMunicipal = ref('')
 const companyState = ref('')
+const blankCompanyProfile = () => ({
+  contactEmail: '', contactPhone: '', website: '', addressLine1: '',
+  addressLine2: '', city: '', region: '', postalCode: '',
+})
+const companyProfile = ref(blankCompanyProfile())
 const companyActive = ref(true)
 const modules = ref([])
 const modulesLoadedFor = ref(0)
@@ -206,6 +211,10 @@ async function refreshCurrent(options = {}) {
     : ''
 }
 watch(activeId, () => {
+  // Changing the active workspace invalidates financial screens. Keep the
+  // workspace-management screen open when archiving/restoring the selected
+  // workspace, otherwise a late activeId reset hides the restore action.
+  const managingSpaces = activeTab.value === 'spaces'
   resetAi()
   modulesLoadedFor.value = 0
   modules.value = []
@@ -219,7 +228,7 @@ watch(activeId, () => {
   members.value = []
   groupGrants.value = []
   selectedModuleId.value = ''
-  activeTab.value = 'dashboard'
+  activeTab.value = managingSpaces ? 'spaces' : 'dashboard'
   companyEditId.value = 0
   error.value = ''
   message.value = ''
@@ -253,6 +262,7 @@ function resetCompanyForm() {
   companyCustomValues.value = {}
   companyMunicipal.value = ''
   companyState.value = ''
+  companyProfile.value = blankCompanyProfile()
   companyActive.value = true
 }
 function editCompany(company) {
@@ -264,6 +274,16 @@ function editCompany(company) {
   companyCustomValues.value = { ...company.custom_fields }
   companyMunicipal.value = company.municipal_registration || ''
   companyState.value = company.state_registration || ''
+  companyProfile.value = {
+    contactEmail: company.contact_email || '',
+    contactPhone: company.contact_phone || '',
+    website: company.website || '',
+    addressLine1: company.address_line1 || '',
+    addressLine2: company.address_line2 || '',
+    city: company.city || '',
+    region: company.region || '',
+    postalCode: company.postal_code || '',
+  }
   companyActive.value = company.active
   activeTab.value = 'companies'
 }
@@ -275,7 +295,8 @@ async function saveCompany() {
       taxId: companyTaxId.value.trim() || null,
       tradeName: companyTradeName.value, municipalRegistration: companyMunicipal.value,
       stateRegistration: companyState.value, active: companyActive.value,
-      customFields: { ...companyCustomValues.value } }
+      customFields: { ...companyCustomValues.value },
+      profile: { ...companyProfile.value } }
     if (companyEditId.value) await call('PUT', path + '/' + companyEditId.value, payload)
     else await call('POST', path, payload)
     resetCompanyForm()
@@ -567,6 +588,6 @@ onMounted(async () => {
   try { await refreshSpaces() } catch (e) { error.value = unwrapError(e) }
 })
   return {
-    spaces, activeId, accounts, contacts, items, companies, companyNextAfterId, companyEditId, companyName, companyTradeName, companyTaxId, companyCountry, companyFields, companyCustomValues, companyMunicipal, companyState, companyActive, modules, modulesLoadedFor, categoryRecords, categoryNextAfterId, categoryCode, categoryName, categoryColor, categoryKind, categoryParentId, categoryAccountId, selectedModuleId, aiCapability, aiPreview, aiTask, aiConsent, aiBusy, aiError, aiThrough, aiFrom, contactNextAfterId, itemNextAfterId, activeTab, journals, members, groupGrants, nextBeforeId, error, message, busy, spaceName, kind, accountName, accountCode, contactName, contactKind, contactEmail, contactTaxId, itemSku, itemName, itemKind, itemPrice, itemDescription, shareUid, shareRole, groupGid, groupRole, direction, bankId, categoryId, transactionCategoryId, amount, memo, date, loadSequence, preferredSpaceHandled, space, selectedModule, writable, manager, banks, categories, money, naturalBalance, accountNameById, unwrapError, call, refreshSpaces, refreshCurrent, doAction, resetCompanyForm, editCompany, saveCompany, loadMoreCompanies, createSpace, createAccount, createContact, createItem, loadMoreCatalog, createCategory, loadMoreCategories, resetAi, openAi, previewAi, requestAi, checkAiStatus, openModule, toggleModule, shareUser, shareGroup, removeAccess, createEntry, loadMore
+    spaces, activeId, accounts, contacts, items, companies, companyNextAfterId, companyEditId, companyName, companyTradeName, companyTaxId, companyCountry, companyFields, companyCustomValues, companyMunicipal, companyState, companyProfile, companyActive, modules, modulesLoadedFor, categoryRecords, categoryNextAfterId, categoryCode, categoryName, categoryColor, categoryKind, categoryParentId, categoryAccountId, selectedModuleId, aiCapability, aiPreview, aiTask, aiConsent, aiBusy, aiError, aiThrough, aiFrom, contactNextAfterId, itemNextAfterId, activeTab, journals, members, groupGrants, nextBeforeId, error, message, busy, spaceName, kind, accountName, accountCode, contactName, contactKind, contactEmail, contactTaxId, itemSku, itemName, itemKind, itemPrice, itemDescription, shareUid, shareRole, groupGid, groupRole, direction, bankId, categoryId, transactionCategoryId, amount, memo, date, loadSequence, preferredSpaceHandled, space, selectedModule, writable, manager, banks, categories, money, naturalBalance, accountNameById, unwrapError, call, refreshSpaces, refreshCurrent, doAction, resetCompanyForm, editCompany, saveCompany, loadMoreCompanies, createSpace, createAccount, createContact, createItem, loadMoreCatalog, createCategory, loadMoreCategories, resetAi, openAi, previewAi, requestAi, checkAiStatus, openModule, toggleModule, shareUser, shareGroup, removeAccess, createEntry, loadMore
   }
 }

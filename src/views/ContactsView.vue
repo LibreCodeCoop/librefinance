@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { computed, inject, ref } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
@@ -15,7 +15,10 @@ import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { mdiPlus, mdiPencilOutline } from '@mdi/js'
 import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
+import LfSortableHeader from '../components/LfSortableHeader.vue'
+import { useLoadedSort } from '../composables/useLoadedSort.js'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
+import FieldStudioShortcut from '../components/FieldStudioShortcut.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { toMinorUnits } from '../money.js'
 
@@ -24,6 +27,9 @@ const w = inject('lfWorkspace')
 const { activeId, manager, busy, contacts, items, contactNextAfterId,
   itemNextAfterId, money, refreshCurrent, loadMoreCatalog } = w
 const active = computed(() => props.section === 'items' ? 'items' : 'contacts')
+const personal = computed(() => w.space.value?.kind === 'personal')
+const pageTitle = computed(() => active.value === 'items' ? 'Produtos e serviços'
+  : personal.value ? 'Pessoas e estabelecimentos' : 'Clientes e fornecedores')
 const editId = ref(null)
 const dialog = ref('')
 const working = ref(false)
@@ -32,18 +38,67 @@ const form = ref({
   name:'', kind:'customer', email:'', taxId:'', active:true,
   sku:'', description:'', price:'', customFields:{},
 })
-const contactKinds = [
+// Existing customer/vendor/both enum is unchanged; only the labels change.
+const contactKinds = computed(() => personal.value ? [
+  {value:'customer',label:'De quem recebo'},
+  {value:'vendor',label:'A quem pago'},
+  {value:'both',label:'Pago e recebo'},
+] : [
   {value:'customer',label:'Cliente'},
   {value:'vendor',label:'Fornecedor'},
   {value:'both',label:'Cliente e fornecedor'},
-]
+])
 const itemKinds = [{value:'service',label:'Serviço'},{value:'product',label:'Produto'}]
-const search = ref('')
-const shownContacts = computed(() => contacts.value.filter(c =>
-  (c.name || '').toLowerCase().includes(search.value.trim().toLowerCase())))
-const shownItems = computed(() => items.value.filter(i =>
-  (i.name || '').toLowerCase().includes(search.value.trim().toLowerCase())
-  || (i.sku || '').toLowerCase().includes(search.value.trim().toLowerCase())))
+const search = ref(new URLSearchParams(window.location.search).get('search') || '')
+const searchTerm = ref(search.value.trim())
+const searchResults = ref([])
+const searchNext = ref(null)
+const searchLoading = ref(false)
+const searchProblem = ref('')
+let searchSequence = 0
+let searchTimer = null
+const localSort = useLoadedSort('')
+const shownContacts = computed(() => localSort.order(searchTerm.value ? (active.value === 'contacts' ? searchResults.value : []) : contacts.value))
+const shownItems = computed(() => localSort.order(searchTerm.value ? (active.value === 'items' ? searchResults.value : []) : items.value))
+async function loadSearch(append = false) {
+  const term = searchTerm.value.trim().slice(0, 120)
+  const token = ++searchSequence
+  if (!term || !activeId.value) {
+    searchResults.value = []
+    searchNext.value = null
+    searchProblem.value = ''
+    return
+  }
+  searchLoading.value = true
+  searchProblem.value = ''
+  try {
+    const entity = active.value === 'contacts' ? 'contacts' : 'items'
+    const afterId = append ? searchNext.value : null
+    const url = '/' + entity + '?search=' + encodeURIComponent(term)
+      + (afterId ? '&afterId=' + Number(afterId) : '')
+    const result = await financeApi('librefinance', Number(activeId.value), url)
+    if (token !== searchSequence) return
+    searchResults.value = append ? [...searchResults.value, ...result[entity]] : result[entity]
+    searchNext.value = result.nextAfterId
+  } catch (error) {
+    if (token === searchSequence) searchProblem.value = financeError(error)
+  } finally {
+    if (token === searchSequence) searchLoading.value = false
+  }
+}
+function scheduleSearch() {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    searchTerm.value = search.value.trim().slice(0,120)
+    const url = new URL(window.location.href)
+    if (searchTerm.value) url.searchParams.set('search', searchTerm.value)
+    else url.searchParams.delete('search')
+    window.history.replaceState(null,'',url.pathname+url.search)
+  }, 280)
+}
+watch([searchTerm, activeId, active], () => loadSearch())
+onMounted(() => { if (searchTerm.value) loadSearch() })
+onBeforeUnmount(() => { ++searchSequence; if (searchTimer) clearTimeout(searchTimer) })
 function newRecord() {
   editId.value = null
   form.value = { name:'',kind:active.value==='contacts'?'customer':'service',
@@ -89,6 +144,7 @@ async function save() {
         editId.value ? 'PUT' : 'POST',data)
     }
     await refreshCurrent()
+    if (searchTerm.value) await loadSearch()
     dialog.value = ''
   } catch (e) { problem.value = financeError(e) }
   finally { working.value = false }
@@ -96,12 +152,17 @@ async function save() {
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader :title="active === 'contacts' ? 'Clientes e fornecedores' : 'Produtos e serviços'"
+    <LfPageHeader :title="pageTitle"
       eyebrow="CADASTROS"
       :description="active === 'contacts'
-        ? 'Organize quem compra de você, de quem você compra e seus dados de contato.'
-        : 'Gerencie os produtos e serviços utilizados em vendas e compras.'">
+        ? (personal
+          ? 'Registre pessoas e estabelecimentos de quem você recebe ou a quem paga na vida pessoal.'
+          : 'Organize quem compra de você, de quem você compra e seus dados de contato.')
+        : (personal
+          ? 'Itens opcionais para detalhar compras e serviços usados em casa.'
+          : 'Gerencie os produtos e serviços utilizados em vendas e compras.')">
       <template #actions>
+        <FieldStudioShortcut :entity-kind="active==='contacts'?'contact':'item'" />
         <NcButton v-if="manager" variant="primary" @click="newRecord">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
           {{ active === 'contacts' ? 'Novo contato' : 'Novo produto ou serviço' }}
@@ -110,16 +171,41 @@ async function save() {
     </LfPageHeader>
     <section class="lf-surface">
       <div class="lf-section-heading">
-        <h2>{{ active === 'contacts' ? 'Pessoas e organizações' : 'Catálogo de itens' }}</h2>
-        <NcTextField v-model="search" label="Filtrar registros carregados"
-          type="search" placeholder="Pesquisar por nome" class="lf-search-field" />
+        <h2>{{ active === 'contacts'
+          ? (personal ? 'Contatos pessoais' : 'Pessoas e organizações')
+          : 'Catálogo de itens' }}</h2>
+        <NcTextField v-model="search"
+          :label="active==='contacts'?'Buscar contatos':'Buscar produtos e serviços'"
+          type="search" placeholder="Pesquisar todos os cadastros" class="lf-search-field"
+          maxlength="120" @update:model-value="scheduleSearch" />
       </div>
-      <div class="lf-table-scroll">
+      <NcNoteCard v-if="searchProblem" type="error">{{searchProblem}}</NcNoteCard>
+      <p v-if="searchLoading" class="lf-muted" role="status">Buscando em todos os cadastros…</p>
+      <div v-if="active==='contacts' ? shownContacts.length : shownItems.length" class="lf-table-scroll">
         <table class="lf-data-table">
-          <thead v-if="active==='contacts'"><tr><th>Contato</th><th>Tipo</th><th>E-mail</th>
-            <th>Identificação</th><th>Situação</th><th v-if="manager">Ações</th></tr></thead>
-          <thead v-else><tr><th>Código</th><th>Nome</th><th>Tipo</th>
-            <th class="lf-numeric">Preço</th><th>Situação</th><th v-if="manager">Ações</th></tr></thead>
+          <thead v-if="active==='contacts'"><tr>
+            <th v-for="col in [
+              {key:'name',label:'Contato'}, {key:'kind',label:'Tipo'},
+              {key:'email',label:'E-mail'}, {key:'tax_id',label:'Identificação'},
+              {key:'active',label:'Situação'}]" :key="col.key"
+              :aria-sort="localSort.ariaSort(col.key)">
+              <LfSortableHeader :label="col.label" :column="col.key"
+                :active-column="localSort.column.value" :direction="localSort.direction.value"
+                scope="loaded" @sort="localSort.sort" />
+            </th><th v-if="manager">Ações</th>
+          </tr></thead>
+          <thead v-else><tr>
+            <th v-for="col in [
+              {key:'sku',label:'Código'}, {key:'name',label:'Nome'},
+              {key:'kind',label:'Tipo'}, {key:'unit_price_minor',label:'Preço'},
+              {key:'active',label:'Situação'}]" :key="col.key"
+              :class="{'lf-numeric':col.key==='unit_price_minor'}"
+              :aria-sort="localSort.ariaSort(col.key)">
+              <LfSortableHeader :label="col.label" :column="col.key"
+                :active-column="localSort.column.value" :direction="localSort.direction.value"
+                scope="loaded" @sort="localSort.sort" />
+            </th><th v-if="manager">Ações</th>
+          </tr></thead>
           <tbody v-if="active==='contacts'"><tr v-for="c in shownContacts" :key="c.id">
             <td><strong>{{ c.name }}</strong></td>
             <td>{{ contactKinds.find(k=>k.value===c.kind)?.label || c.kind }}</td>
@@ -141,15 +227,16 @@ async function save() {
             </NcButton></td>
           </tr></tbody>
         </table>
-        <NcEmptyContent v-if="active==='contacts' && !shownContacts.length"
-          name="Nenhum contato nesta página" />
-        <NcEmptyContent v-if="active==='items' && !shownItems.length"
-          name="Nenhum produto ou serviço nesta página" />
       </div>
+      <NcEmptyContent v-else-if="!searchLoading"
+        :name="active==='contacts' ? 'Nenhum contato encontrado' : 'Nenhum produto ou serviço encontrado'"
+        :description="searchTerm ? 'Altere a pesquisa para ver outros resultados.' : 'Os cadastros aparecerão aqui quando forem criados.'" />
       <div class="lf-table-footer">
-        <NcButton v-if="active==='contacts'&&contactNextAfterId"
+        <NcButton v-if="searchTerm && searchNext" variant="secondary"
+          :disabled="searchLoading" @click="loadSearch(true)">Mais resultados</NcButton>
+        <NcButton v-else-if="!searchTerm && active==='contacts'&&contactNextAfterId"
           variant="secondary" @click="loadMoreCatalog('contacts')">Mais contatos</NcButton>
-        <NcButton v-if="active==='items'&&itemNextAfterId"
+        <NcButton v-else-if="!searchTerm && active==='items'&&itemNextAfterId"
           variant="secondary" @click="loadMoreCatalog('items')">Mais produtos e serviços</NcButton>
       </div>
     </section>

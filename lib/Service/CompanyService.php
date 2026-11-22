@@ -24,16 +24,23 @@ final class CompanyService {
     ) {}
 
     /** @return array<string,mixed> */
-    public function list(int $spaceId, int $afterId = 0): array {
+    public function list(int $spaceId, int $afterId = 0, string $search = ''): array {
         $this->access->requireRole($spaceId, 'viewer');
         if ($afterId < 0) { throw new DomainException('invalid_cursor'); }
         $q = $this->db->getQueryBuilder();
         $q->select('id','legal_name','trade_name','country','tax_id',
-            'municipal_registration','state_registration','logo_version','active','created_at','updated_at')
+            'municipal_registration','state_registration','logo_version','active','created_at','updated_at',
+            'contact_email','contact_phone','website','address_line1','address_line2','city','region','postal_code')
             ->from('lf_companies')
             ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
             ->andWhere($q->expr()->gt('id', $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)))
             ->orderBy('id', 'ASC')->setMaxResults(51);
+        if (mb_strlen($search) > 120) throw new DomainException('invalid_search');
+        $needle = trim($search);
+        if ($needle !== '') {
+            $q->andWhere($q->expr()->iLike('legal_name',
+                $q->createNamedParameter('%' . $this->db->escapeLikeParameter($needle) . '%')));
+        }
         $rows = $q->executeQuery()->fetchAllAssociative();
         $hasMore = count($rows) > 50;
         $rows = array_slice($rows, 0, 50);
@@ -48,10 +55,11 @@ final class CompanyService {
     /** @return array<string,mixed> */
     public function create(int $spaceId, string $legalName, string $country,
         ?string $taxId, ?string $tradeName = null, ?string $municipalRegistration = null,
-        ?string $stateRegistration = null, array $customFields = []): array {
+        ?string $stateRegistration = null, array $customFields = [], array $profile = []): array {
         $this->access->requireRole($spaceId, 'manager');
         $fields = self::fields($legalName, $country, $taxId, $tradeName,
             $municipalRegistration, $stateRegistration);
+        $fields = [...$fields, ...self::profileFields($profile)];
         $custom = $this->customFields->validateValues($spaceId, $customFields, true);
         $now = time();
         $this->db->beginTransaction();
@@ -76,10 +84,11 @@ final class CompanyService {
     /** @return array<string,mixed> */
     public function update(int $spaceId, int $companyId, string $legalName, string $country,
         ?string $taxId, ?string $tradeName = null, ?string $municipalRegistration = null,
-        ?string $stateRegistration = null, bool $active = true, array $customFields = []): array {
+        ?string $stateRegistration = null, bool $active = true, array $customFields = [], array $profile = []): array {
         $this->access->requireRole($spaceId, 'manager');
         $fields = self::fields($legalName, $country, $taxId, $tradeName,
             $municipalRegistration, $stateRegistration);
+        $fields = [...$fields, ...self::profileFields($profile)];
         $now = time();
         $this->db->beginTransaction();
         try {
@@ -152,6 +161,49 @@ final class CompanyService {
             'country' => $country, 'tax_id' => $taxId === '' ? null : $taxId,
             'municipal_registration' => self::optional($municipalRegistration),
             'state_registration' => self::optional($stateRegistration)];
+    }
+
+    /**
+     * Only known, bounded identity fields enter the company record. Missing keys
+     * never erase existing values in update requests from older clients.
+     *
+     * @param array<string,mixed> $profile
+     * @return array<string,string|null>
+     */
+    private static function profileFields(array $profile): array {
+        $columns = [
+            'contactEmail' => ['contact_email', 190],
+            'contactPhone' => ['contact_phone', 60],
+            'website' => ['website', 255],
+            'addressLine1' => ['address_line1', 255],
+            'addressLine2' => ['address_line2', 255],
+            'city' => ['city', 120],
+            'region' => ['region', 120],
+            'postalCode' => ['postal_code', 32],
+        ];
+        $fields = [];
+        foreach ($profile as $key => $raw) {
+            if (!is_string($key) || !isset($columns[$key]) || ($raw !== null && !is_string($raw))) {
+                throw new DomainException('invalid_company_attribute');
+            }
+            [$column, $limit] = $columns[$key];
+            $value = self::optional($raw);
+            if ($value !== null && mb_strlen($value) > $limit) {
+                throw new DomainException('invalid_company_attribute');
+            }
+            if ($key === 'contactEmail' && $value !== null
+                && filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
+                throw new DomainException('invalid_company_attribute');
+            }
+            if ($key === 'website' && $value !== null
+                && (!filter_var($value, FILTER_VALIDATE_URL)
+                    || !in_array(strtolower((string)parse_url($value, PHP_URL_SCHEME)),
+                        ['https', 'http'], true))) {
+                throw new DomainException('invalid_company_attribute');
+            }
+            $fields[$column] = $value;
+        }
+        return $fields;
     }
 
     private static function optional(?string $value): ?string {

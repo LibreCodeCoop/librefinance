@@ -5,51 +5,99 @@
 
 export const PAGE_NAMES = Object.freeze({
   dashboard: 'Visão geral',
-  transactions: 'Lançamentos',
-  banking: 'Bancos e conciliação',
-  obligations: 'A pagar e receber',
+  transactions: 'Lançamentos contábeis',
+  banking: 'Bancos e caixa',
+  obligations: 'A pagar e receber', // historic bookmark
   reports: 'Relatórios',
-  invoicing: 'Faturas e compras',
+  invoicing: 'A pagar e receber', // legacy deep-link alias
+  sales: 'A pagar e receber', // historic commercial bookmark
+  receivables: 'A pagar e receber',
+  finance: 'A pagar e receber',
+  documents: 'Documentos comerciais',
+  spaces: 'Áreas financeiras',
+  payables: 'A pagar e receber',
+  purchases: 'A pagar e receber', // historic commercial bookmark
   taxes: 'Regras tributárias',
   nfse: 'NFS-e Brasil',
   contacts: 'Clientes e fornecedores',
   items: 'Produtos e serviços',
   categories: 'Categorias',
   accounts: 'Plano de contas',
-  companies: 'Empresas',
+  companies: 'Dados fiscais da empresa',
   ai: 'Assistente financeiro',
-  settings: 'Configurações',
+  settings: 'Acessos e compartilhamento', // legacy route aliases access control
+  access: 'Acessos e compartilhamento',
+  fields: 'Campos personalizados',
+  paymentMethods: 'Formas de pagamento',
+  modules: 'Recursos instalados',
+  data: 'Dados e migração',
   import: 'Migração de dados',
 })
 
 // Icon names are mapped to local @mdi/js paths in the shell. No extension is
 // allowed to supply remote JS, HTML, arbitrary URL or user-controlled markup.
 export const MENU_STRUCTURE = Object.freeze([
-  { id: 'daily', label: 'FINANÇAS', items: [
-    { id: 'dashboard', icon: 'home', keywords: 'inicio inicio painel home resumo' },
-    { id: 'transactions', icon: 'transactions', keywords: 'movimentos movimentacoes despesas receitas dinheiro diario lancamento' },
-    { id: 'banking', icon: 'banking', module: 'librefinance_banking', keywords: 'extrato conta bancaria conciliacao transferencias csv' },
-    { id: 'obligations', icon: 'obligations', module: 'librefinance_obligations', keywords: 'titulos vencimentos pagamentos recebimentos contas cobrar pagar' },
-    { id: 'reports', icon: 'reports', module: 'librefinance_reports', keywords: 'analise balancete resultado demonstrativo caixa' },
-  ] },
-  { id: 'resources', label: 'OUTROS RECURSOS', items: [
-    { id: 'billing', label: 'Vendas e compras', icon: 'billing', children: [
-      { id: 'invoicing', icon: 'billing', module: 'librefinance_invoicing', keywords: 'faturas vendas compras documentos comerciais' },
+  { id: 'operations', label: 'LIBREFINANCE', items: [
+    { id: 'dashboard', icon: 'home', keywords: 'inicio visao geral resumo painel home' },
+    { id: 'finance', icon: 'obligations', module: 'librefinance_obligations',
+      keywords: 'a pagar receber cliente fornecedor cobranca venda fatura receita despesa vencimentos agenda entradas saidas' },
+    { id: 'documents', icon: 'billing', module: 'librefinance_invoicing',
+      keywords: 'documentos comerciais faturas vendas compras impostos itens rascunhos' },
+    { id: 'banking', icon: 'banking', module: 'librefinance_banking',
+      keywords: 'bancos caixa extrato conciliacao entradas saidas saldo transferencia movimento' },
+    { id: 'reports', icon: 'reports', module: 'librefinance_reports',
+      keywords: 'relatorios demonstrativos fluxo de caixa resultados dre balancete' },
+    { id: 'spaces', icon: 'spaces',
+      keywords: 'gestoes financeiras espacos areas financas criar renomear arquivar restaurar organizacao pessoal' },
+    { id: 'management', label: 'Gerenciar', icon: 'settings', children: [
+      { id: 'contacts', icon: 'contacts', group: 'Cadastros',
+        keywords: 'clientes fornecedores pessoas contatos' },
+      { id: 'items', icon: 'contacts', group: 'Cadastros',
+        keywords: 'produtos servicos itens preco catalogo' },
+      { id: 'categories', icon: 'categories', group: 'Cadastros',
+        keywords: 'categorias classificacao receitas despesas' },
+
+      { id: 'companies', icon: 'companies', group: 'Financeiro e fiscal',
+        keywords: 'empresa cnpj dados fiscais empresa emissora identidade legal cadastro juridico' },
+      { id: 'accounts', icon: 'accounts', group: 'Financeiro e fiscal',
+        keywords: 'plano de contas contabilidade patrimonio ativo passivo' },
+      { id: 'transactions', icon: 'transactions', group: 'Financeiro e fiscal',
+        keywords: 'lancamentos contabeis diario debito credito movimentacao' },
+      { id: 'paymentMethods', icon: 'banking', group: 'Financeiro e fiscal', managerOnly: true,
+        keywords: 'formas pagamento dinheiro pix boleto cartao metodos' },
+      { id: 'taxes', icon: 'fiscal', group: 'Financeiro e fiscal', module: 'librefinance_invoicing',
+        keywords: 'impostos jurisdicao tributacao aliquotas retencao' },
+      { id: 'nfse', icon: 'fiscal', group: 'Financeiro e fiscal', module: 'librefinance_nfse',
+        keywords: 'nota fiscal servico rascunho nacional' },
+
+      { id: 'access', icon: 'contacts', group: 'Equipe e personalização', managerOnly: true,
+        keywords: 'acessos equipe permissoes membros usuarios grupos compartilhar pessoas e grupos' },
+      { id: 'fields', icon: 'categories', group: 'Equipe e personalização', managerOnly: true,
+        keywords: 'campos personalizados customizados formularios entidades' },
+
+      { id: 'modules', icon: 'settings', group: 'Recursos e dados', managerOnly: true,
+        keywords: 'recursos instalados modulos ativar desativar extensoes configuracoes' },
+      { id: 'data', icon: 'import', group: 'Recursos e dados', managerOnly: true,
+        keywords: 'dados migracao importar exportar origem arquivos conversao akaunting' },
+      { id: 'ai', icon: 'assistant', group: 'Recursos e dados', managerOnly: true,
+        keywords: 'assistente inteligencia artificial resumo analise' },
     ] },
-    { id: 'fiscal', label: 'Tributação', icon: 'fiscal', children: [
-      { id: 'taxes', icon: 'fiscal', module: 'librefinance_invoicing', keywords: 'impostos jurisdicao tributacao regras aliquotas vat retencao' },
-      { id: 'nfse', icon: 'fiscal', module: 'librefinance_nfse', keywords: 'nota fiscal servico rascunho nacional' },
-    ] },
-    { id: 'registers', label: 'Cadastros', icon: 'contacts', children: [
-      { id: 'contacts', icon: 'contacts', keywords: 'clientes fornecedores pessoas contatos' },
-      { id: 'items', icon: 'contacts', keywords: 'produtos servicos itens preco catalogo' },
-      { id: 'categories', icon: 'categories', keywords: 'classificacao receitas despesas' },
-      { id: 'accounts', icon: 'accounts', keywords: 'plano contas contabilidade patrimonio ativo passivo' },
-      { id: 'companies', icon: 'companies', keywords: 'empresa cnpj organizacao identificacao legal' },
-    ] },
-    { id: 'ai', icon: 'assistant', managerOnly: true, keywords: 'inteligencia artificial resumo analise' },
   ] },
 ])
+
+/** Context changes presentation labels, never server rights or stored kinds. */
+export function pageNameForSpace(id, kind) {
+  if (kind === 'personal') {
+    if (id === 'contacts') return 'Pessoas e estabelecimentos'
+    if (id === 'companies') return 'Dados fiscais (opcional)'
+  }
+  return PAGE_NAMES[id] || id
+}
+
+/** Only the four entity types already supported by the PHP Field Studio. */
+export function fieldEntityKind(value) {
+  return ['company', 'contact', 'item', 'journal'].includes(value) ? value : 'company'
+}
 
 export function normalizeNavigationText(value) {
   return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -75,32 +123,62 @@ export function menuEntries(sections) {
     : [{ ...item, section: section.label, parent: '', parentId: null }]))
 }
 
-export function canOpenView(sections, id, { manager = false, migrationEnabled = false } = {}) {
-  if (id === 'settings') return manager
-  if (id === 'import') return manager && migrationEnabled
-  return menuEntries(sections).some(item => item.id === id)
+// Preserve existing ?view=invoicing bookmarks while giving each operation
+// a distinct, user-facing route. Never use freeform view names as URLs.
+const LEGACY_SETTINGS = Object.freeze({
+  access: 'access', fields: 'fields', payments: 'paymentMethods',
+  modules: 'modules', data: 'data',
+})
+export function canonicalView(id, section = null) {
+  if (id === 'settings') return LEGACY_SETTINGS[section] || 'access'
+  if (id === 'import') return 'data'
+  if (['invoicing', 'sales', 'purchases'].includes(id)) return 'documents'
+  if (['obligations', 'receivables', 'payables'].includes(id)) return 'finance'
+  return id
 }
 
-export function navigationSearch(sections, query, { manager = false, migrationEnabled = false } = {}) {
+/** Existing links preserve their intended entry/exit direction as a filter. */
+export function financeDirectionForView(id) {
+  if (['invoicing', 'sales', 'receivables'].includes(id)) return 'receivable'
+  if (['purchases', 'payables'].includes(id)) return 'payable'
+  return 'all'
+}
+
+export function canOpenView(sections, id, { manager = false, migrationEnabled = false } = {}) {
+  if (id === 'import') return manager && migrationEnabled
+  return menuEntries(sections).some(item => item.id === canonicalView(id))
+}
+
+export function navigationSearch(sections, query,
+  { manager = false, migrationEnabled = false, spaceKind = null } = {}) {
   const search = normalizeNavigationText(query).slice(0, 90)
   if (!search) return []
-  const extras = []
-  if (manager) {
-    extras.push({ id: 'settings', icon: 'settings', section: 'ADMINISTRAÇÃO',
-      parent: '', keywords: 'configuracao acesso membros usuarios grupos modulos', parentId: null })
-    if (migrationEnabled) extras.push({ id: 'import', icon: 'import', section: 'ADMINISTRAÇÃO',
-      parent: 'Dados e migração', keywords: 'migrar importar exportar origem conversao', parentId: null })
+  // A direct screen-name match is more useful than a keyword hit on a
+  // different screen (e.g. "clientes" must prioritize customer records).
+  const rank = item => {
+    const title = normalizeNavigationText(pageNameForSpace(item.id, spaceKind))
+    const parent = normalizeNavigationText(item.parent)
+    const keywords = normalizeNavigationText(item.keywords)
+    if (title === search) return 0
+    if (title.startsWith(search)) return 1
+    if (title.includes(search)) return 2
+    if (parent === search || parent.includes(search)) return 3
+    if (keywords.includes(search)) return 4
+    return -1
   }
-  return [...menuEntries(sections), ...extras].filter(item => normalizeNavigationText(
-    [PAGE_NAMES[item.id], item.parent, item.keywords].filter(Boolean).join(' ')).includes(search))
+  return menuEntries(sections).map((item, order) => ({
+    item, order, score: rank(item),
+  })).filter(found => found.score >= 0)
+    .sort((a, b) => a.score - b.score || a.order - b.order)
+    .map(found => found.item)
 }
 
 export function parentOfView(sections, id) {
   return menuEntries(sections).find(item => item.id === id)?.parentId ?? null
 }
 
-// Enterprise users see billing immediately; personal users see a calmer menu.
-// No role or data is changed, and either user can expand the same authorized group.
-export function defaultGroupOpen(groupId, spaceKind = 'personal') {
-  return groupId === 'billing' && spaceKind === 'organization'
+// Task-oriented primary areas are always visible. Only supplementary
+// fiscal/register groups are collapsed by default for all workspace kinds.
+export function defaultGroupOpen() {
+  return false
 }

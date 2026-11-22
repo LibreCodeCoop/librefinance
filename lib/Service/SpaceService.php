@@ -85,6 +85,123 @@ final class SpaceService {
         }
     }
 
+    /** @return array<int,array<string,mixed>> Archived workspaces owned by the caller. */
+    public function archived(): array {
+        $q = $this->db->getQueryBuilder();
+        $q->select('id', 'name', 'kind', 'currency', 'created_at')
+            ->from('lf_spaces')
+            ->where($q->expr()->eq('owner_uid',
+                $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)))
+            ->andWhere($q->expr()->eq('archived',
+                $q->createNamedParameter(true, IQueryBuilder::PARAM_BOOL)))
+            ->orderBy('id', 'DESC');
+        $rows = $q->executeQuery()->fetchAllAssociative();
+        foreach ($rows as &$row) {
+            $row['id'] = (int)$row['id'];
+            $row['role'] = 'owner';
+        }
+        unset($row);
+        return $rows;
+    }
+
+    /** @return array<string,mixed> */
+    public function rename(int $spaceId, string $name): array {
+        $name = trim($name);
+        if ($name === '' || mb_strlen($name) > 150) {
+            throw new DomainException('invalid_name');
+        }
+        $this->db->beginTransaction();
+        try {
+            $record = $this->owned($spaceId);
+            if ((bool)$record['archived']) {
+                throw new DomainException('space_archived');
+            }
+            if ((string)$record['name'] === $name) {
+                // MariaDB reports zero changed rows for an unchanged value.
+                // A harmless retry of a rename must not be a conflict.
+                $this->db->commit();
+                return ['id' => $spaceId, 'name' => $name, 'archived' => false];
+            }
+            $q = $this->db->getQueryBuilder();
+            $changed = $q->update('lf_spaces')
+                ->set('name', $q->createNamedParameter($name))
+                ->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('owner_uid',
+                    $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)))
+                ->andWhere($q->expr()->eq('archived',
+                    $q->createNamedParameter(false, IQueryBuilder::PARAM_BOOL)))
+                ->executeStatement();
+            if ($changed !== 1) {
+                throw new DomainException('concurrent_change');
+            }
+            $this->audit($spaceId, 'space.renamed', 'space', $spaceId);
+            $this->db->commit();
+            return ['id' => $spaceId, 'name' => $name, 'archived' => false];
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    /** @return array<string,mixed> */
+    public function archive(int $spaceId): array {
+        return $this->setArchived($spaceId, true);
+    }
+
+    /** @return array<string,mixed> */
+    public function restore(int $spaceId): array {
+        return $this->setArchived($spaceId, false);
+    }
+
+    /** @return array<string,mixed> */
+    private function setArchived(int $spaceId, bool $target): array {
+        $this->db->beginTransaction();
+        try {
+            $row = $this->owned($spaceId);
+            if ((bool)$row['archived'] === $target) {
+                throw new DomainException($target ? 'space_already_archived' : 'space_not_archived');
+            }
+            // Archiving only hides the workspace and suspends authorization.
+            // Financial entries are never deleted; the owner may restore them.
+            $q = $this->db->getQueryBuilder();
+            $changed = $q->update('lf_spaces')
+                ->set('archived', $q->createNamedParameter($target, IQueryBuilder::PARAM_BOOL))
+                ->where($q->expr()->eq('id',
+                    $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('owner_uid',
+                    $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)))
+                ->andWhere($q->expr()->eq('archived',
+                    $q->createNamedParameter(!$target, IQueryBuilder::PARAM_BOOL)))
+                ->executeStatement();
+            if ($changed !== 1) {
+                throw new DomainException('concurrent_change');
+            }
+            $this->audit($spaceId, $target ? 'space.archived' : 'space.restored', 'space', $spaceId);
+            $this->db->commit();
+            return ['id' => $spaceId, 'name' => (string)$row['name'], 'archived' => $target];
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    /** @return array<string,mixed> */
+    private function owned(int $spaceId): array {
+        if ($spaceId < 1) {
+            throw new DomainException('space_not_found');
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('id', 'name', 'archived')->from('lf_spaces')
+            ->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('owner_uid',
+                $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)));
+        $record = $q->executeQuery()->fetchAssociative();
+        if ($record === false) {
+            throw new DomainException('space_not_found');
+        }
+        return $record;
+    }
+
     public function shareUser(int $spaceId, string $uid, string $role): void {
         $this->access->requireRole($spaceId, 'manager');
         AccessService::validateGrantRole($role);

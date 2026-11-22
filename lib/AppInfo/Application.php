@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace OCA\LibreFinance\AppInfo;
 
 use OCP\AppFramework\App;
+use OCA\LibreFinance\Search\FinanceSearchProvider;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
@@ -21,6 +22,8 @@ final class Application extends App implements IBootstrap {
         parent::__construct(self::APP_ID, $urlParams);
     }
 
-    public function register(IRegistrationContext $context): void {}
+    public function register(IRegistrationContext $context): void {
+        $context->registerSearchProvider(FinanceSearchProvider::class);
+    }
     public function boot(IBootContext $context): void {}
 }

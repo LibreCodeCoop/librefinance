@@ -26,10 +26,10 @@
   outline-offset: 3px;
 }
 #librefinance-app .lf-workspace {
-  width: min(100%, 1520px);
+  width: 100%;
   min-width: 0;
-  padding: 0 clamp(18px, 2.8vw, 50px) 70px;
-  margin: 0 auto;
+  padding: 0 clamp(16px, 1.5vw, 36px) 70px;
+  margin: 0;
   overflow-wrap: anywhere;
 }
 #librefinance-app .lf-navigation-context {
@@ -88,7 +88,7 @@
   gap: 10px;
   flex-wrap: wrap;
 }
-#librefinance-app .lf-view { min-width: 0; padding-top: 34px; display: grid; gap: 22px; }
+#librefinance-app .lf-view { min-width: 0; padding-top: 22px; display: grid; gap: 20px; }
 #librefinance-app .lf-page-header {
   display: flex;
   justify-content: space-between;
@@ -112,12 +112,14 @@
   margin: 9px 0 0;
   max-width: 680px;
 }
+/* List pages use the NcAppContent surface directly, like Files and Mail.
+   Sections remain semantic, without decorative boxes around tables and filters. */
 #librefinance-app .lf-surface {
   min-width: 0;
-  background: var(--lf-surface);
-  border: 1px solid var(--lf-border);
-  border-radius: 15px;
-  padding: clamp(16px, 2vw, 26px);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
 }
 #librefinance-app .lf-surface h2 {
   color: var(--color-main-text);
@@ -392,7 +394,7 @@
   #librefinance-app .lf-context-actions { width:100%;justify-content:space-between; }
   #librefinance-app .lf-page-header { align-items: flex-start; flex-direction: column; }
   #librefinance-app .lf-page-header h1 { font-size: 25px; }
-  #librefinance-app .lf-surface { border-radius:12px; padding: 14px; }
+  #librefinance-app .lf-surface { border-radius:0; padding:0; }
   #librefinance-app .lf-form-grid { grid-template-columns:1fr; }
   #librefinance-app .lf-invoice-line { grid-template-columns:1fr; }
   #librefinance-app .lf-activity-list li { flex-wrap:wrap;gap:8px; }
@@ -511,13 +513,10 @@
   font-size: 11px; color: var(--lf-muted); font-weight: 720;
   line-height: 1.4;
 }
-#librefinance-app .lf-view { padding-top: 30px; gap: 22px; }
+#librefinance-app .lf-view { padding-top: 20px; gap: 20px; }
 #librefinance-app .lf-page-header .lf-eyebrow { margin-bottom: 9px; }
 #librefinance-app .lf-page-description { margin-top: 7px; }
-#librefinance-app .lf-surface {
-  border-radius: 15px;
-  box-shadow: 0 5px 24px rgba(25, 35, 52, .025);
-}
+#librefinance-app .lf-surface { box-shadow: none; }
 #librefinance-app .lf-overview {
   --lf-panel-gap: 17px;
   gap: 21px;
@@ -848,3 +847,246 @@
   font-family: var(--font-face-monospace, monospace);
   font-size: 12px;
 }
+
+/* Only a navigated, server-authorized title is highlighted. */
+.lf-data-table tbody tr.lf-row-focused {
+  background: var(--color-background-hover);
+  box-shadow: inset 3px 0 var(--color-primary-element);
+}
+
+/* One financial workspace, two views. Keep the navigation usable on mobile
+   without introducing another permanent application sidebar. */
+.lf-flow-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(var(--default-grid-baseline, 4px) * 2);
+  margin-block: calc(var(--default-grid-baseline, 4px) * 3);
+}
+@media (max-width: 560px) {
+  .lf-flow-tabs > * {
+    flex: 1 1 100%;
+  }
+}
+
+/* Unified agenda: filtering stays beside the list, not in separate views. */
+#librefinance-app .lf-space-current {
+  margin: 3px 0 5px;
+  padding: 10px 12px;
+  border-radius: var(--border-radius-large, 12px);
+  background: var(--color-background-hover);
+  color: var(--color-main-text);
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+#librefinance-app .lf-flow-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 14px 24px;
+  justify-content: space-between;
+  margin: 8px 0 12px;
+}
+#librefinance-app .lf-flow-toolbar > .lf-field {
+  flex: 0 1 230px;
+  min-width: 180px;
+}
+#librefinance-app .lf-flow-toolbar .lf-flow-tabs {
+  margin: 0;
+}
+#librefinance-app .lf-flow-explainer {
+  margin: 6px 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+#librefinance-app .lf-obligation-filters {
+  flex-wrap: wrap;
+  align-items: end;
+}
+#librefinance-app .lf-obligation-filter-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+#librefinance-app .lf-obligation-filter-fields > .lf-field {
+  min-width: 160px;
+  flex: 1 1 180px;
+}
+#librefinance-app .lf-flow-direction {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--color-background-hover);
+  font-size: 12px;
+  font-weight: 600;
+}
+#librefinance-app .lf-amount-in,
+#librefinance-app .lf-flow-direction-in {
+  color: var(--color-success-text, var(--color-success));
+}
+#librefinance-app .lf-amount-out,
+#librefinance-app .lf-flow-direction-out {
+  color: var(--color-error-text, var(--color-error));
+}
+@media (max-width: 680px) {
+  #librefinance-app .lf-flow-toolbar > .lf-field {
+    flex: 1 1 100%;
+  }
+  #librefinance-app .lf-obligation-filter-fields {
+    width: 100%;
+  }
+}
+
+/* Finance actions reuse the same directional symbols as the dashboard and
+   accounting journal. The text remains explicit without relying on color. */
+#librefinance-app .lf-new-entry,
+#librefinance-app .lf-new-exit {
+  white-space: nowrap;
+}
+#librefinance-app .lf-nav-subsection {
+  list-style: none;
+  padding: 11px 12px 4px 46px;
+  margin: 4px 0 0;
+  color: var(--color-text-maxcontrast, var(--color-text-maxcontrast-default));
+  border-top: 1px solid var(--color-border, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+#librefinance-app .lf-nav-subsection:first-child {
+  border-top: 0;
+}
+
+/* Secondary discovery of the existing Field Studio; keep the main CRUD
+   action prominent and the customizing link unobtrusive. */
+#librefinance-app .lf-field-studio-shortcut {
+  color: var(--color-text-maxcontrast, var(--color-main-text));
+  font-weight: normal;
+  white-space: nowrap;
+}
+@media (max-width: 680px) {
+  #librefinance-app .lf-field-studio-shortcut { font-size: 12px; }
+}
+
+/* Match the Nextcloud Files density: native buttons in sortable table heads,
+   no custom select for a three-way direction, and a single action menu/row. */
+#librefinance-app .lf-native-agenda-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  justify-content: flex-end;
+  flex: 1 1 auto;
+}
+#librefinance-app .lf-native-finance-search { min-width: 240px; flex: 1 1 245px; }
+#librefinance-app .lf-native-filter-chips {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+#librefinance-app .lf-sort-header { padding-inline: 5px; min-height: 34px; font-weight: 600; }
+#librefinance-app .lf-native-workspace-filter { width: min(100%, 350px); }
+#librefinance-app .lf-native-space-list { display: grid; list-style: none; padding: 0; margin: 0; }
+#librefinance-app .lf-native-space-list > li { border-bottom: 1px solid var(--color-border); }
+#librefinance-app .lf-native-space-list > li:last-child { border-bottom: 0; }
+#librefinance-app .lf-area-retention-note { margin: 4px 12px 16px; }
+#librefinance-app .lf-manage-spaces-link { align-self: flex-start; margin-top: 2px; }
+#librefinance-app .lf-native-management-group { font-weight: 600; }
+#librefinance-app .lf-data-table { border-collapse: separate; border-spacing: 0; }
+#librefinance-app .lf-data-table thead th {
+  background: transparent;
+  color: var(--color-main-text);
+  font-size: 13px;
+  letter-spacing: 0;
+  font-weight: 600;
+}
+#librefinance-app .lf-data-table td { vertical-align: middle; }
+@media (max-width: 760px) {
+  #librefinance-app .lf-native-agenda-filters { width: 100%; }
+  #librefinance-app .lf-native-filter-chips { gap: 0; }
+}
+
+
+/* Full-width Nextcloud Files-style filters and empty state. */
+.lf-agenda-filter-content { display:grid;gap:2px;min-width:220px;padding:8px; }
+.lf-agenda-filter-content > button { justify-content:flex-start;width:100%; }
+.lf-agenda-filter-content > button[aria-pressed="true"] { background:var(--color-background-hover);font-weight:650; }
+#librefinance-app .lf-agenda-empty { padding:clamp(24px,5vw,72px) 12px; }
+@media (max-width:760px) {
+  #librefinance-app .lf-native-agenda-filters { justify-content:flex-start; }
+  #librefinance-app .lf-native-finance-search { flex-basis:100%; }
+}
+
+
+/* Content-area controls: tab selection and popovers match core list views. */
+#librefinance-app .lf-banking-toolbar { gap: 12px 20px; margin-bottom: 12px; }
+#librefinance-app .lf-banking-tabs { display: flex; gap: var(--default-grid-baseline, 4px); align-items: center; }
+#librefinance-app .lf-banking-toolbar .lf-native-agenda-filters {
+  margin-inline-start: auto;
+  flex: 0 1 auto;
+}
+#librefinance-app .lf-banking-toolbar .lf-native-agenda-filters button { max-width: min(36vw, 320px); }
+#librefinance-app .lf-data-table { border-spacing: 0; }
+#librefinance-app .lf-data-table th, #librefinance-app .lf-data-table td {
+  padding: 11px 12px;
+}
+#librefinance-app .lf-flow-view .lf-flow-explainer { margin: 0; }
+@media (max-width: 760px) {
+  #librefinance-app .lf-banking-toolbar .lf-native-agenda-filters { margin-inline-start: 0; }
+  #librefinance-app .lf-banking-toolbar .lf-native-agenda-filters button { max-width: 100%; }
+}
+
+
+#librefinance-app .lf-list-filter-toolbar { display:flex; justify-content:flex-end; align-items:center; margin-bottom:12px; }
+#librefinance-app .lf-account-filter { justify-content:space-between; align-items:center; }
+#librefinance-app .lf-account-filter > .lf-muted { flex:1; }
+
+
+/* Company identity editor: no decorative cards within the native dialog. */
+#librefinance-app .lf-company-form-section,
+.lf-finance-dialog-content .lf-company-form-section {
+  border: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#librefinance-app .lf-company-form-section + .lf-company-form-section,
+.lf-finance-dialog-content .lf-company-form-section + .lf-company-form-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+#librefinance-app .lf-company-form-section legend,
+.lf-finance-dialog-content .lf-company-form-section legend {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: 8px;
+}
+#librefinance-app .lf-company-ledger-scope,
+.lf-finance-dialog-content .lf-company-ledger-scope {
+  color: var(--color-text-maxcontrast);
+  margin: 0;
+}
+#librefinance-app .lf-payment-toolbar {
+  margin-bottom: 14px;
+}
+#librefinance-app .lf-payment-toolbar > .lf-muted { flex: 1; margin: 0; }
+
+
+#librefinance-app .lf-area-guidance {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+  margin-block: 4px 8px;
+}
+#librefinance-app .lf-area-guidance p { margin: 0; }

@@ -10,8 +10,6 @@ import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcTextField from '@nextcloud/vue/components/NcTextField'
-import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
@@ -21,14 +19,16 @@ import {
   mdiReceiptTextOutline, mdiCashClock, mdiChartLine, mdiAccountMultipleOutline,
   mdiFileUploadOutline, mdiCogOutline, mdiShapeOutline, mdiRobotOutline,
   mdiDomain, mdiFileDocumentOutline, mdiBookOpenPageVariantOutline,
-  mdiPlus, mdiRefresh, mdiMagnify,
+  mdiPlus, mdiRefresh, mdiMagnify, mdiArrowDownLeft, mdiArrowUpRight,
+  mdiFolderAccountOutline,
 } from '@mdi/js'
 import {
   PAGE_NAMES, availableSections, canOpenView, navigationSearch,
-  menuEntries, parentOfView, defaultGroupOpen,
+  menuEntries, parentOfView, defaultGroupOpen, canonicalView, financeDirectionForView,
 } from './navigation.js'
 import { useFinanceWorkspace } from './state/useFinanceWorkspace.js'
 import LfSelect from './components/LfSelect.vue'
+import { pageNameForSpace, fieldEntityKind } from './navigation.js'
 import DashboardView from './views/DashboardView.vue'
 import TransactionsView from './views/TransactionsView.vue'
 import AccountsView from './views/AccountsView.vue'
@@ -42,6 +42,8 @@ import ReportsView from './views/ReportsView.vue'
 import BankingView from './views/BankingView.vue'
 import ObligationsView from './views/ObligationsView.vue'
 import InvoicesView from './views/InvoicesView.vue'
+import CashflowView from './views/CashflowView.vue'
+import SpacesView from './views/SpacesView.vue'
 import TaxRulesView from './views/TaxRulesView.vue'
 import NfseView from './views/NfseView.vue'
 import ImportView from './views/ImportView.vue'
@@ -54,22 +56,32 @@ const workspace = useFinanceWorkspace()
 provide('lfWorkspace', workspace)
 const {
   spaces, activeId, activeTab, space, modules, modulesLoadedFor,
-  manager, writable, busy, error, message,
-  spaceName, kind, createSpace, refreshCurrent,
+  manager, writable, busy, error, message, refreshCurrent,
 } = workspace
-const showSpaceDialog = ref(false)
 const quickEntry = ref(false)
 provide('lfEntryDialog', quickEntry)
 // The navigation follows user tasks, not the internal extension layout.
 // Server-authorized module discovery is still the only source of availability.
-const labels = PAGE_NAMES
+const labels = computed(() => Object.fromEntries(
+  Object.keys(PAGE_NAMES).map(id => [id, pageNameForSpace(id, space.value?.kind)])))
+const fieldStudioEntity = ref(fieldEntityKind(
+  new URLSearchParams(window.location.search).get('entity')))
+provide('lfFieldStudioEntity', fieldStudioEntity)
 const screens = {
   dashboard: DashboardView,
   transactions: TransactionsView,
   accounts: AccountsView,
   banking: BankingView,
-  obligations: ObligationsView,
-  invoicing: InvoicesView,
+  finance: CashflowView,
+  documents: CashflowView,
+  spaces: SpacesView,
+  receivables: CashflowView,
+  payables: CashflowView,
+  // Old route IDs remain recognized but are canonicalized to the unified view.
+  obligations: CashflowView,
+  sales: CashflowView,
+  purchases: CashflowView,
+  invoicing: CashflowView,
   taxes: TaxRulesView,
   contacts: ContactsView,
   items: ItemsView,
@@ -79,12 +91,21 @@ const screens = {
   import: ImportView,
   nfse: NfseView,
   ai: AiView,
-  settings: SettingsView,
+  settings: SettingsView, // compatibility for historic links
+  access: SettingsView,
+  fields: SettingsView,
+  paymentMethods: SettingsView,
+  modules: SettingsView,
+  data: ImportView,
 }
 const icons = {
   home: mdiViewDashboardOutline,
   transactions: mdiSwapHorizontal,
   banking: mdiBankOutline,
+  finance: mdiCashClock,
+  spaces: mdiFolderAccountOutline,
+  receivables: mdiArrowDownLeft,
+  payables: mdiArrowUpRight,
   obligations: mdiCashClock,
   reports: mdiChartLine,
   billing: mdiReceiptTextOutline,
@@ -95,9 +116,17 @@ const icons = {
   companies: mdiDomain,
   assistant: mdiRobotOutline,
   settings: mdiCogOutline,
+  access: mdiAccountMultipleOutline,
+  fields: mdiShapeOutline,
+  paymentMethods: mdiBankOutline,
+  modules: mdiCogOutline,
+  data: mdiFileUploadOutline,
   import: mdiFileUploadOutline,
 }
 const searchQuery = ref('')
+// Browser back/forward can change a search term without changing the view.
+// Remount only when history navigation supplies a different record search.
+const urlSearchTerm = ref(new URLSearchParams(window.location.search).get('search') || '')
 const openGroups = ref({})
 const availableNav = computed(() => availableSections({
   manager: manager.value,
@@ -109,6 +138,7 @@ const migrationAvailable = computed(() => manager.value
   && modules.value.some(m => m.id === 'librefinance_import' && m.enabled))
 const searchResults = computed(() => navigationSearch(availableNav.value, searchQuery.value, {
   manager: manager.value, migrationEnabled: migrationAvailable.value,
+  spaceKind: space.value?.kind,
 }))
 const isSearching = computed(() => searchQuery.value.trim().length > 0)
 function visibleView(view) {
@@ -118,6 +148,21 @@ function visibleView(view) {
 }
 function groupHasActive(item) {
   return item.children?.some(child => child.id === readyView.value) || false
+}
+function subgroupOpen(groupName, item) {
+  if (item.children?.some(child => child.id === readyView.value && child.group === groupName)) return true
+  return openGroups.value['sub:' + groupName] ?? false
+}
+function changeSubgroup(groupName, value) {
+  setGroupOpen('sub:' + groupName, value)
+}
+function groupedChildren(item) {
+  const grouped = new Map()
+  for (const child of item.children || []) {
+    if (!grouped.has(child.group)) grouped.set(child.group, [])
+    grouped.get(child.group).push(child)
+  }
+  return [...grouped].map(([name, children]) => ({ name, children }))
 }
 function isGroupOpen(item) {
   // The active view must remain reachable in the navigation after a reload.
@@ -146,7 +191,10 @@ function searchKeydown(event) {
 function viewHref(view) {
   const url = new URL(window.location.href)
   url.searchParams.set('view', view)
-  if (view !== 'settings') url.searchParams.delete('section')
+  url.searchParams.delete('section')
+  if (view !== readyView.value) url.searchParams.delete('search')
+  if (view === 'fields') url.searchParams.set('entity', fieldStudioEntity.value)
+  else url.searchParams.delete('entity')
   if (activeId.value) url.searchParams.set('spaceId', String(activeId.value))
   return url.pathname + url.search
 }
@@ -163,33 +211,60 @@ function onNavGroupClick(event, groupId) {
 }
 const roleNames = { owner: 'Proprietário', manager: 'Gestor', operator: 'Operador',
   auditor: 'Auditor', viewer: 'Visualizador' }
-const spaceKind = computed(() => ({ personal: 'Pessoal', collective: 'Coletivo',
-  organization: 'Organização' })[space.value?.kind] || 'Espaço financeiro')
+const spaceKind = computed(() => ({ personal: 'Casa / pessoal', collective: 'Grupo / coletivo',
+  organization: 'Empresa / organização' })[space.value?.kind] || 'Espaço financeiro')
 const spaceRole = computed(() => roleNames[space.value?.role] || 'Participante')
 const selectedSpace = computed(() => spaces.value.find(s =>
-  Number(s.id) === Number(activeId.value))?.name ?? 'Selecione um espaço')
+  Number(s.id) === Number(activeId.value))?.name ?? 'Selecione uma área')
 const spaceOptions = computed(() => spaces.value.map(s => ({
   value: Number(s.id), label: s.name,
 })))
 const readyView = computed(() => (
   visibleView(activeTab.value)
-    ? activeTab.value
+    ? canonicalView(activeTab.value)
     : 'dashboard'
 ))
 const currentScreen = computed(() => screens[readyView.value] || DashboardView)
+const financeDirectionHint = ref(financeDirectionForView(
+  new URLSearchParams(window.location.search).get('view')))
+provide('lfFinanceDirectionHint', financeDirectionHint)
+// Shared commercial screen receives its context from the authorized route,
+// never from a self-supplied document ID or an untrusted URL.
+const invoiceKind = computed(() => financeDirectionHint.value === 'payable' ? 'bill' : 'invoice')
+provide('lfInvoiceKind', invoiceKind)
+const focusedInvoice = ref(null)
+provide('lfFocusedInvoice', focusedInvoice)
+const newDetailed = ref(false)
+provide('lfNewDetailed', newDetailed)
+const focusedObligation = ref(null)
+provide('lfFocusedObligation', focusedObligation)
 const activeLocation = computed(() => {
-  if (readyView.value === 'settings' || readyView.value === 'import') return 'Administração'
+  if (readyView.value === 'settings' || readyView.value === 'spaces' || readyView.value === 'import') return 'Gerenciar'
   const match = menuEntries(availableNav.value).find(item => item.id === readyView.value)
-  return match?.parent || (match?.section === 'FINANÇAS' ? 'Financeiro' : 'Ferramentas')
+  return match?.parent || match?.section || 'LibreFinance'
 })
 
-let pendingInitialView = new URLSearchParams(window.location.search).get('view')
+const initialQuery = new URLSearchParams(window.location.search)
+let pendingInitialView = canonicalView(initialQuery.get('view'), initialQuery.get('section'))
+const settingPanels = ['access', 'fields', 'paymentMethods', 'modules']
 function expandParent(view) {
   const id = parentOfView(availableNav.value, view)
   if (id !== null) setGroupOpen(id, true)
+  const target = menuEntries(availableNav.value).find(item => item.id === view)
+  if (target?.group) changeSubgroup(target.group, true)
 }
-function navigate(view) {
+function navigate(view, options = {}) {
   if (!screens[view] || !visibleView(view)) return
+  // An explicit entity identifies which existing form definition to edit;
+  // no second editor or new writable endpoint is introduced.
+  if (view === 'fields') {
+    fieldStudioEntity.value = fieldEntityKind(options.entityKind || 'company')
+  }
+  if (canonicalView(view) === 'finance'
+    || (canonicalView(view) === 'documents' && (view !== 'documents' || !options.preserveDirection))) {
+    financeDirectionHint.value = financeDirectionForView(view)
+  }
+  view = canonicalView(view)
   expandParent(view)
   clearSearch()
   pendingInitialView = null
@@ -199,7 +274,11 @@ function navigate(view) {
   activeTab.value = view
   const url = new URL(window.location.href)
   url.searchParams.set('view', view)
-  if (view !== 'settings') url.searchParams.delete('section')
+  url.searchParams.delete('section')
+  url.searchParams.delete('search')
+  urlSearchTerm.value = ''
+  if (view === 'fields') url.searchParams.set('entity', fieldStudioEntity.value)
+  else url.searchParams.delete('entity')
   if (activeId.value) url.searchParams.set('spaceId', String(activeId.value))
   window.history.pushState(null, '', url.pathname + url.search)
 }
@@ -207,6 +286,9 @@ provide('lfNavigate', navigate)
 function selectSpace(id) {
   if (!spaces.value.some(s => Number(s.id) === Number(id))) return
   activeId.value = Number(id)
+  focusedInvoice.value = null
+  focusedObligation.value = null
+  newDetailed.value = false
   clearSearch()
   openGroups.value = {}
   pendingInitialView = null
@@ -214,6 +296,8 @@ function selectSpace(id) {
   const url = new URL(window.location.href)
   url.searchParams.set('spaceId', String(Number(id)))
   url.searchParams.set('view', 'dashboard')
+  url.searchParams.delete('search')
+  urlSearchTerm.value = ''
   window.history.pushState(null, '', url.pathname + url.search)
 }
 function openEntry() {
@@ -221,26 +305,23 @@ function openEntry() {
   navigate('transactions')
   quickEntry.value = true
 }
-async function saveSpace(event) {
-  event?.preventDefault()
-  if (!spaceName.value.trim()) return
-  await createSpace()
-  if (!error.value) {
-    showSpaceDialog.value = false
-    // The selected space and first-use guidance already confirm creation.
-    // Avoid stacking a large success banner above the dashboard.
-    message.value = ''
-  }
-}
+
 function onHistoryChange() {
   const values = new URLSearchParams(window.location.search)
   const destinationSpace = Number(values.get('spaceId'))
-  const destinationView = values.get('view')
+  const destinationView = canonicalView(values.get('view'), values.get('section'))
+  urlSearchTerm.value = values.get('search') || ''
+  if (destinationView === 'fields') {
+    fieldStudioEntity.value = fieldEntityKind(values.get('entity'))
+  }
   if (Number.isSafeInteger(destinationSpace) && spaces.value.some(s =>
     Number(s.id) === destinationSpace)) {
     activeId.value = destinationSpace
   }
   pendingInitialView = destinationView
+  if (destinationView === 'finance' || values.get('view') !== 'documents') {
+    financeDirectionHint.value = financeDirectionForView(values.get('view'))
+  }
   if (visibleView(destinationView)
     && modulesLoadedFor.value === Number(activeId.value)) {
     // A browser back/forward event must not create a new history entry.
@@ -281,11 +362,21 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         <div class="lf-product-lockup">
           <span class="lf-product-symbol" aria-hidden="true"><NcIconSvgWrapper :path="mdiChartLine" :size="22" /></span>
           <div><p class="lf-product-name">LibreFinance</p>
-            <p class="lf-muted">Finanças pessoais e de organizações</p></div>
+            <p class="lf-muted">{{space?.kind==='personal'
+              ? 'Finanças da casa' : 'Finanças pessoais e de organizações'}}</p></div>
         </div>
-        <LfSelect id="lf-space-select" :model-value="activeId"
-          :options="spaceOptions" label="Gerenciar finanças de"
-          placeholder="Selecione sua gestão financeira" @update:model-value="selectSpace" />
+        <LfSelect v-if="spaceOptions.length > 1" id="lf-space-select"
+          :model-value="activeId" :options="spaceOptions"
+          label="Área financeira atual" placeholder="Escolha uma área"
+          @update:model-value="selectSpace" />
+        <p v-else-if="space" class="lf-space-current" aria-label="Área financeira atual">
+          <strong>{{selectedSpace}}</strong>
+        </p>
+        <NcButton v-if="space" class="lf-manage-spaces-link" size="small"
+          variant="tertiary" @click="navigate('spaces')">
+          <template #icon><NcIconSvgWrapper :path="mdiFolderAccountOutline" :size="18" /></template>
+          Gerenciar áreas financeiras
+        </NcButton>
         <p v-if="space" class="lf-space-meta">
           <span>{{ spaceKind }}</span><span aria-hidden="true">·</span>
           <span>{{ space.currency }}</span><span aria-hidden="true">·</span>
@@ -324,10 +415,18 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
                   :active="groupHasActive(item)" @click="onNavGroupClick($event, item.id)"
                   @update:open="setGroupOpen(item.id, $event)">
                   <template #icon><NcIconSvgWrapper :path="icons[item.icon]" :size="20" /></template>
-                  <NcAppNavigationItem v-for="child in item.children" :key="child.id"
-                    :name="labels[child.id]" :href="viewHref(child.id)"
-                    :active="readyView === child.id" @click="onNavClick($event, child.id)">
-                    <template #icon><NcIconSvgWrapper :path="icons[child.icon]" :size="18" /></template>
+                  <NcAppNavigationItem v-for="subgroup in groupedChildren(item)"
+                    :key="subgroup.name" class="lf-native-management-group"
+                    :name="subgroup.name" :allow-collapse="true"
+                    :open="subgroupOpen(subgroup.name, item)"
+                    :active="subgroup.children.some(child => child.id === readyView)"
+                    @click.prevent="changeSubgroup(subgroup.name, !subgroupOpen(subgroup.name, item))"
+                    @update:open="changeSubgroup(subgroup.name, $event)">
+                    <NcAppNavigationItem v-for="child in subgroup.children" :key="child.id"
+                      :name="labels[child.id]" :href="viewHref(child.id)"
+                      :active="readyView === child.id" @click="onNavClick($event, child.id)">
+                      <template #icon><NcIconSvgWrapper :path="icons[child.icon]" :size="18" /></template>
+                    </NcAppNavigationItem>
                   </NcAppNavigationItem>
                 </NcAppNavigationItem>
                 <NcAppNavigationItem v-else :name="labels[item.id]" :href="viewHref(item.id)"
@@ -339,21 +438,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
           </template>
         </NcAppNavigationList>
       </template>
-      <template #footer>
-        <div class="lf-nav-footer lf-navigation-tools">
-          <button v-if="manager" class="lf-footer-nav-button" type="button"
-            :class="{ 'lf-footer-nav-button--active': readyView === 'settings' || readyView === 'import' }"
-            :aria-current="readyView === 'settings' || readyView === 'import' ? 'page' : undefined"
-            @click="navigate('settings')">
-            <NcIconSvgWrapper :path="mdiCogOutline" :size="20" aria-hidden="true" />
-            <span>Configurações</span>
-          </button>
-          <button type="button" class="lf-footer-nav-button" @click="showSpaceDialog = true">
-            <NcIconSvgWrapper :path="mdiPlus" :size="20" aria-hidden="true" />
-            <span>Nova gestão financeira</span>
-          </button>
-        </div>
-      </template>
+
     </NcAppNavigation>
 
     <NcAppContent>
@@ -366,9 +451,9 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
           </div>
           <div class="lf-context-actions">
             <span class="lf-context-currency">{{ space.currency }}</span>
-            <NcButton v-if="writable && readyView !== 'transactions'" variant="primary" @click="openEntry">
+            <NcButton v-if="writable && readyView === 'dashboard'" variant="primary" @click="openEntry">
               <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-              Novo lançamento
+              Registrar entrada ou saída
             </NcButton>
             <NcButton variant="tertiary" aria-label="Atualizar dados"
               :disabled="busy" @click="refreshCurrent">
@@ -379,11 +464,12 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         <NcNoteCard v-if="error" type="error" role="alert">{{ error }}</NcNoteCard>
         <NcNoteCard v-if="message" type="success" role="status">{{ message }}</NcNoteCard>
 
-        <NcEmptyContent v-if="!space" name="Comece a organizar suas finanças"
-          description="Gerencie suas finanças pessoais ou as de um coletivo ou organização, com os acessos separados.">
+        <component :is="SpacesView" v-if="!space && readyView==='spaces'" />
+        <NcEmptyContent v-else-if="!space" name="Comece a organizar suas finanças"
+          description="Crie uma gestão financeira ou restaure uma gestão arquivada.">
           <template #action>
-            <NcButton variant="primary" @click="showSpaceDialog = true">
-              Criar gestão financeira
+            <NcButton variant="primary" @click="navigate('spaces')">
+              Gerenciar áreas financeiras
             </NcButton>
           </template>
         </NcEmptyContent>
@@ -391,29 +477,22 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
           <NcLoadingIcon :size="44" />
           <p>Carregando dados financeiros…</p>
         </div>
-        <component :is="currentScreen" v-else :key="activeId + ':' + readyView" />
+        <SettingsView v-else-if="settingPanels.includes(readyView)"
+          :key="activeId + ':' + readyView" :section-key="readyView" />
+        <div v-else-if="readyView === 'data' && !migrationAvailable" class="lf-view">
+          <NcEmptyContent name="Importação indisponível"
+            description="Ative o módulo de importação em Recursos instalados para migrar dados de outra solução.">
+            <template #action>
+              <NcButton variant="primary" @click="navigate('modules')">Ver recursos instalados</NcButton>
+            </template>
+          </NcEmptyContent>
+        </div>
+        <component :is="currentScreen" v-else
+          :key="activeId + ':' + readyView + ':' + urlSearchTerm"
+          v-bind="['finance', 'documents'].includes(readyView) ? { section: readyView } : {}" />
       </div>
     </NcAppContent>
 
-    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="showSpaceDialog" name="Criar gestão financeira"
-      @update:open="showSpaceDialog = $event">
-      <form class="lf-dialog-form" @submit.prevent="saveSpace">
-        <p>Crie uma gestão para suas finanças pessoais, de um grupo ou organização. Cada gestão tem contas, lançamentos e permissões independentes.</p>
-        <NcTextField v-model="spaceName" label="Nome desta gestão financeira" :required="true"
-          maxlength="150" placeholder="Ex.: Minhas finanças" />
-        <LfSelect id="lf-new-space-kind" v-model="kind" label="Quem vai administrar estas finanças?"
-          :options="[
-            { value: 'personal', label: 'Pessoal' },
-            { value: 'collective', label: 'Coletivo' },
-            { value: 'organization', label: 'Organização' },
-          ]" />
-        <div class="lf-form-actions">
-          <NcButton variant="tertiary" @click="showSpaceDialog = false">Cancelar</NcButton>
-          <NcButton type="submit" variant="primary" :disabled="busy || !spaceName.trim()">
-            Criar gestão
-          </NcButton>
-        </div>
-      </form>
-    </NcDialog>
+
   </NcContent>
 </template>

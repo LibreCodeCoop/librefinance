@@ -18,10 +18,7 @@ const workspace = inject('lfWorkspace')
 const { activeId, manager } = workspace
 const navigate = inject('lfNavigate')
 function backToSettings() {
-  navigate('settings')
-  const url = new URL(window.location.href)
-  url.searchParams.set('section', 'data')
-  window.history.replaceState(null, '', url.pathname + url.search)
+  navigate('modules')
 }
 const kinds = [
   { id:'catalog', title:'Cadastros e contas', detail:'Empresa, pessoas, categorias e contas financeiras',
@@ -181,7 +178,7 @@ onBeforeUnmount(() => { ++generation })
   <div class="lf-view">
     <LfPageHeader title="Migração e conferência" eyebrow="CONFIGURAÇÕES / DADOS"
       description="Importe em etapas e compare a origem com os registros persistidos no Nextcloud.">
-      <template #actions><NcButton variant="secondary" @click="backToSettings">Voltar às configurações</NcButton></template>
+      <template #actions><NcButton variant="secondary" @click="backToSettings">Voltar aos recursos</NcButton></template>
     </LfPageHeader>
     <NcNoteCard type="warning">
       Importe somente dados normalizados de empresas autorizadas e revise cada

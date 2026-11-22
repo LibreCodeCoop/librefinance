@@ -248,11 +248,11 @@ assert_integration_complete() {
 
 if [ "$(printenv LF_BROWSER_DEBUG_ONLY || echo 0)" != 1 ]; then
 # Run native PHP integration suites inside the same Nextcloud PHP runtime.
-for script in basic advanced catalog categories companies custom-fields ux-enhancements company-logo payment-methods; do
+for script in basic personal-finance agenda-search-sort spaces advanced catalog categories companies custom-fields ux-enhancements company-logo payment-methods; do
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/$script.php"
 done
 echo "PASS: Native PHP authorization, ledger, group access and concurrency tests on Nextcloud Server master."
-for domain_test in banking obligations invoicing reports-cash-flow reports-saved import; do
+for domain_test in banking obligations invoicing payments reports-cash-flow reports-saved import; do
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/domains/$domain_test.php"
 done
 echo "PASS: Native banking, obligations, invoicing, reporting and core-import integration suites."

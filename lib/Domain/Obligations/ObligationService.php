@@ -24,7 +24,9 @@ final class ObligationService {
     ) {}
 
     /** @return array<string,mixed> */
-    public function list(int $spaceId, int $afterId = 0, string $status = 'all'): array {
+    public function list(int $spaceId, int $afterId = 0, string $status = 'all',
+        string $kind = 'all', string $dueRange = 'all', string $search = '',
+        string $sortBy = 'id', string $sortDirection = 'asc'): array {
         $this->finance->requireModule($spaceId, self::MODULE);
         if ($afterId < 0) {
             throw new DomainException('invalid_cursor');
@@ -32,16 +34,91 @@ final class ObligationService {
         if (!in_array($status, ['all', 'open', 'partial', 'settled', 'cancelled'], true)) {
             throw new DomainException('invalid_status');
         }
+        if (!in_array($kind, ['all', 'payable', 'receivable'], true)) {
+            throw new DomainException('invalid_kind');
+        }
+        if (!in_array($dueRange, ['all', 'overdue', 'next7'], true)) {
+            throw new DomainException('invalid_due_range');
+        }
+        // Use a whitelist of real columns, never user supplied SQL identifiers.
+        $columns = [
+            'id' => 'id', 'due' => 'due_on', 'description' => 'description',
+            'amount' => 'amount_minor', 'reference' => 'reference',
+        ];
+        if (!isset($columns[$sortBy]) || !in_array($sortDirection, ['asc', 'desc'], true)) {
+            throw new DomainException('invalid_sort');
+        }
+        if (mb_strlen($search) > 120) {
+            throw new DomainException('invalid_search');
+        }
+        $column = $columns[$sortBy];
+        $sort = strtoupper($sortDirection);
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'kind', 'description', 'reference', 'contact_id',
             'amount_minor', 'paid_minor', 'currency', 'issued_on', 'due_on', 'status', 'version')
             ->from('lfob_obligations')
             ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
-            ->andWhere($q->expr()->gt('id', $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)))
-            ->orderBy('id', 'ASC')
+            ->orderBy($column, $sort)
             ->setMaxResults(51);
+        if ($column !== 'id') {
+            $q->addOrderBy('id', $sort);
+        }
+        // Continuation is resolved from the last row ID, not by shifting
+        // offsets. This remains stable across several sorted pages with ties.
+        if ($afterId > 0) {
+            if ($column === 'id') {
+                $comparison = $sort === 'ASC' ? 'gt' : 'lt';
+                $q->andWhere($q->expr()->{$comparison}('id',
+                    $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)));
+            } else {
+                $anchor = $this->db->getQueryBuilder();
+                $anchor->select($column)->from('lfob_obligations')
+                    ->where($anchor->expr()->eq('space_id',
+                        $anchor->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                    ->andWhere($anchor->expr()->eq('id',
+                        $anchor->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)));
+                $marker = $anchor->executeQuery()->fetchOne();
+                if ($marker === false) throw new DomainException('invalid_cursor');
+                $markerType = $column === 'amount_minor'
+                    ? IQueryBuilder::PARAM_INT : IQueryBuilder::PARAM_STR;
+                $comparison = $sort === 'ASC' ? 'gt' : 'lt';
+                $q->andWhere($q->expr()->orX(
+                    $q->expr()->{$comparison}($column, $q->createNamedParameter($marker, $markerType)),
+                    $q->expr()->andX(
+                        $q->expr()->eq($column, $q->createNamedParameter($marker, $markerType)),
+                        $q->expr()->{$comparison}('id', $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)),
+                    ),
+                ));
+            }
+        }
+        $needle = trim($search);
+        if ($needle !== '') {
+            $pattern = $q->createNamedParameter('%' . $this->db->escapeLikeParameter($needle) . '%');
+            $q->andWhere($q->expr()->orX(
+                $q->expr()->iLike('description', $pattern),
+                $q->expr()->iLike('reference', $pattern),
+            ));
+        }
         if ($status !== 'all') {
             $q->andWhere($q->expr()->eq('status', $q->createNamedParameter($status)));
+        }
+        // Authorization and flow kind are resolved in SQL before keyset paging.
+        if ($kind !== 'all') {
+            $q->andWhere($q->expr()->eq('kind', $q->createNamedParameter($kind)));
+        }
+        // Apply time filters before keyset pagination, never to the current page.
+        if ($dueRange !== 'all') {
+            $q->andWhere($q->expr()->in('status', $q->createNamedParameter(
+                ['open', 'partial'], IQueryBuilder::PARAM_STR_ARRAY)));
+            $today = (new \DateTimeImmutable('today', new \DateTimeZone('UTC')))
+                ->format('Y-m-d');
+            if ($dueRange === 'overdue') {
+                $q->andWhere($q->expr()->lt('due_on', $q->createNamedParameter($today)));
+            } else {
+                $through = (new \DateTimeImmutable($today))->modify('+7 days')->format('Y-m-d');
+                $q->andWhere($q->expr()->gte('due_on', $q->createNamedParameter($today)))
+                    ->andWhere($q->expr()->lte('due_on', $q->createNamedParameter($through)));
+            }
         }
         $rows = $q->executeQuery()->fetchAllAssociative();
         $hasMore = count($rows) > 50;
@@ -63,11 +140,60 @@ final class ObligationService {
                 $links[(int)$link['obligation_id']] = (int)$link['invoice_id'];
             }
         }
+        $ledgerPaid = $this->ledgerPaidByIds($spaceId, array_map(
+            static fn(array $row): int => (int)$row['id'], $rows));
         foreach ($rows as &$row) {
             $row['linkedInvoiceId'] = $links[(int)$row['id']] ?? null;
+            $row['ledgerPaidMinor'] = $ledgerPaid[(int)$row['id']] ?? 0;
+            $row['administrativePaidMinor'] = (int)$row['paid_minor'] - $row['ledgerPaidMinor'];
         }
         unset($row);
         return ['obligations' => $rows, 'nextAfterId' => $hasMore ? (int)end($rows)['id'] : null];
+    }
+
+    /** @return array<string,mixed> */
+    public function show(int $spaceId, int $id): array {
+        $this->finance->requireModule($spaceId, self::MODULE);
+        if ($id < 1) {
+            throw new DomainException('obligation_not_found');
+        }
+        $row = $this->find($spaceId, $id);
+        if ($row === null) {
+            throw new DomainException('obligation_not_found');
+        }
+        $row = self::cast($row);
+        $row['linkedInvoiceId'] = $this->invoiceIdForObligation($spaceId, $id);
+        $ledgerPaid = $this->ledgerPaidByIds($spaceId, [$id]);
+        $row['ledgerPaidMinor'] = $ledgerPaid[$id] ?? 0;
+        $row['administrativePaidMinor'] = (int)$row['paid_minor'] - $row['ledgerPaidMinor'];
+        return ['obligation' => $row];
+    }
+
+    /**
+     * Sum only journal-backed installments. A paid title is NOT necessarily
+     * an accounted cash receipt; administrative and ledger-backed payments
+     * must be distinguishable in every financial view. Bounded by page IDs.
+     *
+     * @param list<int> $ids
+     * @return array<int,int>
+     */
+    private function ledgerPaidByIds(int $spaceId, array $ids): array {
+        if ($ids === []) return [];
+        $q = $this->db->getQueryBuilder();
+        $q->select('obligation_id')
+            ->selectAlias($q->createFunction('SUM(amount_minor)'), 'paid_minor')
+            ->from('lfob_settlements')
+            ->where($q->expr()->eq('space_id',
+                $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->in('obligation_id',
+                $q->createNamedParameter($ids, IQueryBuilder::PARAM_INT_ARRAY)))
+            ->andWhere($q->expr()->isNotNull('journal_id'))
+            ->groupBy('obligation_id');
+        $amounts = [];
+        foreach ($q->executeQuery()->fetchAllAssociative() as $row) {
+            $amounts[(int)$row['obligation_id']] = (int)$row['paid_minor'];
+        }
+        return $amounts;
     }
 
     /** @return array<string,mixed> */
@@ -214,6 +340,68 @@ final class ObligationService {
                     return ['id' => (int)$prior['id'], 'replayed' => true];
                 }
             }
+            throw $e;
+        }
+    }
+
+    /**
+     * Settle a standalone obligation with a posted journal in the same SQL
+     * transaction. The caller owns the outer payment+ledger transaction;
+     * this method never creates a second bank or accounting movement.
+     *
+     * @return array<string,mixed>
+     */
+    public function settleWithJournal(int $spaceId, int $id, int $amountMinor,
+        string $paidOn, string $operationKey, int $journalId, int $bankId): array {
+        $this->finance->requireModule($spaceId, self::MODULE, 'operator');
+        if ($journalId < 1 || $bankId < 1) {
+            throw new DomainException('invalid_payment');
+        }
+        $this->db->beginTransaction();
+        try {
+            $obligation = $this->find($spaceId, $id);
+            if ($obligation === null) {
+                throw new DomainException('obligation_not_found');
+            }
+            if ($this->invoiceIdForObligation($spaceId, $id) !== null) {
+                throw new DomainException('invoice_payment_via_allocation');
+            }
+            $signed = $obligation['kind'] === 'receivable' ? $amountMinor : -$amountMinor;
+            $this->finance->journalContainsBankPosting($spaceId, self::MODULE,
+                $bankId, $journalId, $signed);
+            $result = $this->settle($spaceId, $id, $amountMinor, $paidOn,
+                $operationKey, 'Bank journal linked to standalone obligation');
+            if (($result['replayed'] ?? false) === true) {
+                $q = $this->db->getQueryBuilder();
+                $q->select('journal_id')->from('lfob_settlements')
+                    ->where($q->expr()->eq('space_id',
+                        $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                    ->andWhere($q->expr()->eq('id',
+                        $q->createNamedParameter((int)$result['id'], IQueryBuilder::PARAM_INT)));
+                if ((int)$q->executeQuery()->fetchOne() !== $journalId) {
+                    throw new DomainException('idempotency_conflict');
+                }
+                $this->db->commit();
+                return $result;
+            }
+            $this->finance->claimJournal($spaceId, self::MODULE, $journalId,
+                'obligation:' . $id);
+            $q = $this->db->getQueryBuilder();
+            $changed = $q->update('lfob_settlements')
+                ->set('journal_id', $q->createNamedParameter($journalId, IQueryBuilder::PARAM_INT))
+                ->where($q->expr()->eq('space_id',
+                    $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('id',
+                    $q->createNamedParameter((int)$result['id'], IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->isNull('journal_id'))->executeStatement();
+            if ($changed !== 1) {
+                throw new DomainException('concurrent_change');
+            }
+            $this->audit($spaceId, $id, 'obligation.journal_settlement');
+            $this->db->commit();
+            return $result;
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
             throw $e;
         }
     }

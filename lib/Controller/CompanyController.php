@@ -20,18 +20,18 @@ final class CompanyController extends ApiController {
 
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/companies')]
-    public function index(int $spaceId, int $afterId = 0): JSONResponse {
-        return $this->respond(fn(): array => $this->companies->list($spaceId, $afterId));
+    public function index(int $spaceId, int $afterId = 0, string $search = ''): JSONResponse {
+        return $this->respond(fn(): array => $this->companies->list($spaceId, $afterId, $search));
     }
 
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/companies')]
     public function create(int $spaceId, string $legalName, string $country = 'BR', ?string $taxId = null,
         ?string $tradeName = null, ?string $municipalRegistration = null,
-        ?string $stateRegistration = null, array $customFields = []): JSONResponse {
+        ?string $stateRegistration = null, array $customFields = [], array $profile = []): JSONResponse {
         return $this->respond(fn(): array => $this->companies->create($spaceId,
             $legalName, $country, $taxId, $tradeName,
-            $municipalRegistration, $stateRegistration, $customFields), 201);
+            $municipalRegistration, $stateRegistration, $customFields, $profile), 201);
     }
 
     #[NoAdminRequired]
@@ -39,9 +39,9 @@ final class CompanyController extends ApiController {
     public function update(int $spaceId, int $companyId, string $legalName,
         string $country = 'BR', ?string $taxId = null, ?string $tradeName = null,
         ?string $municipalRegistration = null, ?string $stateRegistration = null,
-        bool $active = true, array $customFields = []): JSONResponse {
+        bool $active = true, array $customFields = [], array $profile = []): JSONResponse {
         return $this->respond(fn(): array => $this->companies->update($spaceId,
             $companyId, $legalName, $country, $taxId, $tradeName,
-            $municipalRegistration, $stateRegistration, $active, $customFields));
+            $municipalRegistration, $stateRegistration, $active, $customFields, $profile));
     }
 }

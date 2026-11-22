@@ -22,8 +22,8 @@ final class ContactController extends ApiController {
 
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/contacts')]
-    public function index(int $spaceId, int $afterId = 0): JSONResponse {
-        return $this->respond(fn(): array => $this->catalog->contacts($spaceId, $afterId));
+    public function index(int $spaceId, int $afterId = 0, string $search = ''): JSONResponse {
+        return $this->respond(fn(): array => $this->catalog->contacts($spaceId, $afterId, $search));
     }
 
     #[NoAdminRequired]

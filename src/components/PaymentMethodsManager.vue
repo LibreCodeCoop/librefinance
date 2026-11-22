@@ -8,6 +8,13 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
+import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import NcActions from '@nextcloud/vue/components/NcActions'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import { mdiPlus, mdiPencilOutline, mdiDeleteOutline } from '@mdi/js'
+import LfSortableHeader from './LfSortableHeader.vue'
+import { useLoadedSort } from '../composables/useLoadedSort.js'
 import LfSelect from './LfSelect.vue'
 import { financeApi, financeError } from '../services/api.js'
 const w = inject('lfWorkspace')
@@ -27,6 +34,11 @@ const bankAccounts = computed(() => [
     .map(a => ({ value:a.id, label:a.name })),
 ])
 const methods = ref([])
+const sort = useLoadedSort('name')
+const orderedMethods = computed(() => sort.order(methods.value, {
+  kind: method => kinds.find(kind => kind.value === method.kind)?.label || method.kind,
+  bank: method => accounts.value.find(account => account.id === method.bank_account_id)?.name || '',
+}))
 const afterId = ref(null)
 const loading = ref(false)
 const problem = ref('')
@@ -87,40 +99,62 @@ async function remove() {
 </script>
 <template>
   <div class="lf-payment-settings">
-    <div class="lf-section-heading"><div>
-      <h2>Formas de pagamento</h2>
-      <p>Identifique como as movimentações foram pagas ou recebidas, sem confundir isso com sua conta contábil.</p>
+    <div class="lf-section-heading lf-payment-toolbar">
+      <p v-if="methods.length" class="lf-muted">
+        Modalidades usadas na classificação de lançamentos. Não representam integração com provedores.
+      </p>
+      <NcButton v-if="manager" variant="primary" :disabled="loading" @click="begin()">
+        <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
+        Nova forma de pagamento
+      </NcButton>
     </div>
-      <NcButton v-if="manager" variant="primary" @click="begin()">Nova forma de pagamento</NcButton>
-    </div>
-    <NcNoteCard type="info">
-      Estes cadastros classificam pagamentos manuais. Criar uma opção chamada Stripe,
-      PayPal ou Sicoob <strong>não conecta esses serviços</strong>, não movimenta dinheiro
-      e não habilita sincronização automática.
+    <NcNoteCard v-if="methods.length" type="info">
+      Formas de pagamento cadastradas não movimentam dinheiro nem habilitam integração
+      automática com bancos, cartões ou provedores.
     </NcNoteCard>
     <NcNoteCard v-if="problem && !dialog" type="error" role="alert">{{ problem }}</NcNoteCard>
-    <div class="lf-table-scroll">
+    <div v-if="loading && !methods.length" class="lf-loading" role="status">
+      <NcLoadingIcon :size="36" /> Carregando formas de pagamento…
+    </div>
+    <NcEmptyContent v-else-if="!methods.length" name="Nenhuma forma de pagamento cadastrada"
+      description="Use Nova forma de pagamento para registrar uma modalidade de pagamento ou recebimento." />
+    <div v-else class="lf-table-scroll">
       <table class="lf-data-table">
-        <thead><tr><th>Nome</th><th>Tipo</th><th>Conta associada</th><th>Situação</th>
+        <thead><tr>
+          <th v-for="col in [
+            {key:'name',label:'Nome'}, {key:'kind',label:'Tipo'},
+            {key:'bank',label:'Conta associada'}, {key:'active',label:'Situação'}]"
+            :key="col.key" :aria-sort="sort.ariaSort(col.key)">
+            <LfSortableHeader :label="col.label" :column="col.key"
+              :active-column="sort.column.value" :direction="sort.direction.value"
+              scope="loaded" @sort="sort.sort" />
+          </th>
           <th v-if="manager">Ações</th></tr></thead>
-        <tbody><tr v-for="method in methods" :key="method.id">
+        <tbody><tr v-for="method in orderedMethods" :key="method.id">
           <td><strong>{{ method.name }}</strong></td>
           <td>{{ kinds.find(k => k.value === method.kind)?.label }}</td>
           <td>{{ accounts.find(a => a.id === method.bank_account_id)?.name || 'Nenhuma' }}</td>
           <td>{{ method.active ? 'Ativa' : 'Desativada' }}</td>
-          <td v-if="manager"><div class="lf-row-actions">
-            <NcButton variant="tertiary" :aria-label="'Editar forma ' + method.name"
-              @click="begin(method)">Editar</NcButton>
-            <NcButton variant="tertiary" :aria-label="'Excluir forma ' + method.name"
-              @click="problem=''; removeTarget=method">Excluir</NcButton>
-          </div></td>
+          <td v-if="manager">
+            <NcActions :aria-label="'Ações da forma ' + method.name" :force-menu="true">
+              <NcActionButton close-after-click @click="begin(method)">
+                <template #icon><NcIconSvgWrapper :path="mdiPencilOutline" :size="20" /></template>
+                Editar
+              </NcActionButton>
+              <NcActionButton close-after-click @click="problem=''; removeTarget=method">
+                <template #icon><NcIconSvgWrapper :path="mdiDeleteOutline" :size="20" /></template>
+                Excluir
+              </NcActionButton>
+            </NcActions>
+          </td>
         </tr></tbody>
       </table>
-      <NcEmptyContent v-if="!methods.length && !loading" name="Nenhuma forma de pagamento"
-        description="Cadastre dinheiro, transferência ou outra modalidade utilizada por esta gestão." />
-      <NcButton v-if="afterId" variant="tertiary" :disabled="loading"
-        @click="load(afterId)">Carregar mais formas</NcButton>
     </div>
+    <p v-if="methods.length && afterId && sort.column.value" class="lf-muted">
+      A ordenação considera apenas os registros carregados.
+    </p>
+    <NcButton v-if="methods.length && afterId" variant="tertiary" :disabled="loading"
+      @click="load(afterId)">Carregar mais formas</NcButton>
     <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="dialog"
       :name="draft.id ? 'Editar forma de pagamento' : 'Criar forma de pagamento'"
       @update:open="dialog=$event">
