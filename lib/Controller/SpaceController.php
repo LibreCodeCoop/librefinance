@@ -33,8 +33,9 @@ final class SpaceController extends ApiController {
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/spaces')]
-    public function create(string $name, string $kind = 'personal', string $currency = 'BRL'): JSONResponse {
-        return $this->respond(fn() => $this->spaces->create($name, $kind, $currency), 201);
+    public function create(string $name, string $kind = 'personal', string $currency = 'BRL',
+        string $color = '#64748B'): JSONResponse {
+        return $this->respond(fn() => $this->spaces->create($name, $kind, $currency, $color), 201);
     }
 
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
@@ -45,8 +46,8 @@ final class SpaceController extends ApiController {
 
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
     #[FrontpageRoute(verb: 'PUT', url: '/api/spaces/{spaceId}')]
-    public function rename(int $spaceId, string $name): JSONResponse {
-        return $this->respond(fn() => $this->spaces->rename($spaceId, $name));
+    public function rename(int $spaceId, string $name, ?string $color = null): JSONResponse {
+        return $this->respond(fn() => $this->spaces->rename($spaceId, $name, $color));
     }
 
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]

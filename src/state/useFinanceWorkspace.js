@@ -26,7 +26,7 @@ const companyMunicipal = ref('')
 const companyState = ref('')
 const blankCompanyProfile = () => ({
   contactEmail: '', contactPhone: '', website: '', addressLine1: '',
-  addressLine2: '', city: '', region: '', postalCode: '',
+  addressLine2: '', city: '', region: '', postalCode: '', brandColor: '#64748B',
 })
 const companyProfile = ref(blankCompanyProfile())
 const companyActive = ref(true)
@@ -283,6 +283,7 @@ function editCompany(company) {
     city: company.city || '',
     region: company.region || '',
     postalCode: company.postal_code || '',
+    brandColor: company.brand_color || '#64748B',
   }
   companyActive.value = company.active
   activeTab.value = 'companies'

@@ -30,7 +30,7 @@ final class SpaceService {
     }
 
     /** @return array<string,mixed> */
-    public function create(string $name, string $kind, string $currency): array {
+    public function create(string $name, string $kind, string $currency, string $color = '#64748B'): array {
         $uid = $this->access->uid();
         $name = trim($name);
         $currency = strtoupper(trim($currency));
@@ -40,6 +40,7 @@ final class SpaceService {
         if (!in_array($kind, ['personal', 'collective', 'organization'], true)) {
             throw new DomainException('invalid_space_kind');
         }
+        self::validateColor($color);
         if ($currency !== 'BRL') {
             throw new DomainException('invalid_currency');
         }
@@ -53,6 +54,7 @@ final class SpaceService {
                 'owner_uid' => $uid,
                 'created_at' => time(),
                 'archived' => 0,
+                'accent_color' => strtoupper($color),
             ]);
             $spaceId = $this->db->lastInsertId('*PREFIX*lf_spaces');
             $this->writer->insert('lf_members', ['space_id' => $spaceId, 'uid' => $uid, 'role' => 'owner']);
@@ -78,10 +80,16 @@ final class SpaceService {
             }
             $this->audit($spaceId, 'space.created', 'space', $spaceId);
             $this->db->commit();
-            return ['id' => $spaceId, 'name' => $name, 'kind' => $kind, 'currency' => $currency, 'role' => 'owner'];
+            return ['id' => $spaceId, 'name' => $name, 'kind' => $kind, 'currency' => $currency, 'accent_color' => strtoupper($color), 'role' => 'owner'];
         } catch (\Throwable $e) {
             $this->db->rollBack();
             throw $e;
+        }
+    }
+
+    private static function validateColor(string $color): void {
+        if (preg_match('/^#[0-9A-Fa-f]{6}$/D', $color) !== 1) {
+            throw new DomainException('invalid_space_color');
         }
     }
 
@@ -105,26 +113,32 @@ final class SpaceService {
     }
 
     /** @return array<string,mixed> */
-    public function rename(int $spaceId, string $name): array {
+    public function rename(int $spaceId, string $name, ?string $color = null): array {
         $name = trim($name);
         if ($name === '' || mb_strlen($name) > 150) {
             throw new DomainException('invalid_name');
         }
+        if ($color !== null) self::validateColor($color);
         $this->db->beginTransaction();
         try {
             $record = $this->owned($spaceId);
             if ((bool)$record['archived']) {
                 throw new DomainException('space_archived');
             }
-            if ((string)$record['name'] === $name) {
+            if ((string)$record['name'] === $name &&
+                ($color === null || strtoupper((string)$record['accent_color']) === strtoupper($color))) {
                 // MariaDB reports zero changed rows for an unchanged value.
                 // A harmless retry of a rename must not be a conflict.
                 $this->db->commit();
-                return ['id' => $spaceId, 'name' => $name, 'archived' => false];
+                return ['id' => $spaceId, 'name' => $name,
+                    'accent_color' => $record['accent_color'], 'archived' => false];
             }
             $q = $this->db->getQueryBuilder();
-            $changed = $q->update('lf_spaces')
-                ->set('name', $q->createNamedParameter($name))
+            $q->update('lf_spaces')->set('name', $q->createNamedParameter($name));
+            if ($color !== null) {
+                $q->set('accent_color', $q->createNamedParameter(strtoupper($color)));
+            }
+            $changed = $q
                 ->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
                 ->andWhere($q->expr()->eq('owner_uid',
                     $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)))
@@ -136,7 +150,9 @@ final class SpaceService {
             }
             $this->audit($spaceId, 'space.renamed', 'space', $spaceId);
             $this->db->commit();
-            return ['id' => $spaceId, 'name' => $name, 'archived' => false];
+            return ['id' => $spaceId, 'name' => $name,
+                'accent_color' => $color === null ? $record['accent_color'] : strtoupper($color),
+                'archived' => false];
         } catch (\Throwable $e) {
             $this->db->rollBack();
             throw $e;
@@ -191,7 +207,7 @@ final class SpaceService {
             throw new DomainException('space_not_found');
         }
         $q = $this->db->getQueryBuilder();
-        $q->select('id', 'name', 'archived')->from('lf_spaces')
+        $q->select('id', 'name', 'archived', 'accent_color')->from('lf_spaces')
             ->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
             ->andWhere($q->expr()->eq('owner_uid',
                 $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)));

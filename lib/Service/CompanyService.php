@@ -30,7 +30,7 @@ final class CompanyService {
         $q = $this->db->getQueryBuilder();
         $q->select('id','legal_name','trade_name','country','tax_id',
             'municipal_registration','state_registration','logo_version','active','created_at','updated_at',
-            'contact_email','contact_phone','website','address_line1','address_line2','city','region','postal_code')
+            'contact_email','contact_phone','website','address_line1','address_line2','city','region','postal_code','brand_color')
             ->from('lf_companies')
             ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
             ->andWhere($q->expr()->gt('id', $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)))
@@ -60,6 +60,7 @@ final class CompanyService {
         $fields = self::fields($legalName, $country, $taxId, $tradeName,
             $municipalRegistration, $stateRegistration);
         $fields = [...$fields, ...self::profileFields($profile)];
+        $fields['brand_color'] ??= '#64748B';
         $custom = $this->customFields->validateValues($spaceId, $customFields, true);
         $now = time();
         $this->db->beginTransaction();
@@ -180,6 +181,7 @@ final class CompanyService {
             'city' => ['city', 120],
             'region' => ['region', 120],
             'postalCode' => ['postal_code', 32],
+            'brandColor' => ['brand_color', 7],
         ];
         $fields = [];
         foreach ($profile as $key => $raw) {
@@ -189,6 +191,10 @@ final class CompanyService {
             [$column, $limit] = $columns[$key];
             $value = self::optional($raw);
             if ($value !== null && mb_strlen($value) > $limit) {
+                throw new DomainException('invalid_company_attribute');
+            }
+            if ($key === 'brandColor' && ($value === null
+                || preg_match('/^#[0-9A-Fa-f]{6}$/D', $value) !== 1)) {
                 throw new DomainException('invalid_company_attribute');
             }
             if ($key === 'contactEmail' && $value !== null
