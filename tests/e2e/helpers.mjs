@@ -45,21 +45,23 @@ export async function goToView(page, view) {
   const nav = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
   await expect(nav).toBeVisible()
   if (view === 'Migração de dados') {
-    await nav.getByText('Configurações', { exact: true }).click()
+    await goToView(page, 'Configurações')
     await page.getByRole('button', { name: 'Dados e migração' }).click()
     await page.getByRole('button', { name: 'Abrir migração de dados' }).click()
     return
   }
   const parent = ({
-    'Regras tributárias': 'Mais ferramentas',
-    'NFS-e Brasil': 'Mais ferramentas',
-    'Plano de contas': 'Mais ferramentas',
-    'Lançamentos contábeis': 'Mais ferramentas',
-    'Assistente financeiro': 'Mais ferramentas',
-    'Clientes e fornecedores': 'Cadastros',
-    'Produtos e serviços': 'Cadastros',
-    'Categorias': 'Cadastros',
-    'Empresas': 'Cadastros',
+    'Regras tributárias': 'Gerenciar',
+    'NFS-e Brasil': 'Gerenciar',
+    'Plano de contas': 'Gerenciar',
+    'Lançamentos contábeis': 'Gerenciar',
+    'Assistente financeiro': 'Gerenciar',
+    'Clientes e fornecedores': 'Gerenciar',
+    'Produtos e serviços': 'Gerenciar',
+    'Categorias': 'Gerenciar',
+    'Empresas': 'Gerenciar',
+    'Gestões financeiras': 'Gerenciar',
+    'Configurações': 'Gerenciar',
   })[view]
   const target = nav.getByText(view, { exact: true })
   if (parent) {
@@ -86,15 +88,21 @@ export async function selectFinanceSpace(page, name) {
 
 export async function makeSpace(page, kind = 'organization') {
   const name = 'E2E ' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-  await page.getByRole('button', { name: 'Nova gestão financeira' }).click()
+  if (await page.getByRole('button', { name: 'Gerenciar gestões financeiras' }).count()) {
+    await page.getByRole('button', { name: 'Gerenciar gestões financeiras' }).click()
+  } else {
+    await goToView(page, 'Gestões financeiras')
+  }
+  await page.getByRole('button', { name: 'Criar gestão', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Criar gestão financeira' })).toBeVisible()
-  await page.getByRole('textbox', { name: 'Nome desta gestão financeira' }).fill(name)
-  await page.locator('#lf-new-space-kind').click()
+  await page.getByRole('dialog', { name: 'Criar gestão financeira' })
+    .getByRole('textbox', { name: 'Nome da gestão' }).fill(name)
+  await page.locator('#lf-space-kind-new').click()
   const index = ({ personal: 0, collective: 1, organization: 2 })[kind]
   // NcSelect's highlighted accessibility text may contain injected whitespace.
   await page.getByRole('option').nth(index).click()
   await page.getByRole('dialog', { name: 'Criar gestão financeira' })
-    .getByRole('button', { name: 'Criar gestão' }).click()
+    .getByRole('button', { name: 'Criar', exact: true }).click()
   await expect(page.locator('.lf-context-identity')).toContainText(name)
   // Do not pass while a previous space is still being refreshed. Wait for the
   // actual module-discovery contract for the new active space to complete.

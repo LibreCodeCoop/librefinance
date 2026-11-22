@@ -133,12 +133,8 @@ const shortcuts = computed(() => [
     help: 'Confira extratos e lançamentos', icon: mdiBankOutline,
   },
   obligationsEnabled.value && {
-    id: 'payables', label: 'A pagar',
-    help: 'Acompanhe títulos e baixas', icon: mdiCashClock,
-  },
-  billingEnabled.value && {
-    id: 'receivables', label: 'A receber',
-    help: 'Consulte suas cobranças', icon: mdiReceiptTextOutline,
+    id: 'finance', label: 'A pagar e receber',
+    help: 'Entradas e saídas previstas na mesma agenda', icon: mdiCashClock,
   },
   reportEnabled.value && {
     id: 'reports', label: 'Relatórios completos',

@@ -33,6 +33,14 @@ const today=new Date().toLocaleDateString('sv-SE')
 const list=ref([])
 const next=ref(null)
 const filter=ref('all')
+const dueRange=ref('all')
+const dueChoices=[
+  {value:'all',label:'Todas as datas'},
+  {value:'overdue',label:'Vencidas'},
+  {value:'next7',label:'Próximos 7 dias'},
+]
+const signedAmount=(row,minor)=>
+  (row.kind==='receivable'?'+':'−')+money(Math.abs(Number(minor)))
 const loading=ref(false)
 const error=ref('')
 const success=ref('')
@@ -65,7 +73,7 @@ function openLinkedDocument(row) {
     id:Number(row.linkedInvoiceId),
     kind:row.kind==='receivable'?'invoice':'bill'}
   focusedRecord.value=null
-  if(flow)flow.showDocument()
+  if(flow)flow.showDocument(row)
   else navigate(row.kind==='receivable'?'sales':'purchases')
 }
 async function inspectFocusedTitle() {
@@ -114,7 +122,7 @@ async function load() {
   loading.value=true;error.value=''
   try{
     const data=await financeApi('librefinance_obligations',activeId.value,
-      '/obligations?kind='+props.kind+'&status='+filter.value)
+      '/obligations?kind='+props.kind+'&status='+filter.value+'&dueRange='+dueRange.value)
     if(token!==generation)return
     list.value=data.obligations
     next.value=data.nextAfterId
@@ -127,7 +135,8 @@ async function more() {
   loading.value=true
   try{
     const data=await financeApi('librefinance_obligations',activeId.value,
-      '/obligations?kind='+props.kind+'&status='+filter.value+'&afterId='+next.value)
+      '/obligations?kind='+props.kind+'&status='+filter.value
+        +'&dueRange='+dueRange.value+'&afterId='+next.value)
     if(token!==generation)return
     list.value=[...list.value,...data.obligations];next.value=data.nextAfterId
   }catch(e){if(token===generation)error.value=financeError(e)}
@@ -184,7 +193,12 @@ async function cancel() {
     activeId.value,'/obligations/'+id+'/cancel','POST',{}),'Título cancelado.')
   if(result)cancelTarget.value=null
 }
-watch(filter,()=>{focusedRecord.value=null;load()})
+watch([filter,dueRange,()=>props.kind],()=>{
+  focusedRecord.value=null
+  list.value=[]
+  next.value=null
+  load()
+})
 watch(activeId,()=>{focusedRecord.value=null;++focusedSequence;load()})
 watch(focusedObligation,inspectFocusedTitle,{immediate:true})
 onMounted(load)
@@ -215,21 +229,30 @@ onBeforeUnmount(()=>{++generation;++focusedSequence})
       {{money(outstanding(focusedRecord))}} em aberto.
     </NcNoteCard>
     <section class="lf-surface">
-      <div class="lf-section-heading"><h2>{{embedded
-        ? (props.kind==='receivable'?'Cobranças e recebimentos':'Contas e pagamentos')
-        : 'Títulos financeiros'}}</h2>
-        <LfSelect id="lf-obligations-filter" v-model="filter" label="Situação"
-          :options="choices" /></div>
+      <div class="lf-section-heading lf-obligation-filters">
+        <div><h2>{{embedded?'Agenda de entradas e saídas':'Títulos financeiros'}}</h2>
+          <p class="lf-muted">Valores previstos e baixas, sem misturar com o extrato bancário.</p>
+        </div>
+        <div class="lf-obligation-filter-fields">
+          <LfSelect id="lf-obligations-filter" v-model="filter" label="Situação"
+            :options="choices" />
+          <LfSelect id="lf-obligations-due" v-model="dueRange"
+            label="Vencimento" :options="dueChoices" />
+        </div>
+      </div>
       <div class="lf-table-scroll">
         <table class="lf-data-table">
-          <thead><tr><th>Referência</th><th>Descrição</th><th>Tipo</th><th>Origem</th>
-            <th>Vencimento</th><th class="lf-numeric">Valor</th>
-            <th class="lf-numeric">Em aberto</th><th>Situação</th><th v-if="writable">Ações</th></tr></thead>
+          <thead><tr><th>Referência</th><th>Descrição</th><th>Direção</th><th>Origem</th>
+            <th>Vencimento</th><th class="lf-numeric">Valor previsto</th>
+            <th class="lf-numeric">Saldo previsto</th><th>Situação</th><th v-if="writable">Ações</th></tr></thead>
           <tbody><tr v-for="row in displayedRows" :key="row.id"
             :class="{'lf-row-focused':focusedRecord && Number(focusedRecord.id)===Number(row.id)}">
             <td class="lf-code">{{row.reference}}</td>
             <td><strong>{{row.description}}</strong></td>
-            <td>{{row.kind==='payable'?'A pagar':'A receber'}}</td>
+            <td><span class="lf-flow-direction"
+                :class="row.kind==='receivable'?'lf-flow-direction-in':'lf-flow-direction-out'">
+              {{row.kind==='receivable'?'Entrada prevista':'Saída prevista'}}
+            </span></td>
             <td>
               <template v-if="row.linkedInvoiceId">
                 <span>Documento comercial #{{row.linkedInvoiceId}}</span>
@@ -240,9 +263,14 @@ onBeforeUnmount(()=>{++generation;++focusedSequence})
               <span v-else>Título avulso</span>
             </td>
             <td>{{row.due_on}}</td>
-            <td class="lf-numeric">{{money(row.amount_minor)}}</td>
+            <td class="lf-numeric"><strong
+              :class="row.kind==='receivable'?'lf-amount-in':'lf-amount-out'">
+              {{signedAmount(row,row.amount_minor)}}
+            </strong></td>
             <td class="lf-numeric">
-              <strong>{{money(outstanding(row))}}</strong>
+              <strong :class="row.kind==='receivable'?'lf-amount-in':'lf-amount-out'">
+                {{signedAmount(row,outstanding(row))}}
+              </strong>
               <span v-if="row.ledgerPaidMinor" class="lf-muted">
                 Movimentado: {{money(row.ledgerPaidMinor)}}
               </span>

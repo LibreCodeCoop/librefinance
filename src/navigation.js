@@ -7,13 +7,15 @@ export const PAGE_NAMES = Object.freeze({
   dashboard: 'Visão geral',
   transactions: 'Lançamentos contábeis',
   banking: 'Bancos e caixa',
-  obligations: 'A receber', // historic combined-list bookmark
+  obligations: 'A pagar e receber', // historic bookmark
   reports: 'Relatórios',
-  invoicing: 'Faturas de venda', // legacy deep-link alias
-  sales: 'A receber', // historic commercial bookmark
-  receivables: 'A receber',
-  payables: 'A pagar',
-  purchases: 'A pagar', // historic commercial bookmark
+  invoicing: 'A pagar e receber', // legacy deep-link alias
+  sales: 'A pagar e receber', // historic commercial bookmark
+  receivables: 'A pagar e receber',
+  finance: 'A pagar e receber',
+  spaces: 'Gestões financeiras',
+  payables: 'A pagar e receber',
+  purchases: 'A pagar e receber', // historic commercial bookmark
   taxes: 'Regras tributárias',
   nfse: 'NFS-e Brasil',
   contacts: 'Clientes e fornecedores',
@@ -31,15 +33,15 @@ export const PAGE_NAMES = Object.freeze({
 export const MENU_STRUCTURE = Object.freeze([
   { id: 'operations', label: 'LIBREFINANCE', items: [
     { id: 'dashboard', icon: 'home', keywords: 'inicio visao geral resumo painel home' },
-    { id: 'receivables', icon: 'receivables', module: 'librefinance_obligations',
-      keywords: 'receber cliente cobranca venda fatura receita pagamento entrada pendente' },
-    { id: 'payables', icon: 'payables', module: 'librefinance_obligations',
-      keywords: 'pagar fornecedor conta despesa compra fatura pagamento saida vencimento' },
+    { id: 'finance', icon: 'obligations', module: 'librefinance_obligations',
+      keywords: 'a pagar receber cliente fornecedor cobranca venda fatura receita despesa vencimentos agenda entradas saidas' },
     { id: 'banking', icon: 'banking', module: 'librefinance_banking',
-      keywords: 'bancos caixa extrato saldo transferencia conciliacao movimento' },
+      keywords: 'bancos caixa extrato conciliacao entradas saidas saldo transferencia movimento' },
     { id: 'reports', icon: 'reports', module: 'librefinance_reports',
       keywords: 'relatorios demonstrativos fluxo de caixa resultados dre balancete' },
-    { id: 'registers', label: 'Cadastros', icon: 'contacts', children: [
+    { id: 'management', label: 'Gerenciar', icon: 'settings', children: [
+      { id: 'spaces', icon: 'companies',
+        keywords: 'gestoes financeiras espacos criar renomear arquivar restaurar organizacao pessoal' },
       { id: 'contacts', icon: 'contacts',
         keywords: 'clientes fornecedores pessoas contatos' },
       { id: 'items', icon: 'contacts',
@@ -47,19 +49,19 @@ export const MENU_STRUCTURE = Object.freeze([
       { id: 'categories', icon: 'categories',
         keywords: 'categorias classificacao receitas despesas' },
       { id: 'companies', icon: 'companies',
-        keywords: 'empresa cnpj organizacao identificacao legal' },
-    ] },
-    { id: 'advanced', label: 'Mais ferramentas', icon: 'settings', children: [
-      { id: 'transactions', icon: 'transactions',
-        keywords: 'lancamentos contabeis diario debito credito movimentacao' },
+        keywords: 'empresa cnpj cadastro juridico organizacao' },
       { id: 'accounts', icon: 'accounts',
         keywords: 'plano de contas contabilidade patrimonio ativo passivo' },
+      { id: 'transactions', icon: 'transactions',
+        keywords: 'lancamentos contabeis diario debito credito movimentacao' },
       { id: 'taxes', icon: 'fiscal', module: 'librefinance_invoicing',
         keywords: 'impostos jurisdicao tributacao aliquotas retencao' },
       { id: 'nfse', icon: 'fiscal', module: 'librefinance_nfse',
         keywords: 'nota fiscal servico rascunho nacional' },
       { id: 'ai', icon: 'assistant', managerOnly: true,
         keywords: 'assistente inteligencia artificial resumo analise' },
+      { id: 'settings', icon: 'settings', managerOnly: true,
+        keywords: 'configuracao acessos membros grupos campos personalizaveis formas pagamento modulos migracao' },
     ] },
   ] },
 ])
@@ -91,11 +93,16 @@ export function menuEntries(sections) {
 // Preserve existing ?view=invoicing bookmarks while giving each operation
 // a distinct, user-facing route. Never use freeform view names as URLs.
 export function canonicalView(id) {
-  // Preserve previously shared bookmarks. Legacy commercial URLs open the
-  // same financial operation in its document-detail mode.
-  if (id === 'invoicing' || id === 'sales' || id === 'obligations') return 'receivables'
-  if (id === 'purchases') return 'payables'
+  if (['invoicing', 'sales', 'purchases', 'obligations', 'receivables', 'payables'].includes(id))
+    return 'finance'
   return id
+}
+
+/** Existing links preserve their intended entry/exit direction as a filter. */
+export function financeDirectionForView(id) {
+  if (['invoicing', 'sales', 'receivables'].includes(id)) return 'receivable'
+  if (['purchases', 'payables'].includes(id)) return 'payable'
+  return 'all'
 }
 
 export function canOpenView(sections, id, { manager = false, migrationEnabled = false } = {}) {
@@ -108,12 +115,10 @@ export function navigationSearch(sections, query, { manager = false, migrationEn
   const search = normalizeNavigationText(query).slice(0, 90)
   if (!search) return []
   const extras = []
-  if (manager) {
-    extras.push({ id: 'settings', icon: 'settings', section: 'ADMINISTRAÇÃO',
-      parent: '', keywords: 'configuracao acesso membros usuarios grupos modulos', parentId: null })
-    if (migrationEnabled) extras.push({ id: 'import', icon: 'import', section: 'ADMINISTRAÇÃO',
-      parent: 'Dados e migração', keywords: 'migrar importar exportar origem conversao', parentId: null })
-  }
+  if (manager && migrationEnabled) extras.push({
+    id: 'import', icon: 'import', section: 'Gerenciar',
+    parent: 'Configurações', keywords: 'migrar importar exportar origem conversao', parentId: 'management',
+  })
   // A direct screen-name match is more useful than a keyword hit on a
   // different screen (e.g. "clientes" must prioritize customer records).
   const rank = item => {

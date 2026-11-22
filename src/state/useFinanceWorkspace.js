@@ -206,6 +206,10 @@ async function refreshCurrent(options = {}) {
     : ''
 }
 watch(activeId, () => {
+  // Changing the active workspace invalidates financial screens. Keep the
+  // workspace-management screen open when archiving/restoring the selected
+  // workspace, otherwise a late activeId reset hides the restore action.
+  const managingSpaces = activeTab.value === 'spaces'
   resetAi()
   modulesLoadedFor.value = 0
   modules.value = []
@@ -219,7 +223,7 @@ watch(activeId, () => {
   members.value = []
   groupGrants.value = []
   selectedModuleId.value = ''
-  activeTab.value = 'dashboard'
+  activeTab.value = managingSpaces ? 'spaces' : 'dashboard'
   companyEditId.value = 0
   error.value = ''
   message.value = ''

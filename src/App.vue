@@ -10,8 +10,6 @@ import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
 import NcAppNavigationItem from '@nextcloud/vue/components/NcAppNavigationItem'
 import NcAppContent from '@nextcloud/vue/components/NcAppContent'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcTextField from '@nextcloud/vue/components/NcTextField'
-import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
@@ -25,7 +23,7 @@ import {
 } from '@mdi/js'
 import {
   PAGE_NAMES, availableSections, canOpenView, navigationSearch,
-  menuEntries, parentOfView, defaultGroupOpen, canonicalView,
+  menuEntries, parentOfView, defaultGroupOpen, canonicalView, financeDirectionForView,
 } from './navigation.js'
 import { useFinanceWorkspace } from './state/useFinanceWorkspace.js'
 import LfSelect from './components/LfSelect.vue'
@@ -43,6 +41,7 @@ import BankingView from './views/BankingView.vue'
 import ObligationsView from './views/ObligationsView.vue'
 import InvoicesView from './views/InvoicesView.vue'
 import CashflowView from './views/CashflowView.vue'
+import SpacesView from './views/SpacesView.vue'
 import TaxRulesView from './views/TaxRulesView.vue'
 import NfseView from './views/NfseView.vue'
 import ImportView from './views/ImportView.vue'
@@ -55,10 +54,8 @@ const workspace = useFinanceWorkspace()
 provide('lfWorkspace', workspace)
 const {
   spaces, activeId, activeTab, space, modules, modulesLoadedFor,
-  manager, writable, busy, error, message,
-  spaceName, kind, createSpace, refreshCurrent,
+  manager, writable, busy, error, message, refreshCurrent,
 } = workspace
-const showSpaceDialog = ref(false)
 const quickEntry = ref(false)
 provide('lfEntryDialog', quickEntry)
 // The navigation follows user tasks, not the internal extension layout.
@@ -69,6 +66,8 @@ const screens = {
   transactions: TransactionsView,
   accounts: AccountsView,
   banking: BankingView,
+  finance: CashflowView,
+  spaces: SpacesView,
   receivables: CashflowView,
   payables: CashflowView,
   // Old route IDs remain recognized but are canonicalized to the unified view.
@@ -91,6 +90,8 @@ const icons = {
   home: mdiViewDashboardOutline,
   transactions: mdiSwapHorizontal,
   banking: mdiBankOutline,
+  finance: mdiCashClock,
+  spaces: mdiDomain,
   receivables: mdiArrowDownLeft,
   payables: mdiArrowUpRight,
   obligations: mdiCashClock,
@@ -185,16 +186,19 @@ const readyView = computed(() => (
     : 'dashboard'
 ))
 const currentScreen = computed(() => screens[readyView.value] || DashboardView)
+const financeDirectionHint = ref(financeDirectionForView(
+  new URLSearchParams(window.location.search).get('view')))
+provide('lfFinanceDirectionHint', financeDirectionHint)
 // Shared commercial screen receives its context from the authorized route,
 // never from a self-supplied document ID or an untrusted URL.
-const invoiceKind = computed(() => readyView.value === 'payables' ? 'bill' : 'invoice')
+const invoiceKind = computed(() => financeDirectionHint.value === 'payable' ? 'bill' : 'invoice')
 provide('lfInvoiceKind', invoiceKind)
 const focusedInvoice = ref(null)
 provide('lfFocusedInvoice', focusedInvoice)
 const focusedObligation = ref(null)
 provide('lfFocusedObligation', focusedObligation)
 const activeLocation = computed(() => {
-  if (readyView.value === 'settings' || readyView.value === 'import') return 'Administração'
+  if (readyView.value === 'settings' || readyView.value === 'spaces' || readyView.value === 'import') return 'Gerenciar'
   const match = menuEntries(availableNav.value).find(item => item.id === readyView.value)
   return match?.parent || match?.section || 'LibreFinance'
 })
@@ -206,6 +210,9 @@ function expandParent(view) {
 }
 function navigate(view) {
   if (!screens[view] || !visibleView(view)) return
+  if (canonicalView(view) === 'finance') {
+    financeDirectionHint.value = financeDirectionForView(view)
+  }
   view = canonicalView(view)
   expandParent(view)
   clearSearch()
@@ -240,17 +247,7 @@ function openEntry() {
   navigate('transactions')
   quickEntry.value = true
 }
-async function saveSpace(event) {
-  event?.preventDefault()
-  if (!spaceName.value.trim()) return
-  await createSpace()
-  if (!error.value) {
-    showSpaceDialog.value = false
-    // The selected space and first-use guidance already confirm creation.
-    // Avoid stacking a large success banner above the dashboard.
-    message.value = ''
-  }
-}
+
 function onHistoryChange() {
   const values = new URLSearchParams(window.location.search)
   const destinationSpace = Number(values.get('spaceId'))
@@ -260,6 +257,9 @@ function onHistoryChange() {
     activeId.value = destinationSpace
   }
   pendingInitialView = destinationView
+  if (canonicalView(destinationView) === 'finance') {
+    financeDirectionHint.value = financeDirectionForView(destinationView)
+  }
   if (visibleView(destinationView)
     && modulesLoadedFor.value === Number(activeId.value)) {
     // A browser back/forward event must not create a new history entry.
@@ -302,9 +302,13 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
           <div><p class="lf-product-name">LibreFinance</p>
             <p class="lf-muted">Finanças pessoais e de organizações</p></div>
         </div>
-        <LfSelect id="lf-space-select" :model-value="activeId"
-          :options="spaceOptions" label="Gerenciar finanças de"
-          placeholder="Selecione sua gestão financeira" @update:model-value="selectSpace" />
+        <LfSelect v-if="spaceOptions.length > 1" id="lf-space-select"
+          :model-value="activeId" :options="spaceOptions"
+          label="Gestão financeira" placeholder="Selecione uma gestão"
+          @update:model-value="selectSpace" />
+        <p v-else-if="space" class="lf-space-current" aria-label="Gestão financeira atual">
+          <strong>{{selectedSpace}}</strong>
+        </p>
         <p v-if="space" class="lf-space-meta">
           <span>{{ spaceKind }}</span><span aria-hidden="true">·</span>
           <span>{{ space.currency }}</span><span aria-hidden="true">·</span>
@@ -358,21 +362,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
           </template>
         </NcAppNavigationList>
       </template>
-      <template #footer>
-        <div class="lf-nav-footer lf-navigation-tools">
-          <button v-if="manager" class="lf-footer-nav-button" type="button"
-            :class="{ 'lf-footer-nav-button--active': readyView === 'settings' || readyView === 'import' }"
-            :aria-current="readyView === 'settings' || readyView === 'import' ? 'page' : undefined"
-            @click="navigate('settings')">
-            <NcIconSvgWrapper :path="mdiCogOutline" :size="20" aria-hidden="true" />
-            <span>Configurações</span>
-          </button>
-          <button type="button" class="lf-footer-nav-button" @click="showSpaceDialog = true">
-            <NcIconSvgWrapper :path="mdiPlus" :size="20" aria-hidden="true" />
-            <span>Nova gestão financeira</span>
-          </button>
-        </div>
-      </template>
+
     </NcAppNavigation>
 
     <NcAppContent>
@@ -398,11 +388,12 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         <NcNoteCard v-if="error" type="error" role="alert">{{ error }}</NcNoteCard>
         <NcNoteCard v-if="message" type="success" role="status">{{ message }}</NcNoteCard>
 
-        <NcEmptyContent v-if="!space" name="Comece a organizar suas finanças"
-          description="Gerencie suas finanças pessoais ou as de um coletivo ou organização, com os acessos separados.">
+        <component :is="SpacesView" v-if="!space && readyView==='spaces'" />
+        <NcEmptyContent v-else-if="!space" name="Comece a organizar suas finanças"
+          description="Crie uma gestão financeira ou restaure uma gestão arquivada.">
           <template #action>
-            <NcButton variant="primary" @click="showSpaceDialog = true">
-              Criar gestão financeira
+            <NcButton variant="primary" @click="navigate('spaces')">
+              Gerenciar gestões financeiras
             </NcButton>
           </template>
         </NcEmptyContent>
@@ -414,25 +405,6 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
       </div>
     </NcAppContent>
 
-    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="showSpaceDialog" name="Criar gestão financeira"
-      @update:open="showSpaceDialog = $event">
-      <form class="lf-dialog-form" @submit.prevent="saveSpace">
-        <p>Crie uma gestão para suas finanças pessoais, de um grupo ou organização. Cada gestão tem contas, lançamentos e permissões independentes.</p>
-        <NcTextField v-model="spaceName" label="Nome desta gestão financeira" :required="true"
-          maxlength="150" placeholder="Ex.: Minhas finanças" />
-        <LfSelect id="lf-new-space-kind" v-model="kind" label="Quem vai administrar estas finanças?"
-          :options="[
-            { value: 'personal', label: 'Pessoal' },
-            { value: 'collective', label: 'Coletivo' },
-            { value: 'organization', label: 'Organização' },
-          ]" />
-        <div class="lf-form-actions">
-          <NcButton variant="tertiary" @click="showSpaceDialog = false">Cancelar</NcButton>
-          <NcButton type="submit" variant="primary" :disabled="busy || !spaceName.trim()">
-            Criar gestão
-          </NcButton>
-        </div>
-      </form>
-    </NcDialog>
+
   </NcContent>
 </template>

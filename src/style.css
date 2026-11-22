@@ -868,3 +868,75 @@
     flex: 1 1 100%;
   }
 }
+
+/* Unified agenda: filtering stays beside the list, not in separate views. */
+#librefinance-app .lf-space-current {
+  margin: 3px 0 5px;
+  padding: 10px 12px;
+  border-radius: var(--border-radius-large, 12px);
+  background: var(--color-background-hover);
+  color: var(--color-main-text);
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+#librefinance-app .lf-flow-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 14px 24px;
+  justify-content: space-between;
+  margin: 8px 0 12px;
+}
+#librefinance-app .lf-flow-toolbar > .lf-field {
+  flex: 0 1 230px;
+  min-width: 180px;
+}
+#librefinance-app .lf-flow-toolbar .lf-flow-tabs {
+  margin: 0;
+}
+#librefinance-app .lf-flow-explainer {
+  margin: 6px 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+#librefinance-app .lf-obligation-filters {
+  flex-wrap: wrap;
+  align-items: end;
+}
+#librefinance-app .lf-obligation-filter-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+#librefinance-app .lf-obligation-filter-fields > .lf-field {
+  min-width: 160px;
+  flex: 1 1 180px;
+}
+#librefinance-app .lf-flow-direction {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: var(--color-background-hover);
+  font-size: 12px;
+  font-weight: 600;
+}
+#librefinance-app .lf-amount-in,
+#librefinance-app .lf-flow-direction-in {
+  color: var(--color-success-text, var(--color-success));
+}
+#librefinance-app .lf-amount-out,
+#librefinance-app .lf-flow-direction-out {
+  color: var(--color-error-text, var(--color-error));
+}
+@media (max-width: 680px) {
+  #librefinance-app .lf-flow-toolbar > .lf-field {
+    flex: 1 1 100%;
+  }
+  #librefinance-app .lf-obligation-filter-fields {
+    width: 100%;
+  }
+}
