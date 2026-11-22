@@ -10,13 +10,13 @@ O LibreFinance possui navegacao orientada a tarefas:
 - **Visao geral:** indicadores calculados a partir dos lancamentos reais.
 - **A pagar e receber:** agenda unica dos titulos e compromissos previstos,
   inclusive titulos gerados por documentos comerciais.
-- **Documentos comerciais:** tela propria para vendas e compras com itens,
+- **Faturas:** tela propria para vendas e compras com itens,
   impostos e rascunhos; a confirmacao gera titulo vinculado sem duplicidade.
 - **Bancos e caixa:** movimentos do caixa, extratos importados, transferencias
   e conciliacao dos lancamentos bancarios efetivos.
 - **Relatorios:** demonstrativos, com segregacao por gestao.
-- **Areas financeiras:** unidade de isolamento do dinheiro, contas, historico
-  e permissoes; aparece fora dos cadastros de empresa, junto ao seletor.
+- **Gestoes financeiras:** unidade de isolamento do dinheiro, contas, historico
+  e permissoes; configurada em Gerenciar, nao como cadastro cotidiano.
 - **Gerenciar:** contatos, produtos/servicos, categorias, dados fiscais de
   empresas, plano de contas, lancamentos contabeis, regras fiscais, NFS-e,
   assistente, acessos, campos personalizados, formas de pagamento e migracao,
@@ -24,8 +24,8 @@ O LibreFinance possui navegacao orientada a tarefas:
 
 Nao ha menus separados e permanentes para Contas a receber e Contas a pagar,
 nem dois grupos distintos de Cadastros e Mais ferramentas. Gerenciar apresenta
-quatro **grupos recolhiveis nativos do Nextcloud** (Cadastros, Financeiro e
-fiscal, Equipe e personalizacao, Recursos e dados); cada funcionalidade e
+cinco **grupos recolhiveis nativos do Nextcloud** (Gestoes e identidade,
+Cadastros, Financeiro e fiscal, Equipe e personalizacao, Recursos e dados); cada funcionalidade e
 aberta diretamente, sem outra pagina ou abas de Configuracoes. As URLs antigas de Configuracoes
 continuam redirecionadas para a funcionalidade correspondente.
 
@@ -43,8 +43,8 @@ nenhum clique ordena apenas as primeiras cinquenta linhas carregadas.
 A busca textual por descricao/referencia tambem filtra antes da paginacao. Filtrar ou navegar nao transforma uma cobranca aberta em entrada
 contabilizada. O extrato de caixa efetivo pertence a Bancos e caixa.
 
-Para registrar uma operacao, use **Nova entrada** (seta para dentro:
-valor a receber) ou **Nova saida** (seta para fora: valor a pagar),
+Para registrar uma operacao, use **Novo a receber** (seta para dentro:
+valor a receber) ou **Novo a pagar** (seta para fora: valor a pagar),
 independentemente do filtro atual da agenda. A setas seguem o mesmo padrao
 do painel e dos lancamentos contabeis. As duas acoes criam compromissos
 previstos e nao transferencias bancarias. O usuario decide entre:
@@ -53,8 +53,8 @@ previstos e nao transferencias bancarias. O usuario decide entre:
 2. **Detalhada:** itens, contato, tributos e vencimento; cria documento
    comercial cujo titulo e criado automaticamente na confirmacao.
 
-Vendas e compras detalhadas sao criadas e consultadas na **tela propria
-Documentos comerciais**, separada da agenda. Os contratos de dados sao
+Faturas de venda e compra sao criadas e consultadas na **tela propria
+Faturas**, separada da agenda. Os contratos de dados sao
 relacionados, mas nao existem dois CRUDs simultaneos no mesmo painel.
 Um titulo vinculado oferece Abrir documento, e o documento oferece
 Ver conta vinculada, sem registros duplicados.
@@ -90,7 +90,7 @@ contabiliza competencia. Documentos tributados ou com retencao precisam de
 partidas revisadas: o fluxo automatico simplificado e bloqueado em PHP para
 nao lancar indevidamente o valor bruto como receita/despesa.
 
-## Areas financeiras, dados de empresas e seguranca de exclusao
+## Gestoes financeiras, identidade juridica e seguranca de exclusao
 
 Uma **area financeira** (API `space`) isola o proprio livro financeiro,
 contas bancarias e caixa, saldos, historico, categorias e permissoes.
@@ -137,8 +137,8 @@ oferece editar/excluir. A exclusao continua restrita pelo backend
 a metodos sem lancamentos vinculados. Os filtros de extrato bancario
 tambem ficam ocultos em uma lista genuinamente vazia.
 
-A pagina **Areas financeiras** esta acessivel ao lado do seletor de area,
-fora do menu de cadastros. Quando existe apenas uma area ativa, aparece
+A pagina **Gestoes financeiras** esta em Gerenciar > Gestoes e identidade,
+nao como acao permanente ao lado do seletor. Quando existe apenas uma area ativa, aparece
 o nome, sem seletor. Um usuario autenticado pode criar areas; apenas
 o **proprietario** pode renomear, arquivar ou restaurar as suas. A lista
 usa o `NcListItem` oficial do Nextcloud com icones de contexto e menu
@@ -159,7 +159,7 @@ introduz** exclusao definitiva.
 
 URLs historicas view=receivables, view=payables e view=obligations
 abrem a agenda, com a direcao adequada. URLs historicas view=sales,
-view=purchases e view=invoicing abrem Documentos comerciais, preservando
+view=purchases e view=invoicing abrem Faturas, preservando
 o tipo quando informado. Links
 view=settings&section=access|fields|payments|modules|data seguem para
 Acessos e compartilhamento, Campos personalizados, Formas de pagamento,
@@ -235,7 +235,7 @@ e respostas assincronas atrasadas nao sobrescrevem resultados de outra area.
 
 ## Padroes de listagem e limites restantes
 
-Listas de **areas financeiras** usam `NcListItem` e menus `NcActionButton`.
+Listas de **gestoes financeiras** usam `NcListItem` e menus `NcActionButton`.
 Na **agenda financeira**, tabela semantica (o pacote Nextcloud Vue nao
 disponibiliza um `NcTable` generico), `NcButton` nos cabecalhos, atributo
 `aria-sort`, menus `NcActions` e os filtros no mesmo layout de densidade
@@ -244,3 +244,42 @@ compartilhados; transformar todos os endpoints em grade ordenavel exige
 contratos proprios por tipo, nao uma ordenacao apenas client-side de
 listas paginadas. Nao se deve confundir estes ajustes com a homologacao
 integral de todas as listas ou com uma nova biblioteca de tabelas.
+
+
+## Identidade da gestao, faturas e estados vazios (0.18.2)
+
+As rotas historicas de documentos (view=documents, invoicing, sales e
+purchases) permanecem inalteradas, mas a navegacao as chama de Faturas.
+Uma fatura confirmada cria o compromisso vinculado em A pagar e receber.
+Uma cobranca ou conta sem fatura tambem cria compromisso, porem sem
+documento detalhado. Conciliacao bancaria e contabilizacao real sao
+operacoes separadas; nao criar cobranca novamente ao confirmar a fatura.
+
+Quando uma gestao nao tem valores a pagar/receber nem faturas, a lista
+correspondente usa NcEmptyContent sem filtros, cabecalhos ou avisos
+permanentes. Quando ha registros, os filtros ficam disponiveis; a pesquisa
+sem resultados ainda permite Limpar filtros. Em Bancos e caixa, o extrato
+continua sendo a lista principal. Transferencias internas nao criam
+receitas ou despesas e aparecem apenas como historico recolhido se existirem;
+isto nao implica pareamento ou reconciliacao automatica das pontas.
+
+Gestoes financeiras ficam sob Gerenciar > Gestoes e identidade. Uma
+gestao (space) corresponde a um livro financeiro independente, pessoal,
+coletivo ou organizacional, mas nao e automaticamente uma pessoa juridica.
+Ao criar gestao de organizacao, o formulario da identidade juridica e
+oferecido na sequencia, com nome, pais, cadastro fiscal, endereco, contatos,
+logotipo e campos personalizados por entidade Company. A imagem continua
+em armazenamento privado do Nextcloud apos salvar a empresa.
+
+NcColorPicker nativo do Nextcloud permite escolher cores independentes para
+a gestao e para a identidade da empresa. A migration aditiva
+Version000500Date20261122213000 cria colunas accent_color em lf_spaces e
+brand_color em lf_companies, com padrao #64748B, validacao hexadecimal e
+compatibilidade de API: color opcional no cadastro/edicao de gestoes e
+brandColor dentro de profile no cadastro/edicao da empresa. Nao alterar o
+tema global ou apagar registros anteriores.
+
+Empresas na mesma gestao compartilham os mesmos saldos e permissoes.
+Cores, logo ou campos adicionais nao sao contabilidade segregada por CNPJ;
+nao prometer paridade completa com Akaunting, fiscalidade homologada ou
+conciliacao automatica.
