@@ -97,10 +97,45 @@ contas bancarias e caixa, saldos, historico, categorias e permissoes.
 Ela nao corresponde a uma empresa juridica, departamento ou centro de custos:
 criar outra area impede a visualizacao de caixa e titulos em um unico
 livro. Crie outra area apenas quando quiser uma gestao realmente isolada,
-como "Minha casa" e "Meu negocio"; nao crie uma para cada filial ou
-departamento da mesma empresa. **Dados fiscais da empresa** sao apenas cadastros legais dentro
-da area ja existente; uma area pode conter mais de uma empresa, e uma area
-pessoal pode nao conter nenhuma. Isso nao cria outra contabilidade.
+como "Minha casa" e "Meu negocio". Nao crie uma area somente para
+adicionar outra filial ou alterar dados cadastrais. **Dados fiscais da
+empresa** sao identidades juridicas para documentos dentro de uma area.
+Uma area pode conter mais de uma identidade fiscal, mas isso NAO cria
+livros contabilizados ou demonstracoes separadas por empresa. Se duas
+entidades juridicas precisarem de caixa, apuracao, livros ou acesso
+independentes, devem usar areas financeiras distintas ate existir
+segregacao por empresa homologada no nucleo. Uma area pessoal pode nao
+conter empresa alguma.
+
+### Cadastro completo da identidade juridica
+
+Em **Gerenciar -> Dados fiscais da empresa**, use **Cadastrar empresa**
+ou a acao de edicao da empresa desejada. O formulario apresenta grupos
+de identificacao legal e comercial, pais, identificador fiscal, inscricoes
+estadual/regional e municipal/local, contato (e-mail, telefone, site),
+endereco postal, logotipo privado e campos personalizados por entidade.
+As inscricoes ja pertenciam ao banco, mas estavam escondidas no frontend.
+Os dados padronizados de contato e endereco sao introduzidos pela migration
+aditiva `Version000400Date20261122233000` e nao modificam nenhum registro
+financeiro. A versao de desenvolvimento e 0.18.1 para permitir upgrade
+seguro de instalacoes existentes.
+
+Campos especificos de um pais, forma tributaria, regime fiscal ou
+requisito municipal devem ser definidos no editor **Campos personalizados**
+ou em um modulo fiscal homologado. O cadastro nao verifica CNPJ ou outras
+identidades perante a Receita, nao transfere saldos e nao configura
+emissao fiscal homologada. Empresas existentes permanecem editaveis;
+clientes de API antigos que nao enviam o objeto opcional `profile`
+nao apagam endereco e contatos que ja estao armazenados.
+
+### Formas de pagamento sem registros
+
+Quando nao existem metodos, exibir `NcEmptyContent` e apenas a acao
+primaria para cadastrar; nao renderizar tabela ou cabecalhos vazios.
+Com registros, cabecalhos ordenam os itens carregados e `NcActions`
+oferece editar/excluir. A exclusao continua restrita pelo backend
+a metodos sem lancamentos vinculados. Os filtros de extrato bancario
+tambem ficam ocultos em uma lista genuinamente vazia.
 
 A pagina **Areas financeiras** esta acessivel ao lado do seletor de area,
 fora do menu de cadastros. Quando existe apenas uma area ativa, aparece
