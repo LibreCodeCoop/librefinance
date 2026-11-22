@@ -22,8 +22,8 @@ final class ItemController extends ApiController {
 
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/items')]
-    public function index(int $spaceId, int $afterId = 0): JSONResponse {
-        return $this->respond(fn(): array => $this->catalog->items($spaceId, $afterId));
+    public function index(int $spaceId, int $afterId = 0, string $search = ''): JSONResponse {
+        return $this->respond(fn(): array => $this->catalog->items($spaceId, $afterId, $search));
     }
 
     #[NoAdminRequired]

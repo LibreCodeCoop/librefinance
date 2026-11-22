@@ -23,9 +23,11 @@ final class ObligationController extends Controller {
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/obligations')]
     public function index(int $spaceId, int $afterId = 0, string $status = 'all',
-        string $kind = 'all', string $dueRange = 'all'): JSONResponse {
+        string $kind = 'all', string $dueRange = 'all', string $search = '',
+        string $sortBy = 'id', string $sortDirection = 'asc'): JSONResponse {
         return $this->respond(fn() => $this->service->list(
-            $spaceId, $afterId, $status, $kind, $dueRange));
+            $spaceId, $afterId, $status, $kind, $dueRange, $search,
+            $sortBy, $sortDirection));
     }
 
     #[NoAdminRequired]

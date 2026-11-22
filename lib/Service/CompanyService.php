@@ -24,7 +24,7 @@ final class CompanyService {
     ) {}
 
     /** @return array<string,mixed> */
-    public function list(int $spaceId, int $afterId = 0): array {
+    public function list(int $spaceId, int $afterId = 0, string $search = ''): array {
         $this->access->requireRole($spaceId, 'viewer');
         if ($afterId < 0) { throw new DomainException('invalid_cursor'); }
         $q = $this->db->getQueryBuilder();
@@ -34,6 +34,12 @@ final class CompanyService {
             ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
             ->andWhere($q->expr()->gt('id', $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)))
             ->orderBy('id', 'ASC')->setMaxResults(51);
+        if (mb_strlen($search) > 120) throw new DomainException('invalid_search');
+        $needle = trim($search);
+        if ($needle !== '') {
+            $q->andWhere($q->expr()->iLike('legal_name',
+                $q->createNamedParameter('%' . $this->db->escapeLikeParameter($needle) . '%')));
+        }
         $rows = $q->executeQuery()->fetchAllAssociative();
         $hasMore = count($rows) > 50;
         $rows = array_slice($rows, 0, 50);

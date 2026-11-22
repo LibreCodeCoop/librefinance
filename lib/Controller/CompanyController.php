@@ -20,8 +20,8 @@ final class CompanyController extends ApiController {
 
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/companies')]
-    public function index(int $spaceId, int $afterId = 0): JSONResponse {
-        return $this->respond(fn(): array => $this->companies->list($spaceId, $afterId));
+    public function index(int $spaceId, int $afterId = 0, string $search = ''): JSONResponse {
+        return $this->respond(fn(): array => $this->companies->list($spaceId, $afterId, $search));
     }
 
     #[NoAdminRequired]

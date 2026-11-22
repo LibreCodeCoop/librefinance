@@ -24,7 +24,9 @@ final class ObligationService {
     ) {}
 
     /** @return array<string,mixed> */
-    public function list(int $spaceId, int $afterId = 0, string $status = 'all', string $kind = 'all', string $dueRange = 'all'): array {
+    public function list(int $spaceId, int $afterId = 0, string $status = 'all',
+        string $kind = 'all', string $dueRange = 'all', string $search = '',
+        string $sortBy = 'id', string $sortDirection = 'asc'): array {
         $this->finance->requireModule($spaceId, self::MODULE);
         if ($afterId < 0) {
             throw new DomainException('invalid_cursor');
@@ -38,14 +40,65 @@ final class ObligationService {
         if (!in_array($dueRange, ['all', 'overdue', 'next7'], true)) {
             throw new DomainException('invalid_due_range');
         }
+        // Use a whitelist of real columns, never user supplied SQL identifiers.
+        $columns = [
+            'id' => 'id', 'due' => 'due_on', 'description' => 'description',
+            'amount' => 'amount_minor', 'reference' => 'reference',
+        ];
+        if (!isset($columns[$sortBy]) || !in_array($sortDirection, ['asc', 'desc'], true)) {
+            throw new DomainException('invalid_sort');
+        }
+        if (mb_strlen($search) > 120) {
+            throw new DomainException('invalid_search');
+        }
+        $column = $columns[$sortBy];
+        $sort = strtoupper($sortDirection);
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'kind', 'description', 'reference', 'contact_id',
             'amount_minor', 'paid_minor', 'currency', 'issued_on', 'due_on', 'status', 'version')
             ->from('lfob_obligations')
             ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
-            ->andWhere($q->expr()->gt('id', $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)))
-            ->orderBy('id', 'ASC')
+            ->orderBy($column, $sort)
             ->setMaxResults(51);
+        if ($column !== 'id') {
+            $q->addOrderBy('id', $sort);
+        }
+        // Continuation is resolved from the last row ID, not by shifting
+        // offsets. This remains stable across several sorted pages with ties.
+        if ($afterId > 0) {
+            if ($column === 'id') {
+                $comparison = $sort === 'ASC' ? 'gt' : 'lt';
+                $q->andWhere($q->expr()->{$comparison}('id',
+                    $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)));
+            } else {
+                $anchor = $this->db->getQueryBuilder();
+                $anchor->select($column)->from('lfob_obligations')
+                    ->where($anchor->expr()->eq('space_id',
+                        $anchor->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                    ->andWhere($anchor->expr()->eq('id',
+                        $anchor->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)));
+                $marker = $anchor->executeQuery()->fetchOne();
+                if ($marker === false) throw new DomainException('invalid_cursor');
+                $markerType = $column === 'amount_minor'
+                    ? IQueryBuilder::PARAM_INT : IQueryBuilder::PARAM_STR;
+                $comparison = $sort === 'ASC' ? 'gt' : 'lt';
+                $q->andWhere($q->expr()->orX(
+                    $q->expr()->{$comparison}($column, $q->createNamedParameter($marker, $markerType)),
+                    $q->expr()->andX(
+                        $q->expr()->eq($column, $q->createNamedParameter($marker, $markerType)),
+                        $q->expr()->{$comparison}('id', $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)),
+                    ),
+                ));
+            }
+        }
+        $needle = trim($search);
+        if ($needle !== '') {
+            $pattern = $q->createNamedParameter('%' . $this->db->escapeLikeParameter($needle) . '%');
+            $q->andWhere($q->expr()->orX(
+                $q->expr()->iLike('description', $pattern),
+                $q->expr()->iLike('reference', $pattern),
+            ));
+        }
         if ($status !== 'all') {
             $q->andWhere($q->expr()->eq('status', $q->createNamedParameter($status)));
         }

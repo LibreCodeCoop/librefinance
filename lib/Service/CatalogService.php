@@ -22,7 +22,7 @@ final class CatalogService {
     ) {}
 
     /** @return array<string,mixed> */
-    public function contacts(int $spaceId, int $afterId = 0): array {
+    public function contacts(int $spaceId, int $afterId = 0, string $search = ''): array {
         $this->access->requireRole($spaceId, 'viewer');
         $qb = $this->db->getQueryBuilder();
         $qb->select('id', 'name', 'kind', 'email', 'tax_id', 'active', 'created_at')
@@ -31,6 +31,12 @@ final class CatalogService {
             ->andWhere($qb->expr()->gt('id', $qb->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)))
             ->orderBy('id', 'ASC')
             ->setMaxResults(51);
+        if (mb_strlen($search) > 120) throw new DomainException('invalid_search');
+        $needle = trim($search);
+        if ($needle !== '') {
+            $qb->andWhere($qb->expr()->iLike('name',
+                $qb->createNamedParameter('%' . $this->db->escapeLikeParameter($needle) . '%')));
+        }
         $rows = $qb->executeQuery()->fetchAllAssociative();
         $more = count($rows) > 50;
         $rows = array_slice($rows, 0, 50);
@@ -109,7 +115,7 @@ final class CatalogService {
     }
 
     /** @return array<string,mixed> */
-    public function items(int $spaceId, int $afterId = 0): array {
+    public function items(int $spaceId, int $afterId = 0, string $search = ''): array {
         $this->access->requireRole($spaceId, 'viewer');
         $qb = $this->db->getQueryBuilder();
         $qb->select('id', 'sku', 'name', 'kind', 'description', 'unit_price_minor', 'currency', 'active')
@@ -118,6 +124,12 @@ final class CatalogService {
             ->andWhere($qb->expr()->gt('id', $qb->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)))
             ->orderBy('id', 'ASC')
             ->setMaxResults(51);
+        if (mb_strlen($search) > 120) throw new DomainException('invalid_search');
+        $needle = trim($search);
+        if ($needle !== '') {
+            $qb->andWhere($qb->expr()->iLike('name',
+                $qb->createNamedParameter('%' . $this->db->escapeLikeParameter($needle) . '%')));
+        }
         $rows = $qb->executeQuery()->fetchAllAssociative();
         $more = count($rows) > 50;
         $rows = array_slice($rows, 0, 50);
