@@ -125,7 +125,7 @@ const formatted = row => money(Math.abs(row.postings?.[0]?.amountMinor || 0))
 <template>
   <div class="lf-view">
     <LfPageHeader title="Lançamentos contábeis" eyebrow="MOVIMENTAÇÕES FINANCEIRAS"
-      description="Consulte o registro contábil de entradas e saídas já realizadas. Para valores ainda devidos, utilize Contas a pagar e receber.">
+      description="Consulte o registro contábil de entradas e saídas já realizadas. Para valores ainda devidos, utilize A pagar e receber.">
       <template #actions>
         <FieldStudioShortcut entity-kind="journal" />
         <NcButton v-if="writable" variant="primary" @click="dialog = true">

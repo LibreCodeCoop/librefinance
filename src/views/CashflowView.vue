@@ -88,30 +88,25 @@ onBeforeUnmount(() => { chooseOperation.value = '' })
 
 <template>
   <div class="lf-view lf-flow-view">
-    <LfPageHeader :title="isDocuments ? 'Documentos comerciais' : 'A pagar e receber'"
+    <LfPageHeader :title="isDocuments ? 'Faturas' : 'A pagar e receber'"
       :eyebrow="isDocuments ? 'VENDAS E COMPRAS' : 'AGENDA FINANCEIRA'"
       :description="isDocuments
-        ? 'Crie vendas ou compras com itens e impostos. Ao confirmar o documento, o título correspondente aparece na agenda financeira.'
+        ? 'Registre faturas emitidas ou recebidas. Quando confirmadas, geram o valor correspondente em A pagar e receber.'
         : 'Acompanhe compromissos a pagar e receber. Os valores são previstos até serem liquidados.'">
       <template #actions>
         <NcButton v-if="w.writable.value && (!isDocuments || canSeeInvoices)"
           variant="primary" class="lf-new-entry" @click="begin('receivable')">
           <template #icon><NcIconSvgWrapper :path="isDocuments ? mdiFileDocumentOutline : mdiArrowDownLeft" :size="20" /></template>
-          {{isDocuments ? 'Nova venda' : 'Nova entrada'}}
+          {{isDocuments ? 'Nova fatura de venda' : 'Novo a receber'}}
         </NcButton>
         <NcButton v-if="w.writable.value && (!isDocuments || canSeeInvoices)"
           variant="secondary" class="lf-new-exit" @click="begin('payable')">
           <template #icon><NcIconSvgWrapper :path="isDocuments ? mdiFileDocumentOutline : mdiArrowUpRight" :size="20" /></template>
-          {{isDocuments ? 'Nova compra' : 'Nova saída'}}
+          {{isDocuments ? 'Nova fatura de compra' : 'Novo a pagar'}}
         </NcButton>
       </template>
     </LfPageHeader>
 
-    <p v-if="!isDocuments" class="lf-muted lf-flow-explainer">
-      Títulos e vencimentos; não é o extrato bancário.
-      <NcButton v-if="canSeeBanking" variant="tertiary" size="small"
-        @click="navigate('banking')">Ver Bancos e caixa</NcButton>
-    </p>
     <ObligationsView v-if="!isDocuments && canSeeObligations"
       :kind="direction" :embedded="true" />
     <InvoicesView v-else-if="isDocuments && canSeeInvoices"
@@ -122,20 +117,20 @@ onBeforeUnmount(() => { chooseOperation.value = '' })
 
     <NcDialog :open="Boolean(chooseOperation)" size="normal"
       content-classes="lf-finance-dialog-content"
-      :name="isReceivable ? 'Nova entrada (a receber)' : 'Nova saída (a pagar)'"
+      :name="isReceivable ? 'Novo a receber' : 'Novo a pagar'"
       @update:open="chooseOperation=$event?chooseOperation:''">
       <div class="lf-dialog-form">
-        <h3>{{isReceivable ? 'Como deseja registrar a entrada?' : 'Como deseja registrar a saída?'}}</h3>
-        <p>Uma cobrança ou conta simples cria um título nesta agenda.
-          Um documento com itens e impostos é criado na página de documentos comerciais
-          e gera o título automaticamente ao ser confirmado.</p>
+        <h3>{{isReceivable ? 'Como registrar a cobrança?' : 'Como registrar a conta a pagar?'}}</h3>
+        <p>Registre um valor previsto sem fatura ou crie uma fatura de compra ou venda
+          com itens e tributos. A confirmação da fatura cria automaticamente
+          o valor a pagar ou receber, sem lançamento bancário duplicado.</p>
         <NcButton v-if="canSeeObligations" variant="secondary" block
           @click="newOperation('simple')">
-          {{isReceivable?'Cobrança simples':'Conta simples'}}
+          {{isReceivable?'Somente cobrança (sem fatura)':'Somente conta a pagar (sem fatura)'}}
         </NcButton>
         <NcButton v-if="canSeeInvoices" variant="secondary" block
           @click="newOperation('detailed')">
-          {{isReceivable?'Venda com itens e impostos':'Compra com itens e impostos'}}
+          {{isReceivable?'Criar fatura de venda':'Cadastrar fatura de compra'}}
         </NcButton>
         <NcButton variant="tertiary" @click="chooseOperation=''">Cancelar</NcButton>
       </div>

@@ -147,7 +147,7 @@ async function recordPayment() {
         valores. Vincule um lançamento existente com as partidas corretas.
       </NcNoteCard>
       <NcNoteCard v-if="source === 'invoice' && !existing" type="warning">
-        A confirmação do documento comercial ainda não contabiliza receitas ou
+        A confirmação da fatura ainda não contabiliza receitas ou
         despesas por competência. Este registro segue o regime de caixa.
         Se o movimento já está contabilizado, utilize a opção de associar um
         lançamento existente, sem criar outro.

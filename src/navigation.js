@@ -13,8 +13,8 @@ export const PAGE_NAMES = Object.freeze({
   sales: 'A pagar e receber', // historic commercial bookmark
   receivables: 'A pagar e receber',
   finance: 'A pagar e receber',
-  documents: 'Documentos comerciais',
-  spaces: 'Áreas financeiras',
+  documents: 'Faturas',
+  spaces: 'Gestões financeiras',
   payables: 'A pagar e receber',
   purchases: 'A pagar e receber', // historic commercial bookmark
   taxes: 'Regras tributárias',
@@ -23,7 +23,7 @@ export const PAGE_NAMES = Object.freeze({
   items: 'Produtos e serviços',
   categories: 'Categorias',
   accounts: 'Plano de contas',
-  companies: 'Dados fiscais da empresa',
+  companies: 'Dados da organização',
   ai: 'Assistente financeiro',
   settings: 'Acessos e compartilhamento', // legacy route aliases access control
   access: 'Acessos e compartilhamento',
@@ -42,14 +42,16 @@ export const MENU_STRUCTURE = Object.freeze([
     { id: 'finance', icon: 'obligations', module: 'librefinance_obligations',
       keywords: 'a pagar receber cliente fornecedor cobranca venda fatura receita despesa vencimentos agenda entradas saidas' },
     { id: 'documents', icon: 'billing', module: 'librefinance_invoicing',
-      keywords: 'documentos comerciais faturas vendas compras impostos itens rascunhos' },
+      keywords: 'faturas documentos comerciais vendas compras impostos itens rascunhos' },
     { id: 'banking', icon: 'banking', module: 'librefinance_banking',
       keywords: 'bancos caixa extrato conciliacao entradas saidas saldo transferencia movimento' },
     { id: 'reports', icon: 'reports', module: 'librefinance_reports',
       keywords: 'relatorios demonstrativos fluxo de caixa resultados dre balancete' },
-    { id: 'spaces', icon: 'spaces',
-      keywords: 'gestoes financeiras espacos areas financas criar renomear arquivar restaurar organizacao pessoal' },
     { id: 'management', label: 'Gerenciar', icon: 'settings', children: [
+      { id: 'spaces', icon: 'spaces', group: 'Gestões e identidade',
+        keywords: 'gestoes financeiras areas financeiras espacos areas financas criar renomear arquivar restaurar organizacao pessoal' },
+      { id: 'companies', icon: 'companies', group: 'Gestões e identidade',
+        keywords: 'empresa cnpj dados fiscais empresa emissora identidade legal cadastro juridico logotipo cor' },
       { id: 'contacts', icon: 'contacts', group: 'Cadastros',
         keywords: 'clientes fornecedores pessoas contatos' },
       { id: 'items', icon: 'contacts', group: 'Cadastros',
@@ -57,8 +59,6 @@ export const MENU_STRUCTURE = Object.freeze([
       { id: 'categories', icon: 'categories', group: 'Cadastros',
         keywords: 'categorias classificacao receitas despesas' },
 
-      { id: 'companies', icon: 'companies', group: 'Financeiro e fiscal',
-        keywords: 'empresa cnpj dados fiscais empresa emissora identidade legal cadastro juridico' },
       { id: 'accounts', icon: 'accounts', group: 'Financeiro e fiscal',
         keywords: 'plano de contas contabilidade patrimonio ativo passivo' },
       { id: 'transactions', icon: 'transactions', group: 'Financeiro e fiscal',
@@ -89,7 +89,7 @@ export const MENU_STRUCTURE = Object.freeze([
 export function pageNameForSpace(id, kind) {
   if (kind === 'personal') {
     if (id === 'contacts') return 'Pessoas e estabelecimentos'
-    if (id === 'companies') return 'Dados fiscais (opcional)'
+    if (id === 'companies') return 'Organizações (opcional)'
   }
   return PAGE_NAMES[id] || id
 }

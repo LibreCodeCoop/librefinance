@@ -47,6 +47,10 @@ const current='librefinance_invoicing'
 const today=new Date().toLocaleDateString('sv-SE')
 const tab=computed(() => props.section === 'taxes' ? 'taxes' : 'invoices')
 const invoices=ref([])
+const hasOtherDocs=ref(false)
+const hasListedInvoices=ref(false)
+const showInvoiceFilters=computed(() => invoices.value.length > 0 || !!invoiceNext.value
+  || hasOtherDocs.value || hasListedInvoices.value)
 const localSort=useLoadedSort('')
 const orderedInvoices=computed(()=>localSort.order(invoices.value))
 const taxes=ref([])
@@ -135,7 +139,16 @@ async function load() {
     ])
     if(token!==generation)return
     invoices.value=docs.invoices;invoiceNext.value=docs.nextAfterId
+    if (docs.invoices.length) hasListedInvoices.value=true
     taxes.value=tax.rules;taxNext.value=tax.nextAfterId
+    // An empty direction must not hide existing faturas of the opposite kind.
+    hasOtherDocs.value=false
+    if (!docs.invoices.length && tab.value==='invoices') {
+      const opposite=documentKind.value==='invoice'?'bill':'invoice'
+      const other=await financeApi(current,activeId.value,'/invoices?kind='+opposite)
+      if(token!==generation)return
+      hasOtherDocs.value=other.invoices.length>0
+    }
   }catch(e){if(token===generation)error.value=financeError(e)}
   finally{if(token===generation)busy.value=false}
 }
@@ -192,7 +205,7 @@ async function create() {
       dueOn:form.value.dueOn,country:form.value.country.trim(),
       region:form.value.region.trim()||null,lines,
     })
-  },isPurchase.value?'Documento de compra salvo como rascunho, sem movimentar o banco.'
+  },isPurchase.value?'Fatura de compra salva como rascunho, sem movimentar o banco.'
     :'Fatura de venda salva como rascunho, sem emissão fiscal.')
   if(successResult){
     newInvoice.value=false
@@ -233,7 +246,7 @@ async function issue() {
   const id=chosen.value.id
   const done=await perform(async()=>financeApi(current,activeId.value,
     '/invoices/'+id+'/issue','POST',{}),
-    'Fatura comercial emitida internamente. Não é uma NFS-e.')
+    'Fatura confirmada internamente. Não é uma NFS-e.')
   if(done){chosen.value=null;await showInvoice(id)}
 }
 async function allocate() {
@@ -258,6 +271,11 @@ async function openFocusedInvoice() {
   focusedInvoice.value=null
   await showInvoice(Number(focus.id))
 }
+watch(activeId, () => {
+  // A previous workspace's documents must not expose filters in a new empty space.
+  hasListedInvoices.value=false
+  hasOtherDocs.value=false
+})
 watch([activeId,documentKind],async()=>{
   chosen.value=null
   chosenObligationId.value=null
@@ -288,30 +306,28 @@ function openLinkedObligation() {
   <div class="lf-view">
     <LfPageHeader v-if="!embedded" :title="tab === 'taxes' ? 'Regras tributárias'
         : (isPurchase ? 'Documentos de compra' : 'Faturas de venda')"
-      :eyebrow="tab === 'taxes' ? 'CONFIGURAÇÃO FISCAL' : 'DOCUMENTOS COMERCIAIS'"
+      :eyebrow="tab === 'taxes' ? 'CONFIGURAÇÃO FISCAL' : 'FATURAS'"
       :description="tab === 'taxes'
         ? 'Configure regras de cálculo, jurisdição e vigência. Esta seção não emite documentos fiscais.'
         : (isPurchase
-          ? 'Registre as contas de fornecedores com itens, impostos e vencimento. Após confirmar, a obrigação aparece em Contas a pagar e receber.'
-          : 'Emita documentos comerciais para clientes. Após confirmar, o valor aparece automaticamente em Contas a pagar e receber.')">
+          ? 'Registre faturas recebidas de fornecedores com itens, tributos e vencimento. Após confirmar, o valor aparece em A pagar e receber.'
+          : 'Cadastre faturas para clientes. Após confirmar, o valor aparece automaticamente em A pagar e receber.')">
       <template #actions>
         <NcButton v-if="tab === 'taxes' ? manager : writable" variant="primary"
           @click="tab==='taxes'?newRule=true:newInvoice=true">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-          {{tab==='taxes'?'Nova regra':(isPurchase?'Novo documento de compra':'Nova fatura de venda')}}
+          {{tab==='taxes'?'Nova regra':(isPurchase?'Nova fatura de compra':'Nova fatura de venda')}}
         </NcButton>
       </template>
     </LfPageHeader>
-    <NcNoteCard type="info">
-      {{ tab === 'taxes'
-        ? 'As regras configuradas são parâmetros para documentos comerciais; não representam homologação tributária.'
-        : 'Este é o documento de origem. Ao confirmar, a conta a receber ou pagar aparece na mesma operação, sem novo cadastro. Documentos comerciais não são notas fiscais.' }}
+    <NcNoteCard v-if="tab==='taxes'" type="info">
+      As regras configuradas são parâmetros tributários; não representam homologação fiscal.
     </NcNoteCard>
     <NcNoteCard v-if="error" type="error" role="alert">{{error}}</NcNoteCard>
     <NcNoteCard v-if="success" type="success" role="status">{{success}}</NcNoteCard>
     <section v-if="tab==='invoices'" class="lf-surface">
-      <div class="lf-section-heading">
-        <h2>{{ isPurchase ? 'Compras detalhadas e rascunhos' : 'Vendas detalhadas e rascunhos' }}</h2>
+      <div v-if="showInvoiceFilters" class="lf-section-heading">
+        <h2>Faturas {{ isPurchase ? 'de compra' : 'de venda' }}</h2>
         <NcPopover v-if="flow" popup-role="dialog">
           <template #trigger>
             <NcButton id="lf-commercial-direction" variant="tertiary">
@@ -327,12 +343,10 @@ function openLinkedObligation() {
           </div>
         </NcPopover>
       </div>
-      <NcNoteCard type="info">
-        {{ isPurchase
-          ? 'Uma compra documentada e confirmada gera uma conta a pagar vinculada. Não cadastre outro título para o mesmo documento.'
-          : 'Uma fatura de venda confirmada gera uma conta a receber vinculada. Não cadastre outro título para a mesma venda.' }}
-      </NcNoteCard>
-      <div v-if="invoices.length" class="lf-table-scroll">
+      <div v-if="busy && !invoices.length" class="lf-loading" role="status">
+        Carregando faturas…
+      </div>
+      <div v-else-if="invoices.length" class="lf-table-scroll">
         <table class="lf-data-table">
           <thead><tr>
             <th v-for="col in [
@@ -359,10 +373,11 @@ function openLinkedObligation() {
           </tr></tbody>
         </table>
       </div>
-      <NcEmptyContent v-else
-        :name="isPurchase ? 'Nenhuma compra documentada' : 'Nenhuma fatura de venda'"
-        :description="isPurchase ? 'Cadastre a compra recebida de um fornecedor.'
-          : 'Crie uma fatura de venda para um cliente.'" />
+      <NcEmptyContent v-else-if="!error"
+        :name="hasOtherDocs ? 'Nenhuma fatura nesta categoria' : 'Nenhuma fatura cadastrada'"
+        :description="hasOtherDocs
+          ? 'Selecione a outra categoria para ver as faturas cadastradas.'
+          : 'Cadastre uma fatura de compra ou de venda. Confirme-a para gerar o valor em A pagar e receber.'" />
       <p v-if="localSort.column.value && invoiceNext" class="lf-muted">
         Ordenação aplicada somente aos documentos carregados.</p>
       <div v-if="invoiceNext" class="lf-table-footer">
@@ -389,7 +404,7 @@ function openLinkedObligation() {
     </section>
 
     <NcDialog content-classes="lf-finance-dialog-content" :open="newInvoice"
-      :name="isPurchase ? 'Novo documento de compra' : 'Nova fatura de venda'" size="large"
+      :name="isPurchase ? 'Nova fatura de compra' : 'Nova fatura de venda'" size="large"
       @update:open="newInvoice=$event">
       <form class="lf-dialog-form" @submit.prevent="create">
         <div class="lf-form-grid">
@@ -463,7 +478,7 @@ function openLinkedObligation() {
         <NcButton v-if="chosenObligationId && canReadObligations" variant="tertiary"
           @click="openLinkedObligation">Ver conta vinculada</NcButton>
         <NcNoteCard v-else-if="chosen.status!=='draft'" type="warning">
-          Documento histórico sem obrigação reconciliada. Associações de
+          Fatura histórica sem obrigação reconciliada. Associações de
           pagamento exigem conciliação explícita antes de continuar.
         </NcNoteCard>
         <div class="lf-kpis">

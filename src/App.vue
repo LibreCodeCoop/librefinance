@@ -128,6 +128,15 @@ const searchQuery = ref('')
 // Remount only when history navigation supplies a different record search.
 const urlSearchTerm = ref(new URLSearchParams(window.location.search).get('search') || '')
 const openGroups = ref({})
+const managementGroupIcons = {
+  'Gestões e identidade': mdiFolderAccountOutline,
+  'Cadastros': mdiAccountMultipleOutline,
+  'Financeiro e fiscal': mdiBookOpenPageVariantOutline,
+  'Equipe e personalização': mdiCogOutline,
+  'Recursos e dados': mdiFileUploadOutline,
+}
+const companyOnboarding = ref(false)
+provide('lfCompanyOnboarding', companyOnboarding)
 const availableNav = computed(() => availableSections({
   manager: manager.value,
   modules: modules.value,
@@ -367,17 +376,14 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         </div>
         <LfSelect v-if="spaceOptions.length > 1" id="lf-space-select"
           :model-value="activeId" :options="spaceOptions"
-          label="Área financeira atual" placeholder="Escolha uma área"
+          label="Gestão financeira atual" placeholder="Escolha uma gestão"
           @update:model-value="selectSpace" />
-        <p v-else-if="space" class="lf-space-current" aria-label="Área financeira atual">
+        <p v-else-if="space" class="lf-space-current" aria-label="Gestão financeira atual">
           <strong>{{selectedSpace}}</strong>
         </p>
-        <NcButton v-if="space" class="lf-manage-spaces-link" size="small"
-          variant="tertiary" @click="navigate('spaces')">
-          <template #icon><NcIconSvgWrapper :path="mdiFolderAccountOutline" :size="18" /></template>
-          Gerenciar áreas financeiras
-        </NcButton>
         <p v-if="space" class="lf-space-meta">
+          <span class="lf-category-dot" :style="{backgroundColor:space.accent_color||'#64748B'}"
+            aria-hidden="true" />
           <span>{{ spaceKind }}</span><span aria-hidden="true">·</span>
           <span>{{ space.currency }}</span><span aria-hidden="true">·</span>
           <span>{{ spaceRole }}</span>
@@ -422,6 +428,9 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
                     :active="subgroup.children.some(child => child.id === readyView)"
                     @click.prevent="changeSubgroup(subgroup.name, !subgroupOpen(subgroup.name, item))"
                     @update:open="changeSubgroup(subgroup.name, $event)">
+                    <template #icon>
+                      <NcIconSvgWrapper :path="managementGroupIcons[subgroup.name]" :size="20" />
+                    </template>
                     <NcAppNavigationItem v-for="child in subgroup.children" :key="child.id"
                       :name="labels[child.id]" :href="viewHref(child.id)"
                       :active="readyView === child.id" @click="onNavClick($event, child.id)">
@@ -469,7 +478,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
           description="Crie uma gestão financeira ou restaure uma gestão arquivada.">
           <template #action>
             <NcButton variant="primary" @click="navigate('spaces')">
-              Gerenciar áreas financeiras
+              Criar primeira gestão
             </NcButton>
           </template>
         </NcEmptyContent>
