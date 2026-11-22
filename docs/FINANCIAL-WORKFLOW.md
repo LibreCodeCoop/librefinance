@@ -15,7 +15,7 @@ O LibreFinance possui navegacao orientada a tarefas:
 - **Relatorios:** demonstrativos, com segregacao por gestao.
 - **Gerenciar:** gestoes financeiras, clientes e fornecedores, produtos e
   servicos, categorias, empresas, plano de contas, lancamentos contabeis,
-  regras fiscais, NFS-e, assistente e a administracao de pessoas e grupos,
+  regras fiscais, NFS-e, assistente e a administracao de acessos e compartilhamento,
   campos personalizados, formas de pagamento, recursos instalados e dados
   para migracao, conforme permissao.
 
@@ -84,7 +84,7 @@ Nao ha exclusao definitiva de historicos contabeis nesta interface.
 URLs historicas view=receivables, view=payables, view=sales, view=purchases,
 view=invoicing e view=obligations abrem a agenda. Links
 view=settings&section=access|fields|payments|modules|data seguem para
-Pessoas e grupos, Campos personalizados, Formas de pagamento,
+Acessos e compartilhamento, Campos personalizados, Formas de pagamento,
 Recursos instalados ou Dados e migracao, respectivamente. Quando a URL indica
 pagar/receber, o filtro correspondente e recuperado.
 Contratos antigos das APIs financeiras permanecem validos; os novos filtros
@@ -93,3 +93,41 @@ sao opcionais e validados antes da paginacao.
 Esta evolucao nao certifica migracao historica do Akaunting, contabilidade
 por competencia, pagamento bancario externo nem emissao de NFS-e.
 Essas frentes exigem homologacoes proprias.
+
+
+## Pessoa fisica, casa e organizacao
+
+O aplicativo usa o mesmo motor de partidas contabeis e pagamentos para
+tres tipos de gestao: `personal` (pessoal ou da casa), `collective` (grupo)
+e `organization` (empresa ou organizacao). Cada gestao tem contas e registros
+isolados. Uma gestao pessoal **nao exige** empresa, CNPJ ou emissao fiscal.
+
+Na gestao pessoal, o painel explica movimentos realizados e o cadastro de
+contatos se apresenta como **Pessoas e estabelecimentos**; as classificacoes
+`customer`, `vendor` e `both` sao apresentadas como **De quem recebo**,
+**A quem pago** e **Pago e recebo**. Nenhuma classificacao existente no banco
+e alterada. O cadastro de empresas permanece **opcional**: util para quem
+tambem registra documentos empresariais, mas dispensavel para a casa.
+Controles avancados permanecem acessiveis por Gerenciar com as mesmas
+permissoes da gestao.
+
+Financas pessoais e empresariais nao devem compartilhar automaticamente
+saldos, clientes ou razao; para acompanhar um negocio individual crie
+uma gestao separada. Nao se deve confundir os novos rotulos com suporte ja
+homologado a orcamentos familiares, metas, consolidacao de varias gestoes,
+impostos pessoais ou sincronizacao bancaria.
+
+## Atalhos discretos para os campos personalizados
+
+O editor de definicoes e unico, em Gerenciar > Campos personalizados.
+**Personalizar campos** e uma acao terciaria e padronizada nas telas de
+empresas, contatos, produtos/servicos e lancamentos contabeis. Apenas
+gestores e proprietarios veem o atalho. Ele abre diretamente a entidade
+correspondente do editor e respeita o `?entity=` da URL, inclusive em
+recargas de pagina e favoritos, sem criar um segundo CRUD. O PHP valida
+permissoes e tipos independentemente de exibir/ocultar o atalho no frontend.
+
+Acessos e compartilhamento em Gerenciar administra usuarios e grupos Nextcloud: nao
+suportam novos campos no atual contrato `company/contact/item/journal`.
+A administracao de acessos nao deve prometer um campo configuravel sem
+migracoes, API e regras de privacidade proprias.
