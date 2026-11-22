@@ -67,9 +67,9 @@ export const MENU_STRUCTURE = Object.freeze([
       { id: 'nfse', icon: 'fiscal', group: 'Financeiro e fiscal', module: 'librefinance_nfse',
         keywords: 'nota fiscal servico rascunho nacional' },
 
-      { id: 'access', icon: 'contacts', group: 'Equipe e personalizacao', managerOnly: true,
+      { id: 'access', icon: 'contacts', group: 'Equipe e personalização', managerOnly: true,
         keywords: 'acessos equipe permissoes membros usuarios grupos compartilhar' },
-      { id: 'fields', icon: 'categories', group: 'Equipe e personalizacao', managerOnly: true,
+      { id: 'fields', icon: 'categories', group: 'Equipe e personalização', managerOnly: true,
         keywords: 'campos personalizados customizados formularios entidades' },
 
       { id: 'modules', icon: 'settings', group: 'Recursos e dados', managerOnly: true,

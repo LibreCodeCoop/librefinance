@@ -87,7 +87,7 @@ test('@extensions task-oriented navigation has one agenda and one management gro
     await expect(page).toHaveURL(/[?&]view=/)
   }
   await expect(nav.locator('.lf-nav-subsection')).toHaveCount(4)
-  for (const group of ['Cadastros','Financeiro e fiscal','Equipe e personalizacao',
+  for (const group of ['Cadastros','Financeiro e fiscal','Equipe e personalização',
     'Recursos e dados']) {
     await expect(nav.locator('.lf-nav-subsection').filter({hasText:group})).toHaveCount(1)
   }

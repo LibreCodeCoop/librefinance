@@ -29,7 +29,7 @@ test('one financial agenda and one management group without duplicate settings',
   assert.equal(menuEntries(s()).filter(x => x.id === 'settings').length, 0)
   const children = s()[0].items.find(item => item.id === 'management').children
   assert.deepEqual([...new Set(children.map(child => child.group))],
-    ['Cadastros', 'Financeiro e fiscal', 'Equipe e personalizacao', 'Recursos e dados'])
+    ['Cadastros', 'Financeiro e fiscal', 'Equipe e personalização', 'Recursos e dados'])
   assert.ok(children.every(child => child.group))
   assert.equal(canonicalView('settings'), 'access')
   assert.equal(canonicalView('settings', 'payments'), 'paymentMethods')
