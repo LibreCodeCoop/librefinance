@@ -7,6 +7,8 @@ import { computed, inject, onBeforeUnmount, provide, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
+import { mdiArrowDownLeft, mdiArrowUpRight } from '@mdi/js'
 import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import ObligationsView from './ObligationsView.vue'
@@ -97,11 +99,17 @@ onBeforeUnmount(() => { chooseOperation.value = '' })
     <LfPageHeader title="A pagar e receber" eyebrow="AGENDA FINANCEIRA"
       description="Entradas e saídas previstas na mesma lista, com filtros por direção e situação.">
       <template #actions>
-        <NcButton v-if="w.writable.value" variant="primary" @click="begin('receivable')">
-          Nova cobrança
+        <NcButton v-if="w.writable.value" variant="primary" class="lf-new-entry"
+          title="Entrada prevista: um valor a receber, sem movimentar o banco"
+          @click="begin('receivable')">
+          <template #icon><NcIconSvgWrapper :path="mdiArrowDownLeft" :size="20" aria-hidden="true" /></template>
+          Nova entrada
         </NcButton>
-        <NcButton v-if="w.writable.value" variant="secondary" @click="begin('payable')">
-          Nova conta
+        <NcButton v-if="w.writable.value" variant="secondary" class="lf-new-exit"
+          title="Saída prevista: um valor a pagar, sem movimentar o banco"
+          @click="begin('payable')">
+          <template #icon><NcIconSvgWrapper :path="mdiArrowUpRight" :size="20" aria-hidden="true" /></template>
+          Nova saída
         </NcButton>
       </template>
     </LfPageHeader>
@@ -138,12 +146,13 @@ onBeforeUnmount(() => { chooseOperation.value = '' })
 
     <NcDialog :open="Boolean(chooseOperation)" size="normal"
       content-classes="lf-finance-dialog-content"
-      :name="isReceivable ? 'Nova cobrança' : 'Nova conta'"
+      :name="isReceivable ? 'Nova entrada (a receber)' : 'Nova saída (a pagar)'"
       @update:open="chooseOperation=$event?chooseOperation:''">
       <div class="lf-dialog-form">
-        <h3>Como deseja registrar?</h3>
-        <p>Uma operação deve ter uma única origem. Uma venda ou compra detalhada
-          confirmada cria seu valor a receber ou pagar automaticamente.</p>
+        <h3>{{isReceivable ? 'Como deseja registrar a entrada?' : 'Como deseja registrar a saída?'}}</h3>
+        <p>Este registro é um valor {{isReceivable ? 'a receber' : 'a pagar'}}.
+          Não movimenta dinheiro no banco. Se houver documento comercial detalhado,
+          ele gera o compromisso automaticamente na confirmação.</p>
         <NcButton v-if="canSeeObligations" variant="secondary" block
           @click="newOperation('simple')">
           {{isReceivable?'Cobrança simples':'Conta simples'}}

@@ -75,10 +75,7 @@ async function removeLogo() {
 const navigate = inject('lfNavigate')
 const countryChoices = countryOptions()
 function configureFields() {
-  const url = new URL(window.location.href)
-  url.searchParams.set('section', 'fields')
-  window.history.replaceState(null, '', url.pathname + url.search)
-  navigate('settings')
+  navigate('fields')
 }
 const countryValid = computed(() => /^[A-Za-z]{2}$/.test(companyCountry.value.trim()))
 function beginCreate() { resetCompanyForm(); logoVersion.value = null; logoError.value = ''; saveError.value = ''; dialog.value = true }

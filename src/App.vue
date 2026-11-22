@@ -84,7 +84,12 @@ const screens = {
   import: ImportView,
   nfse: NfseView,
   ai: AiView,
-  settings: SettingsView,
+  settings: SettingsView, // compatibility for historic links
+  access: SettingsView,
+  fields: SettingsView,
+  paymentMethods: SettingsView,
+  modules: SettingsView,
+  data: ImportView,
 }
 const icons = {
   home: mdiViewDashboardOutline,
@@ -104,6 +109,11 @@ const icons = {
   companies: mdiDomain,
   assistant: mdiRobotOutline,
   settings: mdiCogOutline,
+  access: mdiAccountMultipleOutline,
+  fields: mdiShapeOutline,
+  paymentMethods: mdiBankOutline,
+  modules: mdiCogOutline,
+  data: mdiFileUploadOutline,
   import: mdiFileUploadOutline,
 }
 const searchQuery = ref('')
@@ -155,7 +165,7 @@ function searchKeydown(event) {
 function viewHref(view) {
   const url = new URL(window.location.href)
   url.searchParams.set('view', view)
-  if (view !== 'settings') url.searchParams.delete('section')
+  url.searchParams.delete('section')
   if (activeId.value) url.searchParams.set('spaceId', String(activeId.value))
   return url.pathname + url.search
 }
@@ -203,7 +213,9 @@ const activeLocation = computed(() => {
   return match?.parent || match?.section || 'LibreFinance'
 })
 
-let pendingInitialView = new URLSearchParams(window.location.search).get('view')
+const initialQuery = new URLSearchParams(window.location.search)
+let pendingInitialView = canonicalView(initialQuery.get('view'), initialQuery.get('section'))
+const settingPanels = ['access', 'fields', 'paymentMethods', 'modules']
 function expandParent(view) {
   const id = parentOfView(availableNav.value, view)
   if (id !== null) setGroupOpen(id, true)
@@ -223,7 +235,7 @@ function navigate(view) {
   activeTab.value = view
   const url = new URL(window.location.href)
   url.searchParams.set('view', view)
-  if (view !== 'settings') url.searchParams.delete('section')
+  url.searchParams.delete('section')
   if (activeId.value) url.searchParams.set('spaceId', String(activeId.value))
   window.history.pushState(null, '', url.pathname + url.search)
 }
@@ -251,7 +263,7 @@ function openEntry() {
 function onHistoryChange() {
   const values = new URLSearchParams(window.location.search)
   const destinationSpace = Number(values.get('spaceId'))
-  const destinationView = values.get('view')
+  const destinationView = canonicalView(values.get('view'), values.get('section'))
   if (Number.isSafeInteger(destinationSpace) && spaces.value.some(s =>
     Number(s.id) === destinationSpace)) {
     activeId.value = destinationSpace
@@ -347,11 +359,17 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
                   :active="groupHasActive(item)" @click="onNavGroupClick($event, item.id)"
                   @update:open="setGroupOpen(item.id, $event)">
                   <template #icon><NcIconSvgWrapper :path="icons[item.icon]" :size="20" /></template>
-                  <NcAppNavigationItem v-for="child in item.children" :key="child.id"
-                    :name="labels[child.id]" :href="viewHref(child.id)"
-                    :active="readyView === child.id" @click="onNavClick($event, child.id)">
-                    <template #icon><NcIconSvgWrapper :path="icons[child.icon]" :size="18" /></template>
-                  </NcAppNavigationItem>
+                  <template v-for="(child, childIndex) in item.children" :key="child.id">
+                    <li v-if="child.group && (childIndex === 0 || item.children[childIndex - 1].group !== child.group)"
+                      class="lf-nav-subsection" role="presentation">
+                      <span>{{ child.group }}</span>
+                    </li>
+                    <NcAppNavigationItem
+                      :name="labels[child.id]" :href="viewHref(child.id)"
+                      :active="readyView === child.id" @click="onNavClick($event, child.id)">
+                      <template #icon><NcIconSvgWrapper :path="icons[child.icon]" :size="18" /></template>
+                    </NcAppNavigationItem>
+                  </template>
                 </NcAppNavigationItem>
                 <NcAppNavigationItem v-else :name="labels[item.id]" :href="viewHref(item.id)"
                   :active="readyView === item.id" @click="onNavClick($event, item.id)">
@@ -400,6 +418,16 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         <div v-else-if="modulesLoadedFor !== Number(activeId)" class="lf-loading">
           <NcLoadingIcon :size="44" />
           <p>Carregando dados financeiros…</p>
+        </div>
+        <SettingsView v-else-if="settingPanels.includes(readyView)"
+          :key="activeId + ':' + readyView" :section-key="readyView" />
+        <div v-else-if="readyView === 'data' && !migrationAvailable" class="lf-view">
+          <NcEmptyContent name="Importação indisponível"
+            description="Ative o módulo de importação em Recursos instalados para migrar dados de outra solução.">
+            <template #action>
+              <NcButton variant="primary" @click="navigate('modules')">Ver recursos instalados</NcButton>
+            </template>
+          </NcEmptyContent>
         </div>
         <component :is="currentScreen" v-else :key="activeId + ':' + readyView" />
       </div>

@@ -17,10 +17,7 @@ const w = inject('lfWorkspace')
 const { activeId, accounts, naturalBalance, manager, refreshCurrent } = w
 const navigate = inject('lfNavigate')
 function openPaymentSettings() {
-  const url = new URL(window.location.href)
-  url.searchParams.set('section', 'payments')
-  window.history.replaceState(null, '', url.pathname + url.search)
-  navigate('settings')
+  navigate('paymentMethods')
 }
 const dialog = ref(false)
 const deleteTarget = ref(null)

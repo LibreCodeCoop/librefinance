@@ -940,3 +940,25 @@
     width: 100%;
   }
 }
+
+/* Finance actions reuse the same directional symbols as the dashboard and
+   accounting journal. The text remains explicit without relying on color. */
+#librefinance-app .lf-new-entry,
+#librefinance-app .lf-new-exit {
+  white-space: nowrap;
+}
+#librefinance-app .lf-nav-subsection {
+  list-style: none;
+  padding: 11px 12px 4px 46px;
+  margin: 4px 0 0;
+  color: var(--color-text-maxcontrast, var(--color-text-maxcontrast-default));
+  border-top: 1px solid var(--color-border, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+#librefinance-app .lf-nav-subsection:first-child {
+  border-top: 0;
+}

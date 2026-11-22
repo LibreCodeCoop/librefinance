@@ -45,9 +45,7 @@ export async function goToView(page, view) {
   const nav = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
   await expect(nav).toBeVisible()
   if (view === 'Migração de dados') {
-    await goToView(page, 'Configurações')
-    await page.getByRole('button', { name: 'Dados e migração' }).click()
-    await page.getByRole('button', { name: 'Abrir migração de dados' }).click()
+    await goToView(page, 'Dados e migração')
     return
   }
   const parent = ({
@@ -61,7 +59,11 @@ export async function goToView(page, view) {
     'Categorias': 'Gerenciar',
     'Empresas': 'Gerenciar',
     'Gestões financeiras': 'Gerenciar',
-    'Configurações': 'Gerenciar',
+    'Pessoas e grupos': 'Gerenciar',
+    'Campos personalizados': 'Gerenciar',
+    'Formas de pagamento': 'Gerenciar',
+    'Recursos instalados': 'Gerenciar',
+    'Dados e migração': 'Gerenciar',
   })[view]
   const target = nav.getByText(view, { exact: true })
   if (parent) {

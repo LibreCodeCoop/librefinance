@@ -20,13 +20,21 @@ test('one financial agenda and one management group without duplicate settings',
     ['dashboard', 'finance', 'banking', 'reports', 'management'])
   assert.deepEqual(s()[0].items.filter(i => i.children).map(i => i.id), ['management'])
   for (const id of ['spaces', 'contacts', 'items', 'categories', 'companies',
-    'accounts', 'transactions', 'taxes', 'nfse', 'ai', 'settings']) {
+    'accounts', 'transactions', 'taxes', 'nfse', 'ai',
+    'access', 'fields', 'paymentMethods', 'modules', 'data']) {
     assert.equal(parentOfView(s(), id), 'management', id)
   }
   assert.equal(PAGE_NAMES.finance, 'A pagar e receber')
   assert.equal(PAGE_NAMES.banking, 'Bancos e caixa')
-  assert.equal(PAGE_NAMES.settings, 'Configurações')
-  assert.equal(menuEntries(s()).filter(x => x.id === 'settings').length, 1)
+  assert.equal(menuEntries(s()).filter(x => x.id === 'settings').length, 0)
+  const children = s()[0].items.find(item => item.id === 'management').children
+  assert.deepEqual([...new Set(children.map(child => child.group))],
+    ['Cadastros', 'Financeiro e fiscal', 'Equipe e personalizacao', 'Recursos e dados'])
+  assert.ok(children.every(child => child.group))
+  assert.equal(canonicalView('settings'), 'access')
+  assert.equal(canonicalView('settings', 'payments'), 'paymentMethods')
+  assert.equal(canonicalView('settings', 'data'), 'data')
+  assert.equal(canonicalView('import'), 'data')
 })
 test('old pay/receive links are routed to the common agenda with direction intent', () => {
   for (const alias of ['obligations','sales','purchases','invoicing','receivables','payables']) {
@@ -45,7 +53,9 @@ test('module and role checks still hide disabled or manager-only actions', () =>
   const names = menuEntries(view).map(x => x.id)
   assert.equal(names.includes('banking'), false)
   assert.equal(names.includes('ai'), false)
-  assert.equal(names.includes('settings'), false)
+  for (const sensitive of ['settings','access','fields','paymentMethods','modules','data']) {
+    assert.equal(names.includes(sensitive), false, sensitive)
+  }
   assert.equal(names.includes('finance'), true)
   assert.equal(names.includes('spaces'), true) // every user may create an owned space
   assert.equal(navigationSearch(view, 'extrato').some(x => x.id === 'banking'), false)
@@ -64,8 +74,11 @@ test('navigation search includes ordinary work and administrative capabilities',
   assert.equal(navigationSearch(s(), 'nota fiscal')[0].id, 'nfse')
   assert.equal(navigationSearch(s(), 'gestoes financeiras')[0].id, 'spaces')
   assert.equal(navigationSearch(s(), 'fornecedor')[0].id, 'contacts')
-  assert.equal(navigationSearch(s(), 'configuracoes')[0].id, 'settings')
-  assert.equal(navigationSearch(s(), 'migracao', {manager:true,migrationEnabled:true})[0].id, 'import')
+  assert.equal(navigationSearch(s(), 'configuracoes')[0].id, 'modules')
+  assert.equal(navigationSearch(s(), 'migracao', {manager:true,migrationEnabled:true})[0].id, 'data')
+  assert.equal(navigationSearch(s(), 'formas de pagamento')[0].id, 'paymentMethods')
+  assert.equal(navigationSearch(s(), 'campos personalizados')[0].id, 'fields')
+  assert.equal(navigationSearch(s(), 'pessoas e grupos')[0].id, 'access')
   assert.equal(navigationSearch(s(false),'migracao',{manager:false,migrationEnabled:true}).length,0)
   assert.equal(defaultGroupOpen('management', 'organization'), false)
 })

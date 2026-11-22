@@ -15,11 +15,16 @@ O LibreFinance possui navegacao orientada a tarefas:
 - **Relatorios:** demonstrativos, com segregacao por gestao.
 - **Gerenciar:** gestoes financeiras, clientes e fornecedores, produtos e
   servicos, categorias, empresas, plano de contas, lancamentos contabeis,
-  regras fiscais, NFS-e, assistente e configuracoes, conforme permissao.
+  regras fiscais, NFS-e, assistente e a administracao de pessoas e grupos,
+  campos personalizados, formas de pagamento, recursos instalados e dados
+  para migracao, conforme permissao.
 
 Nao ha menus separados e permanentes para Contas a receber e Contas a pagar,
-nem dois grupos distintos de Cadastros e Mais ferramentas. Configuracoes esta
-dentro de Gerenciar e nao aparece novamente isolada no rodape.
+nem dois grupos distintos de Cadastros e Mais ferramentas. Gerenciar apresenta
+quatro separadores apenas visuais (Cadastros, Financeiro e fiscal, Equipe e
+personalizacao, Recursos e dados); cada funcionalidade e aberta diretamente
+sem outra pagina ou abas de Configuracoes. As URLs antigas de Configuracoes
+continuam redirecionadas para a funcionalidade correspondente.
 
 ## Agenda unica, mas nao extrato bancario
 
@@ -30,8 +35,11 @@ e acoes. Filtros por direcao (ambos, a receber, a pagar), situacao e vencimento
 paginacao. Filtrar ou navegar nao transforma uma cobranca aberta em entrada
 contabilizada. O extrato de caixa efetivo pertence a Bancos e caixa.
 
-Para registrar uma operacao, use **Nova cobranca** ou **Nova conta**,
-independentemente do filtro atual da agenda. O usuario decide entre:
+Para registrar uma operacao, use **Nova entrada** (seta para dentro:
+valor a receber) ou **Nova saida** (seta para fora: valor a pagar),
+independentemente do filtro atual da agenda. A setas seguem o mesmo padrao
+do painel e dos lancamentos contabeis. As duas acoes criam compromissos
+previstos e nao transferencias bancarias. O usuario decide entre:
 
 1. **Simples:** descricao, valor e vencimento; cria somente um titulo avulso.
 2. **Detalhada:** itens, contato, tributos e vencimento; cria documento
@@ -74,7 +82,10 @@ Nao ha exclusao definitiva de historicos contabeis nesta interface.
 ## Compatibilidade e limites
 
 URLs historicas view=receivables, view=payables, view=sales, view=purchases,
-view=invoicing e view=obligations abrem a agenda. Quando a URL indica
+view=invoicing e view=obligations abrem a agenda. Links
+view=settings&section=access|fields|payments|modules|data seguem para
+Pessoas e grupos, Campos personalizados, Formas de pagamento,
+Recursos instalados ou Dados e migracao, respectivamente. Quando a URL indica
 pagar/receber, o filtro correspondente e recuperado.
 Contratos antigos das APIs financeiras permanecem validos; os novos filtros
 sao opcionais e validados antes da paginacao.

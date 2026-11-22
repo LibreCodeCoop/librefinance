@@ -57,8 +57,7 @@ test('contacts, items, and account management have independent purpose-built pag
 test('Field Studio targets contacts and the resulting field appears in the contact form', async ({ page }) => {
   await login(page)
   await makeSpace(page)
-  await goToView(page, 'Configurações')
-  await page.getByRole('button', { name: 'Campos personalizados' }).click()
+  await goToView(page, 'Campos personalizados')
   await page.locator('#lf-field-studio-entity').click()
   await page.getByRole('option', { name: 'Cliente ou fornecedor' }).click()
   await page.getByRole('button', { name: 'Novo campo' }).click()
@@ -196,8 +195,7 @@ test('company private AppData logo is uploaded, displayed, retrieved and removed
 test('manual payment methods can be named, edited, and selected without claiming provider sync', async ({ page }) => {
   await login(page)
   await makeSpace(page)
-  await goToView(page, 'Configurações')
-  await page.getByRole('button', { name: 'Formas de pagamento' }).click()
+  await goToView(page, 'Formas de pagamento')
   await expect(page.getByRole('row', { name: /Dinheiro/ })).toBeVisible()
   await expect(page.getByText(/não conecta esses serviços/)).toBeVisible()
   await page.getByRole('button', { name: 'Nova forma de pagamento' }).click()
@@ -212,7 +210,7 @@ test('manual payment methods can be named, edited, and selected without claiming
   await update.getByRole('textbox', { name: 'Nome da forma de pagamento' }).fill('Carteira para pagamentos')
   await update.getByRole('button', { name: 'Salvar forma' }).click()
   await expect(page.getByRole('row', { name: /Carteira para pagamentos/ })).toBeVisible()
-  await goToView(page, 'Lançamentos')
+  await goToView(page, 'Lançamentos contábeis')
   await page.getByRole('button', { name: 'Novo lançamento', exact: true }).click()
   const journal = page.getByRole('dialog', { name: 'Novo lançamento contábil' })
   await journal.locator('#lf-journal-payment-method').click()

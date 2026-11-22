@@ -295,7 +295,7 @@ function go(view) { navigate(view) }
       Os indicadores não puderam ser consultados: {{ error }}. Nenhum saldo foi estimado.
     </NcNoteCard>
     <NcNoteCard v-else-if="!reportEnabled" type="info">
-      Ative Relatórios em Configurações para consultar totais e evolução do caixa.
+      Ative Relatórios em Gerenciar → Recursos instalados para consultar totais e evolução do caixa.
       Extratos pendentes não compõem os saldos contabilizados.
     </NcNoteCard>
 
@@ -429,7 +429,7 @@ function go(view) { navigate(view) }
             </button>
           </li>
         </ul>
-        <p v-else class="lf-muted">Habilite recursos em Configurações para acessar outras atividades por aqui.</p>
+        <p v-else class="lf-muted">Habilite recursos em Gerenciar → Recursos instalados para acessar outras atividades por aqui.</p>
       </section>
         </template>
       </div>

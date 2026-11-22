@@ -24,7 +24,12 @@ export const PAGE_NAMES = Object.freeze({
   accounts: 'Plano de contas',
   companies: 'Empresas',
   ai: 'Assistente financeiro',
-  settings: 'Configurações',
+  settings: 'Pessoas e grupos', // obsolete menu route maps to the access panel
+  access: 'Pessoas e grupos',
+  fields: 'Campos personalizados',
+  paymentMethods: 'Formas de pagamento',
+  modules: 'Recursos instalados',
+  data: 'Dados e migração',
   import: 'Migração de dados',
 })
 
@@ -40,28 +45,39 @@ export const MENU_STRUCTURE = Object.freeze([
     { id: 'reports', icon: 'reports', module: 'librefinance_reports',
       keywords: 'relatorios demonstrativos fluxo de caixa resultados dre balancete' },
     { id: 'management', label: 'Gerenciar', icon: 'settings', children: [
-      { id: 'spaces', icon: 'companies',
+      { id: 'spaces', icon: 'companies', group: 'Cadastros',
         keywords: 'gestoes financeiras espacos criar renomear arquivar restaurar organizacao pessoal' },
-      { id: 'contacts', icon: 'contacts',
-        keywords: 'clientes fornecedores pessoas contatos' },
-      { id: 'items', icon: 'contacts',
-        keywords: 'produtos servicos itens preco catalogo' },
-      { id: 'categories', icon: 'categories',
-        keywords: 'categorias classificacao receitas despesas' },
-      { id: 'companies', icon: 'companies',
+      { id: 'companies', icon: 'companies', group: 'Cadastros',
         keywords: 'empresa cnpj cadastro juridico organizacao' },
-      { id: 'accounts', icon: 'accounts',
+      { id: 'contacts', icon: 'contacts', group: 'Cadastros',
+        keywords: 'clientes fornecedores pessoas contatos' },
+      { id: 'items', icon: 'contacts', group: 'Cadastros',
+        keywords: 'produtos servicos itens preco catalogo' },
+      { id: 'categories', icon: 'categories', group: 'Cadastros',
+        keywords: 'categorias classificacao receitas despesas' },
+
+      { id: 'accounts', icon: 'accounts', group: 'Financeiro e fiscal',
         keywords: 'plano de contas contabilidade patrimonio ativo passivo' },
-      { id: 'transactions', icon: 'transactions',
+      { id: 'transactions', icon: 'transactions', group: 'Financeiro e fiscal',
         keywords: 'lancamentos contabeis diario debito credito movimentacao' },
-      { id: 'taxes', icon: 'fiscal', module: 'librefinance_invoicing',
+      { id: 'paymentMethods', icon: 'banking', group: 'Financeiro e fiscal', managerOnly: true,
+        keywords: 'formas pagamento dinheiro pix boleto cartao metodos' },
+      { id: 'taxes', icon: 'fiscal', group: 'Financeiro e fiscal', module: 'librefinance_invoicing',
         keywords: 'impostos jurisdicao tributacao aliquotas retencao' },
-      { id: 'nfse', icon: 'fiscal', module: 'librefinance_nfse',
+      { id: 'nfse', icon: 'fiscal', group: 'Financeiro e fiscal', module: 'librefinance_nfse',
         keywords: 'nota fiscal servico rascunho nacional' },
-      { id: 'ai', icon: 'assistant', managerOnly: true,
+
+      { id: 'access', icon: 'contacts', group: 'Equipe e personalizacao', managerOnly: true,
+        keywords: 'acessos equipe permissoes membros usuarios grupos compartilhar' },
+      { id: 'fields', icon: 'categories', group: 'Equipe e personalizacao', managerOnly: true,
+        keywords: 'campos personalizados customizados formularios entidades' },
+
+      { id: 'modules', icon: 'settings', group: 'Recursos e dados', managerOnly: true,
+        keywords: 'recursos instalados modulos ativar desativar extensoes configuracoes' },
+      { id: 'data', icon: 'import', group: 'Recursos e dados', managerOnly: true,
+        keywords: 'dados migracao importar exportar origem arquivos conversao akaunting' },
+      { id: 'ai', icon: 'assistant', group: 'Recursos e dados', managerOnly: true,
         keywords: 'assistente inteligencia artificial resumo analise' },
-      { id: 'settings', icon: 'settings', managerOnly: true,
-        keywords: 'configuracao acessos membros grupos campos personalizaveis formas pagamento modulos migracao' },
     ] },
   ] },
 ])
@@ -92,7 +108,13 @@ export function menuEntries(sections) {
 
 // Preserve existing ?view=invoicing bookmarks while giving each operation
 // a distinct, user-facing route. Never use freeform view names as URLs.
-export function canonicalView(id) {
+const LEGACY_SETTINGS = Object.freeze({
+  access: 'access', fields: 'fields', payments: 'paymentMethods',
+  modules: 'modules', data: 'data',
+})
+export function canonicalView(id, section = null) {
+  if (id === 'settings') return LEGACY_SETTINGS[section] || 'access'
+  if (id === 'import') return 'data'
   if (['invoicing', 'sales', 'purchases', 'obligations', 'receivables', 'payables'].includes(id))
     return 'finance'
   return id
@@ -106,7 +128,6 @@ export function financeDirectionForView(id) {
 }
 
 export function canOpenView(sections, id, { manager = false, migrationEnabled = false } = {}) {
-  if (id === 'settings') return manager
   if (id === 'import') return manager && migrationEnabled
   return menuEntries(sections).some(item => item.id === canonicalView(id))
 }
@@ -114,11 +135,6 @@ export function canOpenView(sections, id, { manager = false, migrationEnabled = 
 export function navigationSearch(sections, query, { manager = false, migrationEnabled = false } = {}) {
   const search = normalizeNavigationText(query).slice(0, 90)
   if (!search) return []
-  const extras = []
-  if (manager && migrationEnabled) extras.push({
-    id: 'import', icon: 'import', section: 'Gerenciar',
-    parent: 'Configurações', keywords: 'migrar importar exportar origem conversao', parentId: 'management',
-  })
   // A direct screen-name match is more useful than a keyword hit on a
   // different screen (e.g. "clientes" must prioritize customer records).
   const rank = item => {
@@ -132,7 +148,7 @@ export function navigationSearch(sections, query, { manager = false, migrationEn
     if (keywords.includes(search)) return 4
     return -1
   }
-  return [...menuEntries(sections), ...extras].map((item, order) => ({
+  return menuEntries(sections).map((item, order) => ({
     item, order, score: rank(item),
   })).filter(found => found.score >= 0)
     .sort((a, b) => a.score - b.score || a.order - b.order)
