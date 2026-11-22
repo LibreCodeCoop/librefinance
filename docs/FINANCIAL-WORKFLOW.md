@@ -13,17 +13,18 @@ O LibreFinance possui navegacao orientada a tarefas:
 - **Bancos e caixa:** movimentos do caixa, extratos importados, transferencias
   e conciliacao dos lancamentos bancarios efetivos.
 - **Relatorios:** demonstrativos, com segregacao por gestao.
-- **Gerenciar:** gestoes financeiras, clientes e fornecedores, produtos e
-  servicos, categorias, empresas, plano de contas, lancamentos contabeis,
-  regras fiscais, NFS-e, assistente e a administracao de acessos e compartilhamento,
-  campos personalizados, formas de pagamento, recursos instalados e dados
-  para migracao, conforme permissao.
+- **Areas financeiras:** unidade de isolamento do dinheiro, contas, historico
+  e permissoes; aparece fora dos cadastros de empresa, junto ao seletor.
+- **Gerenciar:** contatos, produtos/servicos, categorias, dados fiscais de
+  empresas, plano de contas, lancamentos contabeis, regras fiscais, NFS-e,
+  assistente, acessos, campos personalizados, formas de pagamento e migracao,
+  conforme as permissoes do usuario.
 
 Nao ha menus separados e permanentes para Contas a receber e Contas a pagar,
 nem dois grupos distintos de Cadastros e Mais ferramentas. Gerenciar apresenta
-quatro separadores apenas visuais (Cadastros, Financeiro e fiscal, Equipe e
-personalizacao, Recursos e dados); cada funcionalidade e aberta diretamente
-sem outra pagina ou abas de Configuracoes. As URLs antigas de Configuracoes
+quatro **grupos recolhiveis nativos do Nextcloud** (Cadastros, Financeiro e
+fiscal, Equipe e personalizacao, Recursos e dados); cada funcionalidade e
+aberta diretamente, sem outra pagina ou abas de Configuracoes. As URLs antigas de Configuracoes
 continuam redirecionadas para a funcionalidade correspondente.
 
 ## Agenda unica, mas nao extrato bancario
@@ -32,7 +33,11 @@ A agenda reune **valores previstos**, identificados como entrada ou saida.
 Cada linha exibe direcao, origem, valor e saldo com sinal, vencimento, situacao
 e acoes. Filtros por direcao (ambos, a receber, a pagar), situacao e vencimento
 (todos, vencidos, proximos sete dias) sao aplicados pelo servidor antes da
-paginacao. Filtrar ou navegar nao transforma uma cobranca aberta em entrada
+paginacao. Direcao, situacao e vencimento usam botoes curtos em vez de
+seletores com tres opcoes. Cabecalhos de referencia, descricao, vencimento e
+valor previsto ordenam por consulta SQL e continuacao por cursor de ID:
+nenhum clique ordena apenas as primeiras cinquenta linhas carregadas.
+A busca textual por descricao/referencia tambem filtra antes da paginacao. Filtrar ou navegar nao transforma uma cobranca aberta em entrada
 contabilizada. O extrato de caixa efetivo pertence a Bancos e caixa.
 
 Para registrar uma operacao, use **Nova entrada** (seta para dentro:
@@ -63,21 +68,32 @@ contabiliza competencia. Documentos tributados ou com retencao precisam de
 partidas revisadas: o fluxo automatico simplificado e bloqueado em PHP para
 nao lancar indevidamente o valor bruto como receita/despesa.
 
-## Gestao financeira e seletor
+## Areas financeiras, dados de empresas e seguranca de exclusao
 
-Cada gestao e uma unidade de isolamento com seus registros e permissoes.
-Se o usuario so possui **uma gestao ativa**, a navegacao mostra seu nome,
-sem seletor. O seletor so aparece com **duas ou mais gestoes ativas acessiveis**.
+Uma **area financeira** (API `space`) isola o proprio livro financeiro,
+contas, historico, categorias e permissoes. Exemplo: "Minha casa" e "Meu
+negocio" precisam de areas separadas, nao necessariamente duas empresas
+juridicas. **Dados fiscais da empresa** sao apenas cadastros legais dentro
+da area ja existente; uma area pode conter mais de uma empresa, e uma area
+pessoal pode nao conter nenhuma. Isso nao cria outra contabilidade.
 
-Na pagina **Gerenciar > Gestoes financeiras**, qualquer usuario autenticado
-pode criar uma gestao. Somente o **proprietario** pode renomear, arquivar ou
-restaurar as suas. Gestoes compartilhadas sao somente leitura para
-administracao; papeis e permissoes sao controlados pelo servidor.
+A pagina **Areas financeiras** esta acessivel ao lado do seletor de area,
+fora do menu de cadastros. Quando existe apenas uma area ativa, aparece
+o nome, sem seletor. Um usuario autenticado pode criar areas; apenas
+o **proprietario** pode renomear, arquivar ou restaurar as suas. A lista
+usa o `NcListItem` oficial do Nextcloud com icones de contexto e menu
+nativo de abrir, renomear, arquivar ou restaurar.
 
-Arquivar **nao exclui** contas, documentos, diarios ou auditorias. Suspende
-os acessos operacionais ate restauracao, disponivel ao proprietario, inclusive
-quando a gestao arquivada era sua unica gestao ativa.
-Nao ha exclusao definitiva de historicos contabeis nesta interface.
+**Excluir permanentemente** nao aparece por uma razao de integridade:
+existem referencias e auditoria do nucleo, de faturamento, obrigacoes,
+bancos, importacao, relatorios e do app separado de NFS-e, sem uma garantia
+de cascata segura e sem barreiras de escrita entre todos os modulos.
+Arquivar e reversivel e preserva lancamentos, documentos e trilha de
+auditoria. Nao implementar exclusao em cascata nem apagar somente a linha
+`lf_spaces`, o que deixaria dados orfaos. Uma eventual exclusao de area
+virgem requer contrato atomico para instalacao multi-modulo, testes de
+concorrencia e auditoria da retencao obrigatoria. Esta revisao **nao
+introduz** exclusao definitiva.
 
 ## Compatibilidade e limites
 
@@ -131,3 +147,38 @@ Acessos e compartilhamento em Gerenciar administra usuarios e grupos Nextcloud: 
 suportam novos campos no atual contrato `company/contact/item/journal`.
 A administracao de acessos nao deve prometer um campo configuravel sem
 migracoes, API e regras de privacidade proprias.
+
+
+## Busca global do Nextcloud e filtros locais
+
+O provedor `librefinance-records` implementa `OCP\Search\IInAppSearch` e
+e registrado via `IRegistrationContext::registerSearchProvider()`. A busca
+do cabecalho do Nextcloud pesquisa compromissos, contatos, produtos/servicos
+e empresas, apenas nas areas a que o usuario autenticado tem acesso. Ela
+respeita modulos de obrigacoes desativados e evita retornar valores,
+documentos e identificadores fiscais no resumo. Uma busca por pessoa nao
+pode descobrir a existencia dos registros privados de outra.
+
+Ao selecionar um resultado, o Nextcloud abre o LibreFinance na area e
+entidade corretas, com o termo de busca na URL e aplicado ao servidor.
+O campo da propria lista e independente da busca global e pode pesquisar
+em todas as paginas dos cadastros de empresas, contatos, itens ou da
+agenda. Isso nao implica que digitar no cabecalho altere automaticamente
+os dados da pagina abaixo: a API oficial fornece resultados e links.
+
+As buscas e a ordenacao textual usam `OCP\DB\QueryBuilder::iLike()` e
+parametros vinculados, com escaping de wildcards, sem concatenar SQL vindo
+da URL. As consultas filtram por autorizacao antes de limitar a resposta,
+e respostas assincronas atrasadas nao sobrescrevem resultados de outra area.
+
+## Padroes de listagem e limites restantes
+
+Listas de **areas financeiras** usam `NcListItem` e menus `NcActionButton`.
+Na **agenda financeira**, tabela semantica (o pacote Nextcloud Vue nao
+disponibiliza um `NcTable` generico), `NcButton` nos cabecalhos, atributo
+`aria-sort`, menus `NcActions` e os filtros no mesmo layout de densidade
+dos demais apps. As demais tabelas aproveitam os tokens de tema e estilos
+compartilhados; transformar todos os endpoints em grade ordenavel exige
+contratos proprios por tipo, nao uma ordenacao apenas client-side de
+listas paginadas. Nao se deve confundir estes ajustes com a homologacao
+integral de todas as listas ou com uma nova biblioteca de tabelas.
