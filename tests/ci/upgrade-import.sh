@@ -58,6 +58,9 @@ trap cleanup EXIT INT TERM
 # nested volume mountpoints inside it: pre-create them on the host checkout.
 # This mirrors smoke.sh and is required on fresh GitHub Actions checkouts.
 mkdir -p "$LF_NEXTCLOUD_SOURCE/data" "$LF_NEXTCLOUD_SOURCE/custom_apps/librefinance"
+# umask 077 protects the temporary credentials; the app mountpoints are
+# public code, and must remain traversable by the container's www-data user.
+chmod 755 "$LF_NEXTCLOUD_SOURCE/custom_apps" "$LF_NEXTCLOUD_SOURCE/custom_apps/librefinance"
 test -d "$LF_NEXTCLOUD_SOURCE/data"
 test -d "$LF_NEXTCLOUD_SOURCE/custom_apps/librefinance"
 
