@@ -28,6 +28,7 @@ final readonly class ModuleDescriptor {
             ($routeName === 'librefinance.page.index' && in_array($appId, [
                 'librefinance_reports', 'librefinance_obligations',
                 'librefinance_banking', 'librefinance_invoicing',
+                'librefinance_import',
             ], true))) || !preg_match('/^[a-z0-9_.]+$/', $routeName)) {
             throw new InvalidArgumentException('Module route must belong to its app');
         }

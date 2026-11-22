@@ -23,8 +23,8 @@ $assertReport = static fn(array $v): bool => count(array_filter($v['modules'] ??
 $t->check('built-in reports discovered by core', $a, 'GET', $path . '/modules', null, 200, $assertReport);
 $t->check('unrelated user cannot list modules', $b, 'GET', $path . '/modules', null, 404);
 
-// Legacy module page URLs must redirect to the ONE canonical LibreFinance UI.
-// No extension renders a second app header, even when embed=1 is requested.
+// The NFS-e extension redirects to the ONE canonical LibreFinance UI.
+// Import is a core feature and no longer registers a separate page route.
 // Redirect is after backend space and module authorization.
 $fetchPage = static function(string $appId, string $user) use ($id): array {
     $url = 'http://127.0.0.1/index.php/apps/' . $appId . '/spaces/' . $id . '?embed=1';
@@ -54,7 +54,6 @@ $fetchPage = static function(string $appId, string $user) use ($id): array {
 };
 $appsWithPages = [
     'librefinance_nfse' => 'nfse',
-    'librefinance_import' => 'import',
 ];
 foreach ($appsWithPages as $appId => $view) {
     $permitted = $fetchPage($appId, $a);
@@ -70,6 +69,11 @@ foreach ($appsWithPages as $appId => $view) {
         $denied['code'] === 404,
         'HTTP ' . $denied['code']);
 }
+
+$retiredPage = $fetchPage('librefinance_import', $a);
+$t->record('retired Import app URL is no longer independently served',
+    $retiredPage['code'] === 404,
+    'HTTP ' . $retiredPage['code']);
 
 $t->checkModule('read empty profit and loss', $a, $report, 'GET',
     $path . '/profit-loss?from=2026-01-01&through=2026-12-31', null, 200,
@@ -105,7 +109,7 @@ $t->check('grant viewer for reports', $a, 'POST', $path . '/members',
 // Exercise the public module service with the same synthetic viewer and the
 // installed manager-only import module. Do not add a test-only HTTP endpoint.
 \OC_App::loadApp('librefinance');
-\OC_App::loadApp('librefinance_import');
+// Import is built into LibreFinance; the old optional app is not required.
 $testUser = \OC::$server->get(\OCP\IUserManager::class)->get($b);
 if ($testUser === null) {
     throw new \RuntimeException('Synthetic viewer account not found');

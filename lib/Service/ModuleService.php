@@ -51,6 +51,10 @@ final class ModuleService {
                 'librefinance_reports', 'Financial reports',
                 'Profit and loss, cash flow, trial balance and saved reports',
                 'librefinance.page.index'),
+            'librefinance_import' => new ModuleDescriptor(
+                'librefinance_import', 'Data import and migration',
+                'Approved imports, source identity mapping and reconciliation',
+                'librefinance.page.index', 'manager'),
         ];
         // A legacy optional app might still be enabled during a developer
         // upgrade. It must never shadow a built-in domain or its permissions.
