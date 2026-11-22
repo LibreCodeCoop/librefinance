@@ -54,6 +54,13 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+# The official Nextcloud checkout is mounted read-only. Docker cannot create
+# nested volume mountpoints inside it: pre-create them on the host checkout.
+# This mirrors smoke.sh and is required on fresh GitHub Actions checkouts.
+mkdir -p "$LF_NEXTCLOUD_SOURCE/data" "$LF_NEXTCLOUD_SOURCE/custom_apps/librefinance"
+test -d "$LF_NEXTCLOUD_SOURCE/data"
+test -d "$LF_NEXTCLOUD_SOURCE/custom_apps/librefinance"
+
 compose up -d --wait
 compose exec -T --user root nextcloud chown -R www-data:www-data /var/www/html/config /var/www/html/data
 if [ "$LF_TEST_DATABASE" = 'pgsql' ]; then
