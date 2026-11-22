@@ -22,8 +22,8 @@ $apps = ['librefinance', 'librefinance_nfse'];
  * Each spec describes the controller JSON contract, NOT Akaunting's database.
  */
 $writeForms = [
-    'librefinance:space#create' => 'name:s!,kind:s!,currency:s!',
-    'librefinance:space#rename' => 'name:s!',
+     'librefinance:space#create' => 'name:s!,kind:s!,currency:s!,color:s',
+     'librefinance:space#rename' => 'name:s!,color:s',
     'librefinance:space#share' => 'uid:s!,role:s!',
     'librefinance:space#shareGroup' => 'gid:s!,role:s!',
     'librefinance:account#create' => 'code:s!,name:s!,class:s!,isBank:b',
@@ -33,8 +33,8 @@ $writeForms = [
     'librefinance:account#update' => 'name:s!,active:b',
     'librefinance:category#create' => 'code:s!,name:s!,kind:s!,parentId:i,accountId:i,color:s',
     'librefinance:category#update' => 'name:s!,color:s!,active:b',
-    'librefinance:company#create' => 'legalName:s!,country:s!,taxId:s,tradeName:s,municipalRegistration:s,stateRegistration:s,customFields:object',
-    'librefinance:company#update' => 'legalName:s!,country:s!,taxId:s,tradeName:s,municipalRegistration:s,stateRegistration:s,active:b,customFields:object',
+     'librefinance:company#create' => 'legalName:s!,country:s!,taxId:s,tradeName:s,municipalRegistration:s,stateRegistration:s,customFields:object,profile:object',
+     'librefinance:company#update' => 'legalName:s!,country:s!,taxId:s,tradeName:s,municipalRegistration:s,stateRegistration:s,active:b,customFields:object,profile:object',
     'librefinance:customField#create' => 'key:s!,label:s!,type:s!,required:b,options:array,visible:b,help:s,sortOrder:i,columnSpan:i',
     'librefinance:customField#createForEntity' => 'key:s!,label:s!,type:s!,required:b,options:array,visible:b,help:s,sortOrder:i,columnSpan:i',
     'librefinance:customField#updateForEntity' => 'label:s!,required:b,active:b,visible:b,help:s,sortOrder:i,columnSpan:i',

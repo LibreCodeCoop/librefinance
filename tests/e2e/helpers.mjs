@@ -56,10 +56,11 @@ export async function goToView(page, view) {
     'Assistente financeiro': 'Gerenciar',
     'Clientes e fornecedores': 'Gerenciar',
     'Pessoas e estabelecimentos': 'Gerenciar',
-    'Dados fiscais (opcional)': 'Gerenciar',
+    'Organizações (opcional)': 'Gerenciar',
     'Produtos e serviços': 'Gerenciar',
     'Categorias': 'Gerenciar',
-    'Dados fiscais da empresa': 'Gerenciar',
+    'Dados da organização': 'Gerenciar',
+    'Gestões financeiras': 'Gerenciar',
 
     'Acessos e compartilhamento': 'Gerenciar',
     'Campos personalizados': 'Gerenciar',
@@ -83,7 +84,8 @@ export async function goToView(page, view) {
     const subgroup = ({
       'Clientes e fornecedores':'Cadastros', 'Pessoas e estabelecimentos':'Cadastros',
       'Produtos e serviços':'Cadastros', 'Categorias':'Cadastros',
-      'Dados fiscais da empresa':'Financeiro e fiscal', 'Dados fiscais (opcional)':'Financeiro e fiscal',
+      'Dados da organização':'Gestões e identidade', 'Organizações (opcional)':'Gestões e identidade',
+      'Gestões financeiras':'Gestões e identidade',
       'Plano de contas':'Financeiro e fiscal', 'Lançamentos contábeis':'Financeiro e fiscal',
       'Formas de pagamento':'Financeiro e fiscal',
       'Regras tributárias':'Financeiro e fiscal','NFS-e Brasil':'Financeiro e fiscal',
@@ -111,20 +113,16 @@ export async function selectFinanceSpace(page, name) {
 
 export async function makeSpace(page, kind = 'organization') {
   const name = 'E2E ' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-  if (await page.getByRole('button', { name: 'Gerenciar áreas financeiras' }).count()) {
-    await page.getByRole('button', { name: 'Gerenciar áreas financeiras' }).click()
-  } else {
-    await goToView(page, 'Áreas financeiras')
-  }
-  await page.getByRole('button', { name: 'Criar área', exact: true }).click()
-  await expect(page.getByRole('dialog', { name: 'Criar área financeira' })).toBeVisible()
-  await page.getByRole('dialog', { name: 'Criar área financeira' })
-    .getByRole('textbox', { name: 'Nome da área' }).fill(name)
+  await goToView(page, 'Gestões financeiras')
+  await page.getByRole('button', { name: 'Nova gestão', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Criar gestão financeira' })).toBeVisible()
+  await page.getByRole('dialog', { name: 'Criar gestão financeira' })
+    .getByRole('textbox', { name: 'Nome da gestão' }).fill(name)
   await page.locator('#lf-space-kind-new').click()
   const index = ({ personal: 0, collective: 1, organization: 2 })[kind]
   // NcSelect's highlighted accessibility text may contain injected whitespace.
   await page.getByRole('option').nth(index).click()
-  await page.getByRole('dialog', { name: 'Criar área financeira' })
+  await page.getByRole('dialog', { name: 'Criar gestão financeira' })
     .getByRole('button', { name: 'Criar gestão independente', exact: true }).click()
   await expect(page.locator('.lf-context-identity')).toContainText(name)
   // Do not pass while a previous space is still being refreshed. Wait for the
@@ -132,5 +130,11 @@ export async function makeSpace(page, kind = 'organization') {
   await expect(page.locator('[data-testid="librefinance-workspace"]'))
     .toHaveAttribute('data-modules-loaded', 'true', { timeout: 20_000 })
   await expect(page.locator('.lf-loading')).toHaveCount(0)
+  if (kind === 'organization') {
+    const onboarding = page.getByRole('dialog', { name: 'Cadastrar empresa' })
+    await expect(onboarding).toBeVisible({timeout:20_000})
+    await onboarding.getByRole('button', { name: 'Cancelar' }).click()
+    await goToView(page, 'Visão geral')
+  }
   return name
 }

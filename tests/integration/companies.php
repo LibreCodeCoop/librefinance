@@ -26,6 +26,7 @@ $payload = ['legalName' => 'Synthetic Cooperative Alpha',
         'website' => 'https://example.org', 'addressLine1' => 'Rua Exemplo 10',
         'addressLine2' => 'Sala 200', 'city' => 'Rio de Janeiro',
         'region' => 'RJ', 'postalCode' => '20000-000',
+        'brandColor' => '#1A2B3C',
     ]];
 $first = $t->check('register legal entity in permitted finance space', $a, 'POST',
     $base, $payload, 201,
@@ -39,7 +40,8 @@ $t->check('company list returns scoped record', $a, 'GET', $base, null, 200,
         && $v['companies'][0]['trade_name'] === 'Alpha'
         && $v['companies'][0]['contact_email'] === 'financeiro@example.org'
         && $v['companies'][0]['city'] === 'Rio de Janeiro'
-        && $v['companies'][0]['address_line1'] === 'Rua Exemplo 10');
+        && $v['companies'][0]['address_line1'] === 'Rua Exemplo 10'
+        && $v['companies'][0]['brand_color'] === '#1A2B3C');
 $t->check('invalid legal country rejected', $a, 'POST', $base,
     [...$payload, 'country' => 'XX'], 422);
 $t->check('invalid tax identifier rejected', $a, 'POST', $base,
@@ -56,6 +58,12 @@ $t->check('oversized address rejected', $a, 'POST', $base,
 $t->check('unknown company profile keys rejected', $a, 'POST', $base,
     [...$payload, 'taxId' => '98765432000188',
         'profile' => ['unsafeColumn' => 'bad']], 422);
+$t->check('invalid company brand color rejected', $a, 'POST', $base,
+    [...$payload, 'taxId' => '98765432000188',
+        'profile' => ['brandColor' => 'red; background:url(unsafe)']], 422);
+$t->check('non hex color rejected', $a, 'POST', $base,
+    [...$payload, 'taxId' => '98765432000188',
+        'profile' => ['brandColor' => '#ABC']], 422);
 $t->check('other user cannot update company', $b, 'PUT',
     $base . '/' . $companyId, $payload, 404);
 $t->check('missing company cannot be updated', $a, 'PUT',
@@ -67,10 +75,15 @@ $t->check('manager edits company attributes without replacing identity', $a, 'PU
     static fn(array $v): bool => ($v['legal_name'] ?? null) === 'Synthetic Cooperative Alpha Edited'
         && ($v['state_registration'] ?? null) === 'EXEMPT'
         && $v['active'] === false);
+$t->check('older API client cannot erase existing brand color', $a, 'PUT',
+    $base . '/' . $companyId,
+    ['legalName' => 'Synthetic Cooperative Alpha Edited', 'country' => 'BR',
+        'taxId' => '12345678000190', 'active' => false], 200);
 $t->check('inactive company retains identity profile', $a, 'GET', $base, null, 200,
     static fn(array $v): bool => ($v['companies'][0]['active'] ?? null) === false
         && ($v['companies'][0]['contact_email'] ?? null) === 'financeiro@example.org'
-        && ($v['companies'][0]['postal_code'] ?? null) === '20000-000');
+        && ($v['companies'][0]['postal_code'] ?? null) === '20000-000'
+        && ($v['companies'][0]['brand_color'] ?? null) === '#1A2B3C');
 $t->check('viewer group can inspect the permitted company', $a, 'POST',
     '/spaces/' . $id . '/members', ['uid' => $b, 'role' => 'viewer'], 200);
 $t->check('viewer can list scoped company', $b, 'GET', $base, null, 200);

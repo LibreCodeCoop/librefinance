@@ -210,6 +210,9 @@
                                     },
                                     "currency": {
                                         "type": "string"
+                                    },
+                                    "color": {
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
@@ -320,6 +323,9 @@
                                 "type": "object",
                                 "properties": {
                                     "name": {
+                                        "type": "string"
+                                    },
+                                    "color": {
                                         "type": "string"
                                     }
                                 },
@@ -1405,6 +1411,10 @@
                                     "customFields": {
                                         "type": "object",
                                         "additionalProperties": true
+                                    },
+                                    "profile": {
+                                        "type": "object",
+                                        "additionalProperties": true
                                     }
                                 },
                                 "required": [
@@ -1504,6 +1514,10 @@
                                         "type": "boolean"
                                     },
                                     "customFields": {
+                                        "type": "object",
+                                        "additionalProperties": true
+                                    },
+                                    "profile": {
                                         "type": "object",
                                         "additionalProperties": true
                                     }
