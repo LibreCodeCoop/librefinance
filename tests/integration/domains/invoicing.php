@@ -61,6 +61,29 @@ $inv=$t->checkModule('create draft with 20 percent tax',$a,$app,'POST',
     ($v['status']??null)==='draft' && ($v['totalMinor']??null)===12000
     && ($v['taxMinor']??null)===2000);
 $invoiceId=(int)$inv['id'];
+$bill=$t->checkModule('create supplier bill in the same account space', $a, $app,
+    'POST', $base.'/invoices', array_replace($invoicePayload, [
+        'number'=>'BILL-'.$tag, 'kind'=>'bill',
+        'lines'=>[['description'=>'Supplier material','quantity'=>1,
+            'unitPriceMinor'=>1000,'taxRuleId'=>null]],
+    ]), 201, static fn(array $v):bool=>($v['status']??null)==='draft'
+        && ($v['totalMinor']??null)===1000);
+$t->checkModule('sales query excludes supplier bills before pagination', $a, $app,
+    'GET', $base.'/invoices?kind=invoice', null, 200,
+    static fn(array $v):bool=>count(array_filter($v['invoices']??[],
+        static fn(array $row):bool=>$row['kind']!=='invoice'))===0
+        && count($v['invoices']??[])===1);
+$t->checkModule('supplier bills query excludes sales before pagination', $a, $app,
+    'GET', $base.'/invoices?kind=bill', null, 200,
+    static fn(array $v):bool=>count($v['invoices']??[])===1
+        && (int)$v['invoices'][0]['id']===(int)$bill['id']);
+$t->checkModule('backward-compatible unfiltered invoices endpoint', $a, $app,
+    'GET', $base.'/invoices', null, 200,
+    static fn(array $v):bool=>count($v['invoices']??[])===2);
+$t->checkModule('invalid commercial document kind rejected', $a, $app,
+    'GET', $base.'/invoices?kind=untrusted', null, 422,
+    static fn(array $v):bool=>($v['error']??null)==='invalid_invoice_kind');
+
 $t->checkModule('duplicate invoice reference rejected',$a,$app,'POST',
     $base.'/invoices',$invoicePayload,409);
 $t->checkModule('B cannot inspect another space invoice',$b,$app,'GET',
@@ -92,6 +115,12 @@ $linked = $t->checkModule('commercial invoice creates a linked receivable', $a,
 $linkedRows = array_values(array_filter($linked['obligations'] ?? [],
     static fn(array $row): bool => ($row['linkedInvoiceId'] ?? null) === $invoiceId));
 $obligationId = (int)$linkedRows[0]['id'];
+$t->checkModule('linked obligation detail exposes exactly one originating invoice',
+    $a, 'librefinance_obligations', 'GET',
+    $base.'/obligations/'.$obligationId, null, 200,
+    static fn(array $v): bool =>
+        ($v['obligation']['linkedInvoiceId'] ?? null) === $invoiceId
+        && ($v['obligation']['kind'] ?? null) === 'receivable');
 $t->checkModule('issued invoice shows its linked obligation ID', $a, $app, 'GET',
     $base.'/invoices/'.$invoiceId, null, 200,
     static fn(array $v): bool => ($v['obligationId'] ?? null) === $obligationId);

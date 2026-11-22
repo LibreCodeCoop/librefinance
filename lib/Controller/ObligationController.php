@@ -27,6 +27,12 @@ final class ObligationController extends Controller {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/obligations/{obligationId}')]
+    public function show(int $spaceId, int $obligationId): JSONResponse {
+        return $this->respond(fn() => $this->service->show($spaceId, $obligationId));
+    }
+
+    #[NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/obligations')]
     public function create(int $spaceId, string $kind, string $description,
         int $amountMinor, string $issuedOn, string $dueOn, string $reference = '',

@@ -449,6 +449,11 @@
       "path": "/apps/librefinance/api/spaces/{spaceId}/inventory-preview",
       "request": "POST",
       "route": "librefinance.inventory.preview"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/obligations/{obligationId}",
+      "request": "GET",
+      "route": "librefinance.obligation.show"
     }
   ],
   "librefinance_nfse": [

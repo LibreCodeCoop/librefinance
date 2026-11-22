@@ -35,6 +35,13 @@ $obligation = $t->checkModule('create payable', $a, $app, 'POST', $base . '/obli
     $data, 201, static fn(array $v): bool => ($v['amount_minor'] ?? null) === 12345
         && ($v['status'] ?? null) === 'open');
 $obligationId = (int)$obligation['id'];
+$t->checkModule('detail returns the same title and its source without duplicating it',
+    $a, $app, 'GET', $base.'/obligations/'.$obligationId, null, 200,
+    static fn(array $v): bool=>(int)($v['obligation']['id']??0)===$obligationId
+        && array_key_exists('linkedInvoiceId', $v['obligation'])
+        && $v['obligation']['linkedInvoiceId']===null);
+$t->checkModule('missing title returns 404 without falling back to another workspace',
+    $a, $app, 'GET', $base.'/obligations/99999999', null, 404);
 $t->checkModule('reject duplicate reference', $a, $app, 'POST', $base . '/obligations',
     array_replace($data, ['amountMinor' => 1000]), 409,
     static fn(array $v): bool => ($v['error'] ?? null) === 'reference_conflict');
@@ -96,6 +103,8 @@ $t->checkModule('viewer B cannot settle', $b, $app, 'POST',
 $t->checkModule('viewer B cannot create', $b, $app, 'POST',
     $base . '/obligations', array_replace($data, ['reference' => 'VIEW-' . $token]), 403);
 $t->check('revoke B', $a, 'DELETE', $base . '/members/' . $b, null, 200);
+$t->checkModule('revoked B cannot inspect title detail', $b, $app,
+    'GET', $base . '/obligations/' . $obligationId, null, 404);
 $t->checkModule('revoked B cannot read obligations', $b, $app, 'GET',
     $base . '/obligations', null, 404);
 $t->finish();

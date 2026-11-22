@@ -71,6 +71,21 @@ final class ObligationService {
     }
 
     /** @return array<string,mixed> */
+    public function show(int $spaceId, int $id): array {
+        $this->finance->requireModule($spaceId, self::MODULE);
+        if ($id < 1) {
+            throw new DomainException('obligation_not_found');
+        }
+        $row = $this->find($spaceId, $id);
+        if ($row === null) {
+            throw new DomainException('obligation_not_found');
+        }
+        $row = self::cast($row);
+        $row['linkedInvoiceId'] = $this->invoiceIdForObligation($spaceId, $id);
+        return ['obligation' => $row];
+    }
+
+    /** @return array<string,mixed> */
     public function create(int $spaceId, string $kind, string $description, string $reference,
         int $amountMinor, string $issuedOn, string $dueOn, ?int $contactId = null): array {
         $this->finance->requireModule($spaceId, self::MODULE, 'operator');

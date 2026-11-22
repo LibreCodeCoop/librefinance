@@ -24,17 +24,24 @@ final class InvoiceService {
         private IUserSession $session,
     ) {}
 
-    public function list(int $spaceId,int $afterId=0):array {
+    public function list(int $spaceId,int $afterId=0,string $kind=''):array {
         $this->finance->requireModule($spaceId,self::MODULE);
         if($afterId<0){throw new DomainException('invalid_cursor');}
+        if($kind!=='' && !in_array($kind,['invoice','bill'],true)){
+            throw new DomainException('invalid_invoice_kind');
+        }
         $q=$this->db->getQueryBuilder();
         $q->select('id','number','kind','status','contact_id','currency',
             'issue_on','due_on','country','region','subtotal_minor','tax_minor','withheld_minor',
             'total_minor','paid_minor','version')
             ->from('lfi_invoices')
             ->where($q->expr()->eq('space_id',$q->createNamedParameter($spaceId,IQueryBuilder::PARAM_INT)))
-            ->andWhere($q->expr()->gt('id',$q->createNamedParameter($afterId,IQueryBuilder::PARAM_INT)))
-            ->orderBy('id','ASC')->setMaxResults(51);
+            ->andWhere($q->expr()->gt('id',$q->createNamedParameter($afterId,IQueryBuilder::PARAM_INT)));
+        // Filter before pagination, never after a page is loaded in Vue.
+        if($kind!==''){
+            $q->andWhere($q->expr()->eq('kind',$q->createNamedParameter($kind)));
+        }
+        $q->orderBy('id','ASC')->setMaxResults(51);
         $rows=$q->executeQuery()->fetchAllAssociative();
         $more=count($rows)>50;
         $rows=array_slice($rows,0,50);
