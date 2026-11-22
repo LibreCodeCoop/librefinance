@@ -24,7 +24,7 @@ final class ObligationService {
     ) {}
 
     /** @return array<string,mixed> */
-    public function list(int $spaceId, int $afterId = 0, string $status = 'all', string $kind = 'all'): array {
+    public function list(int $spaceId, int $afterId = 0, string $status = 'all', string $kind = 'all', string $dueRange = 'all'): array {
         $this->finance->requireModule($spaceId, self::MODULE);
         if ($afterId < 0) {
             throw new DomainException('invalid_cursor');
@@ -34,6 +34,9 @@ final class ObligationService {
         }
         if (!in_array($kind, ['all', 'payable', 'receivable'], true)) {
             throw new DomainException('invalid_kind');
+        }
+        if (!in_array($dueRange, ['all', 'overdue', 'next7'], true)) {
+            throw new DomainException('invalid_due_range');
         }
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'kind', 'description', 'reference', 'contact_id',
@@ -49,6 +52,20 @@ final class ObligationService {
         // Authorization and flow kind are resolved in SQL before keyset paging.
         if ($kind !== 'all') {
             $q->andWhere($q->expr()->eq('kind', $q->createNamedParameter($kind)));
+        }
+        // Apply time filters before keyset pagination, never to the current page.
+        if ($dueRange !== 'all') {
+            $q->andWhere($q->expr()->in('status', $q->createNamedParameter(
+                ['open', 'partial'], IQueryBuilder::PARAM_STR_ARRAY)));
+            $today = (new \DateTimeImmutable('today', new \DateTimeZone('UTC')))
+                ->format('Y-m-d');
+            if ($dueRange === 'overdue') {
+                $q->andWhere($q->expr()->lt('due_on', $q->createNamedParameter($today)));
+            } else {
+                $through = (new \DateTimeImmutable($today))->modify('+7 days')->format('Y-m-d');
+                $q->andWhere($q->expr()->gte('due_on', $q->createNamedParameter($today)))
+                    ->andWhere($q->expr()->lte('due_on', $q->createNamedParameter($through)));
+            }
         }
         $rows = $q->executeQuery()->fetchAllAssociative();
         $hasMore = count($rows) > 50;

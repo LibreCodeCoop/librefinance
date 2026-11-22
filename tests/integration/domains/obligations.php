@@ -99,6 +99,30 @@ $t->checkModule('invalid obligation flow kind rejected',
     $a, $app, 'GET', $base . '/obligations?kind=untrusted', null, 422,
     static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_kind');
 
+$utcToday=(new DateTimeImmutable('today',new DateTimeZone('UTC')));
+$dueSoon=$utcToday->modify('+3 days')->format('Y-m-d');
+$duePast=$utcToday->modify('-1 day')->format('Y-m-d');
+$dueSoonId=$t->checkModule('create a payment due in the coming week',
+    $a, $app, 'POST', $base.'/obligations',
+    array_replace($data, ['reference'=>'SOON-'.$token,
+        'contactId'=>null,'dueOn'=>$dueSoon,'amountMinor'=>700,
+        'description'=>'Synthetic due in 3 days']), 201);
+$t->checkModule('create an overdue payable', $a, $app, 'POST',
+    $base.'/obligations', array_replace($data, ['reference'=>'LATE-'.$token,
+        'contactId'=>null,'dueOn'=>$duePast,'amountMinor'=>800,
+        'description'=>'Synthetic overdue bill']), 201);
+$t->checkModule('filter next week before pagination', $a, $app,
+    'GET',$base.'/obligations?kind=payable&dueRange=next7',null,200,
+    static fn(array $v):bool=>count($v['obligations']??[])===1
+        && (int)$v['obligations'][0]['id']===(int)$dueSoonId['id']);
+$t->checkModule('filter overdue open titles before pagination', $a, $app,
+    'GET',$base.'/obligations?kind=payable&dueRange=overdue',null,200,
+    static fn(array $v):bool=>count($v['obligations']??[])===1
+        && ($v['obligations'][0]['description']??null)==='Synthetic overdue bill');
+$t->checkModule('invalid due window rejected by PHP', $a, $app,
+    'GET',$base.'/obligations?dueRange=all%20OR%201=1',null,422,
+    static fn(array $v):bool=>($v['error']??null)==='invalid_due_range');
+
 $t->checkModule('cancel unpaid receivable', $a, $app, 'POST',
     $base . '/obligations/' . $otherId . '/cancel', null, 200,
     static fn(array $v): bool => ($v['status'] ?? null) === 'cancelled');
