@@ -454,6 +454,21 @@
       "path": "/apps/librefinance/api/spaces/{spaceId}/obligations/{obligationId}",
       "request": "GET",
       "route": "librefinance.obligation.show"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/invoices/{invoiceId}/cash-payments",
+      "request": "POST",
+      "route": "librefinance.paymentworkflow.invoice"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/obligations/{obligationId}/cash-payments",
+      "request": "POST",
+      "route": "librefinance.paymentworkflow.obligation"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/obligations/{obligationId}/existing-journal-payments",
+      "request": "POST",
+      "route": "librefinance.paymentworkflow.existing"
     }
   ],
   "librefinance_nfse": [

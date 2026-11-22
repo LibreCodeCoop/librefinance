@@ -60,6 +60,12 @@ $writeForms = [
         'code:s!,label:s!,country:s!,region:s,kind:s!,rateBps:i!,inclusive:b!,validFrom:date!,validThrough:date,sourceRef:s!',
     'librefinance:invoice#create' =>
         'number:s!,kind:s!,contactId:i!,issueOn:date!,dueOn:date!,country:s!,region:s,lines:array!',
+    'librefinance:paymentWorkflow#invoice' =>
+        'bankAccountId:i!,counterAccountId:i!,amountMinor:i!,paidOn:date!,operationKey:s!',
+    'librefinance:paymentWorkflow#obligation' =>
+        'bankAccountId:i!,counterAccountId:i!,amountMinor:i!,paidOn:date!,operationKey:s!',
+    'librefinance:paymentWorkflow#existing' =>
+        'bankAccountId:i!,journalId:i!,amountMinor:i!,paidOn:date!,operationKey:s!',
     'librefinance:invoice#allocate' =>
         'journalId:i!,bankAccountId:i!,amountMinor:i!',
     'librefinance_nfse:draft#create' =>
@@ -101,7 +107,7 @@ $query = [
     'librefinance:report#trialBalance' => 'through:date!,afterId:i,accountClass:s',
     'librefinance:report#cashFlow' => 'from:date!,through:date!',
     'librefinance:savedReport#index' => 'afterId:i',
-    'librefinance:obligation#index' => 'afterId:i',
+    'librefinance:obligation#index' => 'afterId:i,status:s,kind:s',
     'librefinance:obligation#settlements' => 'afterId:i',
     'librefinance:banking#index' => 'afterId:i',
     'librefinance:tax#index' => 'afterId:i',
@@ -112,6 +118,9 @@ $descriptions = [
     'librefinance:mcp#handle' => 'MCP read-only JSON-RPC; clients must use an authenticated Nextcloud app password and the negotiated 2025-06-18 protocol.',
     'librefinance:ai#analyze' => 'TaskProcessing: only aggregate totals, read-only, requires human consent; provider may be external.',
     'librefinance:invoice#issue' => 'Internal commercial issue status only. This is NOT a fiscal authorization.',
+    'librefinance:paymentWorkflow#invoice' => 'One atomic, idempotent cash journal and allocation to a confirmed invoice, with explicit cash-basis revenue/expense classification. No remote bank transfer.',
+    'librefinance:paymentWorkflow#obligation' => 'One atomic, idempotent cash journal and settlement to a standalone obligation. The posted journal is claimed and cannot be silently reversed.',
+    'librefinance:paymentWorkflow#existing' => 'Claims and links a pre-existing posted bank journal to a standalone obligation, without creating a second cash journal. Effective dates must match.',
     'librefinance_nfse:draft#create' => 'Staging only. Does not issue DPS, NFS-e, DANFSe or authorized XML.',
     'librefinance:import#apply' => 'Explicitly confirmed normalized JSON only; no direct source API access or automatic ledger posting.',
     'librefinance:movement#apply' => 'Explicitly approved historical bank movement import. Creates pending bank statements only, never ledger postings or transfers.',

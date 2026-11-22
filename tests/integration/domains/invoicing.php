@@ -103,6 +103,19 @@ $t->checkModule('issue commercial invoice',$a,$app,'POST',
     $base.'/invoices/'.$invoiceId.'/issue',null,200,
     static fn(array $v):bool=>($v['status']??null)==='issued'
         && ($v['isFiscalDocument']??true)===false);
+$t->checkModule('taxed commercial invoice blocks gross cash-as-revenue posting',
+    $a, $app, 'POST', $base.'/invoices/'.$invoiceId.'/cash-payments',
+    [
+        'bankAccountId'=>$chart['1000'], 'counterAccountId'=>$chart['4000'],
+        'amountMinor'=>12000, 'paidOn'=>$date,
+        'operationKey'=>'workflow:tax-block:'.$tag,
+    ], 409, static fn(array $r): bool =>
+        ($r['error']??null)==='invoice_tax_allocation_required');
+$t->checkModule('rejected gross tax posting did not pay the commercial invoice',
+    $a, $app, 'GET', $base.'/invoices/'.$invoiceId, null, 200,
+    static fn(array $r):bool=>
+        ($r['invoice']['paid_minor']??null)===0
+        && count($r['allocations']??[])===0);
 $linked = $t->checkModule('commercial invoice creates a linked receivable', $a,
     'librefinance_obligations', 'GET', $base.'/obligations', null, 200,
     static fn(array $v): bool =>
