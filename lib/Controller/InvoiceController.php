@@ -56,7 +56,9 @@ final class InvoiceController extends Controller {
                 'invoice_not_draft','invoice_concurrent_change','invoice_overpayment',
                 'invoice_not_issued','invoice_number_conflict','journal_already_allocated',
                 'account_reference_busy',
-                'journal_already_claimed','journal_not_available'=>409,
+                'journal_already_claimed','journal_not_available',
+                'invoice_obligation_unlinked', 'invoice_obligation_mismatch',
+                'invoice_already_linked' => 409,
                 'authentication_required'=>401,
                 default=>422,
             });

@@ -172,4 +172,44 @@ $t->checkModule('viewer cannot issue invoice',$b,$app,'POST',
     $base.'/invoices/'.$invoiceId.'/issue',null,403);
 $t->check('revoke invoice viewer',$a,'DELETE',$base.'/members/'.$b,null,200);
 $t->checkModule('revoked viewer cannot see invoices',$b,$app,'GET',$base.'/invoices',null,404);
+
+// A commercial document issued in the historical seven-app layout must
+// NOT be guessed into an unrelated title/settlement. Simulate the exact
+// legacy state by creating a valid draft and upgrading its state directly
+// in this disposable test database, without executing the new issue path.
+$old = $t->checkModule('make synthetic pre-consolidation invoice draft',
+    $a, $app, 'POST', $base.'/invoices',
+    array_replace($invoicePayload, ['number'=>'LEG-'.$tag,
+        'lines'=>[['description'=>'Legacy item','quantity'=>1,
+            'unitPriceMinor'=>1000,'taxRuleId'=>null]]]), 201);
+require_once dirname(__DIR__, 5) . '/lib/base.php';
+$db = \OC::$server->getDatabaseConnection();
+$changed = $db->update('lfi_invoices',
+    ['status'=>'issued', 'version'=>1, 'issued_at'=>time()],
+    ['id'=>(int)$old['id'], 'space_id'=>$id, 'status'=>'draft']);
+$t->record('legacy issued invoice state created only in synthetic database',
+    $changed===1, 'updated rows '.$changed);
+$t->checkModule('historical issued invoice has no invented link', $a, $app,
+    'GET', $base.'/invoices/'.$old['id'], null, 200,
+    static fn(array $v): bool => ($v['obligationId'] ?? null) === null
+        && $v['invoice']['status'] === 'issued'
+        && $v['allocations'] === []);
+$oldJournal = $t->check('post distinct legacy bank settlement candidate',
+    $a, 'POST', $base.'/journals',
+    ['debitId'=>$chart['1000'],'creditId'=>$chart['4000'],
+        'amountMinor'=>1000,'date'=>$date,'memo'=>'Legacy invoice candidate',
+        'externalKey'=>'legacy:bank:'.$tag], 201);
+$t->checkModule('legacy invoice cannot allocate without verified obligation', $a,
+    $app, 'POST', $base.'/invoices/'.$old['id'].'/allocations',
+    ['journalId'=>(int)$oldJournal['id'], 'bankAccountId'=>$chart['1000'],
+        'amountMinor'=>1000], 409,
+    static fn(array $v): bool => ($v['error'] ?? null) === 'invoice_obligation_unlinked');
+$t->checkModule('rejected allocation does not modify legacy invoice or ledger refs',
+    $a, $app, 'GET', $base.'/invoices/'.$old['id'], null, 200,
+    static fn(array $v): bool => $v['invoice']['paid_minor'] === 0
+        && $v['allocations'] === []);
+$t->check('failed legacy allocation did not claim the bank journal', $a,
+    'POST', $base.'/journals/'.(int)$oldJournal['id'].'/reverse',
+    null, 200, static fn(array $v): bool => ($v['replayed'] ?? null) === false);
+
 $t->finish();
