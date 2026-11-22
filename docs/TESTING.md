@@ -15,8 +15,9 @@ sidecars em produção.
 NUNCA executar a suíte contra a instância real da cooperativa: o script de
 laboratório cria usuários sintéticos, um banco descartável, senhas aleatórias
 temporárias, várias empresas e movimentos contábeis de teste, e elimina
-os volumes ao concluir. O teste exige os diretórios adjacentes de todas as
-extensões para habilitar todas as funcionalidades.
+os volumes ao concluir. Apenas Import e NFS-e precisam de checkouts
+externos para o teste conjunto; os quatro domínios restantes pertencem
+ao núcleo.
 
 A suíte usa um bloqueio exclusivo não bloqueante (`flock`) em
 `tests/ci/.runtime-config/.smoke.lock`: **não execute matrizes de banco simultaneamente
@@ -57,8 +58,12 @@ npx playwright install --with-deps chromium
 LF_RUN_PLAYWRIGHT=1 bash tests/ci/smoke.sh
 ```
 
-O script descobre a porta local publicada pelo Docker, configura o domínio
-confiável **no laboratório**, e executa `--shard=1/2` e `--shard=2/2`.
+O script descobre a porta local publicada pelo Docker e configura o domínio
+confiável **no laboratório**. Localmente, o padrão são dois shards sequenciais.
+Na CI, **três jobs independentes** executam `--shard=1/3`,
+`--shard=2/3` e `--shard=3/3`, cada qual com um banco PostgreSQL
+descartável. O banco e a seleção do usuário não são compartilhados entre
+shards; aumentar o número de workers em um único banco seria arriscado.
 As suites verificam login real, criação de organização, navegação em apps
 instalados, categorias, troca rápida de espaços, layout móvel, fluxo de caixa
 realizado e consentimento para IA. Os casos marcados com `@extensions`
@@ -140,11 +145,17 @@ sincronização são cópias gerenciadas do catálogo público
 de atualização por PR e patches locais quando necessários.
 
 O workflow **específico** `.github/workflows/finance-integration.yml` fixa o
-Nextcloud Server e as revisões Git dos seis módulos independentes. Executa
-o núcleo e **todas** as extensões instaladas em PostgreSQL, SQLite e MariaDB,
-mais Playwright real com PostgreSQL. Se faltar qualquer módulo ou etapa, o
-status `LibreFinance integrated CI` falha (ou fica ausente), não é aprovado
-silenciosamente. O workflow deve ser validado em execução remota no mesmo SHA
+Nextcloud Server e os SHAs de **Import e NFS-e**. A matriz financeira
+instala os três apps e mantém testes HTTP/PHP, autorização, concorrência e
+Behat em SQLite, PostgreSQL e MariaDB, **sem instalar Node/Chromium**.
+Em paralelo, a matriz Playwright distribui os mesmos testes de navegador
+por três jobs PostgreSQL isolados; cada um instala Nextcloud e executa
+seu próprio shard, sem depender dos dados dos testes PHP. Não se perde
+nenhum cenário de navegador ou banco. O check obrigatório
+`LibreFinance integrated CI` exige sucesso de **contratos, três bancos e
+todos os shards de navegador**; resultados ausentes, cancelados, ignorados
+ou com falha impedem o merge. Os workflows organizacionais de lint e
+build continuam independentes. O workflow deve ser validado em execução remota no mesmo SHA
 antes de servir como requisito de merge.
 
 Atualize os SHAs dos módulos com revisão e CI antes de integrar mudanças
