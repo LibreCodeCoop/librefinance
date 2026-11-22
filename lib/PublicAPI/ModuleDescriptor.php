@@ -24,7 +24,11 @@ final readonly class ModuleDescriptor {
         if (trim($name) === '' || mb_strlen($name) > 120 || mb_strlen($description) > 255) {
             throw new InvalidArgumentException('Invalid module label');
         }
-        if (!str_starts_with($routeName, $appId . '.') || !preg_match('/^[a-z0-9_.]+$/', $routeName)) {
+        if (!(str_starts_with($routeName, $appId . '.') ||
+            ($routeName === 'librefinance.page.index' && in_array($appId, [
+                'librefinance_reports', 'librefinance_obligations',
+                'librefinance_banking', 'librefinance_invoicing',
+            ], true))) || !preg_match('/^[a-z0-9_.]+$/', $routeName)) {
             throw new InvalidArgumentException('Module route must belong to its app');
         }
         if (!in_array($requiredRole, ['viewer', 'auditor', 'operator', 'manager'], true)) {

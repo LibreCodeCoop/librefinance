@@ -15,11 +15,7 @@ declare(strict_types=1);
  */
 $project = dirname(__DIR__, 3);
 $core = $project . '/librefinance';
-$apps = [
-    'librefinance', 'librefinance_reports', 'librefinance_obligations',
-    'librefinance_banking', 'librefinance_invoicing',
-    'librefinance_nfse', 'librefinance_import',
-];
+$apps = ['librefinance', 'librefinance_nfse', 'librefinance_import'];
 
 /**
  * Format: field:type! (required), ? optional; types s/i/b/date/array/object.
@@ -42,8 +38,8 @@ $writeForms = [
     'librefinance:customField#createForEntity' => 'key:s!,label:s!,type:s!,required:b,options:array,visible:b,help:s,sortOrder:i,columnSpan:i',
     'librefinance:customField#updateForEntity' => 'label:s!,required:b,active:b,visible:b,help:s,sortOrder:i,columnSpan:i',
     'librefinance:customField#update' => 'label:s!,required:b,active:b,visible:b,help:s,sortOrder:i,columnSpan:i',
-    'librefinance_reports:savedReport#create' => 'name:s!,kind:s!,from:date,through:date!,columns:array,accountClass:s',
-    'librefinance_reports:savedReport#update' => 'name:s!,kind:s!,from:date,through:date!,columns:array,accountClass:s',
+    'librefinance:savedReport#create' => 'name:s!,kind:s!,from:date,through:date!,columns:array,accountClass:s',
+    'librefinance:savedReport#update' => 'name:s!,kind:s!,from:date,through:date!,columns:array,accountClass:s',
     'librefinance:contact#create' => 'name:s!,kind:s!,email:s,taxId:s,customFields:object',
     'librefinance:contact#update' => 'name:s,kind:s,email:s,taxId:s,active:b,customFields:object',
     'librefinance:item#create' => 'sku:s!,name:s!,kind:s!,unitPriceMinor:i!,description:s,customFields:object',
@@ -54,17 +50,17 @@ $writeForms = [
         'debitId:i!,creditId:i!,amountMinor:i!,date:date!,memo:s!,externalKey:s!,categoryId:i,customFields:object,notesMarkdown:s,paymentMethodId:i',
     'librefinance:ai#analyze' => 'from:date!,through:date!,consent:b!,previewHash:s!',
     'librefinance:mcp#handle' => 'jsonrpc:s!,id:sid,method:s!,params:object',
-    'librefinance_obligations:obligation#create' =>
+    'librefinance:obligation#create' =>
         'kind:s!,description:s!,amountMinor:i!,issuedOn:date!,dueOn:date!,reference:s,contactId:i',
-    'librefinance_obligations:obligation#settle' =>
+    'librefinance:obligation#settle' =>
         'amountMinor:i!,paidOn:date!,operationKey:s!,note:s',
-    'librefinance_banking:banking#import' => 'bankAccountId:i!,csv:s!',
-    'librefinance_banking:banking#match' => 'journalId:i!',
-    'librefinance_invoicing:tax#create' =>
+    'librefinance:banking#import' => 'bankAccountId:i!,csv:s!',
+    'librefinance:banking#match' => 'journalId:i!',
+    'librefinance:tax#create' =>
         'code:s!,label:s!,country:s!,region:s,kind:s!,rateBps:i!,inclusive:b!,validFrom:date!,validThrough:date,sourceRef:s!',
-    'librefinance_invoicing:invoice#create' =>
-        'number:s!,kind:s!,contactId:i!,issueOn:date!,dueOn:date!,country:s,region:s,lines:array!',
-    'librefinance_invoicing:invoice#allocate' =>
+    'librefinance:invoice#create' =>
+        'number:s!,kind:s!,contactId:i!,issueOn:date!,dueOn:date!,country:s!,region:s,lines:array!',
+    'librefinance:invoice#allocate' =>
         'journalId:i!,bankAccountId:i!,amountMinor:i!',
     'librefinance_nfse:draft#create' =>
         'operationKey:s!,issuerCnpj:s!,municipalityCode:s!,competence:date!,serviceCode:s!,description:s!,amountMinor:i!,companyId:i',
@@ -84,10 +80,10 @@ $noBody = [
     'librefinance:account#delete',
     'librefinance:companyLogo#delete',
     'librefinance:paymentMethod#delete',
-    'librefinance_reports:savedReport#deletePermanently',
+    'librefinance:savedReport#deletePermanently',
     'librefinance:journal#reverse',
-    'librefinance_obligations:obligation#cancel',
-    'librefinance_invoicing:invoice#issue',
+    'librefinance:obligation#cancel',
+    'librefinance:invoice#issue',
 ];
 $query = [
     'librefinance_import:import#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
@@ -95,7 +91,7 @@ $query = [
     'librefinance_import:movement#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
     'librefinance_import:movement#reconciliation' => 'sourceCompanyId:s!,sourceSystem:s,afterId:i',
     'librefinance_import:transfer#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
-    'librefinance_banking:banking#transfers' => 'afterId:i',
+    'librefinance:banking#transfers' => 'afterId:i',
     'librefinance:search#index' => 'query:s!,type:s',
     'librefinance:journal#index' => 'beforeId:i',
     'librefinance:ai#preview' => 'from:date!,through:date!',
@@ -104,27 +100,27 @@ $query = [
     'librefinance:paymentMethod#index' => 'afterId:i',
     'librefinance:contact#index' => 'afterId:i',
     'librefinance:item#index' => 'afterId:i',
-    'librefinance_reports:report#profitLoss' => 'from:date!,through:date!',
-    'librefinance_reports:report#trialBalance' => 'through:date!,afterId:i,accountClass:s',
-    'librefinance_reports:report#cashFlow' => 'from:date!,through:date!',
-    'librefinance_reports:savedReport#index' => 'afterId:i',
-    'librefinance_obligations:obligation#index' => 'afterId:i',
-    'librefinance_obligations:obligation#settlements' => 'afterId:i',
-    'librefinance_banking:banking#index' => 'afterId:i',
-    'librefinance_invoicing:tax#index' => 'afterId:i',
-    'librefinance_invoicing:invoice#index' => 'afterId:i',
+    'librefinance:report#profitLoss' => 'from:date!,through:date!',
+    'librefinance:report#trialBalance' => 'through:date!,afterId:i,accountClass:s',
+    'librefinance:report#cashFlow' => 'from:date!,through:date!',
+    'librefinance:savedReport#index' => 'afterId:i',
+    'librefinance:obligation#index' => 'afterId:i',
+    'librefinance:obligation#settlements' => 'afterId:i',
+    'librefinance:banking#index' => 'afterId:i',
+    'librefinance:tax#index' => 'afterId:i',
+    'librefinance:invoice#index' => 'afterId:i',
     'librefinance_nfse:draft#index' => 'afterId:i',
 ];
 $descriptions = [
     'librefinance:mcp#handle' => 'MCP read-only JSON-RPC; clients must use an authenticated Nextcloud app password and the negotiated 2025-06-18 protocol.',
     'librefinance:ai#analyze' => 'TaskProcessing: only aggregate totals, read-only, requires human consent; provider may be external.',
-    'librefinance_invoicing:invoice#issue' => 'Internal commercial issue status only. This is NOT a fiscal authorization.',
+    'librefinance:invoice#issue' => 'Internal commercial issue status only. This is NOT a fiscal authorization.',
     'librefinance_nfse:draft#create' => 'Staging only. Does not issue DPS, NFS-e, DANFSe or authorized XML.',
     'librefinance_import:import#apply' => 'Approved normalized JSON only; no Akaunting password, screen scraping or direct data extraction.',
     'librefinance_import:movement#apply' => 'Explicitly approved historical bank movement import. Creates pending bank statements only, never ledger postings or transfers.',
     'librefinance_import:transfer#apply' => 'Stages linked source bank transfers without duplicating statement lines or ledger postings. Source transfer legs remain unmatched.',
     'librefinance_import:inventory#preview' => 'Read-only coverage audit against an externally supplied untrusted source inventory. Count parity is never proof of financial or fiscal functional parity.',
-    'librefinance_banking:banking#import' => 'CSV import only; does not initiate bank API synchronization.',
+    'librefinance:banking#import' => 'CSV import only; does not initiate bank API synchronization.',
 ];
 
 /** @return array{properties:array<string,mixed>,required:list<string>} */
@@ -168,7 +164,7 @@ $spec = [
     'openapi' => '3.1.0',
     'info' => [
         'title' => 'LibreFinance — native Nextcloud application APIs',
-        'version' => '0.16.0-dev',
+        'version' => '0.17.0-dev',
         'description' => 'Original AGPL application contracts. Structural response schemas are provisional and require full OCS/OpenAPI extractor adoption. '
             . 'Every route enforces Nextcloud identity and per-space roles. MCP is read-only; AI is consented.',
     ],
@@ -273,8 +269,8 @@ $responseSchemas = [
     'librefinance:ai#preview' => 'AiPreview',
     'librefinance:ai#analyze' => 'AiTaskQueued',
     'librefinance:mcp#handle' => 'McpJsonRpc',
-    'librefinance_reports:report#profitLoss' => 'ProfitLoss',
-    'librefinance_reports:report#cashFlow' => 'CashFlow',
+    'librefinance:report#profitLoss' => 'ProfitLoss',
+    'librefinance:report#cashFlow' => 'CashFlow',
 ];
 /**
  * Read the source of truth from controller attributes without bootstrapping a
@@ -361,7 +357,7 @@ foreach ($apps as $app) {
             in_array($key, [
                 'librefinance_import:import#preview',
                 'librefinance_import:import#apply',
-                'librefinance_banking:banking#match',
+                'librefinance:banking#match',
                 'librefinance:module#toggle',
             ], true) => '200',
             $method === 'post' && $body !== null => '201',

@@ -37,7 +37,7 @@ jobs:
         run: git diff --exit-code -- js/main.js css/main.css js/main.js.license
 
   integrated:
-    name: Installed Nextcloud + six modules / ${{ matrix.database }}
+    name: Installed Nextcloud + two external apps / ${{ matrix.database }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
     strategy:
@@ -57,26 +57,12 @@ jobs:
           path: .ci-nextcloud-server
           submodules: recursive
           persist-credentials: false
-      - name: Checkout banking module
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: LibreCodeCoop/librefinance-banking
-          ref: a9b220569dcb99f38904006e86a47f234cf75f34
-          path: .ci-modules/librefinance_banking
-          persist-credentials: false
       - name: Checkout import module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: LibreCodeCoop/librefinance-import
-          ref: d28d30c6fdb05554918870ed4e338eddafac48e5
+          ref: 2deb8cc2b22a178dfdce32472bc636364c0aebab
           path: .ci-modules/librefinance_import
-          persist-credentials: false
-      - name: Checkout invoicing module
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: LibreCodeCoop/librefinance-invoicing
-          ref: f32a0e3f78436f238dc5f5fe0bde27602363401b
-          path: .ci-modules/librefinance_invoicing
           persist-credentials: false
       - name: Checkout NFS-e drafts module
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -85,63 +71,103 @@ jobs:
           ref: b5a20a0b611ad7f0e530cfe0dc8cae300a2a5e31
           path: .ci-modules/librefinance_nfse
           persist-credentials: false
-      - name: Checkout obligations module
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: LibreCodeCoop/librefinance-obligations
-          ref: cec1ec64a87968d522297741e39e4633be971684
-          path: .ci-modules/librefinance_obligations
-          persist-credentials: false
-      - name: Checkout reports module
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: LibreCodeCoop/librefinance-reports
-          ref: 94b9b85087d310488270e99a294a1b075e69fd2f
-          path: .ci-modules/librefinance_reports
-          persist-credentials: false
       - name: Set up PHP 8.5 for Nextcloud master
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2.40.0
         with:
           php-version: '8.5'
           coverage: none
-      - name: Set up Node.js 22
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '22'
-          cache: npm
-      - name: Install Behat and frontend test tools
-        run: |
-          composer install --working-dir=tests/behat --no-interaction --prefer-dist --no-progress
-          npm ci --include=dev
-      - name: Install Chromium for real browser journey tests
-        if: matrix.database == 'pgsql'
-        run: npx playwright install --with-deps chromium
-      - name: Build and verify every pinned extension
+      - name: Install Behat API test dependencies
+        run: composer install --working-dir=tests/behat --no-interaction --prefer-dist --no-progress
+      - name: Verify pinned external apps
         run: |
           set -euo pipefail
-          for module in banking import invoicing nfse obligations reports; do
+          for module in import nfse; do
             path=".ci-modules/librefinance_${module}"
             test -f "${path}/appinfo/info.xml"
             test -s "${path}/js/main.js"
             test -s "${path}/js/main.js.license"
             test -s "${path}/css/main.css"
           done
-      - name: Run complete synthetic integration including optional extensions
+      - name: Run complete synthetic core and external-app integration
         env:
           LF_NEXTCLOUD_SOURCE: ${{ github.workspace }}/.ci-nextcloud-server
-          LF_BANKING_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_banking
           LF_IMPORT_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_import
-          LF_INVOICING_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_invoicing
           LF_NFSE_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_nfse
-          LF_OBLIGATIONS_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_obligations
-          LF_REPORTS_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_reports
           LF_TEST_DATABASE: ${{ matrix.database }}
-          LF_RUN_PLAYWRIGHT: ${{ matrix.database == 'pgsql' && '1' || '0' }}
+          LF_RUN_PLAYWRIGHT: '0'
+        run: bash tests/ci/smoke.sh
+
+  # Each Chromium shard has its own disposable Nextcloud and PostgreSQL lab.
+  # Do not increase workers inside one shared financial workspace/session.
+  browser:
+    name: Chromium browser / ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ['1/3', '2/3', '3/3']
+    steps:
+      - name: Checkout LibreFinance core
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Checkout reviewed Nextcloud Server
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: nextcloud/server
+          ref: 7a89690a1ca17aae3113da13070487c191eb1f4b
+          path: .ci-nextcloud-server
+          submodules: recursive
+          persist-credentials: false
+      - name: Checkout import module
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: LibreCodeCoop/librefinance-import
+          ref: 2deb8cc2b22a178dfdce32472bc636364c0aebab
+          path: .ci-modules/librefinance_import
+          persist-credentials: false
+      - name: Checkout NFS-e drafts module
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: LibreCodeCoop/librefinance-nfse
+          ref: b5a20a0b611ad7f0e530cfe0dc8cae300a2a5e31
+          path: .ci-modules/librefinance_nfse
+          persist-credentials: false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install browser test tools
+        run: |
+          npm ci --include=dev
+          npx playwright install --with-deps chromium
+      - name: Verify pinned external app builds
+        run: |
+          set -euo pipefail
+          for module in import nfse; do
+            path=".ci-modules/librefinance_${module}"
+            test -f "${path}/appinfo/info.xml"
+            test -s "${path}/js/main.js"
+            test -s "${path}/js/main.js.license"
+            test -s "${path}/css/main.css"
+          done
+      - name: Run isolated browser shard against installed Nextcloud
+        env:
+          LF_NEXTCLOUD_SOURCE: ${{ github.workspace }}/.ci-nextcloud-server
+          LF_IMPORT_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_import
+          LF_NFSE_SOURCE: ${{ github.workspace }}/.ci-modules/librefinance_nfse
+          LF_TEST_DATABASE: pgsql
+          LF_BROWSER_DEBUG_ONLY: '1'
+          LF_RUN_BEHAT: '0'
+          LF_RUN_PLAYWRIGHT: '1'
+          LF_PLAYWRIGHT_SHARD: ${{ matrix.shard }}
         run: bash tests/ci/smoke.sh
 
   ci-required:
     name: LibreFinance integrated CI
-    needs: [contracts, integrated]
+    needs: [contracts, integrated, browser]
     if: always()
     runs-on: ubuntu-latest
     permissions:
@@ -149,8 +175,10 @@ jobs:
     env:
       CORE_RESULT: ${{ needs.contracts.result }}
       COMBINED_RESULT: ${{ needs.integrated.result }}
+      BROWSER_RESULT: ${{ needs.browser.result }}
     steps:
       - name: Do not accept failed, cancelled, missing or skipped required jobs
         run: |
           test "$CORE_RESULT" = success
           test "$COMBINED_RESULT" = success
+          test "$BROWSER_RESULT" = success

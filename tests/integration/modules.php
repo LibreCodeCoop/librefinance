@@ -20,7 +20,7 @@ $id = (int)$space['id'];
 $path = '/spaces/' . $id;
 $assertReport = static fn(array $v): bool => count(array_filter($v['modules'] ?? [],
     static fn(array $m): bool => $m['id'] === $report && $m['enabled'] === true)) === 1;
-$t->check('installed app is discovered by core', $a, 'GET', $path . '/modules', null, 200, $assertReport);
+$t->check('built-in reports discovered by core', $a, 'GET', $path . '/modules', null, 200, $assertReport);
 $t->check('unrelated user cannot list modules', $b, 'GET', $path . '/modules', null, 404);
 
 // Legacy module page URLs must redirect to the ONE canonical LibreFinance UI.
@@ -53,10 +53,6 @@ $fetchPage = static function(string $appId, string $user) use ($id): array {
     ];
 };
 $appsWithPages = [
-    'librefinance_reports' => 'reports',
-    'librefinance_obligations' => 'obligations',
-    'librefinance_banking' => 'banking',
-    'librefinance_invoicing' => 'invoicing',
     'librefinance_nfse' => 'nfse',
     'librefinance_import' => 'import',
 ];
@@ -91,10 +87,6 @@ $t->check('core reports module disabled', $a, 'GET', $path . '/modules', null, 2
 $t->checkModule('disabled module blocks data access', $a, $report, 'GET',
     $path . '/profit-loss?from=2026-01-01&through=2026-12-31', null, 403,
     static fn(array $v): bool => ($v['error'] ?? null) === 'module_disabled');
-$disabledPage = $fetchPage($report, $a);
-$t->record('disabled report page is hidden without an internal type error',
-    $disabledPage['code'] === 404,
-    'HTTP ' . $disabledPage['code']);
 $t->check('owner re-enables installed module', $a, 'PUT',
     $path . '/modules/' . $report, ['enabled' => true], 200,
     static fn(array $v): bool => ($v['enabled'] ?? null) === true);

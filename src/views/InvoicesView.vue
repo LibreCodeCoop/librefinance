@@ -33,14 +33,15 @@ const success=ref('')
 const newInvoice=ref(false)
 const newRule=ref(false)
 const chosen=ref(null)
+const chosenObligationId=ref(null)
 const allocated=ref(false)
 const form=ref({
-  number:'',kind:'invoice',contactId:0,country:'BR',region:'',
+  number:'',kind:'invoice',contactId:0,country:'',region:'',
   issueOn:today,dueOn:today,
   lines:[{description:'',quantity:1,price:'',taxRuleId:0}],
 })
 const rule=ref({
-  code:'',label:'',country:'BR',region:'',kind:'vat',rate:'0,00',
+  code:'',label:'',country:'',region:'',kind:'vat',rate:'0,00',
   inclusive:false,from:today,through:'',sourceRef:'',
 })
 const allocation=ref({bankAccountId:0,journalId:'',amount:''})
@@ -56,7 +57,7 @@ const ruleKinds=[
   {value:'withholding',label:'Retenção'},{value:'other',label:'Outro imposto'},
 ]
 let generation=0
-function closeDetails(open) {if(!open){chosen.value=null;allocated.value=false}}
+function closeDetails(open) {if(!open){chosen.value=null;chosenObligationId.value=null;allocated.value=false}}
 function rateBps(value) {
   const m=String(value).trim().match(/^(\d{1,4})(?:[.,](\d{1,2}))?$/)
   if(!m)throw new Error('Alíquota inválida')
@@ -133,7 +134,7 @@ async function create() {
   },'Fatura comercial criada como rascunho, sem emissão fiscal.')
   if(successResult){
     newInvoice.value=false
-    form.value={number:'',kind:'invoice',contactId:0,country:'BR',region:'',
+    form.value={number:'',kind:'invoice',contactId:0,country:'',region:'',
       issueOn:today,dueOn:today,lines:[{description:'',quantity:1,price:'',taxRuleId:0}]}
   }
 }
@@ -152,7 +153,10 @@ async function showInvoice(id) {
   error.value=''
   try{
     const response=await financeApi(current,activeId.value,'/invoices/'+id)
-    if(token===generation)chosen.value=response.invoice
+    if(token===generation){
+      chosen.value=response.invoice
+      chosenObligationId.value=response.obligationId
+    }
   }catch(e){if(token===generation)error.value=financeError(e)}
 }
 async function issue() {
@@ -251,7 +255,7 @@ onBeforeUnmount(()=>++generation)
           <LfSelect id="lf-invoice-kind" v-model="form.kind" :options="kinds" label="Tipo" />
           <LfSelect id="lf-invoice-contact" v-model="form.contactId" :options="contactsChoices"
             label="Cliente ou fornecedor" />
-          <NcTextField v-model="form.country" label="País (ISO 2)" maxlength="2" />
+          <NcTextField v-model="form.country" label="País (ISO 2, obrigatório)" maxlength="2" required />
           <NcTextField v-model="form.region" label="Região (opcional)" maxlength="32" />
           <LfDateField id="lf-invoice-date" v-model="form.issueOn" label="Emissão" />
           <LfDateField id="lf-invoice-due" v-model="form.dueOn" label="Vencimento" />
@@ -307,6 +311,12 @@ onBeforeUnmount(()=>++generation)
       <div v-if="chosen" class="lf-dialog-form">
         <h3>{{chosen.number}}</h3>
         <p>Estado: {{chosen.status}}</p>
+        <p v-if="chosenObligationId">Título financeiro vinculado #{{chosenObligationId}}.
+          A baixa é realizada por um lançamento contábil válido.</p>
+        <NcNoteCard v-else-if="chosen.status!=='draft'" type="warning">
+          Documento histórico sem obrigação reconciliada. Associações de
+          pagamento exigem conciliação explícita antes de continuar.
+        </NcNoteCard>
         <div class="lf-kpis">
           <div class="lf-kpi"><span>Total</span>
             <strong>{{money(chosen.total_minor)}}</strong></div>
@@ -315,7 +325,7 @@ onBeforeUnmount(()=>++generation)
         </div>
         <NcButton v-if="manager&&chosen.status==='draft'" variant="primary"
           :disabled="busy" @click="issue">Confirmar emissão comercial</NcButton>
-        <template v-if="writable&&['issued','partially_paid'].includes(chosen.status)">
+        <template v-if="writable&&chosenObligationId&&['issued','partially_paid'].includes(chosen.status)">
           <NcButton v-if="!allocated" @click="allocated=true">Associar lançamento</NcButton>
           <form v-else class="lf-dialog-form" @submit.prevent="allocate">
             <LfSelect id="lf-invoice-bank" v-model="allocation.bankAccountId"
