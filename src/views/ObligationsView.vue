@@ -37,6 +37,11 @@ const canReadInvoices=computed(()=>w.modulesLoadedFor.value===Number(activeId.va
 const today=new Date().toLocaleDateString('sv-SE')
 const list=ref([])
 const hasListedRecords=ref(false)
+// Explicitly close native popovers on selection. NcPopover normally toggles
+// visibility on trigger clicks, which could hide an already-open menu instead.
+const directionPopoverShown=ref(false)
+const statusPopoverShown=ref(false)
+const duePopoverShown=ref(false)
 const next=ref(null)
 const filter=ref('all')
 const kindFilter=ref(props.kind)
@@ -243,7 +248,15 @@ watch([kindFilter,filter,dueRange,sortBy,sortDirection,searchTerm],()=>{
   next.value=null
   load()
 })
-watch(activeId,()=>{focusedRecord.value=null;hasListedRecords.value=false;++focusedSequence;load()})
+watch(activeId,()=>{
+  focusedRecord.value=null
+  hasListedRecords.value=false
+  directionPopoverShown.value=false
+  statusPopoverShown.value=false
+  duePopoverShown.value=false
+  ++focusedSequence
+  load()
+})
 watch(focusedObligation,inspectFocusedTitle,{immediate:true})
 onMounted(load)
 onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(searchTimer)})
@@ -281,7 +294,7 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
           <NcTextField v-model="searchDraft" class="lf-native-finance-search"
             type="search" label="Pesquisar na agenda" placeholder="Descrição ou referência"
             maxlength="120" @update:model-value="scheduleSearch" @keyup.enter="applySearch" />
-          <NcPopover popup-role="dialog">
+          <NcPopover v-model:shown="directionPopoverShown" popup-role="dialog">
             <template #trigger>
               <NcButton id="lf-finance-direction" variant="tertiary"
                 :pressed="kindFilter !== 'all'"
@@ -293,10 +306,10 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
             <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar por direção">
               <NcButton v-for="option in directionChoices" :key="option.value"
                 variant="tertiary" :aria-pressed="kindFilter === option.value"
-                @click="kindFilter=option.value">{{option.label}}</NcButton>
+                @click="kindFilter=option.value; directionPopoverShown=false">{{option.label}}</NcButton>
             </div>
           </NcPopover>
-          <NcPopover popup-role="dialog">
+          <NcPopover v-model:shown="statusPopoverShown" popup-role="dialog">
             <template #trigger>
               <NcButton id="lf-obligations-filter" variant="tertiary"
                 :aria-label="'Situação: ' + choices.find(option => option.value === filter)?.label"
@@ -308,10 +321,10 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
             <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar por situação">
               <NcButton v-for="option in choices" :key="option.value"
                 variant="tertiary" :aria-pressed="filter === option.value"
-                @click="filter=option.value">{{option.label}}</NcButton>
+                @click="filter=option.value; statusPopoverShown=false">{{option.label}}</NcButton>
             </div>
           </NcPopover>
-          <NcPopover popup-role="dialog">
+          <NcPopover v-model:shown="duePopoverShown" popup-role="dialog">
             <template #trigger>
               <NcButton id="lf-obligations-due" variant="tertiary"
                 :aria-label="'Vencimento: ' + dueChoices.find(option => option.value === dueRange)?.label"
@@ -323,7 +336,7 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
             <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar por vencimento">
               <NcButton v-for="option in dueChoices" :key="option.value"
                 variant="tertiary" :aria-pressed="dueRange === option.value"
-                @click="dueRange=option.value">{{option.label}}</NcButton>
+                @click="dueRange=option.value; duePopoverShown=false">{{option.label}}</NcButton>
             </div>
           </NcPopover>
         </div>
