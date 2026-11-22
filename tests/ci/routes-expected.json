@@ -389,73 +389,66 @@
       "path": "/apps/librefinance/api/spaces/{spaceId}/saved-reports/{reportId}/permanent",
       "request": "DELETE",
       "route": "librefinance.savedreport.deletepermanently"
-    }
-  ],
-  "librefinance_import": [
+    },
     {
-      "path": "/apps/librefinance_import/spaces/{spaceId}",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/coverage",
       "request": "GET",
-      "route": "librefinance_import.page.index"
+      "route": "librefinance.import.coverage"
     },
     {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/coverage",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/source-accounts",
       "request": "GET",
-      "route": "librefinance_import.import.coverage"
+      "route": "librefinance.import.accounts"
     },
     {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/source-accounts",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/preview",
+      "request": "POST",
+      "route": "librefinance.import.preview"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/import",
+      "request": "POST",
+      "route": "librefinance.import.apply"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/movement-preview",
+      "request": "POST",
+      "route": "librefinance.movement.preview"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/movement-import",
+      "request": "POST",
+      "route": "librefinance.movement.apply"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/movement-coverage",
       "request": "GET",
-      "route": "librefinance_import.import.accounts"
+      "route": "librefinance.movement.coverage"
     },
     {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/preview",
-      "request": "POST",
-      "route": "librefinance_import.import.preview"
-    },
-    {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/import",
-      "request": "POST",
-      "route": "librefinance_import.import.apply"
-    },
-    {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/movement-preview",
-      "request": "POST",
-      "route": "librefinance_import.movement.preview"
-    },
-    {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/movement-import",
-      "request": "POST",
-      "route": "librefinance_import.movement.apply"
-    },
-    {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/movement-coverage",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/movement-reconciliation",
       "request": "GET",
-      "route": "librefinance_import.movement.coverage"
+      "route": "librefinance.movement.reconciliation"
     },
     {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/movement-reconciliation",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/transfer-preview",
+      "request": "POST",
+      "route": "librefinance.transfer.preview"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/transfer-import",
+      "request": "POST",
+      "route": "librefinance.transfer.apply"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/transfer-coverage",
       "request": "GET",
-      "route": "librefinance_import.movement.reconciliation"
+      "route": "librefinance.transfer.coverage"
     },
     {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/transfer-preview",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/inventory-preview",
       "request": "POST",
-      "route": "librefinance_import.transfer.preview"
-    },
-    {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/transfer-import",
-      "request": "POST",
-      "route": "librefinance_import.transfer.apply"
-    },
-    {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/transfer-coverage",
-      "request": "GET",
-      "route": "librefinance_import.transfer.coverage"
-    },
-    {
-      "path": "/apps/librefinance_import/api/spaces/{spaceId}/inventory-preview",
-      "request": "POST",
-      "route": "librefinance_import.inventory.preview"
+      "route": "librefinance.inventory.preview"
     }
   ],
   "librefinance_nfse": [
