@@ -826,3 +826,25 @@
 #librefinance-app .lf-context-identity .lf-context-label {
   padding-inline-start: 12px;
 }
+
+
+/* Sensitive data remains visible to the manager only in a deliberate
+ * review disclosure. This section contains NO provider credentials. */
+#librefinance-app .lf-source-preview {
+  min-width: 0;
+  border: 1px solid var(--lf-border);
+  border-radius: var(--border-radius-large, 10px);
+  padding: 12px;
+}
+#librefinance-app .lf-source-preview > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+#librefinance-app .lf-source-preview > pre {
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font-face-monospace, monospace);
+  font-size: 12px;
+}

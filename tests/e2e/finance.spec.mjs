@@ -576,7 +576,7 @@ test('native Nextcloud dialog supports keyboard dismissal without creating a rec
   await expect(rows).toHaveCount(4)
 })
 
-test('@extensions normalized import stages registrations, bank movements and transfers with explicit confirmation', async ({ page }) => {
+test('core normalized import stages registrations, bank movements and transfers with explicit confirmation', async ({ page }) => {
   await login(page)
   await makeSpace(page, 'organization')
   await goToView(page, 'Migração de dados')
@@ -584,7 +584,7 @@ test('@extensions normalized import stages registrations, bank movements and tra
   const company = 'e2e-finance-' + Date.now().toString(36)
   const fixture = {
     format: 'librefinance.normalized.v1',
-    source: { system: 'akaunting', companyId: company },
+    source: { system: 'generic', companyId: company },
     company: {
       sourceId: company, legalName: 'Synthetic Migrated Organization',
       country: 'BR', taxId: '12345678000190', tradeName: null,
@@ -618,7 +618,7 @@ test('@extensions normalized import stages registrations, bank movements and tra
 
   const historical = {
     format: 'librefinance.transactions.v1',
-    source: { system: 'akaunting', companyId: company },
+    source: { system: 'generic', companyId: company },
     transactions: [{
       sourceId: 'movement-1', accountSourceId: 'bank-source-1',
       type: 'income', bookingDate: '2026-11-20',
@@ -640,7 +640,7 @@ test('@extensions normalized import stages registrations, bank movements and tra
 
   const transfer = {
     format: 'librefinance.transfers.v1',
-    source: { system: 'akaunting', companyId: company },
+    source: { system: 'generic', companyId: company },
     transfers: [{
       sourceId: 'transfer-1',
       fromAccountSourceId: 'bank-source-1',
@@ -663,7 +663,7 @@ test('@extensions normalized import stages registrations, bank movements and tra
 
   const inventory = {
     format: 'librefinance.inventory.v1',
-    source: { system: 'akaunting', companyId: company, asOf: '2026-11-21' },
+    source: { system: 'generic', companyId: company, asOf: '2026-11-21' },
     counts: {
       companies: 1, accounts: 2, transactions: 1, transfers: 1,
       documents: 2, nfse_receipts: 1,
