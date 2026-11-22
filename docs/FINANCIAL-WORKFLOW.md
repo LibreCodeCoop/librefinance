@@ -8,8 +8,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 O LibreFinance possui navegacao orientada a tarefas:
 
 - **Visao geral:** indicadores calculados a partir dos lancamentos reais.
-- **A pagar e receber:** uma agenda unica de entradas e saidas previstas,
-  incluindo documentos de venda/compra e titulos avulsos.
+- **A pagar e receber:** agenda unica dos titulos e compromissos previstos,
+  inclusive titulos gerados por documentos comerciais.
+- **Documentos comerciais:** tela propria para vendas e compras com itens,
+  impostos e rascunhos; a confirmacao gera titulo vinculado sem duplicidade.
 - **Bancos e caixa:** movimentos do caixa, extratos importados, transferencias
   e conciliacao dos lancamentos bancarios efetivos.
 - **Relatorios:** demonstrativos, com segregacao por gestao.
@@ -33,8 +35,9 @@ A agenda reune **valores previstos**, identificados como entrada ou saida.
 Cada linha exibe direcao, origem, valor e saldo com sinal, vencimento, situacao
 e acoes. Filtros por direcao (ambos, a receber, a pagar), situacao e vencimento
 (todos, vencidos, proximos sete dias) sao aplicados pelo servidor antes da
-paginacao. Direcao, situacao e vencimento usam botoes curtos em vez de
-seletores com tres opcoes. Cabecalhos de referencia, descricao, vencimento e
+paginacao. Direcao, situacao e vencimento usam menus de filtro NcPopover
+juntos na barra superior da lista, ao lado da pesquisa, sem grupo solto
+acima da tabela. Cabecalhos de referencia, descricao, vencimento e
 valor previsto ordenam por consulta SQL e continuacao por cursor de ID:
 nenhum clique ordena apenas as primeiras cinquenta linhas carregadas.
 A busca textual por descricao/referencia tambem filtra antes da paginacao. Filtrar ou navegar nao transforma uma cobranca aberta em entrada
@@ -50,9 +53,28 @@ previstos e nao transferencias bancarias. O usuario decide entre:
 2. **Detalhada:** itens, contato, tributos e vencimento; cria documento
    comercial cujo titulo e criado automaticamente na confirmacao.
 
-As vendas e compras detalhadas podem ser consultadas em Documentos comerciais,
-na mesma pagina. Um compromisso vinculado oferece Abrir documento, e o
-documento oferece Ver conta vinculada, sem registros duplicados.
+Vendas e compras detalhadas sao criadas e consultadas na **tela propria
+Documentos comerciais**, separada da agenda. Os contratos de dados sao
+relacionados, mas nao existem dois CRUDs simultaneos no mesmo painel.
+Um titulo vinculado oferece Abrir documento, e o documento oferece
+Ver conta vinculada, sem registros duplicados.
+
+## Padroes nativos de interface
+
+As listas de dados usam diretamente a superficie do NcAppContent, sem
+borda decorativa de card sobre a tabela. Nenhum cabecalho/coluna aparece
+quando nao ha linhas: o NcEmptyContent diferencia lista vazia, filtro sem
+resultado e falta de configuracao inicial. Bancos e caixa apresenta filtros
+de conta e situacao no alto da propria lista, alem dos estados distintos
+para falta de conta financeira, extrato vazio e transferencias inexistentes.
+
+Contas, categorias, contatos, itens, empresas, extratos e documentos
+comerciais usam cabecalhos acionaveis para ordenar as linhas **carregadas**.
+Para essas listas, a ordenacao nao representa todas as paginas do servidor;
+o componente sinaliza explicitamente o escopo local. A agenda de obrigacoes
+tem ordenacao no servidor antes da paginacao, evitando falsos resultados
+em listas financeiras extensas. Os valores monetarios sao comparados
+em unidades inteiras, e a ordenacao de texto segue pt-BR.
 
 ## Liquidacao e lastro contabil
 
@@ -71,9 +93,12 @@ nao lancar indevidamente o valor bruto como receita/despesa.
 ## Areas financeiras, dados de empresas e seguranca de exclusao
 
 Uma **area financeira** (API `space`) isola o proprio livro financeiro,
-contas, historico, categorias e permissoes. Exemplo: "Minha casa" e "Meu
-negocio" precisam de areas separadas, nao necessariamente duas empresas
-juridicas. **Dados fiscais da empresa** sao apenas cadastros legais dentro
+contas bancarias e caixa, saldos, historico, categorias e permissoes.
+Ela nao corresponde a uma empresa juridica, departamento ou centro de custos:
+criar outra area impede a visualizacao de caixa e titulos em um unico
+livro. Crie outra area apenas quando quiser uma gestao realmente isolada,
+como "Minha casa" e "Meu negocio"; nao crie uma para cada filial ou
+departamento da mesma empresa. **Dados fiscais da empresa** sao apenas cadastros legais dentro
 da area ja existente; uma area pode conter mais de uma empresa, e uma area
 pessoal pode nao conter nenhuma. Isso nao cria outra contabilidade.
 
@@ -97,8 +122,10 @@ introduz** exclusao definitiva.
 
 ## Compatibilidade e limites
 
-URLs historicas view=receivables, view=payables, view=sales, view=purchases,
-view=invoicing e view=obligations abrem a agenda. Links
+URLs historicas view=receivables, view=payables e view=obligations
+abrem a agenda, com a direcao adequada. URLs historicas view=sales,
+view=purchases e view=invoicing abrem Documentos comerciais, preservando
+o tipo quando informado. Links
 view=settings&section=access|fields|payments|modules|data seguem para
 Acessos e compartilhamento, Campos personalizados, Formas de pagamento,
 Recursos instalados ou Dados e migracao, respectivamente. Quando a URL indica
