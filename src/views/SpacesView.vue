@@ -152,17 +152,23 @@ async function create() {
 <template>
   <div class="lf-view">
     <LfPageHeader title="Áreas financeiras" eyebrow="ORGANIZAÇÃO DOS DADOS"
-      description="Cada área financeira tem caixa, contas, saldos e permissões independentes. Cadastre empresas e filiais na mesma área quando compartilharem o mesmo financeiro." >
+      description="Cada área financeira contém um livro contábil, caixa e acessos independentes. Cadastros de empresas dentro de uma área não criam contabilidade separada." >
       <template #actions>
         <NcButton variant="primary" @click="creating=true">Criar área</NcButton>
       </template>
     </LfPageHeader>
     <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
     <NcNoteCard v-if="notice" type="success" role="status">{{notice}}</NcNoteCard>
-    <NcNoteCard type="info">Uma área não é um departamento nem uma empresa:
-      é uma gestão financeira completa e isolada. Para cadastrar outra empresa ou filial
-      que compartilha o mesmo caixa, use <strong>Gerenciar → Dados fiscais da empresa</strong>.
-      Só crie uma segunda área se precisar separar também saldos, contas, histórico e acessos.</NcNoteCard>
+    <div class="lf-area-guidance">
+      <p><strong>Área financeira</strong> significa um caixa e livro contábil próprios, com
+        contas, lançamentos, documentos e acessos independentes. Não é um departamento,
+        nem um cadastro de empresa ou filial.</p>
+      <p>Para cadastrar ou editar empresas e filiais no financeiro atual, use
+        <strong>Dados fiscais da empresa</strong>, sem criar outra área.
+        Para livros e saldos separados por empresa, use áreas independentes.</p>
+      <NcButton v-if="w.manager.value && w.activeId.value" variant="secondary"
+        @click="navigate('companies')">Cadastrar ou editar empresas</NcButton>
+    </div>
     <div class="lf-native-workspace-filter" role="search">
       <NcTextField v-model="search" label="Filtrar áreas financeiras"
         type="search" placeholder="Nome da área ou tipo" />
@@ -253,6 +259,10 @@ async function create() {
         </NcNoteCard>
         <p>Use uma área separada somente para um financeiro realmente independente,
           como sua casa, outro negócio ou um grupo que não compartilha o caixa.</p>
+        <NcButton v-if="w.manager.value && w.activeId.value" variant="tertiary"
+          @click="creating=false; navigate('companies')">
+          Quero cadastrar uma empresa no financeiro atual
+        </NcButton>
         <NcTextField v-model="newName" label="Nome da área" maxlength="150" required />
         <LfSelect id="lf-space-kind-new" v-model="newKind"
           label="Tipo de gestão" :options="kinds" />

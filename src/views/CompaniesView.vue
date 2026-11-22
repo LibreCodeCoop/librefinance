@@ -24,7 +24,7 @@ import { countryOptions } from '../countries.js'
 const w = inject('lfWorkspace')
 const { companies, companyNextAfterId, manager, busy, companyEditId,
   companyName, companyTradeName, companyCountry, companyTaxId,
-  companyCustomValues,
+  companyCustomValues, companyMunicipal, companyState, companyProfile,
   companyActive, editCompany, saveCompany, resetCompanyForm, loadMoreCompanies } = w
 const dialog = ref(false)
 const saveError = ref('')
@@ -160,9 +160,9 @@ async function save() {
     </LfPageHeader>
     <section class="lf-surface">
       <div class="lf-section-heading">
-        <div><h2>Empresas nesta área</h2>
-          <p>Estes dados identificam empresas em documentos; as contas, pessoas e lançamentos continuam associados à área financeira selecionada.</p></div>
-        <NcTextField v-model="search" label="Pesquisar empresas" type="search"
+        <div><h2>Empresas desta área financeira</h2>
+          <p>Empresas cadastradas nesta área compartilham livro, caixa e acessos; não há apuração contábil isolada por empresa.</p></div>
+        <NcTextField v-if="companies.length || searchTerm" v-model="search" label="Pesquisar empresas" type="search"
           placeholder="Buscar em todas as empresas" maxlength="120"
           class="lf-search-field" @update:model-value="scheduleSearch" />
       </div>
@@ -203,7 +203,7 @@ async function save() {
       <NcEmptyContent v-else-if="!searchLoading"
         :name="searchTerm ? 'Nenhuma empresa encontrada' : 'Nenhuma empresa cadastrada'"
         :description="searchTerm ? 'Altere a pesquisa para localizar outras empresas.'
-          : 'Comece com nome legal e país; os demais dados são opcionais ou configuráveis.'" />
+          : 'Use Cadastrar empresa para registrar a identidade jurídica, endereço, contatos e dados fiscais, sem criar outro caixa.'" />
       <p v-if="localSort.column.value && (companyNextAfterId || searchNext)"
         class="lf-muted">A ordenação considera somente os registros já carregados.</p>
       <div v-if="companyNextAfterId || searchNext" class="lf-table-footer">
@@ -216,37 +216,91 @@ async function save() {
       :name="companyEditId ? 'Editar empresa' : 'Cadastrar empresa'"
       @update:open="!$event && closeCompany()">
       <form class="lf-dialog-form" @submit.prevent="save">
-        <p>Comece com o mínimo necessário. País e identificadores são genéricos; dados regionais podem ser cadastrados como campos adicionais.</p>
+        <p class="lf-company-ledger-scope">Este cadastro identifica a empresa nos documentos.
+          Contas, saldos, histórico e acessos permanecem na área financeira atual.
+          Para separar caixa e contabilidade entre empresas, crie outra área financeira.</p>
         <NcNoteCard v-if="saveError" type="error" role="alert">{{ saveError }}</NcNoteCard>
-        <NcTextField v-model="companyName" label="Nome legal" maxlength="180" required />
-        <LfSelect id="lf-company-country" v-model="companyCountry" label="País de registro"
-          :options="countryChoices" placeholder="Selecione o país" />
-        <div class="lf-company-logo-settings">
-          <label class="lf-field-label" for="lf-company-logo-file">Logotipo da empresa</label>
-          <template v-if="companyEditId">
-            <img v-if="logoVersion" class="lf-company-preview-logo"
-              :src="logoUrl" alt="Logotipo atual da empresa" />
-            <input id="lf-company-logo-file" type="file" accept="image/png,image/jpeg,image/webp"
-              :disabled="logoBusy" aria-label="Selecionar logotipo da empresa"
-              @change="updateLogo" />
-            <small class="lf-muted">PNG, JPG ou WebP; máximo de 512 KB e 2048 × 2048 pixels.
-              Guardado na área privada do LibreFinance, sem URL pública.</small>
-            <NcButton v-if="logoVersion" variant="tertiary" :disabled="logoBusy"
-              @click.prevent="removeLogo">Remover logotipo</NcButton>
-          </template>
-          <p v-else class="lf-muted">Salve a empresa para adicionar seu logotipo.</p>
-          <NcNoteCard v-if="logoError" type="error" role="alert">{{ logoError }}</NcNoteCard>
-        </div>
-        <details class="lf-finance-explanation">
-          <summary>Outras informações (opcionais)</summary>
-          <div class="lf-dialog-optional-fields">
+
+        <fieldset class="lf-company-form-section">
+          <legend>Identificação</legend>
+          <div class="lf-form-grid">
+            <NcTextField v-model="companyName" label="Nome legal" maxlength="180" required />
             <NcTextField v-model="companyTradeName" label="Nome comercial" maxlength="180" />
-            <NcTextField v-model="companyTaxId" label="Identificador fiscal local" maxlength="40" />
           </div>
-          <p>Identificadores locais variam conforme o país. Valores brasileiros existentes são preservados.</p>
-        </details>
-        <CustomFieldsPanel :key="companyEditId || 'new'" v-model="companyCustomValues"
-          entity-kind="company" />
+          <div class="lf-form-grid">
+            <LfSelect id="lf-company-country" v-model="companyCountry" label="País de registro"
+              :options="countryChoices" placeholder="Selecione o país" />
+            <NcTextField v-model="companyTaxId" label="Identificador fiscal local"
+              maxlength="40" />
+          </div>
+        </fieldset>
+
+        <fieldset class="lf-company-form-section">
+          <legend>Outras informações (opcionais)</legend>
+          <p class="lf-muted">Inscrições e registros fiscais complementares.
+            A validação tributária específica de cada país pertence ao recurso fiscal correspondente.</p>
+          <div class="lf-form-grid">
+            <NcTextField v-model="companyState"
+              label="Inscrição estadual ou regional" maxlength="40" />
+            <NcTextField v-model="companyMunicipal"
+              label="Inscrição municipal ou local" maxlength="40" />
+          </div>
+        </fieldset>
+
+        <fieldset class="lf-company-form-section">
+          <legend>Contato e presença digital</legend>
+          <div class="lf-form-grid">
+            <NcTextField v-model="companyProfile.contactEmail" label="E-mail da empresa"
+              type="email" maxlength="190" />
+            <NcTextField v-model="companyProfile.contactPhone" label="Telefone da empresa"
+              type="tel" maxlength="60" />
+          </div>
+          <NcTextField v-model="companyProfile.website" label="Site da empresa (URL)"
+            type="url" placeholder="https://exemplo.org" maxlength="255" />
+        </fieldset>
+
+        <fieldset class="lf-company-form-section">
+          <legend>Endereço da empresa</legend>
+          <NcTextField v-model="companyProfile.addressLine1"
+            label="Endereço (logradouro e número)" maxlength="255" />
+          <NcTextField v-model="companyProfile.addressLine2"
+            label="Complemento do endereço" maxlength="255" />
+          <div class="lf-form-grid">
+            <NcTextField v-model="companyProfile.city" label="Cidade" maxlength="120" />
+            <NcTextField v-model="companyProfile.region" label="Estado, província ou região"
+              maxlength="120" />
+          </div>
+          <NcTextField v-model="companyProfile.postalCode"
+            label="Código postal (CEP)" maxlength="32" />
+        </fieldset>
+
+        <fieldset class="lf-company-form-section">
+          <legend>Identidade visual</legend>
+          <div class="lf-company-logo-settings">
+            <label class="lf-field-label" for="lf-company-logo-file">Logotipo da empresa</label>
+            <template v-if="companyEditId">
+              <img v-if="logoVersion" class="lf-company-preview-logo"
+                :src="logoUrl" alt="Logotipo atual da empresa" />
+              <input id="lf-company-logo-file" type="file" accept="image/png,image/jpeg,image/webp"
+                :disabled="logoBusy" aria-label="Selecionar logotipo da empresa"
+                @change="updateLogo" />
+              <small class="lf-muted">PNG, JPG ou WebP, até 512 KB.
+                Armazenado de forma privada, sem publicação automática.</small>
+              <NcButton v-if="logoVersion" variant="tertiary" :disabled="logoBusy"
+                @click.prevent="removeLogo">Remover logotipo</NcButton>
+            </template>
+            <p v-else class="lf-muted">Salve a empresa para adicionar seu logotipo.</p>
+            <NcNoteCard v-if="logoError" type="error" role="alert">{{ logoError }}</NcNoteCard>
+          </div>
+        </fieldset>
+
+        <fieldset class="lf-company-form-section">
+          <legend>Dados adicionais específicos</legend>
+          <p class="lf-muted">Campos personalizados definidos em Gerenciar → Campos personalizados
+            para a entidade Empresa aparecem abaixo. Cada empresa tem seus próprios valores.</p>
+          <CustomFieldsPanel :key="companyEditId || 'new'" v-model="companyCustomValues"
+            entity-kind="company" />
+        </fieldset>
         <NcCheckboxRadioSwitch v-if="companyEditId" v-model="companyActive" type="checkbox">
           Cadastro ativo
         </NcCheckboxRadioSwitch>

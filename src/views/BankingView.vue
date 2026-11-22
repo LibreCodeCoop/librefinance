@@ -184,7 +184,7 @@ onBeforeUnmount(()=>++generation)
     <LfPageHeader title="Bancos e caixa" eyebrow="FINANCEIRO"
       description="Confira movimentações importadas, vínculos contábeis e transferências pendentes.">
       <template #actions>
-        <NcButton v-if="writable && banks.length" variant="primary" :disabled="busy"
+        <NcButton v-if="writable && banks.length && tab==='statements' && rows.length" variant="primary" :disabled="busy"
           @click="openImportDialog">
           <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
           Importar extrato CSV
@@ -214,7 +214,8 @@ onBeforeUnmount(()=>++generation)
             :variant="tab==='transfers'?'secondary':'tertiary'"
             @click="tab='transfers'">Transferências</NcButton>
         </div>
-        <div v-if="tab==='statements'" class="lf-native-agenda-filters">
+        <div v-if="tab==='statements' && (rows.length || next || chosenAccount || filter!=='all')"
+          class="lf-native-agenda-filters">
           <NcPopover popup-role="dialog">
             <template #trigger>
               <NcButton id="lf-bank-filter" variant="tertiary" :pressed="chosenAccount !== 0">

@@ -1046,3 +1046,47 @@
 #librefinance-app .lf-list-filter-toolbar { display:flex; justify-content:flex-end; align-items:center; margin-bottom:12px; }
 #librefinance-app .lf-account-filter { justify-content:space-between; align-items:center; }
 #librefinance-app .lf-account-filter > .lf-muted { flex:1; }
+
+
+/* Company identity editor: no decorative cards within the native dialog. */
+#librefinance-app .lf-company-form-section,
+.lf-finance-dialog-content .lf-company-form-section {
+  border: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#librefinance-app .lf-company-form-section + .lf-company-form-section,
+.lf-finance-dialog-content .lf-company-form-section + .lf-company-form-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+#librefinance-app .lf-company-form-section legend,
+.lf-finance-dialog-content .lf-company-form-section legend {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 0;
+  margin-bottom: 8px;
+}
+#librefinance-app .lf-company-ledger-scope,
+.lf-finance-dialog-content .lf-company-ledger-scope {
+  color: var(--color-text-maxcontrast);
+  margin: 0;
+}
+#librefinance-app .lf-payment-toolbar {
+  margin-bottom: 14px;
+}
+#librefinance-app .lf-payment-toolbar > .lf-muted { flex: 1; margin: 0; }
+
+
+#librefinance-app .lf-area-guidance {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+  margin-block: 4px 8px;
+}
+#librefinance-app .lf-area-guidance p { margin: 0; }
