@@ -245,6 +245,14 @@ try {
     $t->check('A1 retains only its own journal after A2 posts', $a, 'GET',
         '/spaces/' . $spaceA . '/journals', null, 200,
         static fn(array $r): bool => count($r['journals'] ?? []) === 1);
+    $t->check('A1 cash account balance is isolated at 12300 minor units', $a,
+        'GET', '/spaces/' . $spaceA . '/accounts', null, 200,
+        static fn(array $r): bool =>
+            (int)(array_column($r['accounts'] ?? [], 'balance_minor', 'code')['1000'] ?? 0) === 12300);
+    $t->check('A2 cash account balance is independently 8700 minor units', $a,
+        'GET', '/spaces/' . $spaceA2 . '/accounts', null, 200,
+        static fn(array $r): bool =>
+            (int)(array_column($r['accounts'] ?? [], 'balance_minor', 'code')['1000'] ?? 0) === 8700);
     $t->check('B ledger never receives A postings', $b, 'GET',
         '/spaces/' . $spaceB . '/journals', null, 200,
         static fn(array $r): bool => count($r['journals'] ?? []) === 0);
@@ -258,6 +266,18 @@ try {
     $t->check('A1 cannot house a second unrelated legal company', $a, 'POST',
         '/spaces/' . $spaceA . '/companies',
         ['legalName' => 'Synthetic Example B', 'country' => 'BR'], 409);
+    $t->check('A registers a separate legal company in A2', $a, 'POST',
+        '/spaces/' . $spaceA2 . '/companies',
+        ['legalName' => 'Synthetic Example A2', 'country' => 'PT'], 201);
+    $t->check('A1 lists only its own company identity', $a, 'GET',
+        '/spaces/' . $spaceA . '/companies', null, 200,
+        static fn(array $r): bool => count($r['companies'] ?? []) === 1
+            && ($r['companies'][0]['legal_name'] ?? '') === 'Synthetic Example A');
+    $t->check('A2 lists only its separate international company identity', $a, 'GET',
+        '/spaces/' . $spaceA2 . '/companies', null, 200,
+        static fn(array $r): bool => count($r['companies'] ?? []) === 1
+            && ($r['companies'][0]['legal_name'] ?? '') === 'Synthetic Example A2'
+            && ($r['companies'][0]['country'] ?? '') === 'PT');
 
     $t->check('A explicitly grants B viewer access to A1', $a, 'POST',
         '/spaces/' . $spaceA . '/members', ['uid' => $b, 'role' => 'viewer'], 200);
@@ -270,6 +290,28 @@ try {
             'memo' => 'Forbidden viewer', 'externalKey' => 'saas-B-forged'], 403);
     $t->check('B cannot elevate itself to finance manager', $b, 'POST',
         '/spaces/' . $spaceA . '/members', ['uid' => $b, 'role' => 'manager'], 403);
+    $t->check('A grants B operator in A2 while B remains viewer in A1', $a,
+        'POST', '/spaces/' . $spaceA2 . '/members',
+        ['uid' => $b, 'role' => 'operator'], 200);
+    $t->check('B can post to A2 with its independent operator role', $b,
+        'POST', '/spaces/' . $spaceA2 . '/journals',
+        ['debitId' => $a2Ids['1000'], 'creditId' => $a2Ids['4000'],
+            'amountMinor' => 600, 'date' => '2026-11-23',
+            'memo' => 'Synthetic A2 operator', 'externalKey' => 'saas-B-A2-operator'], 201);
+    $t->check('A2 operator does not elevate B viewer role in A1', $b,
+        'POST', '/spaces/' . $spaceA . '/journals',
+        ['debitId' => $ids['1000'], 'creditId' => $ids['4000'],
+            'amountMinor' => 700, 'date' => '2026-11-23',
+            'memo' => 'Denied cross-ledger role', 'externalKey' => 'saas-B-A1-forged'], 403);
+    $t->check('B operator cannot manage A2 role assignments', $b,
+        'POST', '/spaces/' . $spaceA2 . '/members',
+        ['uid' => $a, 'role' => 'viewer'], 403);
+    $t->check('A revokes B operator membership in A2', $a,
+        'DELETE', '/spaces/' . $spaceA2 . '/members/' . $b, null, 200);
+    $t->check('B loses A2 access after operator revocation', $b,
+        'GET', '/spaces/' . $spaceA2 . '/journals', null, 404);
+    $t->check('A2 revocation preserves B viewer access in A1', $b,
+        'GET', '/spaces/' . $spaceA . '/journals', null, 200);
 
     $t->check('A revokes B viewer grant', $a, 'DELETE',
         '/spaces/' . $spaceA . '/members/' . $b, null, 200);
