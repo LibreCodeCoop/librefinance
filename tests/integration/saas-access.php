@@ -349,6 +349,14 @@ try {
             && ($r['companies'][0]['legal_name'] ?? '') === 'Synthetic Example A2'
             && ($r['companies'][0]['country'] ?? '') === 'PT');
 
+    $t->check('A cannot pre-grant an outsider a dormant SaaS finance role', $a,
+        'POST', '/spaces/' . $spaceA . '/members',
+        ['uid' => 'synthetictestadmin', 'role' => 'viewer'], 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'permission_denied');
+    $t->check('attempted outside-group grant leaves no persistent membership', $a,
+        'GET', '/spaces/' . $spaceA . '/members', null, 200,
+        static fn(array $r): bool =>
+            !in_array('synthetictestadmin', array_column($r['members'] ?? [], 'uid'), true));
     $t->check('A explicitly grants B viewer access to A1', $a, 'POST',
         '/spaces/' . $spaceA . '/members', ['uid' => $b, 'role' => 'viewer'], 200);
     $t->check('B may now read A ledger through direct grant', $b, 'GET',
