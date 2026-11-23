@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
   <category>organization</category>
   <website>https://github.com/LibreCodeCoop/librefinance</website>
   <bugs>https://github.com/LibreCodeCoop/librefinance/issues</bugs>
-  <dependencies><php min-version="8.3"/><nextcloud min-version="36" max-version="36"/></dependencies>
+  <dependencies><php min-version="8.3" max-version="8.5"/><nextcloud min-version="36" max-version="36"/></dependencies>
   <settings>
     <admin>OCA\LibreFinance\Settings\Admin</admin>
     <admin-section>OCA\LibreFinance\Settings\AdminSection</admin-section>
