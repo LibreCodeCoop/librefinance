@@ -341,11 +341,15 @@ compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_saas_A 
 compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_saas_A lfmaintestB
 compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_saas_B lfmaintestB
 compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_saas_B lfmaintestA
-saas_access_output="$(compose exec -T -e LF_SYNTHETIC_SAAS_ACCESS=yes \
+if ! saas_access_output="$(compose exec -T -e LF_SYNTHETIC_SAAS_ACCESS=yes \
   -e LF_TEST_ADMIN_PASSWORD="$LF_TEST_ADMIN_PASSWORD" \
   -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
   -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-  php /var/www/html/custom_apps/librefinance/tests/integration/saas-access.php)"
+  php /var/www/html/custom_apps/librefinance/tests/integration/saas-access.php 2>&1)"; then
+  printf '%s\n' "$saas_access_output" >&2
+  echo 'FAIL: synthetic SaaS financial isolation suite exited nonzero' >&2
+  exit 1
+fi
 printf '%s\n' "$saas_access_output"
 grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$saas_access_output" || {
   echo 'FAIL: SaaS financial isolation did not complete' >&2
