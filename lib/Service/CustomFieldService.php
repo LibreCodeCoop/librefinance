@@ -15,7 +15,7 @@ use OCP\IDBConnection;
  * All field definitions and values are scoped to the authenticated finance space.
  */
 final class CustomFieldService {
-    private const ENTITIES = ['company', 'contact', 'item', 'journal'];
+    private const ENTITIES = ['company', 'contact', 'item', 'journal', 'invoice', 'bill'];
     private const TYPES = ['text', 'textarea', 'email', 'url', 'integer', 'number',
         'date', 'boolean', 'select'];
 
@@ -27,7 +27,7 @@ final class CustomFieldService {
         $role = $this->access->requireRole($spaceId, 'viewer');
         $fields = $this->definitions($spaceId, $entityKind);
         if (AccessService::rank($role) < AccessService::rank('manager')) {
-            $fields = array_values(array_filter($fields, static fn(array $f): bool => $f['visible'] && $f['active']));
+            $fields = array_values(array_filter($fields, static fn(array $f): bool => $f['apiVisible'] && $f['active']));
         }
         return ['fields' => $fields, 'entityKind' => $entityKind,
             'supportedEntities' => self::ENTITIES, 'supportedTypes' => self::TYPES];
@@ -47,6 +47,7 @@ final class CustomFieldService {
             'key' => (string)$r['field_key'], 'label' => (string)$r['label'],
             'type' => (string)$r['field_type'], 'required' => (bool)$r['required'],
             'active' => (bool)$r['active'], 'visible' => (bool)$r['visible'],
+            'apiVisible' => (bool)$r['api_visible'],
             'help' => $r['help_text'] !== null ? (string)$r['help_text'] : null,
             'sortOrder' => (int)$r['sort_order'], 'columnSpan' => (int)$r['column_span'],
             'options' => json_decode($r['options_json'] ?? '[]', true) ?: [],
@@ -56,12 +57,16 @@ final class CustomFieldService {
     public function create(int $spaceId, string $key, string $label, string $type,
         bool $required = false, array $options = [], string $entityKind = 'company',
         bool $visible = true, ?string $help = null, int $sortOrder = 0,
-        int $columnSpan = 12): array {
+        int $columnSpan = 12, ?bool $apiVisible = null): array {
         $this->access->requireRole($spaceId, 'manager');
+        // Preserve the pre-v3 contract: hidden fields were also withheld from
+        // non-manager API readers. API-only disclosure requires explicit opt-in.
+        $apiVisible ??= $visible;
         self::entity($entityKind);
         $key = strtolower(trim($key));
         $label = trim($label);
         self::metadata($key, $label, $type, $required, $visible, $help, $sortOrder, $columnSpan);
+        if ($required && !$apiVisible) { throw new DomainException('invalid_custom_field'); }
         $options = self::validOptions($type, $options);
         if (count($this->definitions($spaceId, $entityKind)) >= 30) {
             throw new DomainException('custom_field_limit');
@@ -72,7 +77,8 @@ final class CustomFieldService {
             $this->write->insert('lf_custom_fields', [
                 'space_id' => $spaceId, 'entity_kind' => $entityKind,
                 'field_key' => $key, 'label' => $label, 'field_type' => $type,
-                'required' => $required, 'visible' => $visible, 'active' => true,
+                'required' => $required, 'visible' => $visible,
+                'api_visible' => $apiVisible, 'active' => true,
                 'help_text' => $help !== null && trim($help) !== '' ? trim($help) : null,
                 'sort_order' => $sortOrder, 'column_span' => $columnSpan,
                 'options_json' => json_encode($options, JSON_THROW_ON_ERROR),
@@ -83,7 +89,8 @@ final class CustomFieldService {
             $this->db->commit();
             return ['id' => $id, 'entityKind' => $entityKind, 'key' => $key,
                 'label' => $label, 'type' => $type, 'required' => $required,
-                'visible' => $visible, 'active' => true, 'help' => $help,
+                'visible' => $visible, 'apiVisible' => $apiVisible,
+                'active' => true, 'help' => $help,
                 'sortOrder' => $sortOrder, 'columnSpan' => $columnSpan,
                 'options' => $options];
         } catch (\Throwable $e) {
@@ -99,30 +106,34 @@ final class CustomFieldService {
     public function update(int $spaceId, int $fieldId, string $label,
         bool $required = false, bool $active = true, string $entityKind = 'company',
         ?bool $visible = null, ?string $help = null, ?int $sortOrder = null,
-        ?int $columnSpan = null): array {
+        ?int $columnSpan = null, ?bool $apiVisible = null): array {
         $this->access->requireRole($spaceId, 'manager');
         self::entity($entityKind);
         $old = $this->byId($spaceId, $entityKind, $fieldId);
         if ($old === null) { throw new DomainException('custom_field_not_found'); }
         $visible ??= $old['visible'];
+        $apiVisible ??= $old['apiVisible'];
         $help ??= $old['help'];
         $sortOrder ??= $old['sortOrder'];
         $columnSpan ??= $old['columnSpan'];
         $label = trim($label);
         self::metadata($old['key'], $label, $old['type'], $required, $visible,
             $help, $sortOrder, $columnSpan);
+        if ($required && !$apiVisible) { throw new DomainException('invalid_custom_field'); }
         $this->db->beginTransaction();
         try {
             $this->write->update('lf_custom_fields', [
                 'label' => $label, 'required' => $required, 'active' => $active,
-                'visible' => $visible, 'help_text' => $help !== '' ? $help : null,
+                'visible' => $visible, 'api_visible' => $apiVisible,
+                'help_text' => $help !== '' ? $help : null,
                 'sort_order' => $sortOrder, 'column_span' => $columnSpan,
                 'updated_at' => time(),
             ], ['space_id' => $spaceId, 'entity_kind' => $entityKind, 'id' => $fieldId]);
             $this->audit($spaceId, $fieldId, 'custom_field.updated');
             $this->db->commit();
             return [...$old, 'label' => $label, 'required' => $required,
-                'active' => $active, 'visible' => $visible, 'help' => $help,
+                'active' => $active, 'visible' => $visible,
+                'apiVisible' => $apiVisible, 'help' => $help,
                 'sortOrder' => $sortOrder, 'columnSpan' => $columnSpan];
         } catch (\Throwable $e) { $this->db->rollBack(); throw $e; }
     }
@@ -145,7 +156,8 @@ final class CustomFieldService {
                 throw new DomainException('custom_field_not_found');
             }
             $id = (int)$key;
-            if (!$mapped[$id]['visible'] && AccessService::rank($role) < AccessService::rank('manager')) {
+            if (!$mapped[$id]['apiVisible']
+                && AccessService::rank($role) < AccessService::rank('manager')) {
                 throw new DomainException('permission_denied');
             }
             $result[$id] = json_encode(self::validateOne($mapped[$id], $value), JSON_THROW_ON_ERROR);
@@ -198,7 +210,7 @@ final class CustomFieldService {
         $allowed = [];
         foreach ($fields as $field) {
             if ($all || (AccessService::rank($role) >= AccessService::rank('manager')
-                || ($field['visible'] && $field['active']))) {
+                || ($field['apiVisible'] && $field['active']))) {
                 $allowed[$field['id']] = true;
             }
         }
