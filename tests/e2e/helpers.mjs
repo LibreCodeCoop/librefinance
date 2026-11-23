@@ -46,13 +46,17 @@ export async function goToView(page, view) {
   await expect(nav).toBeVisible()
   // Old test vocabulary follows the same safe, task-specific navigation.
   const aliases = {
-    'Resumo financeiro': 'A pagar e receber',
-    'Contas a pagar': 'A pagar e receber',
-    'Contas a receber': 'A pagar e receber',
-    'Bancos e caixa': 'Extratos e conciliação',
-    'Bancos e extratos': 'Extratos e conciliação',
-    'Faturas': 'Vendas',
-    'Entradas e saídas': 'Lançamentos contábeis',
+    'Resumo financeiro': 'Movimentações',
+    'Contas a pagar': 'Movimentações',
+    'Contas a receber': 'Movimentações',
+    'A pagar e receber': 'Movimentações',
+    'Bancos e caixa': 'Contas e bancos',
+    'Bancos e extratos': 'Movimentações',
+    'Extratos e conciliação': 'Movimentações',
+    'Vendas': 'Faturas',
+    'Compras': 'Faturas',
+    'Entradas e saídas': 'Movimentações',
+    'Lançamentos contábeis': 'Histórico contábil',
   }
   view = aliases[view] || view
   if (view === 'Migração de dados') {
@@ -60,13 +64,12 @@ export async function goToView(page, view) {
     return
   }
   const parent = ({
-    'A pagar e receber':'Financeiro', 'Vendas':'Financeiro',
-    'Compras':'Financeiro', 'Contas bancárias e caixa':'Financeiro',
-    'Extratos e conciliação':'Financeiro',
+    'Movimentações':'Financeiro', 'Faturas':'Financeiro',
+    'Contas e bancos':'Gerenciar',
     'Regras tributárias': 'Gerenciar',
     'NFS-e Brasil': 'Gerenciar',
     'Plano de contas': 'Gerenciar',
-    'Lançamentos contábeis': 'Gerenciar',
+    'Histórico contábil': 'Gerenciar',
     'Assistente financeiro': 'Gerenciar',
     'Clientes e fornecedores': 'Gerenciar',
     'Pessoas e estabelecimentos': 'Gerenciar',
@@ -101,7 +104,8 @@ export async function goToView(page, view) {
       'Dados da organização':'Gestões e identidade', 'Organizações (opcional)':'Gestões e identidade',
       'Gestões financeiras':'Gestões e identidade',
       'Plano de contas':'Financeiro e fiscal',
-      'Lançamentos contábeis':'Financeiro e fiscal',
+      'Histórico contábil':'Financeiro e fiscal',
+      'Contas e bancos':'Cadastros',
       'Formas de pagamento':'Financeiro e fiscal',
       'Regras tributárias':'Financeiro e fiscal','NFS-e Brasil':'Financeiro e fiscal',
       'Acessos e compartilhamento':'Equipe e personalização',

@@ -3,129 +3,104 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  availableSections, canOpenView, defaultGroupOpen, menuEntries,
-  navigationSearch, normalizeNavigationText, parentOfView, PAGE_NAMES,
-  canonicalView, financeDirectionForView, pageNameForSpace, fieldEntityKind,
+  PAGE_NAMES, availableSections, menuEntries, canOpenView, defaultGroupOpen,
+  canonicalView, financeDirectionForView, navigationSearch, parentOfView,
+  normalizeNavigationText, pageNameForSpace, fieldEntityKind,
 } from '../../src/navigation.js'
 
-const enabled=['librefinance_banking','librefinance_obligations',
-  'librefinance_reports','librefinance_invoicing','librefinance_nfse',
-  'librefinance_import'].map(id=>({id,enabled:true}))
-const sections=(manager=true,modules=enabled,modulesLoaded=true)=>
-  availableSections({manager,modules,modulesLoaded})
-const financeChildren=scope=>sections(false,scope).find(section=>section.id==='operations')
-  .items.find(item=>item.id==='financeMenu').children.map(item=>item.id)
+const enabled=['librefinance_obligations','librefinance_invoicing','librefinance_banking',
+  'librefinance_reports','librefinance_import','librefinance_nfse']
+  .map(id=>({id,enabled:true}))
+const getSections=(modules=enabled,manager=true,loaded=true)=>
+  availableSections({modules,manager,modulesLoaded:loaded})
+const nav=()=>menuEntries(getSections())
 
-test('Financeiro has one payable/receivable list and one bank register without duplicate dashboard',()=>{
-  const tree=sections()
-  assert.deepEqual(tree.map(section=>section.label),['LIBREFINANCE'])
-  assert.deepEqual(tree[0].items.map(item=>item.id),
-    ['dashboard','financeMenu','reports','management'])
-  assert.deepEqual(financeChildren(enabled),
-    ['finance','sales','purchases','bankAccounts','banking'])
-  for(const id of financeChildren(enabled))assert.equal(parentOfView(tree,id),'financeMenu')
-  assert.equal(menuEntries(tree).filter(item=>item.id==='finance').length,1)
-  assert.equal(menuEntries(tree).filter(item=>item.id==='bankAccounts').length,1)
-  assert.equal(menuEntries(tree).filter(item=>item.id==='transactions').length,1)
-  assert.equal(parentOfView(tree,'transactions'),'management')
-  assert.equal(parentOfView(tree,'accounts'),'management')
+test('two visible finance destinations: movements and optional invoices, no redundant dashboards',()=>{
+  const tree=getSections()
+  const items=tree[0].items
+  assert.deepEqual(items.map(item=>item.id),['dashboard','financeMenu','reports','management'])
+  const finance=items.find(item=>item.id==='financeMenu')
+  assert.deepEqual(finance.children.filter(child=>!child.hidden).map(child=>child.id),
+    ['finance','documents'])
+  assert.equal(finance.children.find(item=>item.id==='banking')?.hidden,true)
   assert.equal(defaultGroupOpen('financeMenu'),true)
-  assert.equal(defaultGroupOpen('management'),false)
-  assert.equal(PAGE_NAMES.finance,'A pagar e receber')
-  assert.equal(PAGE_NAMES.sales,'Vendas')
-  assert.equal(PAGE_NAMES.purchases,'Compras')
-  assert.equal(PAGE_NAMES.bankAccounts,'Contas bancárias e caixa')
-  assert.equal(PAGE_NAMES.banking,'Extratos e conciliação')
-  const management=tree[0].items.find(item=>item.id==='management').children
-  assert.deepEqual([...new Set(management.map(item=>item.group))],
-    ['Gestões e identidade','Cadastros','Financeiro e fiscal','Equipe e personalização','Recursos e dados'])
+  assert.equal(PAGE_NAMES.finance,'Movimentações')
+  assert.equal(PAGE_NAMES.documents,'Faturas')
+  assert.equal(nav().filter(item=>item.id==='dashboard').length,1)
+  assert.equal(nav().filter(item=>item.id==='finance').length,1)
+  assert.equal(nav().filter(item=>item.id==='documents').length,1)
+  assert.equal(parentOfView(tree,'bankAccounts'),'management')
+  assert.equal(parentOfView(tree,'transactions'),'management')
+  assert.equal(PAGE_NAMES.bankAccounts,'Contas e bancos')
 })
 
-test('legacy finance route aliases lead to safe canonical task destinations',()=>{
-  for(const id of ['obligations','payables','receivables'])
+test('historic sales purchases obligations and payables still open the right unified page',()=>{
+  for(const id of ['sales','purchases','invoicing','documents'])
+    assert.equal(canonicalView(id),'documents')
+  for(const id of ['payables','receivables','obligations','finance'])
     assert.equal(canonicalView(id),'finance')
-  for(const id of ['invoicing','documents'])assert.equal(canonicalView(id),'sales')
-  assert.equal(canonicalView('sales'),'sales')
-  assert.equal(canonicalView('purchases'),'purchases')
+  assert.equal(canonicalView('banking'),'banking')
   assert.equal(canonicalView('bankAccounts'),'bankAccounts')
-  assert.equal(canonicalView('transactions'),'transactions')
   assert.equal(canonicalView('settings','payments'),'paymentMethods')
-  assert.equal(canonicalView('settings','data'),'data')
-  for(const id of ['finance','sales','purchases','bankAccounts','banking',
-    'transactions','obligations','invoicing','documents','payables','receivables'])
-    assert.equal(canOpenView(sections(),id),true,id)
-  assert.equal(financeDirectionForView('obligations'),'all')
-  assert.equal(financeDirectionForView('finance'),'all')
-  assert.equal(financeDirectionForView('payables'),'payable')
-  assert.equal(financeDirectionForView('receivables'),'receivable')
   assert.equal(financeDirectionForView('purchases'),'payable')
   assert.equal(financeDirectionForView('sales'),'receivable')
+  assert.equal(financeDirectionForView('documents'),'all')
+  for(const id of ['sales','purchases','finance','banking','bankAccounts',
+    'payables','receivables','documents'])
+    assert.equal(canOpenView(getSections(),id),true,id)
 })
 
-test('module and role gates preserve bank registration and hide disabled reconciliation',()=>{
-  const withoutBank=sections(false,enabled.filter(item=>item.id!=='librefinance_banking'))
-  const names=menuEntries(withoutBank).map(item=>item.id)
-  assert.ok(names.includes('bankAccounts'))
-  assert.ok(names.includes('finance'))
-  assert.ok(names.includes('sales'))
-  assert.ok(!names.includes('banking'))
-  assert.equal(canOpenView(withoutBank,'banking'),false)
-  assert.equal(canOpenView(withoutBank,'bankAccounts'),true)
-  assert.equal(canOpenView(withoutBank,'fields',{manager:false}),false)
-  assert.equal(canOpenView(withoutBank,'import',{manager:false,migrationEnabled:true}),false)
-  const noFeatures=sections(false,[])
-  assert.deepEqual(financeChildren([]),['bankAccounts'])
-  assert.equal(canOpenView(noFeatures,'finance'),false)
-  assert.equal(canOpenView(noFeatures,'sales'),false)
-  assert.equal(canOpenView(noFeatures,'bankAccounts'),true)
-  assert.equal(canOpenView(noFeatures,'banking'),false)
-  assert.equal(canOpenView(noFeatures,'transactions'),true)
-  const unloaded=sections(false,enabled,false)
-  assert.deepEqual(menuEntries(unloaded).filter(item=>item.parentId==='financeMenu')
-    .map(item=>item.id),['bankAccounts'])
+test('financial movement list remains usable if optional modules are disabled',()=>{
+  const none=getSections([])
+  assert.equal(canOpenView(none,'finance'),true)
+  assert.equal(canOpenView(none,'documents'),false)
+  assert.equal(canOpenView(none,'banking'),false)
+  assert.equal(canOpenView(none,'bankAccounts'),true)
+  assert.equal(canOpenView(none,'transactions'),true)
+  assert.deepEqual(none[0].items.find(item=>item.id==='financeMenu').children.map(child=>child.id),
+    ['finance'])
+  const onlyInvoices=getSections([{id:'librefinance_invoicing',enabled:true}])
+  assert.equal(canOpenView(onlyInvoices,'documents'),true)
+  assert.equal(canOpenView(onlyInvoices,'finance'),true)
+  assert.equal(canOpenView(onlyInvoices,'banking'),false)
+  const noBank=getSections(enabled.filter(m=>m.id!=='librefinance_banking'))
+  assert.equal(canOpenView(noBank,'banking'),false)
+  assert.equal(canOpenView(noBank,'bankAccounts'),true)
+  const unloaded=getSections(enabled,false,false)
+  assert.equal(canOpenView(unloaded,'finance'),true)
+  assert.equal(canOpenView(unloaded,'documents'),false)
 })
 
-test('search uses the users everyday words before financial internals',()=>{
-  assert.equal(normalizeNavigationText('  Conciliação  '),'conciliacao')
-  assert.equal(navigationSearch(sections(),'clientes')[0].id,'contacts')
-  assert.equal(navigationSearch(sections(),'a pagar e receber')[0].id,'finance')
-  assert.equal(navigationSearch(sections(),'vendas')[0].id,'sales')
-  assert.equal(navigationSearch(sections(),'compras')[0].id,'purchases')
-  assert.equal(navigationSearch(sections(),'contas bancarias')[0].id,'bankAccounts')
-  assert.equal(navigationSearch(sections(),'extrato')[0].id,'banking')
-  assert.equal(navigationSearch(sections(),'cobranca')[0].id,'finance')
-  assert.equal(navigationSearch(sections(),'lancamentos contabeis')[0].id,'transactions')
-  assert.equal(navigationSearch(sections(),'nota fiscal')[0].id,'nfse')
-  assert.equal(navigationSearch(sections(),'formas de pagamento')[0].id,'paymentMethods')
-  assert.equal(navigationSearch(sections(),'migracao',
-    {manager:true,migrationEnabled:true})[0].id,'data')
+test('search uses everyday words and omits hidden technical bank route',()=>{
+  assert.equal(normalizeNavigationText(' Conciliação  '),'conciliacao')
+  assert.equal(navigationSearch(getSections(),'movimentações')[0]?.id,'finance')
+  assert.equal(navigationSearch(getSections(),'faturas')[0]?.id,'documents')
+  assert.equal(navigationSearch(getSections(),'compras')[0]?.id,'documents')
+  assert.equal(navigationSearch(getSections(),'contas e bancos')[0]?.id,'bankAccounts')
+  assert.equal(navigationSearch(getSections(),'extrato').some(item=>item.id==='banking'),false)
+  assert.equal(navigationSearch(getSections(),'clientes')[0]?.id,'contacts')
+  assert.equal(navigationSearch(getSections(),'formas de pagamento')[0]?.id,'paymentMethods')
 })
 
-test('personal and organization spaces have the same financial routes',()=>{
+test('role checks and technical screens are retained under management',()=>{
+  const viewer=getSections(enabled,false)
+  assert.equal(canOpenView(viewer,'fields'),false)
+  assert.equal(canOpenView(viewer,'paymentMethods'),false)
+  assert.equal(canOpenView(viewer,'accounts'),true)
+  assert.equal(canOpenView(viewer,'finance'),true)
+  assert.equal(canOpenView(viewer,'banking'),true)
+  assert.equal(canOpenView(viewer,'import',{manager:false,migrationEnabled:true}),false)
+  assert.equal(canOpenView(getSections(),'import',{manager:true,migrationEnabled:true}),true)
+  assert.equal(parentOfView(getSections(),'transactions'),'management')
+})
+
+test('personal finance retains simple labels and server field boundaries',()=>{
   assert.equal(pageNameForSpace('contacts','personal'),'Pessoas e estabelecimentos')
   assert.equal(pageNameForSpace('contacts','organization'),'Clientes e fornecedores')
-  assert.equal(pageNameForSpace('companies','personal'),'Organizações (opcional)')
-  assert.equal(pageNameForSpace('finance','personal'),'A pagar e receber')
-  assert.equal(pageNameForSpace('bankAccounts','personal'),'Contas bancárias e caixa')
-  assert.equal(navigationSearch(sections(),'pessoas e estabelecimentos',
-    {spaceKind:'personal'})[0].id,'contacts')
-})
-
-test('custom field kinds remain compatible with server-supported entities',()=>{
+  assert.equal(pageNameForSpace('finance','personal'),'Movimentações')
+  assert.equal(pageNameForSpace('documents','personal'),'Faturas')
   for(const kind of ['company','contact','item','journal'])
     assert.equal(fieldEntityKind(kind),kind)
-  for(const unsafe of ['member','group','../../user','<script>',''])
+  for(const unsafe of ['member','../../etc','<script>',''])
     assert.equal(fieldEntityKind(unsafe),'company')
-})
-
-test('bank providers and disabling modules cannot expose shadow finance screens',()=>{
-  const onlyObligations=sections(false,[{id:'librefinance_obligations',enabled:true}])
-  assert.deepEqual(financeChildren([{id:'librefinance_obligations',enabled:true}]),
-    ['finance','bankAccounts'])
-  assert.equal(canOpenView(onlyObligations,'documents'),false)
-  assert.equal(canOpenView(onlyObligations,'invoicing'),false)
-  assert.equal(canOpenView(onlyObligations,'purchases'),false)
-  assert.equal(canOpenView(onlyObligations,'bankAccounts'),true)
-  assert.equal(canOpenView(onlyObligations,'banking'),false)
-  assert.equal(navigationSearch(onlyObligations,'extratos').some(i=>i.id==='banking'),false)
 })
