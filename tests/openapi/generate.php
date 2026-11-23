@@ -100,6 +100,7 @@ $query = [
     'librefinance:banking#transfers' => 'afterId:i',
     'librefinance:search#index' => 'query:s!,type:s',
     'librefinance:journal#index' => 'beforeId:i',
+    'librefinance:activity#index' => 'cursor:s,direction:s,state:s,accountId:i,search:s',
     'librefinance:ai#preview' => 'from:date!,through:date!',
     'librefinance:category#index' => 'afterId:i',
     'librefinance:company#index' => 'afterId:i',

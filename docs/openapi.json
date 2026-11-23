@@ -664,6 +664,97 @@
                 }
             }
         },
+        "/librefinance/api/spaces/{spaceId}/activity": {
+            "get": {
+                "operationId": "librefinance_activity_index",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "activity index",
+                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "direction",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
         "/librefinance/api/spaces/{spaceId}/ai/analyze": {
             "post": {
                 "operationId": "librefinance_ai_analyze",
@@ -6975,161 +7066,6 @@
                     },
                     "422": {
                         "description": "Invalid business inputs"
-                    }
-                }
-            }
-        },
-        "/librefinance_nfse/api/spaces/{spaceId}/drafts": {
-            "get": {
-                "operationId": "librefinance_nfse_draft_index",
-                "tags": [
-                    "librefinance_nfse"
-                ],
-                "summary": "draft index",
-                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
-                "parameters": [
-                    {
-                        "name": "spaceId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    },
-                    {
-                        "name": "afterId",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "NextcloudAppPassword": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation (response schema remains provisional)",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/JsonObject"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Authenticated user cannot perform this operation"
-                    },
-                    "404": {
-                        "description": "Company not visible or resource unavailable"
-                    },
-                    "409": {
-                        "description": "State or idempotency conflict"
-                    },
-                    "422": {
-                        "description": "Invalid business inputs"
-                    }
-                }
-            },
-            "post": {
-                "operationId": "librefinance_nfse_draft_create",
-                "tags": [
-                    "librefinance_nfse"
-                ],
-                "summary": "draft create",
-                "description": "Staging only. Does not issue DPS, NFS-e, DANFSe or authorized XML.",
-                "parameters": [
-                    {
-                        "name": "spaceId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "NextcloudAppPassword": []
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Successful operation (response schema remains provisional)",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/JsonObject"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Authenticated user cannot perform this operation"
-                    },
-                    "404": {
-                        "description": "Company not visible or resource unavailable"
-                    },
-                    "409": {
-                        "description": "State or idempotency conflict"
-                    },
-                    "422": {
-                        "description": "Invalid business inputs"
-                    }
-                },
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "operationKey": {
-                                        "type": "string"
-                                    },
-                                    "issuerCnpj": {
-                                        "type": "string"
-                                    },
-                                    "municipalityCode": {
-                                        "type": "string"
-                                    },
-                                    "competence": {
-                                        "type": "string",
-                                        "format": "date"
-                                    },
-                                    "serviceCode": {
-                                        "type": "string"
-                                    },
-                                    "description": {
-                                        "type": "string"
-                                    },
-                                    "amountMinor": {
-                                        "type": "integer",
-                                        "minimum": 0
-                                    },
-                                    "companyId": {
-                                        "type": "integer"
-                                    }
-                                },
-                                "required": [
-                                    "operationKey",
-                                    "issuerCnpj",
-                                    "municipalityCode",
-                                    "competence",
-                                    "serviceCode",
-                                    "description",
-                                    "amountMinor"
-                                ],
-                                "additionalProperties": false
-                            }
-                        }
                     }
                 }
             }
