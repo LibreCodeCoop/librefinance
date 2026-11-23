@@ -106,7 +106,8 @@ try {
             && ($r['events'][0]['actorUid'] ?? null) === 'synthetictestadmin'
             && ($r['events'][0]['subjectId'] ?? null) === $groupA
             && is_int($r['events'][0]['occurredAt'] ?? null)
-            && ($r['nextBeforeId'] ?? 'wrong') === null
+            && array_key_exists('nextBeforeId', $r)
+            && $r['nextBeforeId'] === null
             && !array_key_exists('journal', $r['events'][0] ?? [])
             && !array_key_exists('balanceMinor', $r['events'][0] ?? []));
     instanceCheck('admin audit of tenant B never reveals tenant A group',
@@ -121,7 +122,8 @@ try {
     instanceCheck('audit cursor beyond latest returns no events', 'GET',
         $auditPathA . '?beforeId=1', null, 200,
         static fn(array $r): bool => ($r['events'] ?? null) === []
-            && ($r['nextBeforeId'] ?? 'wrong') === null);
+            && array_key_exists('nextBeforeId', $r)
+            && $r['nextBeforeId'] === null);
     instanceCheck('delegate environment A to B without finance grant', 'POST',
         '/admin/groups/' . $groupA . '/delegates', ['uid' => $b], 201);
     instanceCheck('delegate environment B to A without finance grant', 'POST',
