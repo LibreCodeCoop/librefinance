@@ -331,3 +331,18 @@ nem edição visual destes convites. O fluxo de API é auditado e intencionalmen
 restritivo. Administradores da instância não ganham leitura financeira pelo
 fato de serem administradores: só um convite dirigido à própria conta,
 aceito e não expirado, pode conceder leitura a um livro particular.
+
+### Interface de convites financeiros
+
+Em **Gestões financeiras**, o proprietário de um livro SaaS vê
+**Compartilhamento financeiro externo**. Informe o identificador de uma
+conta Nextcloud existente, selecione **Leitura** ou **Auditoria** e configure
+validade entre 1 e 30 dias. O destinatário encontrará o convite em
+**Convites financeiros recebidos** e deverá selecionar **Aceitar convite**.
+Até o aceite, nenhuma permissão existe. Conceder leitura não habilita lançamentos
+financeiros nem acesso aos outros livros do mesmo ambiente.
+
+O proprietário pode revogar ou convidar novamente após revogação/expiração.
+A interface respeita a revisão otimista e atualiza os valores após erro 409;
+o servidor continua revalidando a permissão em cada operação. Os dados
+contábeis não são enviados no convite, e as alterações são auditadas.
