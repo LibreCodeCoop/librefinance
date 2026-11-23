@@ -8,7 +8,11 @@ test('Nextcloud official navigation and dashboard load without iframe', async ({
   await expect(page.locator('.lf-product-name')).toHaveText('LibreFinance')
   await expect(page.getByRole('navigation', { name: 'Navegação do LibreFinance' })).toBeVisible()
   await expect(page.locator('iframe')).toHaveCount(0)
-  await expect(page.getByRole('link', { name: 'Gerenciar', exact: true })).toBeVisible()
+  // A fresh installation intentionally hides context-bound management until
+  // the first financial context exists. Verify its real entry point instead.
+  const management = page.getByRole('link', { name: 'Gerenciar', exact: true })
+  const firstRun = page.getByRole('button', { name: 'Criar primeira gestão', exact: true })
+  await expect(management.or(firstRun).first()).toBeVisible()
 })
 
 test('creating organization displays a real independent chart of accounts', async ({ page }) => {

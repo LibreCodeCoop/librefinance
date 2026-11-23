@@ -22,22 +22,21 @@ export async function login(page) {
     if (message.type() === 'error') errors.push(message.text().slice(0, 260))
   })
   const response = await page.goto('/index.php/apps/librefinance/')
+  // The shell must load in both first-run and existing-context states.
+  // Waiting for a particular empty-state heading made every test pay a
+  // 10-second timeout once a context already existed.
   try {
-    await expect(page.getByRole('heading', { name: 'Comece com seu espaço financeiro' })).toBeVisible({ timeout: 10_000 })
-  } catch {
-    // A previous synthetic lab test may have left spaces; use the stable shell.
-    try {
-      await expect(page.locator('.lf-product-name')).toHaveText('LibreFinance')
-    } catch (cause) {
-      const details = await page.evaluate(() => ({
-        mount: Boolean(document.getElementById('librefinance-app')),
-        nodes: document.getElementById('librefinance-app')?.childElementCount,
-        title: document.title,
-      }))
-      console.error('LibreFinance UI boot diagnostics',
-        JSON.stringify({ status: response?.status(), ...details, errors }))
-      throw cause
-    }
+    await expect(page.locator('.lf-product-name')).toHaveText('LibreFinance', { timeout: 15_000 })
+    await expect(page.locator('[data-testid="librefinance-workspace"]')).toBeVisible()
+  } catch (cause) {
+    const details = await page.evaluate(() => ({
+      mount: Boolean(document.getElementById('librefinance-app')),
+      nodes: document.getElementById('librefinance-app')?.childElementCount,
+      title: document.title,
+    }))
+    console.error('LibreFinance UI boot diagnostics',
+      JSON.stringify({ status: response?.status(), ...details, errors }))
+    throw cause
   }
 }
 
@@ -132,7 +131,13 @@ export async function selectFinanceSpace(page, name) {
 
 export async function makeSpace(page, kind = 'organization') {
   const name = 'E2E ' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-  await goToView(page, 'Gestões financeiras')
+  const firstRun = page.getByRole('button', { name: 'Criar primeira gestão', exact: true })
+  const management = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
+    .getByRole('link', { name: 'Gerenciar', exact: true })
+  await expect(firstRun.or(management).first()).toBeVisible({ timeout: 15_000 })
+  if (await firstRun.isVisible()) await firstRun.click()
+  else await goToView(page, 'Gestões financeiras')
+  await expect(page.getByRole('heading', { name: 'Gestões financeiras' })).toBeVisible()
   await page.getByRole('button', { name: 'Nova gestão', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Criar gestão financeira' })).toBeVisible()
   await page.getByRole('dialog', { name: 'Criar gestão financeira' })
