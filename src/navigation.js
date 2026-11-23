@@ -102,9 +102,10 @@ export function pageNameForSpace(id, kind) {
   return PAGE_NAMES[id] || id
 }
 
-/** Only the four entity types already supported by the PHP Field Studio. */
+/** Recognized destinations for the six safely scoped Field Studio entities. */
 export function fieldEntityKind(value) {
-  return ['company', 'contact', 'item', 'journal'].includes(value) ? value : 'company'
+  return ['company', 'contact', 'item', 'journal', 'invoice', 'bill'].includes(value)
+    ? value : 'company'
 }
 
 export function normalizeNavigationText(value) {

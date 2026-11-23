@@ -16,6 +16,7 @@ import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSortableHeader from '../components/LfSortableHeader.vue'
 import { useLoadedSort } from '../composables/useLoadedSort.js'
 import LfSelect from '../components/LfSelect.vue'
+import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import LfDateField from '../components/LfDateField.vue'
 import CashPaymentDialog from '../components/CashPaymentDialog.vue'
 import { financeApi, financeError } from '../services/api.js'
@@ -86,7 +87,7 @@ const allocated=ref(false)
 const form=ref({
   number:'',kind:creationKind.value,contactId:0,country:'',region:'',
   issueOn:today,dueOn:today,
-  lines:[{description:'',quantity:1,price:'',taxRuleId:0}],
+  lines:[{description:'',quantity:1,price:'',taxRuleId:0}],customFields:{},
 })
 const rule=ref({
   code:'',label:'',country:'',region:'',kind:'vat',rate:'0,00',
@@ -215,6 +216,7 @@ async function create() {
       contactId:Number(form.value.contactId),issueOn:form.value.issueOn,
       dueOn:form.value.dueOn,country:form.value.country.trim(),
       region:form.value.region.trim()||null,lines,
+      customFields:form.value.customFields,
     })
   },isPurchase.value?'Fatura de compra salva como rascunho, sem movimentar o banco.'
     :'Fatura de venda salva como rascunho, sem emissão fiscal.')
@@ -223,7 +225,7 @@ async function create() {
     if (invoiceFilter.value !== 'all' && invoiceFilter.value !== creationKind.value)
       invoiceFilter.value = creationKind.value
     form.value={number:'',kind:creationKind.value,contactId:0,country:'',region:'',
-      issueOn:today,dueOn:today,lines:[{description:'',quantity:1,price:'',taxRuleId:0}]}
+      issueOn:today,dueOn:today,lines:[{description:'',quantity:1,price:'',taxRuleId:0}],customFields:{}}
   }
 }
 async function createRule() {
@@ -300,7 +302,7 @@ function selectCreationKind(value) {
   if (!['invoice','bill'].includes(value)) return
   creationKind.value=value
   form.value={number:'',kind:value,contactId:0,country:'',region:'',
-    issueOn:today,dueOn:today,lines:[{description:'',quantity:1,price:'',taxRuleId:0}]}
+    issueOn:today,dueOn:today,lines:[{description:'',quantity:1,price:'',taxRuleId:0}],customFields:{}}
   creationStep.value='details'
 }
 watch(() => flow?.newDetailed.value, requested => {
@@ -457,6 +459,8 @@ function openLinkedObligation() {
         <NcButton variant="secondary" :disabled="form.lines.length>=20" @click="addLine">
           Adicionar linha
         </NcButton>
+        <CustomFieldsPanel :key="activeId+':'+creationKind+':'+newInvoice"
+          v-model="form.customFields" :entity-kind="creationKind" />
         <div class="lf-form-actions">
           <NcButton variant="tertiary" @click="newInvoice=false">Cancelar</NcButton>
           <NcButton variant="primary" type="submit" :disabled="busy">Salvar rascunho</NcButton>

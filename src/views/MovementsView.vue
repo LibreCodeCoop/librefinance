@@ -7,6 +7,7 @@ import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcPopover from '@nextcloud/vue/components/NcPopover'
+import NcFilePicker from '@nextcloud/vue/components/NcFilePicker'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
@@ -17,6 +18,7 @@ import LfPageHeader from '../components/LfPageHeader.vue'
 import LfDateField from '../components/LfDateField.vue'
 import LfSelect from '../components/LfSelect.vue'
 import CashPaymentDialog from '../components/CashPaymentDialog.vue'
+import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { toMinorUnits } from '../money.js'
 
@@ -123,9 +125,13 @@ function setAccount(id) {
 // extension is used only for scoped import/match operations, never as a
 // second user-facing register.
 const importOpen = ref(false)
+const importFormat = ref('csv')
+const importMenuOpen = ref(false)
 const importAccount = ref(0)
 const importFile = ref(null)
-const importFileInput = ref(null)
+const csvExample = 'data:text/csv;charset=utf-8,' + encodeURIComponent(
+  'id,date,amount,description\nexemplo-001,2026-11-22,-25.90,Pagamento de exemplo\n'
+  + 'exemplo-002,2026-11-22,150.00,Recebimento de exemplo\n')
 const importError = ref('')
 const importing = ref(false)
 const bankBusy = ref(false)
@@ -143,8 +149,11 @@ const journalCandidates = computed(() => {
       label:(item.effective_on || '')+' · '+(item.memo || 'Movimentação')
         +' (#'+item.id+')'}))
 })
-function openImport() {
-  if (!w.writable.value || !canReviewBank.value || !banks.value.length) return
+function openImport(format = 'csv') {
+  if (!['csv','ofx'].includes(format) || !w.writable.value
+    || !canReviewBank.value || !banks.value.length) return
+  importFormat.value=format
+  importMenuOpen.value=false
   importError.value=''
   importFile.value=null
   importAccount.value = Number(accountFilter.value)
@@ -157,10 +166,25 @@ function closeImport() {
   importFile.value=null
   importError.value=''
 }
-function chooseImportFile(event) {
-  importFile.value=event.target?.files?.[0] || null
+function chooseImportFile(files) {
   importError.value=''
-  if (event.target) event.target.value=''
+  if (!Array.isArray(files) || files.length !== 1) {
+    importFile.value=null
+    importError.value='Selecione apenas um arquivo.'
+    return
+  }
+  const file=files[0]
+  if (!file.name.toLowerCase().endsWith('.'+importFormat.value)) {
+    importFile.value=null
+    importError.value='Selecione um arquivo '+importFormat.value.toUpperCase()+'.'
+    return
+  }
+  if(file.size>262144 || file.size===0) {
+    importFile.value=null
+    importError.value='O arquivo deve ter até 256 KiB e não pode estar vazio.'
+    return
+  }
+  importFile.value=file
 }
 async function importStatement() {
   if (!importFile.value || !importAccount.value || importing.value
@@ -172,10 +196,28 @@ async function importStatement() {
   importing.value=true
   try {
     if(importFile.value.size>262144)throw new Error('Arquivo acima do limite de 256 KiB.')
-    const csv=await importFile.value.text()
+    // File.text() assumes UTF-8; bank OFX frequently declares Windows-1252.
+    // Decode locally by the documented header, using fatal mode for UTF-8
+    // rather than silently replacing accented descriptions.
+    const bytes=new Uint8Array(await importFile.value.arrayBuffer())
+    let charset='utf-8'
+    if(importFormat.value==='ofx') {
+      const header=new TextDecoder('windows-1252').decode(bytes.slice(0,512))
+      const numeric=header.match(/^CHARSET:\s*(\d+)\s*$/mi)?.[1]
+      const xml=header.match(/<\?xml[^>]*encoding=['"]([^'"]+)['"]/i)?.[1]?.toLowerCase()
+      if(numeric==='1252' || ['windows-1252','cp1252'].includes(xml))charset='windows-1252'
+      else if(numeric==='8859' || ['iso-8859-1','latin1'].includes(xml))charset='iso-8859-1'
+      else if(numeric && !['65001'].includes(numeric))
+        throw new Error('Codificação OFX desconhecida: '+numeric)
+      else if(xml && !['utf-8','utf8'].includes(xml))
+        throw new Error('Codificação OFX desconhecida: '+xml)
+    }
+    const csv=new TextDecoder(charset,{fatal:true}).decode(bytes)
     if(token!==bankActionVersion || spaceId!==Number(w.activeId.value))return
     const result=await financeApi('librefinance_banking',spaceId,
-      '/imports','POST',{bankAccountId:bankId,csv})
+      '/imports','POST',importFormat.value==='ofx'
+        ? {bankAccountId:bankId,format:'ofx',ofx:csv}
+        : {bankAccountId:bankId,format:'csv',csv})
     if(token!==bankActionVersion || spaceId!==Number(w.activeId.value))return
     importOpen.value=false
     importFile.value=null
@@ -276,7 +318,7 @@ const kind = ref('out')
 const timing = ref('planned')
 const today = () => new Date().toLocaleDateString('sv-SE')
 const form = ref({ description:'', amount:'', date:today(), dueOn:today(),
-  accountId:0, categoryId:0 })
+  accountId:0, categoryId:0, customFields:{} })
 const bankOptions = computed(() => banks.value.map(a => ({value:a.id,label:a.name})))
 const counterpartOptions = computed(() => w.accounts.value
   .filter(a => a.active && !a.is_bank
@@ -290,6 +332,7 @@ function start() {
     accountId:accountFilter.value || (banks.value.length===1?banks.value[0].id:0),
     categoryId:counterpartOptions.value.length===1
       ? Number(counterpartOptions.value[0].value) : 0,
+    customFields:{},
   }
   formError.value = ''
   formOpen.value = true
@@ -333,6 +376,7 @@ async function save() {
         creditId:Number(kind.value==='in'?form.value.categoryId:form.value.accountId),
         amountMinor, memo:form.value.description.trim(), date:form.value.date,
         externalKey:'activity:'+crypto.randomUUID(),
+        customFields:form.value.customFields,
       })
     }
     if (spaceId !== Number(w.activeId.value)) return
@@ -436,11 +480,19 @@ const currency = row => w.money(row.amountMinor)
     <LfPageHeader title="Movimentações" eyebrow="FINANCEIRO"
       description="Tudo que vai entrar ou sair e o que já aconteceu, em uma lista. Os lançamentos do banco que precisam de conferência ficam identificados.">
       <template #actions>
-        <NcButton v-if="w.writable.value && canReviewBank && banks.length"
-          variant="secondary" @click="openImport">
-          <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
-          Importar extrato
-        </NcButton>
+        <NcPopover v-if="w.writable.value && canReviewBank && banks.length"
+          v-model:shown="importMenuOpen" popup-role="dialog">
+          <template #trigger>
+            <NcButton variant="secondary" id="lf-import-menu">
+              <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
+              Importar extrato
+            </NcButton>
+          </template>
+          <div class="lf-agenda-filter-content" role="group" aria-label="Formato do extrato">
+            <NcButton variant="tertiary" @click="openImport('csv')">Arquivo CSV</NcButton>
+            <NcButton variant="tertiary" @click="openImport('ofx')">Arquivo OFX</NcButton>
+          </div>
+        </NcPopover>
         <NcPopover v-if="w.writable.value && banks.length>1"
           v-model:shown="moreActionsOpen" popup-role="dialog">
           <template #trigger>
@@ -589,11 +641,11 @@ const currency = row => w.money(row.amountMinor)
     </NcButton>
 
     <NcDialog :open="importOpen" size="normal"
-      content-classes="lf-finance-dialog-content" name="Importar extrato"
+      content-classes="lf-finance-dialog-content" :name="'Importar extrato '+importFormat.toUpperCase()"
       @update:open="!$event && closeImport()">
       <form class="lf-dialog-form" @submit.prevent="importStatement">
-        <p>Importe o arquivo da conta bancária. Os movimentos aparecerão nesta
-          lista como <strong>A conferir</strong>, sem registrar novamente o dinheiro.</p>
+        <p>Importe o extrato {{importFormat.toUpperCase()}} do banco. Os movimentos
+          aparecerão aqui como <strong>A conferir</strong>, sem duplicar pagamentos.</p>
         <NcNoteCard v-if="importError" type="error" role="alert">{{importError}}</NcNoteCard>
         <LfSelect v-if="banks.length>1" id="lf-import-bank"
           v-model="importAccount" label="Conta do extrato"
@@ -601,27 +653,28 @@ const currency = row => w.money(row.amountMinor)
         <p v-else-if="banks.length===1" class="lf-muted">
           Conta: <strong>{{banks[0].name}}</strong>
         </p>
-        <input ref="importFileInput" class="lf-visually-hidden" type="file"
-          accept=".csv,text/csv" @change="chooseImportFile" />
-        <NcButton variant="secondary" :disabled="importing" @click="importFileInput?.click()">
-          <template #icon>
-            <NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" />
-          </template>
-          Selecionar arquivo CSV
-        </NcButton>
-        <p class="lf-muted">{{importFile?.name||'Nenhum arquivo selecionado'}}</p>
-        <details class="lf-finance-explanation">
-          <summary>Qual formato de arquivo posso importar?</summary>
-          <p>CSV com colunas <code>id,date,amount,description</code>,
-            valores com ponto decimal e sinal negativo para saídas.
-            Tamanho máximo: 256 KiB.</p>
-        </details>
+        <NcFilePicker :key="importFormat" :disabled="importing"
+          :label="'Selecionar arquivo '+importFormat.toUpperCase()" variant="secondary"
+          :accept="importFormat==='csv'?['.csv','text/csv']:['.ofx','application/x-ofx']"
+          @pick="chooseImportFile" />
+        <p class="lf-muted" role="status">{{importFile?.name||'Nenhum arquivo selecionado'}}</p>
+        <template v-if="importFormat==='csv'">
+          <p class="lf-muted">CSV: colunas <code>id,date,amount,description</code>,
+            com valores decimais separados por ponto e negativos para saídas.</p>
+          <NcButton variant="tertiary" :href="csvExample" download="exemplo-extrato.csv">
+            Baixar exemplo de CSV
+          </NcButton>
+        </template>
+        <p v-else class="lf-muted">OFX: extrato fornecido pelo banco com identificadores
+          FITID, data e valor. Aceitamos OFX 1.x e 2.x, um único extrato por arquivo.</p>
+        <p class="lf-muted">O arquivo é lido apenas para importação; não é gravado no Files.
+          Limite de 256 KiB e 500 movimentos.</p>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" :disabled="importing"
             @click="closeImport">Cancelar</NcButton>
           <NcButton variant="primary" type="submit"
             :disabled="importing||!importAccount||!importFile">
-            {{importing?'Importando…':'Importar para conferir'}}
+            {{importing?'Importando…':'Importar '+importFormat.toUpperCase()+' para conferir'}}
           </NcButton>
         </div>
       </form>
@@ -716,6 +769,8 @@ const currency = row => w.money(row.amountMinor)
             Ainda não há uma categoria de {{kind==='in'?'receita':'despesa'}} configurada.
             Configure-a em Gerenciar para registrar esse movimento.
           </NcNoteCard>
+          <CustomFieldsPanel :key="w.activeId.value+':'+formOpen" v-model="form.customFields"
+            entity-kind="journal" />
         </template>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" :disabled="formSaving" @click="formOpen=false">

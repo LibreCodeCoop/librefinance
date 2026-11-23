@@ -88,16 +88,21 @@ da propria lista, junto de Tipo (Entrada/Saida), Situacao e Pesquisa.
 Selecionar uma conta nao abre outro modulo: apenas limita o historico
 consultado, e mostra seu saldo contabilizado, se houver.
 
-O botao **Importar extrato** abre um dialogo nessa mesma tela para selecionar
-uma conta e importar um CSV. Quando existem varias contas, a pessoa precisa
-selecionar explicitamente qual recebeu o arquivo. O arquivo nao registra
-outro pagamento: cada movimento importado aparece em Movimentacoes com
-situacao **A conferir**. Na propria linha, clique em **Conferir** e vincule
-a uma movimentacao ja registrada com mesmo valor e conta. Ao confirmar, a
-evidencia pendente deixa de aparecer como segunda linha. Se nenhum registro
-correspondente foi encontrado, procure em movimentacoes mais antigas ou
-registre o dinheiro uma unica vez antes de conferir. Nao ha um novo CRUD,
-uma lista paralela nem uma tela obrigatoria de extratos e conciliacao.
+O menu **Importar extrato** tem duas opcoes: **Arquivo CSV** e **Arquivo OFX**.
+Ambas usam o seletor de arquivos nativo do Nextcloud, sem gravar a copia
+original no Files. O CSV inclui o botao **Baixar exemplo de CSV**.
+Quando existem varias contas, a pessoa precisa selecionar explicitamente
+qual recebeu o arquivo. O arquivo nao registra outro pagamento:
+cada movimento importado aparece em Movimentacoes com situacao
+**A conferir**. Na propria linha, clique em **Conferir** e vincule
+a uma movimentacao ja registrada com mesmo valor e conta. Ao confirmar,
+a evidencia pendente deixa de aparecer como segunda linha. Se nenhum
+registro correspondente foi encontrado, procure em movimentacoes mais
+antigas ou registre o dinheiro uma unica vez antes de conferir.
+Nao ha um novo CRUD, lista paralela nem tela obrigatoria de conciliacao.
+
+Para detalhes de formatos, privacidade e configuracao dos campos internos,
+consulte docs/OFX-AND-CUSTOM-FIELDS.md.
 
 Quando houver pelo menos duas contas, a acao **Transferir entre contas**
 registra uma transferencia ja realizada em uma unica operacao balanceada.
