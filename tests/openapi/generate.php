@@ -29,6 +29,7 @@ $writeForms = [
      'librefinance:space#create' => 'name:s!,kind:s!,currency:s!,color:s',
      'librefinance:space#rename' => 'name:s!,color:s',
     'librefinance:governance#configure' => 'managed:b!',
+    'librefinance:environment#enable' => 'enabled:b!',
     'librefinance:governance#provision' => 'name:s!,kind:s!,gid:s!,currency:s',
     'librefinance:governance#bind' => 'gid:s!',
     'librefinance:governance#grantDelegate' => 'uid:s!',
@@ -89,6 +90,7 @@ $writeForms = [
     'librefinance:inventory#preview' => 'inventoryJson:s!',
 ];
 $noBody = [
+    'librefinance:environment#provision',
     'librefinance:governance#archive',
     'librefinance:governance#restore',
     'librefinance:space#archive',
@@ -132,6 +134,9 @@ $query = [
     'librefinance_nfse:draft#index' => 'afterId:i',
 ];
 $descriptions = [
+    'librefinance:environment#index' => 'Authenticated user. Discover eligible SaaS environments; never financial data.',
+    'librefinance:environment#enable' => 'Instance administrator only. Enable or suspend one Nextcloud group without financial grants.',
+    'librefinance:environment#provision' => 'Qualified current group subadmin/delegate only. Idempotently activate a previously enabled environment without creating ledger rights.',
     'librefinance:governance#show' => 'Instance-admin only. Read current global provisioning mode.',
     'librefinance:governance#configure' => 'Instance-admin only. Enable or disable managed provisioning.',
     'librefinance:governance#contexts' => 'Instance-admin only. List scoped finance contexts and binding status.',
