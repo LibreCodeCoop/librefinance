@@ -1049,56 +1049,6 @@
                 }
             }
         },
-        "/librefinance/api/saas/v1/admin/policies/audit": {
-            "get": {
-                "operationId": "librefinance_saasPolicyAudit_instance",
-                "tags": [
-                    "librefinance"
-                ],
-                "summary": "saasPolicyAudit instance",
-                "description": "Instance administrator only. Cursor-paginated history for global policies; no financial ledger access.",
-                "parameters": [
-                    {
-                        "name": "beforeId",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "NextcloudAppPassword": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation (response schema remains provisional)",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/JsonObject"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Authenticated user cannot perform this operation"
-                    },
-                    "404": {
-                        "description": "Company not visible or resource unavailable"
-                    },
-                    "409": {
-                        "description": "State or idempotency conflict"
-                    },
-                    "422": {
-                        "description": "Invalid business inputs"
-                    }
-                }
-            }
-        },
         "/librefinance/api/saas/v1/admin/policies/{policyKey}": {
             "delete": {
                 "operationId": "librefinance_saasPolicy_clear",
@@ -1285,64 +1235,6 @@
                 "summary": "environment index",
                 "description": "Authenticated group member may discover eligible environments only, without finance data.",
                 "parameters": [],
-                "security": [
-                    {
-                        "NextcloudAppPassword": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation (response schema remains provisional)",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/JsonObject"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Authenticated user cannot perform this operation"
-                    },
-                    "404": {
-                        "description": "Company not visible or resource unavailable"
-                    },
-                    "409": {
-                        "description": "State or idempotency conflict"
-                    },
-                    "422": {
-                        "description": "Invalid business inputs"
-                    }
-                }
-            }
-        },
-        "/librefinance/api/saas/v1/environments/{environmentId}/policies/audit": {
-            "get": {
-                "operationId": "librefinance_saasPolicyAudit_environment",
-                "tags": [
-                    "librefinance"
-                ],
-                "summary": "saasPolicyAudit environment",
-                "description": "Current qualified environment manager only. Immutable history of one active SaaS environment.",
-                "parameters": [
-                    {
-                        "name": "environmentId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "beforeId",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
                 "security": [
                     {
                         "NextcloudAppPassword": []
@@ -1855,6 +1747,232 @@
                 }
             }
         },
+        "/librefinance/api/saas/v1/policy-audit/environments/{environmentId}": {
+            "get": {
+                "operationId": "librefinance_saasPolicyAudit_environment",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "saasPolicyAudit environment",
+                "description": "Current qualified environment manager only. Immutable history of one active SaaS environment.",
+                "parameters": [
+                    {
+                        "name": "environmentId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "beforeId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/saas/v1/policy-audit/instance": {
+            "get": {
+                "operationId": "librefinance_saasPolicyAudit_instance",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "saasPolicyAudit instance",
+                "description": "Instance administrator only. Cursor-paginated history for global policies; no financial ledger access.",
+                "parameters": [
+                    {
+                        "name": "beforeId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/saas/v1/policy-audit/workspaces/{spaceId}": {
+            "get": {
+                "operationId": "librefinance_saasPolicyAudit_workspace",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "saasPolicyAudit workspace",
+                "description": "Financial owner or manager only. Cursor-paginated policy history of an independent ledger.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "beforeId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/saas/v1/policy-audit/workspaces/{spaceId}/me": {
+            "get": {
+                "operationId": "librefinance_saasPolicyAudit_user",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "saasPolicyAudit user",
+                "description": "Current financial actor only. History of its own user policy in one permitted workspace.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "beforeId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
         "/librefinance/api/saas/v1/workspaces/{spaceId}/invitations": {
             "get": {
                 "operationId": "librefinance_saasExternalInvitation_index",
@@ -2196,65 +2314,6 @@
                 }
             }
         },
-        "/librefinance/api/saas/v1/workspaces/{spaceId}/policies/audit": {
-            "get": {
-                "operationId": "librefinance_saasPolicyAudit_workspace",
-                "tags": [
-                    "librefinance"
-                ],
-                "summary": "saasPolicyAudit workspace",
-                "description": "Financial owner or manager only. Cursor-paginated policy history of an independent ledger.",
-                "parameters": [
-                    {
-                        "name": "spaceId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    },
-                    {
-                        "name": "beforeId",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "NextcloudAppPassword": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation (response schema remains provisional)",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/JsonObject"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Authenticated user cannot perform this operation"
-                    },
-                    "404": {
-                        "description": "Company not visible or resource unavailable"
-                    },
-                    "409": {
-                        "description": "State or idempotency conflict"
-                    },
-                    "422": {
-                        "description": "Invalid business inputs"
-                    }
-                }
-            }
-        },
         "/librefinance/api/saas/v1/workspaces/{spaceId}/policies/effective": {
             "get": {
                 "operationId": "librefinance_saasPolicy_effectiveWorkspace",
@@ -2268,65 +2327,6 @@
                         "name": "spaceId",
                         "in": "path",
                         "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "NextcloudAppPassword": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation (response schema remains provisional)",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/JsonObject"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Authenticated user cannot perform this operation"
-                    },
-                    "404": {
-                        "description": "Company not visible or resource unavailable"
-                    },
-                    "409": {
-                        "description": "State or idempotency conflict"
-                    },
-                    "422": {
-                        "description": "Invalid business inputs"
-                    }
-                }
-            }
-        },
-        "/librefinance/api/saas/v1/workspaces/{spaceId}/policies/me/audit": {
-            "get": {
-                "operationId": "librefinance_saasPolicyAudit_user",
-                "tags": [
-                    "librefinance"
-                ],
-                "summary": "saasPolicyAudit user",
-                "description": "Current financial actor only. History of its own user policy in one permitted workspace.",
-                "parameters": [
-                    {
-                        "name": "spaceId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    },
-                    {
-                        "name": "beforeId",
-                        "in": "query",
-                        "required": false,
                         "schema": {
                             "type": "integer",
                             "minimum": 1

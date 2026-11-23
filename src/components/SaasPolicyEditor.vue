@@ -52,6 +52,22 @@ const resource = computed(() => {
   }
   return ''
 })
+const auditResource = computed(() => {
+  if (props.scope === 'instance') return generateUrl(root + '/policy-audit/instance')
+  if (props.scope === 'environment' && props.environmentId) {
+    return generateUrl(root + '/policy-audit/environments/'
+      + encodeURIComponent(props.environmentId))
+  }
+  if (props.scope === 'workspace' && Number.isSafeInteger(props.spaceId)
+      && props.spaceId > 0) {
+    return generateUrl(root + '/policy-audit/workspaces/' + props.spaceId)
+  }
+  if (props.scope === 'user' && Number.isSafeInteger(props.spaceId)
+      && props.spaceId > 0) {
+    return generateUrl(root + '/policy-audit/workspaces/' + props.spaceId + '/me')
+  }
+  return ''
+})
 const name = key => ({
   'environments.enabled': 'Habilitar os ambientes SaaS',
   'externalSharing.enabled': 'Compartilhamento externo',
@@ -104,7 +120,7 @@ function closeHistory() {
   historyError.value = ''
 }
 async function fetchHistory(more = false) {
-  const url = resource.value
+  const url = auditResource.value
   if (!url) return
   const token = ++historySeq
   historyLoading.value = true
@@ -114,17 +130,17 @@ async function fetchHistory(more = false) {
     historyBeforeId.value = null
   }
   try {
-    const response = await axios.get(url + '/audit', {
+    const response = await axios.get(url, {
       params: more && historyBeforeId.value !== null
         ? { beforeId: historyBeforeId.value } : {},
     })
-    if (!mounted || historySeq !== token || resource.value !== url) return
+    if (!mounted || historySeq !== token || auditResource.value !== url) return
     const items = Array.isArray(response.data.events) ? response.data.events : []
     historyEvents.value = more ? [...historyEvents.value, ...items] : items
     historyBeforeId.value = Number.isSafeInteger(response.data.nextBeforeId)
       && response.data.nextBeforeId > 0 ? response.data.nextBeforeId : null
   } catch (cause) {
-    if (mounted && historySeq === token && resource.value === url) {
+    if (mounted && historySeq === token && auditResource.value === url) {
       historyError.value = financeError(cause)
       if (!more) historyEvents.value = []
     }

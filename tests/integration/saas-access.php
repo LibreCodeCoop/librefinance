@@ -202,7 +202,7 @@ try {
             && ($r['sourceScope'] ?? null) === 'workspace'
             && ($r['blockedBy'] ?? null) === 'workspace'
             && ($r['revision'] ?? null) === 1);
-    $workspaceAuditA2 = '/saas/v1/workspaces/' . $spaceA2 . '/policies/audit';
+    $workspaceAuditA2 = '/saas/v1/policy-audit/workspaces/' . $spaceA2;
     $t->check('financial owner can inspect scoped A2 policy audit', $a,
         'GET', $workspaceAuditA2, null, 200,
         static fn(array $r): bool =>
@@ -352,7 +352,7 @@ try {
             ($r['effectiveValue'] ?? null) === false
             && ($r['sourceScope'] ?? null) === 'user'
             && ($r['revision'] ?? null) === 1);
-    $personalAudit = '/saas/v1/workspaces/' . $spaceA . '/policies/me/audit';
+    $personalAudit = '/saas/v1/policy-audit/workspaces/' . $spaceA . '/me';
     $t->check('user reads only own actor-bound policy audit', $a,
         'GET', $personalAudit, null, 200,
         static fn(array $r): bool =>

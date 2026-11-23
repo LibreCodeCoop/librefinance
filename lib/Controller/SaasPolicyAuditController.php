@@ -20,26 +20,26 @@ final class SaasPolicyAuditController extends ApiController {
     }
 
     #[NoAdminRequired]
-    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/admin/policies/audit')]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/policy-audit/instance')]
     public function instance(int $beforeId = 0): JSONResponse {
         return $this->respond(fn(): array => $this->audit->instance($beforeId));
     }
 
     #[NoAdminRequired]
-    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/environments/{environmentId}/policies/audit')]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/policy-audit/environments/{environmentId}')]
     public function environment(string $environmentId, int $beforeId = 0): JSONResponse {
         return $this->respond(fn(): array =>
             $this->audit->environment($environmentId, $beforeId));
     }
 
     #[NoAdminRequired]
-    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/workspaces/{spaceId}/policies/audit')]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/policy-audit/workspaces/{spaceId}')]
     public function workspace(int $spaceId, int $beforeId = 0): JSONResponse {
         return $this->respond(fn(): array => $this->audit->workspace($spaceId, $beforeId));
     }
 
     #[NoAdminRequired]
-    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/workspaces/{spaceId}/policies/me/audit')]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/policy-audit/workspaces/{spaceId}/me')]
     public function user(int $spaceId, int $beforeId = 0): JSONResponse {
         return $this->respond(fn(): array => $this->audit->user($spaceId, $beforeId));
     }

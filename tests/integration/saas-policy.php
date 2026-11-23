@@ -116,7 +116,7 @@ policyCheck('cleared environment feature inherits compatibility default', 'GET',
     static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true
         && ($r['sourceScope'] ?? null) === 'default');
 policyCheck('instance admin reads append-only typed policy history', 'GET',
-    '/saas/v1/admin/policies/audit', null, 200,
+    '/saas/v1/policy-audit/instance', null, 200,
     static fn(array $r): bool =>
         count($r['events'] ?? []) >= 3
         && ($r['events'][0]['action'] ?? null) === 'clear'
@@ -126,9 +126,9 @@ policyCheck('instance admin reads append-only typed policy history', 'GET',
         && ($r['events'][0]['newRevision'] ?? null) === 3
         && ($r['nextBeforeId'] ?? null) === null);
 $t->check('finance operator cannot enumerate instance policy audit',
-    'lfmaintestA', 'GET', '/saas/v1/admin/policies/audit', null, 403);
+    'lfmaintestA', 'GET', '/saas/v1/policy-audit/instance', null, 403);
 policyCheck('policy audit cursor below first record is empty', 'GET',
-    '/saas/v1/admin/policies/audit?beforeId=1', null, 200,
+    '/saas/v1/policy-audit/instance?beforeId=1', null, 200,
     static fn(array $r): bool =>
         ($r['events'] ?? null) === []
         && array_key_exists('nextBeforeId', $r)

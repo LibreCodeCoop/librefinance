@@ -34,7 +34,7 @@ test('native workspace policy editor shows scoped cursor-paginated audit history
     previousRevision: 1, newRevision: 2, occurredAt: 1795450000,
   }
   let auditRequests = 0
-  await page.route('**/apps/librefinance/api/saas/v1/workspaces/*/policies/audit**', route => {
+  await page.route('**/apps/librefinance/api/saas/v1/policy-audit/workspaces/**', route => {
     auditRequests += 1
     const cursor = new URL(route.request().url()).searchParams.get('beforeId')
     if (cursor === null) return route.fulfill({ status: 200, json: {

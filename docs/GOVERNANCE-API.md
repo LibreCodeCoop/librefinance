@@ -399,13 +399,13 @@ ou lançamentos. Ela não concede, restaura ou amplia permissões financeiras.
 A API tem quatro rotas autenticadas, todas com cursor opcional
 `beforeId` para eventos anteriores ao último evento recebido:
 
-- `GET /api/saas/v1/admin/policies/audit`: apenas administrador Nextcloud,
+- `GET /api/saas/v1/policy-audit/instance`: apenas administrador Nextcloud,
   somente as alterações das policies da instância.
-- `GET /api/saas/v1/environments/{environmentId}/policies/audit`:
+- `GET /api/saas/v1/policy-audit/environments/{environmentId}`:
   administrador delegado/subadministrador **atual** desse ambiente ativo.
-- `GET /api/saas/v1/workspaces/{spaceId}/policies/audit`: apenas
+- `GET /api/saas/v1/policy-audit/workspaces/{spaceId}`: apenas
   proprietário/gestor financeiro desse livro contábil ativo e confirmado.
-- `GET /api/saas/v1/workspaces/{spaceId}/policies/me/audit`: participante
+- `GET /api/saas/v1/policy-audit/workspaces/{spaceId}/me`: participante
   financeiro autenticado, **somente suas alterações pessoais** naquele
   livro; não recebe identificador de outro usuário na requisição.
 
