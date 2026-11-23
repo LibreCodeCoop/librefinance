@@ -27,7 +27,7 @@ abstract class ApiController extends Controller {
             $status = match ($code) {
                 'authentication_required' => 401,
                 'permission_denied' => 403,
-                'space_not_found', 'account_not_found', 'bank_account_not_found', 'payment_account_not_found', 'journal_not_found', 'group_not_found', 'user_not_found', 'membership_not_found', 'contact_not_found', 'item_not_found', 'company_not_found', 'company_logo_not_found', 'payment_method_not_found', 'custom_field_not_found', 'module_not_found', 'category_parent_not_found', 'category_not_found' => 404,
+                'space_not_found', 'account_not_found', 'bank_account_not_found', 'payment_account_not_found', 'journal_not_found', 'group_not_found', 'user_not_found', 'membership_not_found', 'contact_not_found', 'item_not_found', 'company_not_found', 'company_logo_not_found', 'account_logo_not_found', 'payment_method_not_found', 'custom_field_not_found', 'module_not_found', 'category_parent_not_found', 'category_not_found' => 404,
                 'governance_group_conflict', 'category_code_conflict', 'company_tax_id_conflict', 'custom_field_key_conflict', 'ai_preview_changed' => 409,
                 'ai_task_not_found' => 404,
                 'ai_provider_unavailable' => 503,

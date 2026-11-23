@@ -2,6 +2,7 @@
 SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 import { computed, inject, ref } from 'vue'
+import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcPopover from '@nextcloud/vue/components/NcPopover'
@@ -10,7 +11,7 @@ import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwit
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiPlus, mdiPencilOutline, mdiDeleteOutline, mdiFilterVariant } from '@mdi/js'
+import { mdiPlus, mdiPencilOutline, mdiDeleteOutline, mdiFilterVariant, mdiBankOutline, mdiCash } from '@mdi/js'
 import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSortableHeader from '../components/LfSortableHeader.vue'
@@ -35,6 +36,7 @@ const deleteReasons = {
   payment_methods: 'Há formas de pagamento vinculadas a esta conta',
   bank_transfers: 'Existem transferências bancárias associadas',
   invoice_allocations: 'Existem pagamentos ou recebimentos de faturas associados',
+  bank_logo: 'Há um logotipo associado; remova a imagem antes de excluir a conta',
   import_snapshots: 'Existem saldos e identificadores de origem importados',
   import_mappings: 'Existe um vínculo com registros de origem importados',
 }
@@ -70,7 +72,65 @@ const problem = ref('')
 const filter = ref('all')
 const search = ref('')
 const localSort = useLoadedSort('code')
-const form = ref({ id: 0, code: '', name: '', class: 'asset', isBank: true, active: true })
+const blankDetails = () => ({
+  institutionName: '', institutionCode: '', branchNumber: '',
+  accountNumber: '', accountType: '', iban: '', swiftBic: '',
+})
+const bankFields = [
+  ['institutionName', 'Instituição financeira', 150],
+  ['institutionCode', 'Código da instituição', 40],
+  ['branchNumber', 'Agência', 40],
+  ['accountNumber', 'Número da conta', 70],
+  ['accountType', 'Tipo de conta', 32],
+  ['iban', 'IBAN (internacional)', 34],
+  ['swiftBic', 'SWIFT/BIC', 11],
+]
+const form = ref({ id: 0, code: '', name: '', class: 'asset',
+  isBank: true, active: true, bankDetails: blankDetails(), logo_version: null })
+const logoData = ref('')
+const logoProblem = ref('')
+const logoBusy = ref(false)
+function bankLogoUrl(account) {
+  return account?.logo_version && activeId.value
+    ? generateUrl('/apps/librefinance/api/spaces/' + Number(activeId.value)
+      + '/accounts/' + Number(account.id) + '/logo?v=' + Number(account.logo_version))
+    : ''
+}
+async function selectBankLogo(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+  logoProblem.value = ''
+  if (!['image/png','image/jpeg','image/webp'].includes(file.type)
+      || file.size > 524288 || !file.size) {
+    logoProblem.value = 'Selecione PNG, JPG ou WebP de até 512 KB.'
+    return
+  }
+  try {
+    const data = await new Promise((resolve,reject)=>{
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(new Error('Falha ao ler a imagem.'))
+      reader.readAsDataURL(file)
+    })
+    const match = /^data:image\/(?:png|jpeg|webp);base64,([A-Za-z0-9+/=]+)$/.exec(data)
+    if (!match) throw new Error('Formato inválido.')
+    logoData.value = match[1]
+  } catch(e) { logoProblem.value = e.message }
+}
+async function removeBankLogo() {
+  if (!form.value.id || logoBusy.value) return
+  logoBusy.value = true
+  logoProblem.value = ''
+  try {
+    await financeApi('librefinance',Number(activeId.value),
+      '/accounts/' + Number(form.value.id) + '/logo','DELETE')
+    form.value.logo_version = null
+    logoData.value = ''
+    await refreshCurrent()
+  } catch(e) { logoProblem.value = financeError(e) }
+  finally { logoBusy.value = false }
+}
 const filters = [
   { value: 'all', label: 'Todas as classes' },
   { value: 'asset', label: 'Ativo' }, { value: 'liability', label: 'Passivo' },
@@ -94,16 +154,25 @@ const listed = computed(() => localSort.order(accounts.value.filter(a =>
     }))
 function create() {
   problem.value = ''
+  logoData.value = ''
+  logoProblem.value = ''
   form.value = {
-    id: 0, code: props.bankOnly ? 'BANK-' + crypto.randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase() : '',
+    id: 0, bankDetails: blankDetails(), logo_version: null, code: props.bankOnly ? 'BANK-' + crypto.randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase() : '',
     name: '', class: 'asset', isBank: true, active: true,
   }
   dialog.value = true
 }
 function edit(account) {
   problem.value = ''
+  logoData.value = ''
+  logoProblem.value = ''
   form.value = { id: account.id, code: account.code, name: account.name,
-    class: account.class, isBank: account.is_bank, active: account.active }
+    class: account.class, isBank: account.is_bank, active: account.active,
+    logo_version: account.logo_version,
+    bankDetails: Object.fromEntries(Object.keys(blankDetails()).map(key => {
+      const snake = key.replace(/[A-Z]/g, letter=>'_'+letter.toLowerCase())
+      return [key, account[snake] || '']
+    })) }
   dialog.value = true
 }
 async function submit() {
@@ -113,17 +182,33 @@ async function submit() {
   try {
     const selected = form.value
 
-    if (selected.id) {
-      await financeApi('librefinance', Number(activeId.value), '/accounts/' + selected.id, 'PUT',
-        { name: selected.name.trim(), active: selected.active })
+    const usesBankDetails = props.bankOnly || (selected.class === 'asset' && selected.isBank)
+    const details = usesBankDetails ? selected.bankDetails : {}
+    let accountId = Number(selected.id)
+    if (accountId) {
+      await financeApi('librefinance', Number(activeId.value), '/accounts/' + accountId, 'PUT',
+        { name: selected.name.trim(), active: selected.active, bankDetails: details })
     } else {
-      await financeApi('librefinance', Number(activeId.value), '/accounts', 'POST', {
+      const created = await financeApi('librefinance', Number(activeId.value), '/accounts', 'POST', {
         code: selected.code.trim(), name: selected.name.trim(),
         class: props.bankOnly ? 'asset' : selected.class,
-        isBank: props.bankOnly || (selected.class === 'asset' && selected.isBank),
+        isBank: usesBankDetails, bankDetails: details,
       })
+      accountId = Number(created.id)
+      selected.id = accountId
+    }
+    if (usesBankDetails && logoData.value) {
+      try {
+        await financeApi('librefinance', Number(activeId.value),
+          '/accounts/' + accountId + '/logo','POST',{imageBase64: logoData.value})
+      } catch(e) {
+        logoProblem.value = 'Conta salva, mas a imagem não foi enviada: ' + financeError(e)
+        await refreshCurrent()
+        return
+      }
     }
     await refreshCurrent()
+    logoData.value = ''
     dialog.value = false
   } catch (e) { problem.value = financeError(e) }
   finally { working.value = false }
@@ -198,8 +283,21 @@ async function submit() {
           <th v-if="manager">Ações</th></tr></thead>
         <tbody><tr v-for="account in listed" :key="account.id">
           <td v-if="!props.bankOnly" class="lf-code">{{ account.code }}</td>
-          <td><strong>{{ account.name }}</strong>
-            <small v-if="account.is_bank" class="lf-muted">Conta financeira (banco ou caixa)</small></td>
+          <td>
+            <div class="lf-bank-account-identity">
+              <img v-if="account.is_bank && account.logo_version"
+                :src="bankLogoUrl(account)" :alt="'Logotipo de '+(account.institution_name||account.name)"
+                class="lf-bank-account-logo" />
+              <NcIconSvgWrapper v-else-if="account.is_bank"
+                :path="account.institution_name ? mdiBankOutline : mdiCash" :size="24" />
+              <div><strong>{{ account.name }}</strong>
+                <small v-if="account.is_bank" class="lf-muted">
+                  {{ account.institution_name || 'Banco ou caixa' }}
+                  <template v-if="account.branch_number"> · Agência {{account.branch_number}}</template>
+                </small>
+              </div>
+            </div>
+          </td>
           <td v-if="!props.bankOnly">{{ filters.find(f=>f.value===account.class)?.label || account.class }}</td>
           <td><span :class="account.active ? 'lf-state lf-state-good' : 'lf-state'">
             {{ account.active ? 'Ativa' : 'Desativada' }}</span></td>
@@ -250,6 +348,25 @@ async function submit() {
           v-model="form.isBank" type="checkbox">
           Esta conta representa dinheiro em banco ou caixa
         </NcCheckboxRadioSwitch>
+        <fieldset v-if="props.bankOnly || (form.class==='asset' && form.isBank)" class="lf-bank-account-fields">
+          <legend>Dados bancários (opcionais)</legend>
+          <p class="lf-muted">Preencha o que a instituição fornecer. Não informe senhas,
+            tokens, credenciais nem números de cartão. Esses dados não conectam o banco.</p>
+          <NcTextField v-for="[key, label, max] in bankFields" :key="key"
+            v-model="form.bankDetails[key]" :label="label" :maxlength="max" />
+          <div class="lf-bank-logo-form">
+            <label for="lf-bank-account-logo-file">Logotipo da instituição (opcional)</label>
+            <img v-if="form.id && form.logo_version" class="lf-bank-account-logo"
+              :src="bankLogoUrl(form)" alt="Logotipo atual" />
+            <input id="lf-bank-account-logo-file" type="file" accept="image/png,image/jpeg,image/webp"
+              aria-label="Selecionar logotipo do banco" @change="selectBankLogo" />
+            <small v-if="logoData" class="lf-muted">Imagem selecionada para salvar.</small>
+            <small class="lf-muted">PNG, JPG ou WebP, até 512 KB. Imagem privada do perfil.</small>
+            <NcButton v-if="form.id && form.logo_version" variant="tertiary"
+              :disabled="logoBusy" @click.prevent="removeBankLogo">Remover logotipo</NcButton>
+            <NcNoteCard v-if="logoProblem" type="error">{{logoProblem}}</NcNoteCard>
+          </div>
+        </fieldset>
         <NcCheckboxRadioSwitch v-if="form.id" v-model="form.active" type="checkbox">
           Permitir novos lançamentos nesta conta
         </NcCheckboxRadioSwitch>
@@ -298,3 +415,12 @@ async function submit() {
     </NcDialog>
   </div>
 </template>
+
+<style scoped>
+.lf-bank-account-identity { display:flex;align-items:center;gap:10px }
+.lf-bank-account-identity>div { display:flex;flex-direction:column;gap:2px }
+.lf-bank-account-logo { width:36px;height:36px;object-fit:contain;border-radius:var(--border-radius-element) }
+.lf-bank-account-fields { display:grid;gap:10px;border:1px solid var(--color-border);border-radius:var(--border-radius-large);padding:14px;min-width:0 }
+.lf-bank-account-fields legend { font-weight:600;padding:0 6px }
+.lf-bank-logo-form { display:flex;flex-direction:column;gap:8px }
+</style>
