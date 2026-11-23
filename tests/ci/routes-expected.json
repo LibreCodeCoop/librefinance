@@ -574,6 +574,26 @@
       "route": "librefinance.bankaccountlogo.image",
       "request": "GET",
       "path": "/apps/librefinance/api/spaces/{spaceId}/accounts/{accountId}/logo"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/admin/policies",
+      "request": "GET",
+      "route": "librefinance.saaspolicy.index"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/admin/policies/{policyKey}",
+      "request": "GET",
+      "route": "librefinance.saaspolicy.read"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/admin/policies/{policyKey}",
+      "request": "PUT",
+      "route": "librefinance.saaspolicy.write"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/admin/policies/{policyKey}",
+      "request": "DELETE",
+      "route": "librefinance.saaspolicy.clear"
     }
   ],
   "librefinance_nfse": [
