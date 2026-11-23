@@ -28,6 +28,71 @@ test('eligible group shows suspended SaaS environment without financial grants',
   await expect(group.getByRole('button', { name: /Ativar ambiente/ })).toHaveCount(0)
 })
 
+test('SaaS administration chooses one environment and retries creation idempotently', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'personal')
+  const environments = [
+    { id: 'tenant-test-A', name: 'Ambiente A', state: 'active', canManage: true },
+    { id: 'tenant-test-B', name: 'Ambiente B', state: 'active', canManage: true },
+  ]
+  const workspaces = {
+    'tenant-test-A': [{ id: 41001, name: 'Gestão A', ownerUid: 'ownerA', kind: 'organization' }],
+    'tenant-test-B': [{ id: 41002, name: 'Gestão B', ownerUid: 'ownerB', kind: 'collective' }],
+  }
+  const attemptedKeys = []
+  // Real Nextcloud UI; deterministic server-owned responses for visual context
+  // switching only. The real PHP permission matrix is exercised separately.
+  await page.route('**/apps/librefinance/api/saas/v1/environments', route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    return route.fulfill({ status: 200, json: { environments } })
+  })
+  await page.route('**/apps/librefinance/api/saas/v1/environments/*/workspaces', async route => {
+    const url = new URL(route.request().url())
+    const id = url.pathname.split('/').at(-2)
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ status: 200, json: { workspaces: workspaces[id] || [] } })
+    }
+    const data = route.request().postDataJSON()
+    attemptedKeys.push(data.idempotencyKey)
+    expect(id).toBe('tenant-test-A')
+    expect(data.ownerUid).toBe('ownerA')
+    expect(data.name).toBe('Nova gestão A')
+    if (attemptedKeys.length === 1) return route.abort('failed')
+    const created = {
+      id: 41003, name: data.name, ownerUid: data.ownerUid, kind: data.kind,
+    }
+    workspaces[id].push(created)
+    return route.fulfill({ status: 201, json: created })
+  })
+
+  await goToView(page, 'Gestões financeiras')
+  await expect(page.getByText('Se você administra vários grupos')).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Gestões administrativas do ambiente' })).toHaveCount(0)
+  const selection = page.locator('#lf-saas-selected-environment')
+  await selection.click()
+  await page.getByRole('option', { name: 'Ambiente A' }).click()
+  const list = page.getByRole('list', { name: 'Gestões administrativas do ambiente' })
+  await expect(list).toContainText('Gestão A')
+  await expect(list).not.toContainText('Gestão B')
+  await page.getByRole('textbox', { name: 'Nome da gestão' }).last().fill('Nova gestão A')
+  await page.getByRole('textbox', { name: 'Usuário Nextcloud do proprietário' }).fill('ownerA')
+  await page.getByRole('button', { name: 'Revisar criação' }).click()
+  await expect(page.getByRole('dialog', { name: 'Confirmar gestão financeira independente' })).toBeVisible()
+  const confirm = page.getByRole('dialog', { name: 'Confirmar gestão financeira independente' })
+  await confirm.getByRole('button', { name: 'Criar gestão independente' }).click()
+  await expect(confirm.getByRole('alert')).toBeVisible()
+  await confirm.getByRole('button', { name: 'Criar gestão independente' }).click()
+  await expect(list).toContainText('Nova gestão A')
+  expect(attemptedKeys).toHaveLength(2)
+  expect(attemptedKeys[0]).toBe(attemptedKeys[1])
+
+  await selection.click()
+  await page.getByRole('option', { name: 'Ambiente B' }).click()
+  await expect(list).toContainText('Gestão B')
+  await expect(list).not.toContainText('Gestão A')
+  await expect(list).not.toContainText('Nova gestão A')
+})
+
 test('creating organization displays a real independent chart of accounts', async ({ page }) => {
   await login(page)
   const name = await makeSpace(page)
