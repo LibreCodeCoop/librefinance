@@ -213,7 +213,8 @@ final class SaasWorkspaceService {
             return $replayed;
         }
         $q = $this->db->getQueryBuilder();
-        $q->select('COUNT(*) AS occupied')->from('lf_environment_spaces')
+        $q->selectAlias($q->createFunction('COUNT(*)'), 'occupied')
+            ->from('lf_environment_spaces')
             ->where($q->expr()->eq('environment_id',
                 $q->createNamedParameter($environmentId, IQueryBuilder::PARAM_INT)));
         // Pending-review legacy books count towards the limit too; otherwise
