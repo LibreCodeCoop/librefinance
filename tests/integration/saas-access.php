@@ -150,6 +150,60 @@ try {
     $spaceA2 = (int)$secondA['id'];
     saasCheck('both ledgers in A and the ledger in B have unique IDs',
         $spaceA2 > 0 && $spaceA2 !== $spaceA && $spaceA2 !== $spaceB);
+
+    // Financial roles, not group administration, own workspace-level policy
+    // editing. A denial in A2 must never disable imports in A1 or tenant B.
+    $workspacePolicyA1 = '/saas/v1/workspaces/' . $spaceA . '/policies/imports.enabled';
+    $workspacePolicyA2 = '/saas/v1/workspaces/' . $spaceA2 . '/policies/imports.enabled';
+    $t->check('A owner sees inherited workspace policy', $a, 'GET',
+        $workspacePolicyA2, null, 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true
+            && ($r['sourceScope'] ?? null) === 'default'
+            && ($r['editableByCurrentActor'] ?? null) === true);
+    $t->check('B group admin without financial role cannot inspect A2 policy', $b,
+        'GET', $workspacePolicyA2, null, 404);
+    instanceCheck('instance admin cannot inspect independent workspace policies',
+        'GET', $workspacePolicyA2, null, 404);
+    $t->check('A owner can read workspace policy catalogue', $a,
+        'GET', '/saas/v1/workspaces/' . $spaceA2 . '/policies/effective', null, 200,
+        static fn(array $r): bool => count($r['policies'] ?? []) === 4);
+    $t->check('A owner restricts imports in A2 without changing A1', $a,
+        'PUT', $workspacePolicyA2,
+        ['valueJson' => 'false', 'expectedRevision' => 0], 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false
+            && ($r['sourceScope'] ?? null) === 'workspace'
+            && ($r['blockedBy'] ?? null) === 'workspace'
+            && ($r['revision'] ?? null) === 1);
+    $t->check('A cannot write A2 policy from stale revision', $a,
+        'PUT', $workspacePolicyA2,
+        ['valueJson' => 'false', 'expectedRevision' => 0], 409,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'revision_conflict');
+    $t->check('A1 remains import-enabled in the same environment', $a, 'GET',
+        '/spaces/' . $spaceA . '/modules', null, 200,
+        static fn(array $r): bool => count(array_filter($r['modules'] ?? [],
+            static fn(array $m): bool => ($m['id'] ?? null) === 'librefinance_import'
+                && ($m['enabled'] ?? null) === true)) === 1);
+    $t->check('A2 import module honors its workspace policy at next request', $a,
+        'GET', '/spaces/' . $spaceA2 . '/modules', null, 200,
+        static fn(array $r): bool => count(array_filter($r['modules'] ?? [],
+            static fn(array $m): bool => ($m['id'] ?? null) === 'librefinance_import'
+                && ($m['enabled'] ?? null) === false)) === 1);
+    $t->check('group admin cannot modify an owned ledger policy', $b,
+        'PUT', $workspacePolicyA2,
+        ['valueJson' => 'true', 'expectedRevision' => 1], 404);
+    $t->check('foreign ledger ID denied for current owner', $a,
+        'PUT', '/saas/v1/workspaces/' . $spaceB . '/policies/imports.enabled',
+        ['valueJson' => 'false', 'expectedRevision' => 0], 404);
+    $t->check('workspace cannot modify environment-only company count limit',
+        $a, 'PUT', '/saas/v1/workspaces/' . $spaceA . '/policies/workspaces.maxCount',
+        ['valueJson' => '1', 'expectedRevision' => 0], 422,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'unsupported_scope');
+    $t->check('A clears A2 restriction with revision check', $a,
+        'DELETE', $workspacePolicyA2 . '?expectedRevision=1', null, 200,
+        static fn(array $r): bool => ($r['inherited'] ?? null) === true
+            && ($r['revision'] ?? null) === 2
+            && ($r['effectiveValue'] ?? null) === true);
+
     // This setting is resolved for the active environment; a user in both
     // groups never receives a union of permissive child scopes.
     $policyPathA = '/saas/v1/environments/' . $envA . '/policies/imports.enabled';
@@ -158,6 +212,15 @@ try {
         ['valueJson' => 'false', 'expectedRevision' => 0], 200,
         static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false
             && ($r['sourceScope'] ?? null) === 'environment');
+    $t->check('financial owner cannot loosen environment prohibition from workspace A2',
+        $a, 'PUT', $workspacePolicyA2,
+        ['valueJson' => 'true', 'expectedRevision' => 2], 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'policy_override_forbidden');
+    $t->check('workspace A2 effective policy identifies environment restriction',
+        $a, 'GET', $workspacePolicyA2, null, 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false
+            && ($r['sourceScope'] ?? null) === 'environment'
+            && ($r['blockedBy'] ?? null) === 'environment');
     $t->check('A financial owner sees imports blocked by own environment',
         $a, 'GET', '/spaces/' . $spaceA . '/modules', null, 200,
         static fn(array $r): bool => count(array_filter($r['modules'] ?? [],

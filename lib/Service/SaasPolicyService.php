@@ -32,6 +32,7 @@ final class SaasPolicyService {
         private PolicyResolver $resolver,
         private EnvironmentService $environments,
         private SaasPolicyRuntimeGate $runtime,
+        private AccessService $access,
     ) {}
 
     /** @return array<string,mixed> */
@@ -171,8 +172,107 @@ final class SaasPolicyService {
     }
 
     /**
+     * Workspace policies restrict the selected financial ledger only. A group
+     * administrator without a direct financial role is never a policy editor.
+     * Reads require a current financial role; writes require workspace.configure.
+     *
+     * @return array<string,mixed>
+     */
+    public function getWorkspace(int $spaceId, string $key): array {
+        [$environmentId, $role] = $this->workspaceContext($spaceId, 'workspace.read');
+        $definition = $this->registry->get($key);
+        $stored = $this->lookup('workspace:' . $spaceId, $key);
+        $resolved = $this->runtime->workspace($spaceId, $key);
+        $parent = $this->runtime->environment($environmentId, $key);
+        $editable = $definition->supports('workspace')
+            && $definition->allowChildOverride
+            && \OCA\LibreFinance\Domain\Saas\FinancialCapabilities::allows($role, 'workspace.configure');
+        return [
+            'key' => $definition->key,
+            'type' => $definition->type,
+            'contractVersion' => $definition->version,
+            'supportedScopes' => $definition->supportedScopes,
+            'allowChildOverride' => $definition->allowChildOverride,
+            'effectiveValue' => $resolved['effectiveValue'],
+            'sourceScope' => $resolved['sourceScope'],
+            'blockedBy' => $resolved['blockedBy'],
+            'allowedValues' => $definition->type === 'boolean'
+                ? ($parent['effectiveValue'] === false ? [false] : [false, true])
+                : ($definition->type === 'allowed_set' ? $parent['effectiveValue'] : null),
+            'maxAllowed' => $definition->type === 'ceiling' ? $parent['effectiveValue'] : null,
+            'editableByCurrentActor' => $editable,
+            'revision' => $stored === null ? 0 : (int)$stored['revision'],
+            'inherited' => $stored === null || (bool)$stored['is_cleared'],
+        ];
+    }
+
+    /** @return array{policies:list<array<string,mixed>>} */
+    public function listWorkspace(int $spaceId): array {
+        $this->workspaceContext($spaceId, 'workspace.read');
+        return ['policies' => array_map(
+            fn(PolicyDefinition $definition): array => $this->getWorkspace($spaceId, $definition->key),
+            $this->registry->all(),
+        )];
+    }
+
+    /** @return array<string,mixed> */
+    public function writeWorkspace(int $spaceId, string $key, mixed $value,
+        int $expectedRevision): array {
+        [$environmentId] = $this->workspaceContext($spaceId, 'workspace.configure');
+        $definition = $this->registry->get($key);
+        if (!$definition->supports('workspace') || !$definition->allowChildOverride) {
+            throw new DomainException('unsupported_scope');
+        }
+        $definition->assertValue($value);
+        $parent = $this->runtime->environment($environmentId, $key)['effectiveValue'];
+        $narrower = match ($definition->type) {
+            'boolean' => $parent === true || $value === false,
+            'ceiling' => $value <= $parent,
+            'allowed_set' => array_values(array_intersect($value, $parent)) === $value,
+            default => false,
+        };
+        if (!$narrower) {
+            throw new DomainException('policy_override_forbidden');
+        }
+        $this->mutate('workspace:' . $spaceId, $definition, $value, false, $expectedRevision);
+        return $this->getWorkspace($spaceId, $key);
+    }
+
+    /** @return array<string,mixed> */
+    public function clearWorkspace(int $spaceId, string $key, int $expectedRevision): array {
+        $this->workspaceContext($spaceId, 'workspace.configure');
+        $definition = $this->registry->get($key);
+        if (!$definition->supports('workspace') || !$definition->allowChildOverride) {
+            throw new DomainException('unsupported_scope');
+        }
+        $this->mutate('workspace:' . $spaceId, $definition, null, true, $expectedRevision);
+        return $this->getWorkspace($spaceId, $key);
+    }
+
+    /**
+     * Resolve scope only from a server-validated finance membership and the
+     * durable ledger binding. Never infer a policy scope from a client GID.
+     *
+     * @return array{int,string}
+     */
+    private function workspaceContext(int $spaceId, string $capability): array {
+        $role = $this->access->requireFinancialCapability($spaceId, $capability);
+        $q = $this->db->getQueryBuilder();
+        $q->select('environment_id')->from('lf_environment_spaces')
+            ->where($q->expr()->eq('space_id',
+                $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('review_state',
+                $q->createNamedParameter('confirmed')));
+        $environmentId = $q->executeQuery()->fetchOne();
+        if ($environmentId === false || (int)$environmentId < 1) {
+            throw new DomainException('unsupported_scope');
+        }
+        return [(int)$environmentId, $role];
+    }
+
+    /**
      * Canonical storage key must be constructed exclusively from server-trusted
-     * identities. Non-instance scopes are not opened to public HTTP here.
+     * identities. Public routes reconstruct scope from authenticated resources.
      *
      * @return array<string,mixed>|null
      */
@@ -218,7 +318,8 @@ final class SaasPolicyService {
                 try {
                     $this->writer->insert('lf_saas_policy_values', [
                         'scope_key' => $scopeKey,
-                        'scope_type' => $scopeKey === 'instance' ? 'instance' : 'environment',
+                        'scope_type' => $scopeKey === 'instance' ? 'instance'
+                            : (str_starts_with($scopeKey, 'workspace:') ? 'workspace' : 'environment'),
                         'policy_key' => $definition->key,
                         'value_json' => $valueJson,
                         'is_cleared' => $clear,

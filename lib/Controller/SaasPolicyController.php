@@ -63,6 +63,44 @@ final class SaasPolicyController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/workspaces/{spaceId}/policies/effective')]
+    public function effectiveWorkspace(int $spaceId): JSONResponse {
+        return $this->respond(fn(): array => $this->policies->listWorkspace($spaceId));
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/workspaces/{spaceId}/policies/{policyKey}')]
+    public function readWorkspace(int $spaceId, string $policyKey): JSONResponse {
+        return $this->respond(fn(): array => $this->policies->getWorkspace($spaceId, $policyKey));
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'PUT', url: '/api/saas/v1/workspaces/{spaceId}/policies/{policyKey}')]
+    public function writeWorkspace(int $spaceId, string $policyKey,
+        string $valueJson, int $expectedRevision): JSONResponse {
+        return $this->respond(function () use ($spaceId, $policyKey, $valueJson, $expectedRevision): array {
+            if (strlen($valueJson) > 16384) {
+                throw new DomainException('invalid_policy_value');
+            }
+            try {
+                $value = json_decode($valueJson, true, 32, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                throw new DomainException('invalid_policy_value');
+            }
+            return $this->policies->writeWorkspace($spaceId, $policyKey,
+                $value, $expectedRevision);
+        });
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'DELETE', url: '/api/saas/v1/workspaces/{spaceId}/policies/{policyKey}')]
+    public function clearWorkspace(int $spaceId, string $policyKey,
+        int $expectedRevision): JSONResponse {
+        return $this->respond(fn(): array => $this->policies->clearWorkspace(
+            $spaceId, $policyKey, $expectedRevision));
+    }
+
+    #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/admin/policies')]
     public function index(): JSONResponse {
         return $this->respond(fn(): array => $this->policies->listInstance());

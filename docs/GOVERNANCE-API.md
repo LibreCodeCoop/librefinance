@@ -179,3 +179,40 @@ habilitado, grupo ativo, subadministrador ou delegado autorizado, e usuários
 existentes no grupo. Os erros por permissão, ambiente inválido, proprietário
 inapto, limite de gestões ou conflito de idempotência são tratados pelo
 backend; mensagens na interface não substituem a autorização PHP.
+
+## Policies por gestão financeira (workspace SaaS)
+
+Além das policies de instância e ambiente, o **proprietário ou gestor
+financeiro** de uma gestão ativa pode aplicar restrições adicionais somente
+ao seu próprio livro contábil. A administração de grupos Nextcloud não
+concede implicitamente esse papel financeiro.
+
+A API autenticada (com sessão Nextcloud ou app password) é:
+
+- `GET /api/saas/v1/workspaces/{spaceId}/policies/effective`: lista
+  os valores efetivos de uma gestão em que o ator é membro financeiro.
+- `GET /api/saas/v1/workspaces/{spaceId}/policies/{policyKey}`: consulta
+  valor, origem, bloqueio, limites herdados, revisão e capacidade de edição.
+- `PUT /api/saas/v1/workspaces/{spaceId}/policies/{policyKey}`: configura
+  uma restrição adicional com `valueJson` (JSON serializado em string) e
+  `expectedRevision` (inteiro). Exige a capability `workspace.configure`.
+- `DELETE /api/saas/v1/workspaces/{spaceId}/policies/{policyKey}?expectedRevision=N`:
+  remove o valor local, restaura a herança e grava uma nova revisão e auditoria.
+
+O backend revalida na **requisição atual** a identidade, a associação
+confirmada do livro ao ambiente, o grupo Nextcloud ativo, a participação do
+usuário e o papel financeiro no livro. IDs forjados, livros suspensos ou
+permissões revogadas não expõem policies. O valor de workspace **nunca**
+pode reabilitar algo proibido pelo ambiente ou pela instância; uma tentativa
+de ampliação é negada sem alterar o valor ou a revisão persistida.
+
+Policies não substituem ACLs: por exemplo, habilitar `imports.enabled`
+não autoriza importar sem as permissões financeiras apropriadas. Policies
+`workspaces.maxCount` e `environments.enabled` não aceitam escrita no
+escopo workspace. A leitura informa os escopos permitidos pelo registro
+tipado para evitar menus de edição sem autoridade. Cada gravação e limpeza
+usa compare-and-set por revisão e gera trilha de auditoria imutável.
+
+O recurso aplica-se apenas a workspaces SaaS vinculados e confirmados.
+Instalações pessoais legadas continuam com as APIs existentes; não são
+reinterpretadas como novos ambientes ou migradas automaticamente.
