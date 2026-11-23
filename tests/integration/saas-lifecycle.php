@@ -24,6 +24,9 @@ $password = (string)getenv('LF_TEST_ADMIN_PASSWORD');
 if ($password === '') {
     throw new RuntimeException('No synthetic CI admin password');
 }
+// Bootstrap before the first assertion prints output: Nextcloud config
+// loading rejects an already-sent output stream in its CLI startup path.
+require_once dirname(__DIR__, 4) . '/lib/base.php';
 $t = new TestHarness();
 $checks = 0;
 /** @return array{status:int,data:array<string,mixed>} */
@@ -113,7 +116,17 @@ try {
     $t->check('unknown active-governance environment has 404 without enumeration', $b,
         'POST', '/saas/v1/environments/123e4567-e89b-42d3-a456-426614174000/provision',
         null, 404);
+    $t->check('ordinary group member cannot enumerate instance group enablement', $b,
+        'GET', '/saas/v1/admin/groups', null, 403);
     $id = (string)$first['environment']['id'];
+    adminCheck('instance group listing shows pending environment without ledger data',
+        'GET', '/saas/v1/admin/groups?search=' . $gid, null, 200,
+        static fn(array $r): bool => count(array_filter($r['groups'] ?? [],
+            static fn(array $g): bool => ($g['id'] ?? '') === $gid
+                && ($g['state'] ?? '') === 'enabled_pending_admin'
+                && ($g['environmentId'] ?? '') === $id
+                && !array_key_exists('spaces', $g)
+                && !array_key_exists('balances', $g))) === 1);
     syntheticCheck('tenant has an opaque UUID', preg_match(
         '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id) === 1);
     adminCheck('enabling same group returns same durable ID',
@@ -146,6 +159,11 @@ try {
             static fn(array $e): bool => ($e['id'] ?? '') === $id
                 && ($e['state'] ?? '') === 'active'
                 && ($e['canManage'] ?? null) === true)) === 1);
+    adminCheck('group listing reflects active environment state', 'GET',
+        '/saas/v1/admin/groups?search=' . $gid, null, 200,
+        static fn(array $r): bool => count(array_filter($r['groups'] ?? [],
+            static fn(array $g): bool => ($g['id'] ?? '') === $gid
+                && ($g['state'] ?? '') === 'active')) === 1);
     // Only qualified admins may change typed child policies. A parent
     // prohibition cannot be reopened at the environment level.
     $policyPrefix = '/saas/v1/environments/' . $id . '/policies';
@@ -181,8 +199,59 @@ try {
     adminCheck('instance admin suspends enabled group without deleting data',
         'PUT', '/saas/v1/admin/groups/' . $gid . '/enablement', ['enabled' => false], 200,
         static fn(array $r): bool => ($r['environment']['state'] ?? null) === 'suspended');
+    adminCheck('group listing reflects suspension without ledger deletion',
+        'GET', '/saas/v1/admin/groups?search=' . $gid, null, 200,
+        static fn(array $r): bool => count(array_filter($r['groups'] ?? [],
+            static fn(array $g): bool => ($g['id'] ?? '') === $gid
+                && ($g['state'] ?? '') === 'suspended'
+                && ($g['environmentId'] ?? '') === $id)) === 1);
     $t->check('suspended tenant cannot be activated', $b,
         'POST', '/saas/v1/environments/' . $id . '/provision', null, 423);
+    $t->check('delegated group administrator cannot recover suspended group', $b,
+        'POST', '/saas/v1/admin/groups/' . $gid . '/recover',
+        ['reasonCode' => 'group_admin_restored'], 403);
+    adminCheck('recovery without typed reason is rejected', 'POST',
+        '/saas/v1/admin/groups/' . $gid . '/recover',
+        ['reasonCode' => 'arbitrary_unreviewed_reason'], 422,
+        static fn(array $r): bool => ($r['error'] ?? '') === 'invalid_recovery_reason');
+    adminCheck('audited recovery preserves immutable environment ID', 'POST',
+        '/saas/v1/admin/groups/' . $gid . '/recover',
+        ['reasonCode' => 'group_admin_restored'], 200,
+        static fn(array $r): bool => ($r['environment']['state'] ?? '') === 'enabled_pending_admin'
+            && ($r['environment']['id'] ?? '') === $id
+            && ($r['environment']['canManage'] ?? null) === false);
+    adminCheck('repeated recovery is rejected rather than self-activation', 'POST',
+        '/saas/v1/admin/groups/' . $gid . '/recover',
+        ['reasonCode' => 'group_admin_restored'], 409,
+        static fn(array $r): bool => ($r['error'] ?? '') === 'environment_not_suspended');
+    // Confirm persisted, attributable reason using Nextcloud's actual DB,
+    // not only the HTTP payload or a UI success banner.
+    $db = \OC::$server->get(\OCP\IDBConnection::class);
+    $q = $db->getQueryBuilder();
+    $q->select('a.actor_uid', 'a.action', 'a.subject_type', 'a.subject_id')
+        ->from('lf_environment_audit', 'a')
+        ->innerJoin('a', 'lf_environments', 'e', 'e.id = a.environment_id')
+        ->where($q->expr()->eq('e.public_id', $q->createNamedParameter($id)))
+        ->andWhere($q->expr()->eq('a.action',
+            $q->createNamedParameter('environment.recovered')))
+        ->orderBy('a.id', 'DESC')
+        ->setMaxResults(1);
+    $recoveryEvent = $q->executeQuery()->fetchAssociative();
+    syntheticCheck('recovery actor and typed reason persisted in append-only audit',
+        $recoveryEvent !== false
+        && ($recoveryEvent['actor_uid'] ?? null) === 'synthetictestadmin'
+        && ($recoveryEvent['subject_type'] ?? null) === 'recovery_reason'
+        && ($recoveryEvent['subject_id'] ?? null) === 'group_admin_restored');
+    $t->check('qualified delegated group admin reactivates recovered tenant', $b,
+        'POST', '/saas/v1/environments/' . $id . '/provision', null, 200,
+        static fn(array $r): bool => ($r['environment']['state'] ?? '') === 'active'
+            && ($r['environment']['id'] ?? '') === $id);
+    // Leave the synthetic environment suspended for subsequent Chromium
+    // browser verification of the disabled management state.
+    adminCheck('a second audited suspension preserves the same tenant', 'PUT',
+        '/saas/v1/admin/groups/' . $gid . '/enablement', ['enabled' => false], 200,
+        static fn(array $r): bool => ($r['environment']['state'] ?? '') === 'suspended'
+            && ($r['environment']['id'] ?? '') === $id);
     adminCheck('instance admin can revoke the SaaS delegation',
         'DELETE', '/admin/groups/' . $gid . '/delegates/' . $b, null, 200);
     $t->check('revoked delegate cannot activate suspended environment', $b,

@@ -11,6 +11,8 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
+import NcDialog from '@nextcloud/vue/components/NcDialog'
+import LfSelect from '../components/LfSelect.vue'
 
 const managed = ref(false)
 const contexts = ref([])
@@ -19,6 +21,25 @@ const gid = ref('')
 const groupSearch = ref('')
 const groups = ref([])
 const groupSearchError = ref('')
+const groupsLoading = ref(false)
+const groupsNextOffset = ref(null)
+const suspendingGroup = ref(null)
+const recoveringGroup = ref(null)
+const recoveryReason = ref('')
+const recoveryOptions = [
+  {value: 'delegation_reviewed', label: 'Delegação revisada'},
+  {value: 'group_admin_restored', label: 'Administrador do grupo restaurado'},
+  {value: 'security_incident_resolved', label: 'Incidente de segurança resolvido'},
+  {value: 'membership_corrected', label: 'Participação no grupo corrigida'},
+]
+const saasGroupsPath = () => generateUrl('/apps/librefinance/api/saas/v1/admin/groups')
+const groupStatusLabel = state => ({
+  disabled: 'Não habilitado',
+  enabled_pending_admin: 'Aguardando administrador',
+  active: 'Ambiente ativo',
+  suspended: 'Suspenso',
+})[state] || 'Estado indisponível'
+let groupRequestSeq = 0
 const kind = ref('organization')
 const busy = ref(false)
 const error = ref('')
@@ -33,14 +54,44 @@ const delegatesLoading = ref(false)
 const path = route => generateUrl('/apps/librefinance/api/admin/' + route)
 const message = cause => cause?.response?.data?.error || cause.message || 'Erro inesperado'
 
-async function searchGroups() {
+async function searchGroups(offset = 0) {
+  const sequence = ++groupRequestSeq
+  groupsLoading.value = true
   groupSearchError.value = ''
   try {
-    const response=await axios.get(path('groups'),{
-      params:{search:groupSearch.value.trim().slice(0,100),offset:0},
+    const response = await axios.get(saasGroupsPath(), {
+      params: { search: groupSearch.value.trim().slice(0, 100), offset },
     })
-    groups.value=response.data.groups||[]
-  } catch (cause) {groupSearchError.value=message(cause) }
+    if (sequence !== groupRequestSeq) return
+    const rows = Array.isArray(response.data.groups) ? response.data.groups : []
+    groups.value = offset > 0 ? [...groups.value, ...rows] : rows
+    groupsNextOffset.value = response.data.nextOffset ?? null
+  } catch (cause) {
+    if (sequence === groupRequestSeq) groupSearchError.value = message(cause)
+  } finally {
+    if (sequence === groupRequestSeq) groupsLoading.value = false
+  }
+}
+function setGroupEnabled(group, enabled) {
+  if (!group || busy.value) return
+  run(async () => {
+    await axios.put(generateUrl('/apps/librefinance/api/saas/v1/admin/groups/'
+      + encodeURIComponent(group.id) + '/enablement'), { enabled })
+    suspendingGroup.value = null
+    await searchGroups()
+  })
+}
+function recoverGroup() {
+  if (!recoveringGroup.value || !recoveryReason.value || busy.value) return
+  const group = recoveringGroup.value
+  const reasonCode = recoveryReason.value
+  run(async () => {
+    await axios.post(generateUrl('/apps/librefinance/api/saas/v1/admin/groups/'
+      + encodeURIComponent(group.id) + '/recover'), { reasonCode })
+    recoveringGroup.value = null
+    recoveryReason.value = ''
+    await searchGroups()
+  })
 }
 async function loadDelegates() {
   delegates.value = []
@@ -135,28 +186,57 @@ onMounted(async () => {
       type="switch" @update:model-value="setManaged">
       Provisionamento gerenciado pelo administrador da instância
     </NcCheckboxRadioSwitch>
-    <p>Quando ativado, usuários comuns não podem criar contextos financeiros.
-      O administrador atribui cada contexto a um grupo Nextcloud, e os
-      subadministradores desse grupo recebem permissão gerencial nesse contexto.
-      Contextos existentes permanecem preservados e devem ser vinculados separadamente.</p>
+    <p>Quando ativado, usuários comuns não podem criar contextos financeiros legados.
+      Os vínculos e delegações dos contextos legados permanecem preservados.
+      Em ambientes SaaS novos, administrar um grupo ou a instância não concede,
+      por si só, acesso aos dados financeiros.</p>
 
     <div v-if="managed" class="lf-admin-card">
       <h3>Grupos Nextcloud disponíveis</h3>
-      <p>Selecione um grupo existente. A administração delegada desse grupo
-        é definida nas configurações de usuários do Nextcloud.</p>
-      <form @submit.prevent="searchGroups">
+      <p>Habilite individualmente grupos Nextcloud para o LibreFinance SaaS.
+        Sem subadministrador do grupo ou delegado válido, o ambiente aguarda
+        autorização para ser provisionado. Nenhuma dessas ações concede
+        acesso ao livro contábil.</p>
+      <form @submit.prevent="searchGroups()">
         <NcTextField v-model="groupSearch" label="Pesquisar grupos" maxlength="100" />
-        <NcButton type="submit" :disabled="busy">Buscar grupos</NcButton>
+        <NcButton type="submit" :disabled="busy || groupsLoading">Buscar grupos</NcButton>
       </form>
-      <NcNoteCard v-if="groupSearchError" type="error">{{ groupSearchError }}</NcNoteCard>
-      <p v-if="groups.length===25" class="lf-admin-hint">Mostrando os primeiros 25 resultados.
-        Refine a pesquisa para localizar outros grupos.</p>
+      <NcLoadingIcon v-if="groupsLoading" :size="20" />
+      <NcNoteCard v-if="groupSearchError" type="error" role="alert">{{ groupSearchError }}</NcNoteCard>
+      <p v-if="!groupsLoading && groups.length===0">Nenhum grupo encontrado.</p>
+      <ul v-if="groups.length" aria-label="Estado SaaS dos grupos Nextcloud" class="lf-saas-groups">
+        <li v-for="group in groups" :key="group.id" class="lf-saas-group-row">
+          <div>
+            <strong>{{ group.name }}</strong>
+            <span class="lf-admin-hint">({{ group.id }})</span>
+            <p class="lf-admin-hint">{{ groupStatusLabel(group.state) }}</p>
+          </div>
+          <NcButton v-if="group.state==='disabled'" variant="primary"
+            :disabled="busy || groupsLoading"
+            :aria-label="'Habilitar LibreFinance para ' + group.name"
+            @click="setGroupEnabled(group, true)">Habilitar</NcButton>
+          <NcButton v-else-if="group.state==='active' || group.state==='enabled_pending_admin'"
+            variant="tertiary" :disabled="busy || groupsLoading"
+            :aria-label="'Suspender LibreFinance para ' + group.name"
+            @click="suspendingGroup=group">Suspender</NcButton>
+          <NcButton v-else-if="group.state==='suspended'"
+            variant="secondary" :disabled="busy || groupsLoading"
+            :aria-label="'Recuperar ambiente de ' + group.name"
+            @click="recoveringGroup=group">Recuperar</NcButton>
+          <span v-else class="lf-admin-hint">Estado indisponível</span>
+        </li>
+      </ul>
+      <NcButton v-if="groupsNextOffset!==null" variant="tertiary"
+        :disabled="busy || groupsLoading" @click="searchGroups(groupsNextOffset)">
+        Carregar mais grupos
+      </NcButton>
     </div>
     <div v-if="managed" class="lf-admin-card">
       <h3>Administradores delegados do LibreFinance</h3>
-      <p>Conceda a um membro do grupo permissão de gestor financeiro. Esta delegação
-        vale somente no LibreFinance e não altera as permissões administrativas
-        do usuário em outros aplicativos Nextcloud.</p>
+      <p>A delegação permite administrar o ambiente LibreFinance daquele grupo.
+        Nos novos ambientes SaaS, ela não concede papel financeiro nem leitura
+        dos lançamentos. A concessão só vale no LibreFinance e não muda
+        permissões em outros aplicativos Nextcloud.</p>
       <label for="lf-delegate-group">Grupo governante</label>
       <select id="lf-delegate-group" v-model="delegateGroup" @change="loadDelegates">
         <option value="">Selecione um grupo</option>
@@ -230,6 +310,44 @@ onMounted(async () => {
         <NcButton type="submit" :disabled="busy || !bindingId || !bindingGid.trim()">Vincular</NcButton>
       </form>
     </div>
+    <NcDialog :open="Boolean(suspendingGroup)" size="normal"
+      name="Suspender grupo do LibreFinance"
+      @update:open="!$event && (suspendingGroup=null)">
+      <div class="lf-admin-confirm">
+        <NcNoteCard type="warning">Suspender impede novos acessos ao ambiente,
+          mas preserva os lançamentos, os documentos e o vínculo histórico.
+          A reativação exige recuperação administrativa auditada.</NcNoteCard>
+        <p>Suspender <strong>{{ suspendingGroup?.name }}</strong>?</p>
+        <div class="lf-admin-actions">
+          <NcButton variant="tertiary" @click="suspendingGroup=null">Cancelar</NcButton>
+          <NcButton variant="error" :disabled="busy"
+            @click="setGroupEnabled(suspendingGroup, false)">Suspender grupo</NcButton>
+        </div>
+      </div>
+    </NcDialog>
+    <NcDialog :open="Boolean(recoveringGroup)" size="normal"
+      name="Recuperar ambiente do LibreFinance"
+      @update:open="!$event && (recoveringGroup=null)">
+      <div class="lf-admin-confirm">
+        <NcNoteCard type="warning">
+          A recuperação é exclusiva do administrador da instância.
+          O motivo fica registrado na auditoria. A operação mantém os dados
+          financeiros intactos e retorna o ambiente a
+          "Aguardando administrador", sem permitir acesso financeiro automático.
+        </NcNoteCard>
+        <p>Recuperar <strong>{{ recoveringGroup?.name }}</strong>?</p>
+        <LfSelect id="lf-saas-recovery-reason" v-model="recoveryReason"
+          label="Motivo obrigatório da recuperação"
+          :options="recoveryOptions" :disabled="busy"
+          placeholder="Escolha o motivo da recuperação" />
+        <div class="lf-admin-actions">
+          <NcButton variant="tertiary"
+            @click="recoveringGroup=null; recoveryReason=''">Cancelar</NcButton>
+          <NcButton variant="primary" :disabled="busy || !recoveryReason"
+            @click="recoverGroup">Confirmar recuperação</NcButton>
+        </div>
+      </div>
+    </NcDialog>
   </section>
 </template>
 
@@ -239,4 +357,9 @@ onMounted(async () => {
 .lf-admin-card form{display:flex;flex-direction:column;gap:12px;max-width:480px}
 .lf-admin-card ul{padding-inline-start:22px;margin:12px 0}
 .lf-admin-card select{min-height:40px;border-radius:var(--border-radius)}
+.lf-saas-groups{display:grid;gap:12px;list-style:none;padding:0;margin:16px 0}
+.lf-saas-group-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--color-border);padding:10px 0}
+.lf-admin-hint{color:var(--color-text-maxcontrast);font-size:var(--default-font-size)}
+.lf-admin-confirm{display:grid;gap:16px;padding:12px}
+.lf-admin-actions{display:flex;justify-content:flex-end;gap:12px}
 </style>

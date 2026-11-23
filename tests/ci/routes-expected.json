@@ -631,6 +631,16 @@
       "route": "librefinance.saaspolicy.clearenvironment"
     },
     {
+      "path": "/apps/librefinance/api/saas/v1/admin/groups",
+      "request": "GET",
+      "route": "librefinance.environment.admingroups"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/admin/groups/{gid}/recover",
+      "request": "POST",
+      "route": "librefinance.environment.recovergroup"
+    },
+    {
       "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/workspaces",
       "request": "GET",
       "route": "librefinance.saasworkspace.index"

@@ -381,6 +381,24 @@ else
 fi
 
 if [ "${LF_RUN_PLAYWRIGHT:-0}" = 1 ]; then
+  # Browser-only shards skip PHP suites; create a real suspended tenant
+  # through the disposable Nextcloud admin API, not an HTTP fixture mock.
+  if [ "${LF_BROWSER_DEBUG_ONLY:-0}" = 1 ]; then
+    saas_browser_fixture="$(compose exec -T -e LF_SYNTHETIC_SAAS_LIFECYCLE=yes \
+      -e LF_TEST_ADMIN_PASSWORD="$LF_TEST_ADMIN_PASSWORD" \
+      -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
+      -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
+      php /var/www/html/custom_apps/librefinance/tests/integration/saas-lifecycle.php)"
+    printf '%s\n' "$saas_browser_fixture"
+    grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$saas_browser_fixture" || {
+      echo 'FAIL: real SaaS browser fixture did not complete' >&2
+      exit 1
+    }
+  fi
+  # Only synthetic browser identity A: discover the already-suspended SaaS
+  # group after the finance and authorization suites have finished.
+  # Group eligibility is not a financial grant or workspace membership.
+  compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_finance_group lfmaintestA
   test -x node_modules/.bin/playwright || {
     echo "Missing Playwright dependency: run npm ci --include=dev" >&2
     exit 2

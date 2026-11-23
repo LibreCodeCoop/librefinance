@@ -34,6 +34,13 @@ final class EnvironmentController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/admin/groups')]
+    public function adminGroups(string $search = '', int $offset = 0): JSONResponse {
+        return $this->respond(fn(): array =>
+            $this->environments->listAdminGroups($search, $offset));
+    }
+
+    #[NoAdminRequired]
     #[FrontpageRoute(verb: 'PUT', url: '/api/saas/v1/admin/groups/{gid}/enablement')]
     public function enable(string $gid, bool $enabled): JSONResponse {
         return $this->respond(fn(): array => [
@@ -41,6 +48,15 @@ final class EnvironmentController extends ApiController {
             'environment' => $enabled
                 ? $this->environments->enableGroup($gid)
                 : $this->environments->suspendGroup($gid),
+        ]);
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/saas/v1/admin/groups/{gid}/recover')]
+    public function recoverGroup(string $gid, string $reasonCode): JSONResponse {
+        return $this->respond(fn(): array => [
+            'contractVersion' => 1,
+            'environment' => $this->environments->recoverGroup($gid, $reasonCode),
         ]);
     }
 

@@ -33,7 +33,7 @@ abstract class ApiController extends Controller {
                 'ai_provider_unavailable' => 503,
                 'policy_override_forbidden', 'module_disabled', 'governance_disabled' => 403,
                 'environment_suspended' => 423,
-                'account_has_balance', 'account_in_use', 'account_reference_busy', 'payment_method_in_use', 'idempotency_conflict', 'sku_conflict', 'journal_claimed', 'journal_already_claimed', 'journal_not_available', 'invoice_overpayment', 'invoice_not_issued', 'invoice_tax_allocation_required', 'obligation_closed', 'amount_exceeds_balance', 'invoice_payment_via_allocation', 'invoice_obligation_unlinked', 'concurrent_change', 'invoice_concurrent_change', 'space_archived', 'space_already_archived', 'space_not_archived' => 409,
+                'environment_not_suspended', 'account_has_balance', 'account_in_use', 'account_reference_busy', 'payment_method_in_use', 'idempotency_conflict', 'sku_conflict', 'journal_claimed', 'journal_already_claimed', 'journal_not_available', 'invoice_overpayment', 'invoice_not_issued', 'invoice_tax_allocation_required', 'obligation_closed', 'amount_exceeds_balance', 'invoice_payment_via_allocation', 'invoice_obligation_unlinked', 'concurrent_change', 'invoice_concurrent_change', 'space_archived', 'space_already_archived', 'space_not_archived' => 409,
                 default => 422,
             };
             return new JSONResponse(['error' => $code], $status);

@@ -31,6 +31,53 @@ final class EnvironmentService {
         private SaasPolicyRuntimeGate $policies,
     ) {}
 
+    /**
+     * List Nextcloud groups with SaaS enablement and durable environment state
+     * without exposing workspaces, members, balances or fiscal metadata.
+     *
+     * This is a scoped *instance* administration API, not a finance grant.
+     * The existing GovernanceService search enforces pagination and size.
+     *
+     * @return array{groups:list<array{id:string,name:string,state:string,environmentId:?string}>,nextOffset:?int}
+     */
+    public function listAdminGroups(string $search = '', int $offset = 0): array {
+        $this->governance->requireInstanceAdmin();
+        $listing = $this->governance->searchGroups($search, $offset);
+        $groups = $listing['groups'];
+        if ($groups === []) {
+            return ['groups' => [], 'nextOffset' => $listing['nextOffset']];
+        }
+        $ids = array_column($groups, 'id');
+        $q = $this->db->getQueryBuilder();
+        $q->select('g.group_gid', 'g.state', 'e.status', 'e.public_id')
+            ->from('lf_environment_groups', 'g')
+            ->innerJoin('g', 'lf_environments', 'e', 'e.id = g.environment_id')
+            ->where($q->expr()->in('g.group_gid',
+                $q->createNamedParameter($ids, IQueryBuilder::PARAM_STR_ARRAY)));
+        $byGid = [];
+        foreach ($q->executeQuery()->fetchAllAssociative() as $row) {
+            $byGid[(string)$row['group_gid']] = $row;
+        }
+        return [
+            'groups' => array_map(static function (array $group) use ($byGid): array {
+                $gid = (string)$group['id'];
+                $stored = $byGid[$gid] ?? null;
+                $state = $stored === null ? 'disabled' : (string)$stored['state'];
+                if ($stored !== null && $stored['state'] !== $stored['status']) {
+                    // Inconsistent lifecycle state must never display as active.
+                    $state = 'suspended';
+                }
+                return [
+                    'id' => $gid,
+                    'name' => (string)$group['name'],
+                    'state' => $state,
+                    'environmentId' => $stored === null ? null : (string)$stored['public_id'],
+                ];
+            }, $groups),
+            'nextOffset' => $listing['nextOffset'],
+        ];
+    }
+
     /** @return array{id:string,name:string,state:string,canManage:bool} */
     public function enableGroup(string $gid): array {
         $this->governance->requireInstanceAdmin();
@@ -217,6 +264,83 @@ final class EnvironmentService {
             throw $e;
         }
         return $this->publicRow($this->lookupByGroup($gid) ?? throw new DomainException('environment_not_found'), false);
+    }
+
+    /**
+     * Instance-admin-only recovery. Reenablement is deliberately a two-stage
+     * operation: this returns to pending_admin, and only a currently qualified
+     * group subadmin/delegate can activate the environment afterward.
+     *
+     * Recovery reasons are typed codes persisted durably in the append-only
+     * environment audit: (environment_id, actor_uid, action, subject_type,
+     * subject_id, occurred_at). No migration or free-text audit injection.
+     *
+     * @return array{id:string,name:string,state:string,canManage:bool}
+     */
+    public function recoverGroup(string $gid, string $reasonCode): array {
+        $this->governance->requireInstanceAdmin();
+        if (!$this->governance->enabled()) {
+            throw new DomainException('governance_disabled');
+        }
+        $reasons = [
+            'delegation_reviewed',
+            'group_admin_restored',
+            'security_incident_resolved',
+            'membership_corrected',
+        ];
+        if (!in_array($reasonCode, $reasons, true)) {
+            throw new DomainException('invalid_recovery_reason');
+        }
+        $this->governance->requireGroup($gid);
+        $row = $this->lookupByGroup($gid);
+        if ($row === null) {
+            throw new DomainException('environment_not_found');
+        }
+        if ($row['state'] !== 'suspended' || $row['status'] !== 'suspended') {
+            throw new DomainException('environment_not_suspended');
+        }
+        $now = time();
+        $this->db->beginTransaction();
+        try {
+            $q = $this->db->getQueryBuilder();
+            $changed = $q->update('lf_environment_groups')
+                ->set('state', $q->createNamedParameter('enabled_pending_admin'))
+                ->set('updated_at',
+                    $q->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+                ->where($q->expr()->eq('environment_id',
+                    $q->createNamedParameter((int)$row['id'], IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('state',
+                    $q->createNamedParameter('suspended')))
+                ->executeStatement();
+            if ($changed !== 1) {
+                throw new DomainException('concurrent_change');
+            }
+            $q = $this->db->getQueryBuilder();
+            $updated = $q->update('lf_environments')
+                ->set('status', $q->createNamedParameter('enabled_pending_admin'))
+                ->set('revision', $q->createFunction('revision + 1'))
+                ->set('updated_at',
+                    $q->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+                ->where($q->expr()->eq('id',
+                    $q->createNamedParameter((int)$row['id'], IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('status',
+                    $q->createNamedParameter('suspended')))
+                ->executeStatement();
+            if ($updated !== 1) {
+                throw new DomainException('concurrent_change');
+            }
+            $this->audit((int)$row['id'], 'environment.recovered',
+                'recovery_reason', $reasonCode);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+        $fresh = $this->lookupByGroup($gid);
+        if ($fresh === null || $fresh['state'] !== 'enabled_pending_admin') {
+            throw new DomainException('concurrent_change');
+        }
+        return $this->publicRow($fresh, false);
     }
 
     /**
