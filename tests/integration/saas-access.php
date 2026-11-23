@@ -143,6 +143,13 @@ try {
         'DELETE', '/saas/v1/admin/policies/workspaces.maxCount?expectedRevision=1',
         null, 200, static fn(array $r): bool =>
             ($r['inherited'] ?? null) === true);
+    $secondA = $t->check('same environment provisions a second independent ledger', $b,
+        'POST', $pathA,
+        ['name' => 'Isolated A2', 'ownerUid' => $a,
+            'idempotencyKey' => 'synthetic-workspace-A2-allowed'], 201);
+    $spaceA2 = (int)$secondA['id'];
+    saasCheck('both ledgers in A and the ledger in B have unique IDs',
+        $spaceA2 > 0 && $spaceA2 !== $spaceA && $spaceA2 !== $spaceB);
     // This setting is resolved for the active environment; a user in both
     // groups never receives a union of permissive child scopes.
     $policyPathA = '/saas/v1/environments/' . $envA . '/policies/imports.enabled';
@@ -172,6 +179,7 @@ try {
         'GET', '/admin/contexts', null, 200,
         static fn(array $r): bool =>
             !in_array($spaceA, array_column($r['contexts'] ?? [], 'id'), true)
+            && !in_array($spaceA2, array_column($r['contexts'] ?? [], 'id'), true)
             && !in_array($spaceB, array_column($r['contexts'] ?? [], 'id'), true));
     instanceCheck('legacy bind cannot create group-wide viewer grants in SaaS',
         'PUT', '/admin/contexts/' . $spaceA . '/group',
@@ -184,14 +192,17 @@ try {
     $t->check('A sees only its own finance workspace', $a, 'GET',
         '/spaces', null, 200, static fn(array $r): bool =>
             in_array($spaceA, array_column($r['spaces'] ?? [], 'id'), true)
+            && in_array($spaceA2, array_column($r['spaces'] ?? [], 'id'), true)
             && !in_array($spaceB, array_column($r['spaces'] ?? [], 'id'), true));
     $t->check('B sees only its own finance workspace', $b, 'GET',
         '/spaces', null, 200, static fn(array $r): bool =>
             in_array($spaceB, array_column($r['spaces'] ?? [], 'id'), true)
-            && !in_array($spaceA, array_column($r['spaces'] ?? [], 'id'), true));
+            && !in_array($spaceA, array_column($r['spaces'] ?? [], 'id'), true)
+            && !in_array($spaceA2, array_column($r['spaces'] ?? [], 'id'), true));
     instanceCheck('Nextcloud instance admin cannot list SaaS financial books', 'GET',
         '/spaces', null, 200, static fn(array $r): bool =>
             !in_array($spaceA, array_column($r['spaces'] ?? [], 'id'), true)
+            && !in_array($spaceA2, array_column($r['spaces'] ?? [], 'id'), true)
             && !in_array($spaceB, array_column($r['spaces'] ?? [], 'id'), true));
     $t->check('B group admin cannot read ledger A', $b, 'GET',
         '/spaces/' . $spaceA . '/journals', null, 404);
@@ -215,7 +226,26 @@ try {
             'amountMinor' => 12300, 'date' => '2026-11-23',
             'memo' => 'Synthetic isolated A',
             'externalKey' => 'saas-A1-once'], 201);
-    $t->check('B ledger never receives A posting', $b, 'GET',
+    $accountsA2 = $t->check('A2 has an independent account chart', $a, 'GET',
+        '/spaces/' . $spaceA2 . '/accounts', null, 200,
+        static fn(array $r): bool => count($r['accounts'] ?? []) === 4);
+    $a2Ids = array_column($accountsA2['accounts'], 'id', 'code');
+    $t->check('A2 refuses A1 account IDs despite the same financial owner',
+        $a, 'POST', '/spaces/' . $spaceA2 . '/journals',
+        ['debitId' => $ids['1000'], 'creditId' => $ids['4000'],
+            'amountMinor' => 500, 'date' => '2026-11-23',
+            'memo' => 'Cross-workspace account ID denied',
+            'externalKey' => 'saas-forged-cross-account'], 404);
+    $t->check('A posts only to independent A2 ledger', $a, 'POST',
+        '/spaces/' . $spaceA2 . '/journals',
+        ['debitId' => $a2Ids['1000'], 'creditId' => $a2Ids['4000'],
+            'amountMinor' => 8700, 'date' => '2026-11-23',
+            'memo' => 'Synthetic isolated A2',
+            'externalKey' => 'saas-A2-once'], 201);
+    $t->check('A1 retains only its own journal after A2 posts', $a, 'GET',
+        '/spaces/' . $spaceA . '/journals', null, 200,
+        static fn(array $r): bool => count($r['journals'] ?? []) === 1);
+    $t->check('B ledger never receives A postings', $b, 'GET',
         '/spaces/' . $spaceB . '/journals', null, 200,
         static fn(array $r): bool => count($r['journals'] ?? []) === 0);
     $t->check('B cannot confer access to A ledger by group sharing', $b,
