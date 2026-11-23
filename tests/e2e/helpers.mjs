@@ -115,7 +115,7 @@ export async function goToView(page, view) {
       'Assistente financeiro':'Recursos e dados',
     })[view]
     if (subgroup) {
-      const link=nav.getByRole('link', { name: subgroup, exact:true })
+      const link=nav.getByRole('link', { name: subgroup, exact:true }).first()
       await expect(link).toBeVisible({timeout:20_000})
       if ((await link.getAttribute('aria-expanded')) !== 'true') await link.click()
     }
