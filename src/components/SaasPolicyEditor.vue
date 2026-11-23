@@ -29,6 +29,12 @@ const busy = ref('')
 const error = ref('')
 const notice = ref('')
 const unsupported = ref(false)
+const historyOpen = ref(false)
+const historyEvents = ref([])
+const historyBeforeId = ref(null)
+const historyLoading = ref(false)
+const historyError = ref('')
+let historySeq = 0
 let requestSequence = 0
 let mounted = true
 
@@ -43,6 +49,22 @@ const resource = computed(() => {
   }
   if (props.scope === 'user' && Number.isSafeInteger(props.spaceId) && props.spaceId > 0) {
     return generateUrl(root + '/workspaces/' + props.spaceId + '/policies/me')
+  }
+  return ''
+})
+const auditResource = computed(() => {
+  if (props.scope === 'instance') return generateUrl(root + '/policy-audit/instance')
+  if (props.scope === 'environment' && props.environmentId) {
+    return generateUrl(root + '/policy-audit/environments/'
+      + encodeURIComponent(props.environmentId))
+  }
+  if (props.scope === 'workspace' && Number.isSafeInteger(props.spaceId)
+      && props.spaceId > 0) {
+    return generateUrl(root + '/policy-audit/workspaces/' + props.spaceId)
+  }
+  if (props.scope === 'user' && Number.isSafeInteger(props.spaceId)
+      && props.spaceId > 0) {
+    return generateUrl(root + '/policy-audit/workspaces/' + props.spaceId + '/me')
   }
   return ''
 })
@@ -89,8 +111,54 @@ async function load() {
   }
 }
 
-watch(() => [props.scope, props.environmentId, props.spaceId], load, { immediate: true })
-onBeforeUnmount(() => { mounted = false; ++requestSequence })
+function closeHistory() {
+  ++historySeq
+  historyOpen.value = false
+  historyEvents.value = []
+  historyBeforeId.value = null
+  historyLoading.value = false
+  historyError.value = ''
+}
+async function fetchHistory(more = false) {
+  const url = auditResource.value
+  if (!url) return
+  const token = ++historySeq
+  historyLoading.value = true
+  historyError.value = ''
+  if (!more) {
+    historyEvents.value = []
+    historyBeforeId.value = null
+  }
+  try {
+    const response = await axios.get(url, {
+      params: more && historyBeforeId.value !== null
+        ? { beforeId: historyBeforeId.value } : {},
+    })
+    if (!mounted || historySeq !== token || auditResource.value !== url) return
+    const items = Array.isArray(response.data.events) ? response.data.events : []
+    historyEvents.value = more ? [...historyEvents.value, ...items] : items
+    historyBeforeId.value = Number.isSafeInteger(response.data.nextBeforeId)
+      && response.data.nextBeforeId > 0 ? response.data.nextBeforeId : null
+  } catch (cause) {
+    if (mounted && historySeq === token && auditResource.value === url) {
+      historyError.value = financeError(cause)
+      if (!more) historyEvents.value = []
+    }
+  } finally {
+    if (mounted && historySeq === token) historyLoading.value = false
+  }
+}
+function auditTime(seconds) {
+  return new Date(Number(seconds) * 1000).toLocaleString('pt-BR')
+}
+async function toggleHistory() {
+  if (historyOpen.value) { closeHistory(); return }
+  historyOpen.value = true
+  await fetchHistory(false)
+}
+watch(() => [props.scope, props.environmentId, props.spaceId],
+  () => { closeHistory(); load() }, { immediate: true })
+onBeforeUnmount(() => { mounted = false; ++requestSequence; closeHistory() })
 
 async function update(row, clear = false) {
   const endpoint = resource.value
@@ -117,6 +185,7 @@ async function update(row, clear = false) {
     if (!mounted || endpoint !== resource.value) return
     await load()
     if (!mounted || endpoint !== resource.value) return
+    if (historyOpen.value) await fetchHistory(false)
     notice.value = clear
       ? 'Restrição local removida. A política herdada permanece em vigor.'
       : 'Restrição aplicada e auditada para este escopo.'
@@ -192,6 +261,34 @@ async function update(row, clear = false) {
       </article>
     </div>
     <p v-else-if="!loading && !error" class="lf-muted">Nenhuma política disponível.</p>
+    <NcButton v-if="policies.length" variant="secondary"
+      :aria-expanded="historyOpen" @click="toggleHistory">
+      {{ historyOpen ? 'Ocultar histórico de policies' : 'Ver histórico de policies' }}
+    </NcButton>
+    <section v-if="historyOpen" aria-label="Histórico de alterações das policies SaaS">
+      <NcNoteCard v-if="historyError" type="error" role="alert">{{ historyError }}</NcNoteCard>
+      <NcLoadingIcon v-if="historyLoading" :size="20" />
+      <ol v-if="historyEvents.length" class="lf-policy-audit-list">
+        <li v-for="item in historyEvents" :key="item.id">
+          <strong>{{ name(item.policyKey) }}</strong>
+          · {{ item.action }}
+          <p class="lf-muted">
+            {{ auditTime(item.occurredAt) }}
+            · Por {{ item.actorUid }} · Revisão
+            {{ item.previousRevision }} → {{ item.newRevision }}
+          </p>
+          <p>Antes: {{ item.oldValueJson === null ? 'Herdado' : item.oldValueJson }}
+            · Depois: {{ item.newValueJson === null ? 'Herdado' : item.newValueJson }}</p>
+        </li>
+      </ol>
+      <p v-else-if="!historyLoading && !historyError" class="lf-muted">
+        Nenhuma alteração registrada neste escopo.
+      </p>
+      <NcButton v-if="historyBeforeId !== null" variant="tertiary"
+        :disabled="historyLoading" @click="fetchHistory(true)">
+        Carregar eventos anteriores
+      </NcButton>
+    </section>
   </section>
 </template>
 
@@ -203,4 +300,7 @@ async function update(row, clear = false) {
 .lf-saas-policy-row p{margin:4px 0}
 .lf-saas-policy-form{max-width:510px;display:grid;gap:10px}
 .lf-saas-policy-buttons{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lf-policy-audit-list{display:grid;gap:10px;padding-inline-start:24px}
+.lf-policy-audit-list li{border-bottom:1px solid var(--color-border);padding-bottom:8px}
+.lf-policy-audit-list p{margin:5px 0}
 </style>
