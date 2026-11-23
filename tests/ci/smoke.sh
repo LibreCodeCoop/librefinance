@@ -167,6 +167,9 @@ fi
 # schema/version migrations before browser access instead of exposing the
 # "App update required" maintenance screen during functional tests.
 compose exec -T --user www-data nextcloud php occ upgrade
+# Synthetic DB-only SaaS schema check; no existing ledgers are modified.
+compose exec -T -e LF_SYNTHETIC_SAAS_SCHEMA_CHECK=yes nextcloud php \
+  /var/www/html/custom_apps/librefinance/tests/ci/check-saas-schema.php
 # Assert the exact core and optional external route contracts against Nextcloud's real route resolver;
 # linting attributes or checking only one successful URL is insufficient.
 route_apps=(librefinance)
