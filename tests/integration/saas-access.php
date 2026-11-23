@@ -178,7 +178,7 @@ try {
         ['gid' => $groupA], 403);
     $t->check('group admin cannot self-promote to financial owner', $a,
         'POST', $pathB, ['name' => 'Self promoted',
-            'ownerUid' => $a, 'idempotencyKey' => 'synthetic-self-grant-001'], 409);
+            'ownerUid' => $a, 'idempotencyKey' => 'synthetic-self-grant-001'], 403);
 
     // These routes exercise the *real* previously bypassed AccessService.
     $t->check('A sees only its own finance workspace', $a, 'GET',
