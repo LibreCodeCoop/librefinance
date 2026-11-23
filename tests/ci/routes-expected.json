@@ -676,6 +676,26 @@
       "route": "librefinance.saaspolicy.clearworkspace"
     },
     {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/policies/me/effective",
+      "request": "GET",
+      "route": "librefinance.saaspolicy.effectiveuser"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/policies/me/{policyKey}",
+      "request": "GET",
+      "route": "librefinance.saaspolicy.readuser"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/policies/me/{policyKey}",
+      "request": "PUT",
+      "route": "librefinance.saaspolicy.writeuser"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/policies/me/{policyKey}",
+      "request": "DELETE",
+      "route": "librefinance.saaspolicy.clearuser"
+    },
+    {
       "path": "/apps/librefinance/api/saas/v1/invitations",
       "request": "GET",
       "route": "librefinance.saasexternalinvitation.inbox"

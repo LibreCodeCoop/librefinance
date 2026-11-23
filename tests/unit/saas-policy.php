@@ -133,4 +133,30 @@ denied('instance-only refuses child even if declared', fn() => $resolver->resolv
     [layer('instance', true), layer('environment', false)]
 ), 'policy_override_forbidden');
 
+$dashboard = $registry->get('dashboard.kpis.enabled');
+result('dashboard policy supports self-user scope',
+    $dashboard->supports('user'), true);
+result('dashboard default presents indicators',
+    $resolver->resolve($dashboard, [])['effectiveValue'], true);
+$result = $resolver->resolve($dashboard, [
+    layer('instance', true), layer('environment', true),
+    layer('workspace', true), layer('user', false),
+]);
+result('user may hide dashboard cards', $result['effectiveValue'], false);
+result('user controls own dashboard source', $result['sourceScope'], 'user');
+$result = $resolver->resolve($dashboard, [
+    layer('instance', true), layer('environment', true),
+    layer('workspace', false), layer('user', true),
+]);
+result('user cannot bypass workspace hide', $result['effectiveValue'], false);
+result('workspace ancestor is the blocking source', $result['blockedBy'], 'workspace');
+denied('user scope cannot change external sharing policy',
+    fn() => $resolver->resolve($external, [
+        layer('instance', true), layer('user', true),
+    ]), 'unsupported_scope');
+denied('user scope cannot change company count',
+    fn() => $resolver->resolve($ceiling, [
+        layer('instance', 2), layer('user', 99),
+    ]), 'unsupported_scope');
+
 echo "SaaS policy resolver: $checks named restrictive positive and negative assertions passed\n";

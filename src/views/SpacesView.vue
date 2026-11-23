@@ -225,6 +225,15 @@ async function create() {
       <SaasPolicyEditor v-if="showWorkspacePolicies"
         scope="workspace" :space-id="Number(w.activeId.value)" hide-unsupported />
     </section>
+    <section v-if="w.activeId.value && w.spaces.value.some(s =>
+      Number(s.id) === Number(w.activeId.value) && s.saasManaged === true)"
+      class="lf-surface">
+      <h2>Preferências individuais do painel</h2>
+      <p>As restrições deste usuário são independentes de outros livros e
+        nunca substituem a permissão financeira do grupo.</p>
+      <SaasPolicyEditor scope="user"
+        :space-id="Number(w.activeId.value)" hide-unsupported />
+    </section>
     <div v-if="w.spaces.value.length || archived.length" class="lf-native-workspace-filter" role="search">
       <NcTextField v-model="search" label="Filtrar gestões financeiras"
         type="search" placeholder="Nome da área ou tipo" />

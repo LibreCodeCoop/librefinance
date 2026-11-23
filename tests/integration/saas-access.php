@@ -55,7 +55,7 @@ function instanceRequest(string $verb, string $path, ?array $data = null): array
         throw new RuntimeException('Synthetic request failed: ' . curl_error($handle));
     }
     $code = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
-    // PHP 8.5 deprecates curl_close(): the handle is released by scope.
+    curl_close($handle);
     $decoded = json_decode($body, true);
     return ['code' => $code, 'body' => is_array($decoded) ? $decoded : ['invalid_json' => true]];
 }
@@ -193,7 +193,8 @@ try {
         'GET', $workspacePolicyA2, null, 404);
     $t->check('A owner can read workspace policy catalogue', $a,
         'GET', '/saas/v1/workspaces/' . $spaceA2 . '/policies/effective', null, 200,
-        static fn(array $r): bool => count($r['policies'] ?? []) === 4);
+        static fn(array $r): bool => count($r['policies'] ?? []) === 5
+            && in_array('dashboard.kpis.enabled', array_column($r['policies'] ?? [], 'key'), true));
     $t->check('A owner restricts imports in A2 without changing A1', $a,
         'PUT', $workspacePolicyA2,
         ['valueJson' => 'false', 'expectedRevision' => 0], 200,
@@ -305,6 +306,69 @@ try {
         ['debitId' => 1, 'creditId' => 2, 'amountMinor' => 100,
          'date' => '2026-11-23', 'memo' => 'Denied',
          'externalKey' => 'synthetic-admin-unauthorized'], 404);
+
+    // The self-user presentation layer is distinct per identity and book.
+    // A request cannot supply another UID, nor use a group admin role as ACL.
+    $mineA = '/saas/v1/workspaces/' . $spaceA
+        . '/policies/me/dashboard.kpis.enabled';
+    $mineA2 = '/saas/v1/workspaces/' . $spaceA2
+        . '/policies/me/dashboard.kpis.enabled';
+    $mineB = '/saas/v1/workspaces/' . $spaceB
+        . '/policies/me/dashboard.kpis.enabled';
+    $t->check('A sees inherited own dashboard visibility', $a, 'GET', $mineA,
+        null, 200, static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === true
+            && ($r['sourceScope'] ?? null) === 'default'
+            && ($r['revision'] ?? null) === 0
+            && ($r['editableByCurrentActor'] ?? null) === true);
+    $t->check('user policy list reveals only supported self-user keys', $a,
+        'GET', '/saas/v1/workspaces/' . $spaceA . '/policies/me/effective',
+        null, 200, static fn(array $r): bool =>
+            array_column($r['policies'] ?? [], 'key') === ['dashboard.kpis.enabled']);
+    $t->check('B cannot read A self policy without financial membership', $b,
+        'GET', $mineA, null, 404);
+    $t->check('A cannot inspect another environments user policy', $a,
+        'GET', $mineB, null, 404);
+    $t->check('user presentation preference cannot change external sharing', $a,
+        'PUT', '/saas/v1/workspaces/' . $spaceA
+            . '/policies/me/externalSharing.enabled',
+        ['valueJson' => 'true', 'expectedRevision' => 0], 422);
+    $t->check('user hides own SaaS dashboard indicators with CAS', $a,
+        'PUT', $mineA, ['valueJson' => 'false', 'expectedRevision' => 0], 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === false
+            && ($r['sourceScope'] ?? null) === 'user'
+            && ($r['revision'] ?? null) === 1);
+    $t->check('user presentation denial does not contaminate other books', $a,
+        'GET', $mineA2, null, 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true);
+    $t->check('competing stale self-user write is rejected', $a,
+        'PUT', $mineA, ['valueJson' => 'true', 'expectedRevision' => 0], 409);
+    $parentDashboard = '/saas/v1/workspaces/' . $spaceA
+        . '/policies/dashboard.kpis.enabled';
+    $t->check('workspace owner can restrict all dashboard summaries', $a,
+        'PUT', $parentDashboard, ['valueJson' => 'false', 'expectedRevision' => 0],
+        200, static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false);
+    $t->check('user is forbidden to reenable denied parent', $a,
+        'PUT', $mineA, ['valueJson' => 'true', 'expectedRevision' => 1], 403);
+    $t->check('read reports inherited workspace blocker exactly', $a,
+        'GET', $mineA, null, 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === false
+            && ($r['blockedBy'] ?? null) === 'workspace');
+    $t->check('restore workspace parent without touching self setting', $a,
+        'DELETE', $parentDashboard . '?expectedRevision=1', null, 200);
+    $t->check('self-setting remains denied when parent restored', $a,
+        'GET', $mineA, null, 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === false
+            && ($r['sourceScope'] ?? null) === 'user');
+    $t->check('self-user clear restores inherited allowed dashboard', $a,
+        'DELETE', $mineA . '?expectedRevision=1', null, 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === true
+            && ($r['inherited'] ?? null) === true
+            && ($r['revision'] ?? null) === 2);
 
     // External financial invitations never materialize internal group
     // membership and are denied until explicit policy and account consent.
