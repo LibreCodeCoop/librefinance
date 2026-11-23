@@ -285,3 +285,45 @@ Na tela de administração Nextcloud → LibreFinance, o botão
 modifica políticas, membros nem o estado do grupo. Recuperações auditadas,
 suspensões e exclusões continuam preservadas no banco. O histórico é
 administrativo, diferente da auditoria contábil de cada gestão.
+
+### Policies de apresentação individuais
+
+A hierarquia de políticas passa a incluir o nível **Usuário**, restrito à
+conta autenticada e ao seu livro SaaS ativo. Essa camada **não concede
+acesso financeiro**: para consultar ou alterar a própria preferência é
+necessário ter um papel financeiro vigente no workspace. Nenhum endpoint
+aceita `uid` nem `environmentId` fornecido pelo frontend para editar
+a configuração de outra pessoa.
+
+A primeira definição aplicável é `dashboard.kpis.enabled`, booleana,
+com padrão `true` e scopes explícitos `instance`, `environment`,
+`workspace`, `user`. Quando definida como `false`, oculta somente os
+cartões de indicadores resumidos do painel. Isso é **preferência visual**:
+não protege valores financeiros, não desativa APIs nem esconde relatórios;
+essas ações continuam exigindo ACLs e policies operacionais próprias.
+Instâncias podem restringir ambientes, ambientes restringem livros e
+gestores financeiros restringem todos os usuários do mesmo livro. Um
+usuário nunca consegue reabilitar uma restrição herdada.
+
+API autenticada por sessão Nextcloud:
+- `GET /api/saas/v1/workspaces/{spaceId}/policies/me/effective` lista somente
+  as definições com scope `user`, sem expor configurações de terceiros.
+- `GET /api/saas/v1/workspaces/{spaceId}/policies/me/{policyKey}` retorna
+  valor efetivo, origem, bloqueio ancestral, revisão e edição permitida.
+- `PUT /api/saas/v1/workspaces/{spaceId}/policies/me/{policyKey}` recebe
+  `valueJson` e `expectedRevision`; é rejeitado se tentar ampliar o
+  parent, alterar chave não compatível ou usar revisão antiga.
+- `DELETE /api/saas/v1/workspaces/{spaceId}/policies/me/{policyKey}`
+  recebe `expectedRevision` e volta a herdar a configuração superior.
+
+Cada alteração possui auditoria append-only no esquema existente
+`lf_saas_policy_audit`, scope `user` e comparação atômica de revisão.
+Somente o membro financeiro interno do grupo pode **editar**; convites
+externos de leitura podem consultar o valor efetivo, mas não alterar
+preferências pela API de convidados. Ambientes excluídos, suspensos ou
+sem vínculo SaaS confirmado não possuem um escopo de usuário ativo.
+
+Na interface, o participante encontra **Preferências individuais do
+painel** em Gestões financeiras. Ao retornar à Visão geral, as políticas
+são recarregadas para o livro selecionado; em caso de erro de leitura
+na gestão SaaS, o painel não revela cartões de indicadores ocultos.

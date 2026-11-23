@@ -67,6 +67,35 @@ final class SaasPolicyRuntimeGate {
             $this->layers($definition, $environmentId, $found !== false ? $spaceId : null));
     }
 
+    /**
+     * Presentation policy for one authenticated actor in one confirmed ledger.
+     * The caller enforces financial ACL and supplies its server-session UID;
+     * no client-supplied UID or environment can influence this resolution.
+     *
+     * @return array<string,mixed>
+     */
+    public function user(int $spaceId, string $actorUid, string $key): array {
+        if ($spaceId < 1 || $actorUid === '' || strlen($actorUid) > 64) {
+            throw new DomainException('invalid_policy_scope');
+        }
+        $definition = $this->registry->get($key);
+        if (!$definition->supports('user')) {
+            throw new DomainException('unsupported_scope');
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('environment_id')->from('lf_environment_spaces')
+            ->where($q->expr()->eq('space_id',
+                $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('review_state',
+                $q->createNamedParameter('confirmed')));
+        $environmentId = $q->executeQuery()->fetchOne();
+        if ($environmentId === false || (int)$environmentId < 1) {
+            throw new DomainException('unsupported_scope');
+        }
+        return $this->resolver->resolve($definition,
+            $this->layers($definition, (int)$environmentId, $spaceId, $actorUid));
+    }
+
     public function requireInstanceEnabled(string $key): void {
         if ($this->instance($key)['effectiveValue'] !== true) {
             throw new DomainException('module_disabled');
@@ -83,12 +112,14 @@ final class SaasPolicyRuntimeGate {
      * @return list<array{scope:string,value:mixed}>
      */
     private function layers(PolicyDefinition $definition,
-        ?int $environmentId = null, ?int $spaceId = null): array {
+        ?int $environmentId = null, ?int $spaceId = null, ?string $uid = null): array {
         $layers = [];
         foreach ([
             'instance' => 'instance',
             'environment' => $environmentId !== null ? 'environment:' . $environmentId : null,
             'workspace' => $spaceId !== null ? 'workspace:' . $spaceId : null,
+            'user' => $spaceId !== null && $uid !== null
+                ? 'user:' . $uid . ':workspace:' . $spaceId : null,
         ] as $scope => $scopeKey) {
             if ($scopeKey === null || !$definition->supports($scope)) {
                 continue;

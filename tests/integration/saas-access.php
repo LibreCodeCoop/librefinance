@@ -306,6 +306,69 @@ try {
          'date' => '2026-11-23', 'memo' => 'Denied',
          'externalKey' => 'synthetic-admin-unauthorized'], 404);
 
+    // The self-user presentation layer is distinct per identity and book.
+    // A request cannot supply another UID, nor use a group admin role as ACL.
+    $mineA = '/saas/v1/workspaces/' . $spaceA
+        . '/policies/me/dashboard.kpis.enabled';
+    $mineA2 = '/saas/v1/workspaces/' . $spaceA2
+        . '/policies/me/dashboard.kpis.enabled';
+    $mineB = '/saas/v1/workspaces/' . $spaceB
+        . '/policies/me/dashboard.kpis.enabled';
+    $t->check('A sees inherited own dashboard visibility', $a, 'GET', $mineA,
+        null, 200, static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === true
+            && ($r['sourceScope'] ?? null) === 'default'
+            && ($r['revision'] ?? null) === 0
+            && ($r['editableByCurrentActor'] ?? null) === true);
+    $t->check('user policy list reveals only supported self-user keys', $a,
+        'GET', '/saas/v1/workspaces/' . $spaceA . '/policies/me/effective',
+        null, 200, static fn(array $r): bool =>
+            array_column($r['policies'] ?? [], 'key') === ['dashboard.kpis.enabled']);
+    $t->check('B cannot read A self policy without financial membership', $b,
+        'GET', $mineA, null, 404);
+    $t->check('A cannot inspect another environments user policy', $a,
+        'GET', $mineB, null, 404);
+    $t->check('user presentation preference cannot change external sharing', $a,
+        'PUT', '/saas/v1/workspaces/' . $spaceA
+            . '/policies/me/externalSharing.enabled',
+        ['valueJson' => 'true', 'expectedRevision' => 0], 422);
+    $t->check('user hides own SaaS dashboard indicators with CAS', $a,
+        'PUT', $mineA, ['valueJson' => 'false', 'expectedRevision' => 0], 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === false
+            && ($r['sourceScope'] ?? null) === 'user'
+            && ($r['revision'] ?? null) === 1);
+    $t->check('user presentation denial does not contaminate other books', $a,
+        'GET', $mineA2, null, 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true);
+    $t->check('competing stale self-user write is rejected', $a,
+        'PUT', $mineA, ['valueJson' => 'true', 'expectedRevision' => 0], 409);
+    $parentDashboard = '/saas/v1/workspaces/' . $spaceA
+        . '/policies/dashboard.kpis.enabled';
+    $t->check('workspace owner can restrict all dashboard summaries', $a,
+        'PUT', $parentDashboard, ['valueJson' => 'false', 'expectedRevision' => 0],
+        200, static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false);
+    $t->check('user is forbidden to reenable denied parent', $a,
+        'PUT', $mineA, ['valueJson' => 'true', 'expectedRevision' => 1], 403);
+    $t->check('read reports inherited workspace blocker exactly', $a,
+        'GET', $mineA, null, 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === false
+            && ($r['blockedBy'] ?? null) === 'workspace');
+    $t->check('restore workspace parent without touching self setting', $a,
+        'DELETE', $parentDashboard . '?expectedRevision=1', null, 200);
+    $t->check('self-setting remains denied when parent restored', $a,
+        'GET', $mineA, null, 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === false
+            && ($r['sourceScope'] ?? null) === 'user');
+    $t->check('self-user clear restores inherited allowed dashboard', $a,
+        'DELETE', $mineA . '?expectedRevision=1', null, 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === true
+            && ($r['inherited'] ?? null) === true
+            && ($r['revision'] ?? null) === 2);
+
     $accounts = $t->check('A can list its ledger accounts', $a, 'GET',
         '/spaces/' . $spaceA . '/accounts', null, 200,
         static fn(array $r): bool => count($r['accounts'] ?? []) === 4);

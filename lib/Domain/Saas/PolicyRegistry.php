@@ -26,6 +26,11 @@ final class PolicyRegistry {
                 ['instance', 'environment', 'workspace'], true, true),
             new PolicyDefinition('workspaces.maxCount', 'ceiling',
                 ['instance', 'environment'], 9007199254740991, true),
+            // Presentation only: hiding KPI cards is not a financial ACL.
+            // This is the first self-service user-level policy; no ledger
+            // operation may infer a role or authorization from this flag.
+            new PolicyDefinition('dashboard.kpis.enabled', 'boolean',
+                ['instance', 'environment', 'workspace', 'user'], true, true),
         ];
         $this->definitions = [];
         foreach ($specs as $spec) {

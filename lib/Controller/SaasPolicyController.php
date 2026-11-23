@@ -63,6 +63,43 @@ final class SaasPolicyController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/workspaces/{spaceId}/policies/me/effective')]
+    public function effectiveUser(int $spaceId): JSONResponse {
+        return $this->respond(fn(): array => $this->policies->listUser($spaceId));
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/workspaces/{spaceId}/policies/me/{policyKey}')]
+    public function readUser(int $spaceId, string $policyKey): JSONResponse {
+        return $this->respond(fn(): array => $this->policies->getUser($spaceId, $policyKey));
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'PUT', url: '/api/saas/v1/workspaces/{spaceId}/policies/me/{policyKey}')]
+    public function writeUser(int $spaceId, string $policyKey,
+        string $valueJson, int $expectedRevision): JSONResponse {
+        return $this->respond(function () use ($spaceId, $policyKey, $valueJson, $expectedRevision): array {
+            if (strlen($valueJson) > 16384) {
+                throw new DomainException('invalid_policy_value');
+            }
+            try {
+                $value = json_decode($valueJson, true, 32, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                throw new DomainException('invalid_policy_value');
+            }
+            return $this->policies->writeUser($spaceId, $policyKey, $value, $expectedRevision);
+        });
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'DELETE', url: '/api/saas/v1/workspaces/{spaceId}/policies/me/{policyKey}')]
+    public function clearUser(int $spaceId, string $policyKey,
+        int $expectedRevision): JSONResponse {
+        return $this->respond(fn(): array =>
+            $this->policies->clearUser($spaceId, $policyKey, $expectedRevision));
+    }
+
+    #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/workspaces/{spaceId}/policies/effective')]
     public function effectiveWorkspace(int $spaceId): JSONResponse {
         return $this->respond(fn(): array => $this->policies->listWorkspace($spaceId));

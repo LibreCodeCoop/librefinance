@@ -250,6 +250,110 @@ final class SaasPolicyService {
     }
 
     /**
+     * The policy belongs to this authenticated actor in this active financial
+     * workspace. No target UID or group may come from a frontend parameter.
+     * Hiding dashboard cards is presentation, never an authorization grant.
+     *
+     * @return array<string,mixed>
+     */
+    public function getUser(int $spaceId, string $key): array {
+        $this->workspaceContext($spaceId, 'workspace.read');
+        $definition = $this->registry->get($key);
+        if (!$definition->supports('user')) {
+            throw new DomainException('unsupported_scope');
+        }
+        $uid = $this->access->uid();
+        $stored = $this->lookup($this->userScopeKey($uid, $spaceId), $key);
+        $resolved = $this->runtime->user($spaceId, $uid, $key);
+        $parent = $this->runtime->workspace($spaceId, $key);
+        // External viewers can read their display policy, but do not gain
+        // editing authority merely through an accepted read-only invitation.
+        $internal = true;
+        try {
+            $this->access->requireSaasRecipientGroupMember($spaceId, $uid);
+        } catch (DomainException) {
+            $internal = false;
+        }
+        return [
+            'key' => $definition->key,
+            'type' => $definition->type,
+            'contractVersion' => $definition->version,
+            'supportedScopes' => $definition->supportedScopes,
+            'allowChildOverride' => $definition->allowChildOverride,
+            'effectiveValue' => $resolved['effectiveValue'],
+            'sourceScope' => $resolved['sourceScope'],
+            'blockedBy' => $resolved['blockedBy'],
+            'allowedValues' => $definition->type === 'boolean'
+                ? ($parent['effectiveValue'] === false ? [false] : [false, true])
+                : ($definition->type === 'allowed_set' ? $parent['effectiveValue'] : null),
+            'maxAllowed' => $definition->type === 'ceiling'
+                ? $parent['effectiveValue'] : null,
+            'editableByCurrentActor' => $internal && $definition->allowChildOverride,
+            'revision' => $stored === null ? 0 : (int)$stored['revision'],
+            'inherited' => $stored === null || (bool)$stored['is_cleared'],
+        ];
+    }
+
+    /** @return array{policies:list<array<string,mixed>>} */
+    public function listUser(int $spaceId): array {
+        $this->workspaceContext($spaceId, 'workspace.read');
+        $policies = [];
+        foreach ($this->registry->all() as $definition) {
+            if ($definition->supports('user')) {
+                $policies[] = $this->getUser($spaceId, $definition->key);
+            }
+        }
+        return ['policies' => $policies];
+    }
+
+    /** @return array<string,mixed> */
+    public function writeUser(int $spaceId, string $key, mixed $value,
+        int $expectedRevision): array {
+        $this->workspaceContext($spaceId, 'workspace.read');
+        $uid = $this->access->uid();
+        $this->access->requireSaasRecipientGroupMember($spaceId, $uid);
+        $definition = $this->registry->get($key);
+        if (!$definition->supports('user') || !$definition->allowChildOverride) {
+            throw new DomainException('unsupported_scope');
+        }
+        $definition->assertValue($value);
+        $parent = $this->runtime->workspace($spaceId, $key)['effectiveValue'];
+        $narrower = match ($definition->type) {
+            'boolean' => $parent === true || $value === false,
+            'ceiling' => $value <= $parent,
+            'allowed_set' => array_values(array_intersect($value, $parent)) === $value,
+            default => false,
+        };
+        if (!$narrower) {
+            throw new DomainException('policy_override_forbidden');
+        }
+        $this->mutate($this->userScopeKey($uid, $spaceId),
+            $definition, $value, false, $expectedRevision);
+        return $this->getUser($spaceId, $key);
+    }
+
+    /** @return array<string,mixed> */
+    public function clearUser(int $spaceId, string $key, int $expectedRevision): array {
+        $this->workspaceContext($spaceId, 'workspace.read');
+        $uid = $this->access->uid();
+        $this->access->requireSaasRecipientGroupMember($spaceId, $uid);
+        $definition = $this->registry->get($key);
+        if (!$definition->supports('user') || !$definition->allowChildOverride) {
+            throw new DomainException('unsupported_scope');
+        }
+        $this->mutate($this->userScopeKey($uid, $spaceId),
+            $definition, null, true, $expectedRevision);
+        return $this->getUser($spaceId, $key);
+    }
+
+    private function userScopeKey(string $uid, int $spaceId): string {
+        if ($spaceId < 1 || $uid === '' || strlen($uid) > 64) {
+            throw new DomainException('invalid_policy_scope');
+        }
+        return 'user:' . $uid . ':workspace:' . $spaceId;
+    }
+
+    /**
      * Resolve scope only from a server-validated finance membership and the
      * durable ledger binding. Never infer a policy scope from a client GID.
      *
@@ -319,7 +423,9 @@ final class SaasPolicyService {
                     $this->writer->insert('lf_saas_policy_values', [
                         'scope_key' => $scopeKey,
                         'scope_type' => $scopeKey === 'instance' ? 'instance'
-                            : (str_starts_with($scopeKey, 'workspace:') ? 'workspace' : 'environment'),
+                            : (str_starts_with($scopeKey, 'user:') ? 'user'
+                                : (str_starts_with($scopeKey, 'workspace:')
+                                    ? 'workspace' : 'environment')),
                         'policy_key' => $definition->key,
                         'value_json' => $valueJson,
                         'is_cleared' => $clear,
