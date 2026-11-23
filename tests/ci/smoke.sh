@@ -259,6 +259,15 @@ grep -Eq '^OFX parser: 19 positive and negative assertions passed$' <<< "$ofx_un
   echo 'FAIL: OFX parser unit assertions did not complete' >&2
   exit 1
 }
+# Hierarchical policies are not financial ACLs; exercise deny-first and
+# multi-scope invariants independently of DB/frontend behavior.
+policy_unit="$(compose exec -T --user www-data nextcloud php \
+  /var/www/html/custom_apps/librefinance/tests/unit/saas-policy.php)"
+printf '%s\n' "$policy_unit"
+grep -Eq '^SaaS policy resolver: [0-9]+ named restrictive positive and negative assertions passed$' <<< "$policy_unit" || {
+  echo 'FAIL: SaaS policy resolver did not complete' >&2
+  exit 1
+}
 for domain_test in banking obligations invoicing payments reports-cash-flow reports-saved import; do
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/domains/$domain_test.php"
 done
