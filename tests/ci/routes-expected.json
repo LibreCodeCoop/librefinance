@@ -559,6 +559,21 @@
       "route": "librefinance.governance.bind",
       "request": "PUT",
       "path": "/apps/librefinance/api/admin/contexts/{spaceId}/group"
+    },
+    {
+      "route": "librefinance.bankaccountlogo.upload",
+      "request": "POST",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/accounts/{accountId}/logo"
+    },
+    {
+      "route": "librefinance.bankaccountlogo.delete",
+      "request": "DELETE",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/accounts/{accountId}/logo"
+    },
+    {
+      "route": "librefinance.bankaccountlogo.image",
+      "request": "GET",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/accounts/{accountId}/logo"
     }
   ],
   "librefinance_nfse": [

@@ -23,11 +23,54 @@ final class LedgerService {
         private PaymentMethodService $paymentMethods,
         private AccountReferenceGuard $accountGuard) {}
 
+    /**
+     * Bank identifiers are structured for future connectors, not login secrets.
+     * All details are optional because cashboxes and international banking
+     * formats do not share one mandatory identifier.
+     * @return array<string,string|null>
+     */
+    private static function normalizeBankDetails(array $values, bool $isBank): array {
+        if (!$isBank && $values !== []) {
+            throw new DomainException('bank_details_not_applicable');
+        }
+        $names = [
+            'institutionName' => ['institution_name', 150],
+            'institutionCode' => ['institution_code', 40],
+            'branchNumber' => ['branch_number', 40],
+            'accountNumber' => ['account_number', 70],
+            'accountType' => ['account_type', 32],
+            'iban' => ['iban', 34],
+            'swiftBic' => ['swift_bic', 11],
+        ];
+        foreach ($values as $key => $value) {
+            if (!isset($names[$key]) || !is_string($value)) {
+                throw new DomainException('invalid_bank_details');
+            }
+        }
+        $result = [];
+        foreach ($names as $key => [$column, $limit]) {
+            if (!array_key_exists($key, $values)) continue;
+            $value = trim($values[$key]);
+            if (mb_strlen($value) > $limit || preg_match('/[\x00-\x1F\x7F]/', $value)) {
+                throw new DomainException('invalid_bank_details');
+            }
+            if ($key === 'iban' && $value !== '' && !preg_match('/^[A-Z0-9]{5,34}$/i', $value)) {
+                throw new DomainException('invalid_bank_details');
+            }
+            if ($key === 'swiftBic' && $value !== '' && !preg_match('/^[A-Z0-9]{8}([A-Z0-9]{3})?$/i', $value)) {
+                throw new DomainException('invalid_bank_details');
+            }
+            $result[$column] = $value === '' ? null : $value;
+        }
+        return $result;
+    }
+
     /** @return array<int, array<string, mixed>> */
     public function accounts(int $spaceId): array {
         $this->access->requireRole($spaceId);
         $qb = $this->db->getQueryBuilder();
-        $qb->select('id', 'code', 'name', 'class', 'currency', 'is_bank', 'active')
+        $qb->select('id', 'code', 'name', 'class', 'currency', 'is_bank', 'active', 'institution_name', 'institution_code',
+            'branch_number', 'account_number', 'account_type', 'iban', 'swift_bic', 'logo_version')
             ->from('lf_accounts')
             ->where($qb->expr()->eq('space_id', $qb->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
             ->orderBy('code', 'ASC');
@@ -53,7 +96,7 @@ final class LedgerService {
     }
 
     /** @return array<string, mixed> */
-    public function createAccount(int $spaceId, string $code, string $name, string $class, bool $isBank, bool $active = true): array {
+    public function createAccount(int $spaceId, string $code, string $name, string $class, bool $isBank, bool $active = true, array $bankDetails = []): array {
         $this->access->requireRole($spaceId, 'manager');
         $code = strtoupper(trim($code));
         $name = trim($name);
@@ -66,18 +109,20 @@ final class LedgerService {
         if ($isBank && $class !== 'asset') {
             throw new DomainException('invalid_bank_class');
         }
+        $details = self::normalizeBankDetails($bankDetails, $isBank);
         $currency = $this->spaceCurrency($spaceId);
         $this->db->beginTransaction();
         try {
             $this->writer->insert('lf_accounts', [
                 'space_id' => $spaceId, 'code' => $code, 'name' => $name, 'class' => $class,
                 'currency' => $currency, 'is_bank' => $isBank ? 1 : 0, 'active' => $active ? 1 : 0,
+                ...$details,
             ]);
             $id = $this->db->lastInsertId('*PREFIX*lf_accounts');
             $this->audit($spaceId, 'account.created', 'account', $id);
             $this->db->commit();
             return ['id' => $id, 'code' => $code, 'name' => $name, 'class' => $class,
-                'currency' => $currency, 'is_bank' => $isBank, 'active' => $active, 'balance_minor' => 0];
+                'currency' => $currency, 'is_bank' => $isBank, 'active' => $active, 'balance_minor' => 0, ...$details];
         } catch (\Throwable $e) {
             $this->db->rollBack();
             throw $e;
@@ -89,7 +134,7 @@ final class LedgerService {
      * posting IDs or bank-account semantics. Inactive accounts cannot be posted.
      * The existing balance must be zero before deactivation.
      */
-    public function updateAccount(int $spaceId, int $accountId, string $name, bool $active): array {
+    public function updateAccount(int $spaceId, int $accountId, string $name, bool $active, array $bankDetails = []): array {
         $this->access->requireRole($spaceId, 'manager');
         $name = trim($name);
         if ($name === '' || mb_strlen($name) > 150) {
@@ -98,12 +143,14 @@ final class LedgerService {
         $this->db->beginTransaction();
         try {
             $q = $this->db->getQueryBuilder();
-            $q->select('id', 'code', 'name', 'class', 'currency', 'is_bank', 'active')
+            $q->select('id', 'code', 'name', 'class', 'currency', 'is_bank', 'active', 'institution_name', 'institution_code',
+            'branch_number', 'account_number', 'account_type', 'iban', 'swift_bic', 'logo_version')
                 ->from('lf_accounts')
                 ->where($q->expr()->eq('id', $q->createNamedParameter($accountId, IQueryBuilder::PARAM_INT)))
                 ->andWhere($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
             $existing = $q->executeQuery()->fetchAssociative();
             if ($existing === false) { throw new DomainException('account_not_found'); }
+            $details = self::normalizeBankDetails($bankDetails, (bool)$existing['is_bank']);
             if (!$active && (bool)$existing['active']) {
                 $this->accountGuard->reserve($spaceId, $accountId);
                 $balance = $this->db->getQueryBuilder();
@@ -115,13 +162,13 @@ final class LedgerService {
                     throw new DomainException('account_has_balance');
                 }
             }
-            $this->writer->update('lf_accounts', ['name' => $name, 'active' => $active ? 1 : 0],
+            $this->writer->update('lf_accounts', ['name' => $name, 'active' => $active ? 1 : 0, ...$details],
                 ['id' => $accountId, 'space_id' => $spaceId]);
             $this->audit($spaceId, 'account.updated', 'account', $accountId);
             $this->db->commit();
             return ['id' => $accountId, 'code' => (string)$existing['code'], 'name' => $name,
                 'class' => (string)$existing['class'], 'currency' => (string)$existing['currency'],
-                'is_bank' => (bool)$existing['is_bank'], 'active' => $active];
+                'is_bank' => (bool)$existing['is_bank'], 'active' => $active, ...$details];
         } catch (\Throwable $e) {
             $this->db->rollBack();
             throw $e;
@@ -187,6 +234,13 @@ final class LedgerService {
 
     /** A fixed whitelist of native account references; missing optional tables are ignored. */
     private function accountDeletionBlockers(int $spaceId, int $accountId): array {
+        $logo = $this->db->getQueryBuilder();
+        $logo->select('logo_version')->from('lf_accounts')
+            ->where($logo->expr()->eq('space_id',
+                $logo->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($logo->expr()->eq('id',
+                $logo->createNamedParameter($accountId, IQueryBuilder::PARAM_INT)));
+        $hasLogo = $logo->executeQuery()->fetchOne();
         $references = [
             'lf_postings' => ['account_id' => 'journal_entries'],
             'lf_categories' => ['account_id' => 'category_links'],
@@ -198,7 +252,8 @@ final class LedgerService {
             'lfm_records' => ['target_id' => 'import_mappings'],
             'lf_payment_methods' => ['bank_account_id' => 'payment_methods'],
         ];
-        $blocked = [];
+        $blocked = $hasLogo !== false && $hasLogo !== null
+            ? ['bank_logo' => true] : [];
         foreach ($references as $table => $columns) {
             if (!$this->db->tableExists($table)) {
                 continue;

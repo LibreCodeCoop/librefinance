@@ -33,14 +33,14 @@ final class AccountController extends ApiController {
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/accounts')]
-    public function create(int $spaceId, string $code, string $name, string $class, bool $isBank = false): JSONResponse {
-        return $this->respond(fn() => $this->ledger->createAccount($spaceId, $code, $name, $class, $isBank), 201);
+    public function create(int $spaceId, string $code, string $name, string $class, bool $isBank = false, array $bankDetails = []): JSONResponse {
+        return $this->respond(fn() => $this->ledger->createAccount($spaceId, $code, $name, $class, $isBank, true, $bankDetails), 201);
     }
 
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
     #[FrontpageRoute(verb: 'PUT', url: '/api/spaces/{spaceId}/accounts/{accountId}')]
-    public function update(int $spaceId, int $accountId, string $name, bool $active = true): JSONResponse {
-        return $this->respond(fn() => $this->ledger->updateAccount($spaceId, $accountId, $name, $active));
+    public function update(int $spaceId, int $accountId, string $name, bool $active = true, array $bankDetails = []): JSONResponse {
+        return $this->respond(fn() => $this->ledger->updateAccount($spaceId, $accountId, $name, $active, $bankDetails));
     }
 
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
