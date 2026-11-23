@@ -494,6 +494,71 @@
       "route": "librefinance.activity.index",
       "request": "GET",
       "path": "/apps/librefinance/api/spaces/{spaceId}/activity"
+    },
+    {
+      "route": "librefinance.governance.capabilities",
+      "request": "GET",
+      "path": "/apps/librefinance/api/governance/capabilities"
+    },
+    {
+      "route": "librefinance.governance.scoped",
+      "request": "GET",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/governance"
+    },
+    {
+      "route": "librefinance.governance.show",
+      "request": "GET",
+      "path": "/apps/librefinance/api/admin/governance"
+    },
+    {
+      "route": "librefinance.governance.configure",
+      "request": "PUT",
+      "path": "/apps/librefinance/api/admin/governance"
+    },
+    {
+      "route": "librefinance.governance.groups",
+      "request": "GET",
+      "path": "/apps/librefinance/api/admin/groups"
+    },
+    {
+      "route": "librefinance.governance.delegates",
+      "request": "GET",
+      "path": "/apps/librefinance/api/admin/groups/{gid}/delegates"
+    },
+    {
+      "route": "librefinance.governance.grantdelegate",
+      "request": "POST",
+      "path": "/apps/librefinance/api/admin/groups/{gid}/delegates"
+    },
+    {
+      "route": "librefinance.governance.revokedelegate",
+      "request": "DELETE",
+      "path": "/apps/librefinance/api/admin/groups/{gid}/delegates/{uid}"
+    },
+    {
+      "route": "librefinance.governance.contexts",
+      "request": "GET",
+      "path": "/apps/librefinance/api/admin/contexts"
+    },
+    {
+      "route": "librefinance.governance.provision",
+      "request": "POST",
+      "path": "/apps/librefinance/api/admin/contexts"
+    },
+    {
+      "route": "librefinance.governance.archive",
+      "request": "POST",
+      "path": "/apps/librefinance/api/admin/contexts/{spaceId}/archive"
+    },
+    {
+      "route": "librefinance.governance.restore",
+      "request": "POST",
+      "path": "/apps/librefinance/api/admin/contexts/{spaceId}/restore"
+    },
+    {
+      "route": "librefinance.governance.bind",
+      "request": "PUT",
+      "path": "/apps/librefinance/api/admin/contexts/{spaceId}/group"
     }
   ],
   "librefinance_nfse": [
