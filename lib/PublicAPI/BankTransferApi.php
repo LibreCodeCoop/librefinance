@@ -9,6 +9,7 @@ namespace OCA\LibreFinance\PublicAPI;
 
 use DomainException;
 use OCA\LibreFinance\PublicAPI\FinanceApi;
+use OCA\LibreFinance\Service\SaasPolicyRuntimeGate;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use OCP\IUserSession;
@@ -27,6 +28,7 @@ final class BankTransferApi {
         private FinanceApi $finance,
         private IDBConnection $db,
         private IUserSession $session,
+        private SaasPolicyRuntimeGate $policies,
     ) {}
 
     /**
@@ -70,6 +72,7 @@ final class BankTransferApi {
      */
     public function appendPending(int $spaceId, array $rows): array {
         $this->validate($spaceId, $rows);
+        $this->policies->requireWorkspaceEnabled($spaceId, 'imports.enabled');
         $ids = [];
         foreach ($rows as $row) {
             $ids[] = $row['fromAccountId'];

@@ -183,6 +183,9 @@ compose exec -T --user www-data nextcloud php occ upgrade
 # Synthetic DB-only SaaS schema check; no existing ledgers are modified.
 compose exec -T -e LF_SYNTHETIC_SAAS_SCHEMA_CHECK=yes nextcloud php \
   /var/www/html/custom_apps/librefinance/tests/ci/check-saas-schema.php
+# New policy tables use additive, non-backfilling and portable migrations.
+compose exec -T -e LF_SYNTHETIC_SAAS_POLICY_SCHEMA=yes nextcloud php \
+  /var/www/html/custom_apps/librefinance/tests/ci/check-saas-policy-schema.php
 # All fixtures roll back and never infer legacy company ownership.
 compose exec -T -e LF_SYNTHETIC_SAAS_WORKSPACE_SCHEMA=yes nextcloud php \
   /var/www/html/custom_apps/librefinance/tests/ci/check-saas-workspace-schema.php
@@ -212,7 +215,7 @@ else
     }
   ' | tr -d '\r')"
 fi
-test "$count" -eq 24
+test "$count" -eq 26
 
 # Imported provenance tables use the lfm_ physical prefix, not lf_.
 # Verify the three durable origin tables independently in every engine.
@@ -237,7 +240,7 @@ echo "PASS: Three core-owned source identity/audit/balance-snapshot import table
 
 http_status="$(compose exec -T nextcloud curl -sS --max-time 12 -o /dev/null -w '%{http_code}' http://127.0.0.1/status.php)"
 test "$http_status" = 200
-echo "PASS: Nextcloud Server master install, LibreFinance activation, twenty-four core tables and HTTP 200."
+echo "PASS: Nextcloud Server master install, LibreFinance activation, twenty-six core tables and HTTP 200."
 
 # Real two-user authorization, accounting and concurrency checks on this exact master checkout.
 for test_user in lfmaintestA lfmaintestB; do
@@ -285,10 +288,36 @@ grep -Eq '^SaaS financial capability matrix: [1-9][0-9]* named allow/deny assert
   echo 'FAIL: financial capability matrix incomplete' >&2
   exit 1
 }
+# Hierarchical policies are not financial ACLs; exercise deny-first and
+# multi-scope invariants independently of DB/frontend behavior.
+policy_unit="$(compose exec -T --user www-data nextcloud php \
+  /var/www/html/custom_apps/librefinance/tests/unit/saas-policy.php)"
+printf '%s\n' "$policy_unit"
+grep -Eq '^SaaS policy resolver: [0-9]+ named restrictive positive and negative assertions passed$' <<< "$policy_unit" || {
+  echo 'FAIL: SaaS policy resolver did not complete' >&2
+  exit 1
+}
 for domain_test in banking obligations invoicing payments reports-cash-flow reports-saved import; do
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/domains/$domain_test.php"
 done
 echo "PASS: Native banking, obligations, invoicing, reporting and core-import integration suites."
+# Instance policy store is checked against the real disposable Nextcloud API
+# with synthetic administrator credentials; no financial permission grant.
+if ! policy_runtime_output="$(compose exec -T -e LF_SYNTHETIC_SAAS_POLICY=yes \
+  -e LF_TEST_ADMIN_PASSWORD="$LF_TEST_ADMIN_PASSWORD" \
+  -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
+  -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
+  php /var/www/html/custom_apps/librefinance/tests/integration/saas-policy.php 2>&1)"; then
+    printf '%s\n' "$policy_runtime_output" >&2
+    echo "FAIL: synthetic SaaS suite policy_runtime_output exited nonzero" >&2
+    exit 1
+  fi
+printf '%s\n' "$policy_runtime_output"
+grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$policy_runtime_output" || {
+  echo 'FAIL: policy persistence and admin authorization assertions did not complete' >&2
+  exit 1
+}
+
 # This is a disposable CI lab only. Exercise the real instance-admin -> group
 # delegation -> concurrent provisioning -> revocation lifecycle, then restore
 # the initial instance governance toggle. No live data or identities.
