@@ -142,6 +142,9 @@ final class AccessService {
         // be checked BEFORE the legacy global-admin and group-admin bypasses.
         $saasScope = $this->saasScope($spaceId);
         if ($saasScope !== null) {
+            if (($saasScope['review_state'] ?? null) !== 'confirmed') {
+                throw new DomainException('space_not_found');
+            }
             // Turning off instance-wide managed mode suspends new SaaS access,
             // not only provisioning. The app must never keep using stale ACLs.
             if (!$this->governance->enabled()) {
@@ -254,7 +257,8 @@ final class AccessService {
     public function requireSaasOwnerIncludingArchived(int $spaceId): void {
         $uid = $this->uid();
         $scope = $this->saasScope($spaceId);
-        if ($scope === null || !$this->governance->enabled()
+        if ($scope === null || ($scope['review_state'] ?? null) !== 'confirmed'
+            || !$this->governance->enabled()
             || ($scope['environment_status'] ?? null) !== 'active'
             || ($scope['group_state'] ?? null) !== 'active') {
             throw new DomainException('space_not_found');
@@ -290,7 +294,7 @@ final class AccessService {
     /** @return array<string,mixed>|null */
     private function saasScope(int $spaceId): ?array {
         $q = $this->db->getQueryBuilder();
-        $q->select('es.space_id', 'e.status AS environment_status',
+        $q->select('es.space_id', 'es.review_state', 'e.status AS environment_status',
                 'g.group_gid', 'g.state AS group_state')
             ->from('lf_environment_spaces', 'es')
             ->leftJoin('es', 'lf_environments', 'e', 'e.id = es.environment_id')
@@ -315,7 +319,7 @@ final class AccessService {
         }
         $ids = array_map('intval', array_keys($spaces));
         $q = $this->db->getQueryBuilder();
-        $q->select('es.space_id', 'e.status AS environment_status',
+        $q->select('es.space_id', 'es.review_state', 'e.status AS environment_status',
                 'g.group_gid', 'g.state AS group_state')
             ->from('lf_environment_spaces', 'es')
             ->leftJoin('es', 'lf_environments', 'e', 'e.id = es.environment_id')
@@ -341,7 +345,8 @@ final class AccessService {
             $spaceId = (int)$binding['space_id'];
             $gid = (string)($binding['group_gid'] ?? '');
             $role = $memberRoles[$spaceId] ?? null;
-            if (!$managedEnabled || $gid === '' || $this->groups->get($gid) === null
+            if (!$managedEnabled || ($binding['review_state'] ?? null) !== 'confirmed'
+                || $gid === '' || $this->groups->get($gid) === null
                 || !in_array($gid, $gids, true)
                 || ($binding['environment_status'] ?? null) !== 'active'
                 || ($binding['group_state'] ?? null) !== 'active'

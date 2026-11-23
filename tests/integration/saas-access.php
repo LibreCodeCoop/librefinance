@@ -207,6 +207,18 @@ try {
         '/spaces/' . $spaceA . '/members/' . $b, null, 200);
     $t->check('B is denied on very next finance request', $b, 'GET',
         '/spaces/' . $spaceA . '/journals', null, 404);
+    $t->check('SaaS owner may explicitly grant manager below owner authority',
+        $a, 'POST', '/spaces/' . $spaceA . '/members',
+        ['uid' => $b, 'role' => 'manager'], 200);
+    $t->check('manager can inspect assigned workspace membership',
+        $b, 'GET', '/spaces/' . $spaceA . '/members', null, 200);
+    $t->check('manager cannot reassign roles or promote itself to owner',
+        $b, 'POST', '/spaces/' . $spaceA . '/members',
+        ['uid' => $a, 'role' => 'manager'], 403);
+    $t->check('owner revokes manager grant', $a, 'DELETE',
+        '/spaces/' . $spaceA . '/members/' . $b, null, 200);
+    $t->check('manager revocation immediately revokes ledger read',
+        $b, 'GET', '/spaces/' . $spaceA . '/journals', null, 404);
     instanceCheck('instance admin suspends environment A without deleting postings',
         'PUT', '/saas/v1/admin/groups/' . $groupA . '/enablement',
         ['enabled' => false], 200);

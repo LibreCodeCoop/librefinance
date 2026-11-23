@@ -268,7 +268,8 @@ final class SpaceService {
         AccessService::validateGrantRole($role);
         $uid = trim($uid);
         $this->governance->checkUserGrant($spaceId, $uid);
-        if ($this->governance->groupFor($spaceId) !== null
+        if (!$this->access->isSaasWorkspace($spaceId)
+            && $this->governance->groupFor($spaceId) !== null
             && $role === 'manager' && !$this->governance->isInstanceAdmin()) {
             throw new DomainException('permission_denied');
         }
