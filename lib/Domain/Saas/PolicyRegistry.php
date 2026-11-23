@@ -25,7 +25,7 @@ final class PolicyRegistry {
             new PolicyDefinition('imports.enabled', 'boolean',
                 ['instance', 'environment', 'workspace'], true, true),
             new PolicyDefinition('workspaces.maxCount', 'ceiling',
-                ['instance', 'environment'], PHP_INT_MAX, true),
+                ['instance', 'environment'], 9007199254740991, true),
         ];
         $this->definitions = [];
         foreach ($specs as $spec) {

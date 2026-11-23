@@ -97,6 +97,9 @@ denied('negative quota rejected', fn() => $resolver->resolve($ceiling, [
 denied('noninteger quota rejected', fn() => $resolver->resolve($ceiling, [
     layer('instance', 1.1),
 ]), 'invalid_policy_value');
+denied('unsafe JSON integer quota rejected', fn() => $resolver->resolve($ceiling, [
+    layer('instance', 9007199254740992),
+]), 'invalid_policy_value');
 
 $set = new PolicyDefinition('regions.allowed', 'allowed_set',
     ['instance', 'environment', 'workspace'], ['BR', 'PT', 'US'], true);
