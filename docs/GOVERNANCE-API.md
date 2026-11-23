@@ -128,3 +128,54 @@ se forem subadministradores atuais no Nextcloud ou delegados válidos.
 Nenhum desses papéis concede acesso automático a extratos, lançamentos,
 empresas ou outros dados financeiros. Os contextos gerenciados legados
 continuam distintos e ainda exigem revisão antes de migração ao modelo SaaS.
+
+## Administrar gestões independentes por ambiente SaaS
+
+Depois que a instância habilita o grupo e um subadministrador Nextcloud ou
+delegado autorizado ativa o ambiente, o responsável abre **Gestões financeiras**
+e encontra **Ambientes LibreFinance**. Se administra dois ou mais grupos, deve
+selecionar explicitamente **um ambiente administrativo**. A aplicação não
+combina permissões, gestões nem informações financeiras entre esses grupos.
+
+O responsável pode listar as gestões do ambiente selecionado e solicitar a
+criação de um novo livro contábil independente. Para criar:
+
+1. Selecione o ambiente ativo de sua competência.
+2. Informe o nome da gestão e o **UID Nextcloud de outro participante daquele
+   grupo**, que será o proprietário financeiro. A interface não concede ao
+   administrador do grupo direitos contábeis.
+3. Escolha o tipo (organização, coletivo ou pessoal) e confira ambiente,
+   proprietário e separação de dados na confirmação.
+4. Confirme a criação. A aplicação chama
+   `POST /api/saas/v1/environments/{environmentId}/workspaces` com
+   `name`, `ownerUid`, `kind`, `currency`, `color` e `idempotencyKey`.
+   A mesma chave é reutilizada se a resposta HTTP falhar ou for perdida e
+   a intenção original for reenviada; alterações no pedido usam uma nova chave.
+
+O backend exige autorização de administração do ambiente ativo, participação
+atual do proprietário no grupo e exclusão da autopromoção administrativa.
+Também impõe as restrições efetivas de políticas, como
+`workspaces.maxCount`, e as unicidades de persistência. A associação do
+ambiente não concede automaticamente leitura do livro nem privilégios a todo
+o grupo. Para atribuir papéis financeiros individuais, o **proprietário**
+usa o controle de acessos da própria gestão financeira.
+
+`GET /api/saas/v1/environments/{environmentId}/workspaces` retorna apenas
+metadados das gestões disponíveis ao administrador daquele ambiente:
+`id`, `name`, `ownerUid` e `kind`. Não retorna lançamentos, extratos,
+saldos ou conteúdos de outras organizações. Se o acesso administrativo for
+revogado ou o ambiente suspenso, a próxima solicitação protegida é negada,
+e a interface descarta dados carregados daquele contexto.
+
+**Diferença importante:** uma empresa cadastrada em uma mesma gestão
+compartilha seu livro com as demais empresas daquela gestão. Para ter caixa,
+saldos, lançamentos e papéis separados por empresa, crie uma **nova gestão
+independente**; o proprietário cadastra depois a identidade legal em Dados
+da organização. A criação de gestão não configura banco externo, emissão
+fiscal certificada nem compartilhamento externo.
+
+A administração por ambiente exige uma instalação Nextcloud com o LibreFinance
+habilitado, grupo ativo, subadministrador ou delegado autorizado, e usuários
+existentes no grupo. Os erros por permissão, ambiente inválido, proprietário
+inapto, limite de gestões ou conflito de idempotência são tratados pelo
+backend; mensagens na interface não substituem a autorização PHP.
