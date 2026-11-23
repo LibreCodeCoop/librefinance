@@ -17,8 +17,8 @@ final class InvoiceController extends Controller {
     }
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/invoices')]
-    public function index(int $spaceId,int $afterId=0,string $kind=''):JSONResponse {
-        return $this->respond(fn()=>$this->service->list($spaceId,$afterId,$kind));
+    public function index(int $spaceId,int $afterId=0,string $kind='',string $status=''):JSONResponse {
+        return $this->respond(fn()=>$this->service->list($spaceId,$afterId,$kind,$status));
     }
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/invoices/{invoiceId}')]

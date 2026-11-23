@@ -24,24 +24,44 @@ final class InvoiceService {
         private IUserSession $session,
     ) {}
 
-    public function list(int $spaceId,int $afterId=0,string $kind=''):array {
+    public function list(int $spaceId,int $afterId=0,string $kind='',string $status=''):array {
         $this->finance->requireModule($spaceId,self::MODULE);
         if($afterId<0){throw new DomainException('invalid_cursor');}
         if($kind!=='' && !in_array($kind,['invoice','bill'],true)){
             throw new DomainException('invalid_invoice_kind');
         }
+        if($status!=='' && !in_array($status,['draft','issued','partially_paid','paid','attention'],true)){
+            throw new DomainException('invalid_invoice_status');
+        }
         $q=$this->db->getQueryBuilder();
-        $q->select('id','number','kind','status','contact_id','currency',
+        $fields=['id','number','kind','status','contact_id','currency',
             'issue_on','due_on','country','region','subtotal_minor','tax_minor','withheld_minor',
-            'total_minor','paid_minor','version')
-            ->from('lfi_invoices')
-            ->where($q->expr()->eq('space_id',$q->createNamedParameter($spaceId,IQueryBuilder::PARAM_INT)))
-            ->andWhere($q->expr()->gt('id',$q->createNamedParameter($afterId,IQueryBuilder::PARAM_INT)));
+            'total_minor','paid_minor','version'];
+        $q->select(...array_map(static fn(string $field):string=>'i.'.$field,$fields))
+            ->from('lfi_invoices','i')
+            ->where($q->expr()->eq('i.space_id',$q->createNamedParameter($spaceId,IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->gt('i.id',$q->createNamedParameter($afterId,IQueryBuilder::PARAM_INT)));
         // Filter before pagination, never after a page is loaded in Vue.
         if($kind!==''){
-            $q->andWhere($q->expr()->eq('kind',$q->createNamedParameter($kind)));
+            $q->andWhere($q->expr()->eq('i.kind',$q->createNamedParameter($kind)));
         }
-        $q->orderBy('id','ASC')->setMaxResults(51);
+        // Issued documents without a verified obligation link must remain
+        // actionable. A scoped LEFT JOIN uses the per-space unique index
+        // and avoids a DBAL-escaped NOT IN subquery (invalid on PostgreSQL).
+        if($status==='attention'){
+            $q->leftJoin('i','lf_invoice_obligation_links','l',
+                $q->expr()->andX(
+                    $q->expr()->eq('l.invoice_id','i.id'),
+                    $q->expr()->eq('l.space_id','i.space_id'),
+                ));
+            $q->andWhere($q->expr()->orX(
+                $q->expr()->eq('i.status',$q->createNamedParameter('draft')),
+                $q->expr()->isNull('l.invoice_id'),
+            ));
+        }elseif($status!==''){
+            $q->andWhere($q->expr()->eq('i.status',$q->createNamedParameter($status)));
+        }
+        $q->orderBy('i.id','ASC')->setMaxResults(51);
         $rows=$q->executeQuery()->fetchAllAssociative();
         $more=count($rows)>50;
         $rows=array_slice($rows,0,50);

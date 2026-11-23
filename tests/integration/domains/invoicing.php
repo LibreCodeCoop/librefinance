@@ -80,6 +80,26 @@ $t->checkModule('supplier bills query excludes sales before pagination', $a, $ap
 $t->checkModule('backward-compatible unfiltered invoices endpoint', $a, $app,
     'GET', $base.'/invoices', null, 200,
     static fn(array $v):bool=>count($v['invoices']??[])===2);
+$t->checkModule('work queue sees both original drafts but no invented payment', $a, $app,
+    'GET', $base.'/invoices?status=draft', null, 200,
+    static fn(array $v):bool=>count($v['invoices']??[])===2
+        && count(array_filter($v['invoices'],
+            static fn(array $row):bool=>$row['status']!=='draft'))===0);
+$t->checkModule('work queue filters sales drafts before pagination', $a, $app,
+    'GET', $base.'/invoices?kind=invoice&status=draft', null, 200,
+    static fn(array $v):bool=>count($v['invoices']??[])===1
+        && $v['invoices'][0]['kind']==='invoice');
+$t->checkModule('attention projection includes current drafts before issuing', $a, $app,
+    'GET', $base.'/invoices?status=attention', null, 200,
+    static fn(array $v):bool=>count($v['invoices']??[])===2);
+$t->checkModule('unsupported work queue status rejected by server', $a, $app,
+    'GET', $base.'/invoices?status=deleted', null, 422,
+    static fn(array $v):bool=>($v['error']??null)==='invalid_invoice_status');
+$t->checkModule('other space denied filtered draft list', $b, $app,
+    'GET', $base.'/invoices?status=draft', null, 404);
+$t->checkModule('other space denied action queue projection', $b, $app,
+    'GET', $base.'/invoices?status=attention', null, 404);
+
 $t->checkModule('invalid commercial document kind rejected', $a, $app,
     'GET', $base.'/invoices?kind=untrusted', null, 422,
     static fn(array $v):bool=>($v['error']??null)==='invalid_invoice_kind');
@@ -103,6 +123,19 @@ $t->checkModule('issue commercial invoice',$a,$app,'POST',
     $base.'/invoices/'.$invoiceId.'/issue',null,200,
     static fn(array $v):bool=>($v['status']??null)==='issued'
         && ($v['isFiscalDocument']??true)===false);
+$t->checkModule('confirmed invoice disappears from work queue without deleting it', $a, $app,
+    'GET', $base.'/invoices?status=draft', null, 200,
+    static fn(array $v):bool=>count($v['invoices']??[])===1
+        && $v['invoices'][0]['kind']==='bill');
+$t->checkModule('confirmed invoice still listed as commercial source document', $a, $app,
+    'GET', $base.'/invoices?status=issued', null, 200,
+    static fn(array $v):bool=>count($v['invoices']??[])===1
+        && $v['invoices'][0]['kind']==='invoice');
+$t->checkModule('confirmed invoice removed from attention when obligation linked', $a, $app,
+    'GET', $base.'/invoices?status=attention', null, 200,
+    static fn(array $v):bool=>count($v['invoices']??[])===1
+        && $v['invoices'][0]['kind']==='bill');
+
 $t->checkModule('taxed commercial invoice blocks gross cash-as-revenue posting',
     $a, $app, 'POST', $base.'/invoices/'.$invoiceId.'/cash-payments',
     [
@@ -245,6 +278,13 @@ $t->checkModule('historical issued invoice has no invented link', $a, $app,
     static fn(array $v): bool => ($v['obligationId'] ?? null) === null
         && $v['invoice']['status'] === 'issued'
         && $v['allocations'] === []);
+$t->checkModule('legacy unlinked issued invoice remains actionable without invented debt',
+    $a, $app, 'GET', $base.'/invoices?status=attention', null, 200,
+    static fn(array $v):bool=>count(array_filter($v['invoices']??[],
+        static fn(array $row):bool=>(int)$row['id']===(int)$old['id']
+            && $row['status']==='issued'))===1
+        && count(array_filter($v['invoices']??[],
+            static fn(array $row):bool=>(int)$row['id']===$invoiceId))===0);
 $oldJournal = $t->check('post distinct legacy bank settlement candidate',
     $a, 'POST', $base.'/journals',
     ['debitId'=>$chart['1000'],'creditId'=>$chart['4000'],

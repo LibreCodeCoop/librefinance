@@ -114,7 +114,7 @@ $query = [
     'librefinance:obligation#settlements' => 'afterId:i',
     'librefinance:banking#index' => 'afterId:i',
     'librefinance:tax#index' => 'afterId:i',
-    'librefinance:invoice#index' => 'afterId:i,kind:s',
+    'librefinance:invoice#index' => 'afterId:i,kind:s,status:s',
     'librefinance_nfse:draft#index' => 'afterId:i',
 ];
 $descriptions = [
