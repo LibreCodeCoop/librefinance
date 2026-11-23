@@ -23,6 +23,7 @@ const w=inject('lfWorkspace')
 const navigate=inject('lfNavigate')
 const importRequest=inject('lfBankImportRequest',ref(0))
 const focusedBank=inject('lfBankFocus',ref(null))
+const bankContext=inject('lfBankContext',ref(0))
 const { activeId, accounts, journals, nextBeforeId,
   loadMore: loadMoreJournals, money, writable } = w
 const chosenAccount=ref(0)
@@ -138,7 +139,11 @@ async function moreTransfers() {
 function openImportDialog() {
   importError.value = ''
   csvFile.value = null
-  importAccount.value = banks.value[0]?.id || 0
+  // Never silently import into the first account when several are present.
+  // Use the explicitly selected account or require a choice.
+  importAccount.value = chosenAccount.value > 0
+    ? Number(chosenAccount.value)
+    : banks.value.length === 1 ? Number(banks.value[0].id) : 0
   importDialog.value = true
 }
 function closeImportDialog() {
@@ -185,6 +190,16 @@ async function match() {
   }catch(e){if(token===generation)reconciliationError.value=financeError(e)}
   finally{if(token===generation)busy.value=false}
 }
+watch([bankContext,()=>w.accounts.value],([target,accounts])=>{
+  if (Number(target)>0 && accounts.some(a=>Number(a.id)===Number(target)&&a.is_bank)) {
+    chosenAccount.value=Number(target)
+  }
+},{immediate:true})
+watch(chosenAccount, id => {
+  if (Number(id) >= 0 && Number(bankContext.value) !== Number(id)) {
+    bankContext.value = Number(id)
+  }
+})
 watch([chosenAccount,filter],load)
 // Opening from a pending evidence row lands on that exact authorized
 // statement transaction; no payment or ledger entry is created here.
@@ -226,8 +241,8 @@ onBeforeUnmount(()=>++generation)
       </template>
     </LfPageHeader>
     <p v-if="embedded" class="lf-muted lf-bank-intro">
-      O extrato confirma movimentos do banco; conciliar vincula a um lançamento já contabilizado.
-      Importar não gera receita, despesa ou quitação de fatura automaticamente.
+      Confira o que apareceu no banco. Se o dinheiro já foi registrado, basta conferir:
+      ele não será lançado duas vezes.
     </p>
     <details v-if="rows.length || transfers.length" class="lf-finance-explanation">
       <summary>Como funciona a conciliação?</summary>

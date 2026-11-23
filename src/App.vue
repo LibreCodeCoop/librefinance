@@ -42,6 +42,8 @@ import ReportsView from './views/ReportsView.vue'
 import ObligationsView from './views/ObligationsView.vue'
 import InvoicesView from './views/InvoicesView.vue'
 import CashflowView from './views/CashflowView.vue'
+import MovementsView from './views/MovementsView.vue'
+import DocumentsView from './views/DocumentsView.vue'
 import SpacesView from './views/SpacesView.vue'
 import TaxRulesView from './views/TaxRulesView.vue'
 import NfseView from './views/NfseView.vue'
@@ -70,6 +72,8 @@ const bankImportRequest = ref(0)
 provide('lfBankImportRequest', bankImportRequest)
 const focusedBank = ref(null)
 provide('lfBankFocus', focusedBank)
+const bankContext = ref(0)
+provide('lfBankContext', bankContext)
 // The navigation follows user tasks, not the internal extension layout.
 // Server-authorized module discovery is still the only source of availability.
 const labels = computed(() => Object.fromEntries(
@@ -82,17 +86,17 @@ const screens = {
   transactions: TransactionsView,
   accounts: AccountsView,
   banking: CashflowView,
-  finance: CashflowView,
+  finance: MovementsView,
   bankAccounts: AccountsView,
-  documents: CashflowView,
+  documents: DocumentsView,
   spaces: SpacesView,
   receivables: CashflowView,
   payables: CashflowView,
-  // Separate user-facing tasks preserve the same data-layer ownership.
-  obligations: CashflowView,
-  sales: CashflowView,
-  purchases: CashflowView,
-  invoicing: CashflowView,
+  // Historic links map to the same two user-facing financial screens.
+  obligations: MovementsView,
+  sales: DocumentsView,
+  purchases: DocumentsView,
+  invoicing: DocumentsView,
   taxes: TaxRulesView,
   contacts: ContactsView,
   items: ItemsView,
@@ -286,12 +290,12 @@ function navigate(view, options = {}) {
   }
   // The historical documents view has no direction in its URL. Internal
   // document actions already carry a verified purchase/sale context.
-  if (view === 'documents' && options.preserveDirection) {
-    view = financeDirectionHint.value === 'payable' ? 'purchases' : 'sales'
-  }
-  if (['finance','payables','receivables','sales','purchases'].includes(canonicalView(view))
+  if (['payables','receivables','sales','purchases','invoicing'].includes(view)
     && !options.preserveDirection) {
     financeDirectionHint.value = financeDirectionForView(view)
+  }
+  if (view === 'finance' && !options.preserveDirection) {
+    financeDirectionHint.value = 'all'
   }
   view = canonicalView(view)
   expandParent(view)
@@ -318,6 +322,7 @@ function selectSpace(id) {
   focusedInvoice.value = null
   focusedObligation.value = null
   focusedBank.value = null
+  bankContext.value = 0
   bankImportRequest.value = 0
   journalOpenRequest.value = 0
   quickEntry.value = false
@@ -444,7 +449,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
                   @update:open="setGroupOpen(item.id, $event)">
                   <template #icon><NcIconSvgWrapper :path="icons[item.icon]" :size="20" /></template>
                   <template v-if="item.id === 'financeMenu'">
-                    <NcAppNavigationItem v-for="child in item.children" :key="child.id"
+                    <NcAppNavigationItem v-for="child in item.children.filter(child => !child.hidden)" :key="child.id"
                       :name="labels[child.id]" :href="viewHref(child.id)"
                       :active="readyView === child.id" @click="onNavClick($event, child.id)">
                       <template #icon>
@@ -498,7 +503,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
             <span class="lf-context-currency">{{ space.currency }}</span>
             <NcButton v-if="writable && readyView === 'dashboard'" variant="primary" @click="openEntry">
               <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-              Abrir Financeiro
+              Ver movimentações
             </NcButton>
             <NcButton variant="tertiary" aria-label="Atualizar dados"
               :disabled="busy" @click="refreshCurrent">

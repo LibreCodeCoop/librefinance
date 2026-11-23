@@ -5,19 +5,19 @@
 
 export const PAGE_NAMES = Object.freeze({
   dashboard: 'Visão geral',
-  transactions: 'Lançamentos contábeis',
-  banking: 'Extratos e conciliação',
-  bankAccounts: 'Contas bancárias e caixa',
-  obligations: 'A pagar e receber', // historic bookmark
+  transactions: 'Histórico contábil',
+  banking: 'Extrato da conta',
+  bankAccounts: 'Contas e bancos',
+  obligations: 'Movimentações', // historic bookmark
   reports: 'Relatórios',
-  invoicing: 'Vendas', // legacy deep-link alias
-  sales: 'Vendas',
-  receivables: 'A pagar e receber',
-  finance: 'A pagar e receber',
-  documents: 'Vendas', // legacy deep-link alias
+  invoicing: 'Faturas', // legacy deep-link alias
+  sales: 'Faturas',
+  receivables: 'Movimentações',
+  finance: 'Movimentações',
+  documents: 'Faturas',
   spaces: 'Gestões financeiras',
-  payables: 'A pagar e receber',
-  purchases: 'Compras',
+  payables: 'Movimentações',
+  purchases: 'Faturas',
   taxes: 'Regras tributárias',
   nfse: 'NFS-e Brasil',
   contacts: 'Clientes e fornecedores',
@@ -40,19 +40,16 @@ export const PAGE_NAMES = Object.freeze({
 export const MENU_STRUCTURE = Object.freeze([
   { id: 'operations', label: 'LIBREFINANCE', items: [
     { id: 'dashboard', icon: 'home', keywords: 'inicio visao geral resumo painel home' },
-    // One record for both payable and receivable commitments. The bank
-    // register is separate from source statements and the accounting COA.
+    // Financial activity always works, even with optional extensions disabled.
+    // Statement review is a contextual route reached from an account, not a
+    // competing menu area or another accounting screen.
     { id: 'financeMenu', label: 'Financeiro', icon: 'obligations', children: [
-      { id: 'finance', icon: 'transactions', module:'librefinance_obligations',
-        keywords: 'a pagar e receber movimentacoes contas cobrancas compromissos vencimentos receitas despesas' },
-      { id: 'sales', icon: 'billing', module: 'librefinance_invoicing',
-        keywords: 'vendas faturas clientes produtos servicos itens impostos venda' },
-      { id: 'purchases', icon: 'purchases', module: 'librefinance_invoicing',
-        keywords: 'compras fornecedores produtos servicos itens tributos nota recebida' },
-      { id: 'bankAccounts', icon: 'banking',
-        keywords: 'contas bancarias bancos caixa cadastrar sicoob itau banco do brasil instituicao financeira' },
-      { id: 'banking', icon: 'transactions', module: 'librefinance_banking',
-        keywords: 'extratos conciliacao importar csv correspondencia movimentos bancarios' },
+      { id: 'finance', icon: 'transactions',
+        keywords: 'movimentacoes contas a pagar a receber entradas saidas pagamentos cobrancas saldo extrato' },
+      { id: 'documents', icon: 'billing', module: 'librefinance_invoicing',
+        keywords: 'faturas vendas compras clientes fornecedores produtos servicos itens tributos' },
+      { id: 'banking', icon: 'banking', hidden: true, module: 'librefinance_banking',
+        keywords: 'extratos importar conferir conciliacao por conta' },
     ] },
     { id: 'reports', icon: 'reports', module: 'librefinance_reports',
       keywords: 'relatorios demonstrativos fluxo de caixa resultados dre balancete' },
@@ -68,6 +65,8 @@ export const MENU_STRUCTURE = Object.freeze([
       { id: 'categories', icon: 'categories', group: 'Cadastros',
         keywords: 'categorias classificacao receitas despesas' },
 
+      { id: 'bankAccounts', icon: 'banking', group: 'Cadastros',
+        keywords: 'contas bancos caixa cadastrar dados bancarios financeiro' },
       { id: 'accounts', icon: 'accounts', group: 'Financeiro e fiscal',
         keywords: 'plano de contas contabilidade patrimonio ativo passivo' },
       { id: 'transactions', icon: 'transactions', group: 'Financeiro e fiscal',
@@ -142,14 +141,14 @@ const LEGACY_SETTINGS = Object.freeze({
 export function canonicalView(id, section = null) {
   if (id === 'settings') return LEGACY_SETTINGS[section] || 'access'
   if (id === 'import') return 'data'
-  if (['invoicing', 'documents'].includes(id)) return 'sales'
+  if (['invoicing', 'sales', 'purchases'].includes(id)) return 'documents'
   if (['obligations','payables','receivables'].includes(id)) return 'finance'
   return id
 }
 
 /** Existing links preserve their intended entry/exit direction as a filter. */
 export function financeDirectionForView(id) {
-  if (['invoicing', 'sales', 'receivables', 'documents'].includes(id)) return 'receivable'
+  if (['invoicing', 'sales', 'receivables'].includes(id)) return 'receivable'
   if (['purchases', 'payables'].includes(id)) return 'payable'
   return 'all'
 }
@@ -179,7 +178,7 @@ export function navigationSearch(sections, query,
     if (keywords.includes(search)) return 4
     return -1
   }
-  return menuEntries(sections).map((item, order) => ({
+  return menuEntries(sections).filter(item => !item.hidden).map((item, order) => ({
     item, order, score: rank(item),
   })).filter(found => found.score >= 0)
     .sort((a, b) => a.score - b.score || a.order - b.order)

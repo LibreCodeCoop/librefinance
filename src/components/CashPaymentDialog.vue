@@ -138,23 +138,21 @@ async function recordPayment() {
     <form class="lf-dialog-form" @submit.prevent="recordPayment">
       <NcNoteCard type="info">
         {{ existing
-          ? 'Associa este compromisso a um lançamento de caixa já contabilizado. Não gera outra movimentação.'
-          : 'Registra uma movimentação contábil de caixa e atualiza este compromisso na mesma operação. Não realiza transferência no banco real.' }}
+          ? 'Vincule um pagamento ou recebimento que já foi registrado. O dinheiro não será contado duas vezes.'
+          : 'Registre o pagamento ou recebimento desta conta. O saldo será atualizado automaticamente. Nenhuma transferência será enviada ao banco.' }}
       </NcNoteCard>
       <NcNoteCard v-if="taxed" type="error">
-        Este documento tem tributos ou retenções. A contabilização de caixa
-        automática está bloqueada para impedir classificação incorreta dos
-        valores. Vincule um lançamento existente com as partidas corretas.
+        Esta fatura tem impostos ou retenções que exigem revisão. Não é seguro
+        registrar o valor automaticamente. Vincule uma movimentação já conferida.
       </NcNoteCard>
       <NcNoteCard v-if="source === 'invoice' && !existing" type="warning">
-        A confirmação da fatura ainda não contabiliza receitas ou
-        despesas por competência. Este registro segue o regime de caixa.
-        Se o movimento já está contabilizado, utilize a opção de associar um
-        lançamento existente, sem criar outro.
+        Confirmar a fatura não significa receber ou pagar. Esta ação registra
+        o dinheiro agora. Se ele já foi registrado, use a opção de vincular
+        uma movimentação existente para evitar duplicidade.
       </NcNoteCard>
-      <NcNoteCard v-if="source !== 'invoice' && !existing" type="info">
-        Escolha a classificação correta da movimentação (por exemplo, despesa,
-        receita ou pagamento de dívida). Ela não é inferida automaticamente.
+      <NcNoteCard v-if="source !== 'invoice' && !existing && counterOptions.length>1"
+        type="info">
+        Escolha o tipo de movimentação correspondente ao pagamento ou recebimento.
       </NcNoteCard>
       <p v-if="record"><strong>{{record.description || record.number}}</strong> ·
         Em aberto: {{w.money(outstanding)}}</p>
@@ -162,9 +160,8 @@ async function recordPayment() {
       <LfSelect id="lf-cash-bank" v-model="bankId"
         label="Conta bancária ou caixa" :options="bankOptions"
         :disabled="busy" />
-      <LfSelect v-if="!existing" id="lf-cash-counter" v-model="counterId"
-        :label="source === 'invoice' ? 'Classificação da receita ou despesa'
-          : 'Classificação desta movimentação'"
+      <LfSelect v-if="!existing && counterOptions.length>1"
+        id="lf-cash-counter" v-model="counterId" label="Tipo de movimentação"
         :options="counterOptions" :disabled="busy" />
       <LfSelect v-else id="lf-existing-journal" v-model="journalId"
         label="Movimentação já registrada" :options="journalOptions"

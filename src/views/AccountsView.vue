@@ -94,7 +94,10 @@ const listed = computed(() => localSort.order(accounts.value.filter(a =>
     }))
 function create() {
   problem.value = ''
-  form.value = { id: 0, code: '', name: '', class: 'asset', isBank: true, active: true }
+  form.value = {
+    id: 0, code: props.bankOnly ? 'BANK-' + crypto.randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase() : '',
+    name: '', class: 'asset', isBank: true, active: true,
+  }
   dialog.value = true
 }
 function edit(account) {
@@ -109,10 +112,7 @@ async function submit() {
   working.value = true
   try {
     const selected = form.value
-    if (props.bankOnly && (!selected.id && !selected.code.trim())) {
-      problem.value = 'Informe um código interno único para identificar esta conta.'
-      return
-    }
+
     if (selected.id) {
       await financeApi('librefinance', Number(activeId.value), '/accounts/' + selected.id, 'PUT',
         { name: selected.name.trim(), active: selected.active })
@@ -131,14 +131,14 @@ async function submit() {
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader :title="props.bankOnly ? 'Contas bancárias e caixa' : 'Plano de contas'"
+    <LfPageHeader :title="props.bankOnly ? 'Contas e bancos' : 'Plano de contas'"
       :eyebrow="props.bankOnly ? 'FINANCEIRO' : 'CONTABILIDADE'"
       :description="props.bankOnly
         ? 'Cadastre onde seu dinheiro fica: contas bancárias e caixa. Selecione uma conta ao registrar pagamentos ou importar extratos.'
         : 'Organize e consulte as contas que sustentam os relatórios financeiros. Não é preciso conhecer contabilidade para registrar receitas e despesas.'">
       <template #actions>
-        <NcButton v-if="props.bankOnly" variant="secondary" @click="navigate('banking')">
-          Conferir extratos
+        <NcButton v-if="props.bankOnly" variant="tertiary" @click="navigate('finance')">
+          Movimentações
         </NcButton>
         <NcButton v-else variant="secondary" @click="openPaymentSettings">
           Formas de pagamento
@@ -149,12 +149,12 @@ async function submit() {
         </NcButton>
       </template>
     </LfPageHeader>
-    <NcNoteCard v-if="props.bankOnly" type="info">
-      Cadastre uma conta por banco ou caixa e use os extratos separadamente.
-      O cadastro atual guarda código, nome e saldo contábil. Agência, número bancário,
-      credenciais e sincronização com instituições financeiras ainda não estão configurados.
-      Nenhuma conexão bancária é criada por este formulário.
-    </NcNoteCard>
+    <details v-if="props.bankOnly" class="lf-finance-explanation">
+      <summary>Sobre conectar o banco</summary>
+      <p>Por enquanto, você pode registrar movimentações e importar extratos manualmente.
+        Ainda não é possível conectar sua instituição bancária automaticamente.
+        Não informe senhas neste cadastro.</p>
+    </details>
     <NcNoteCard v-else type="info">
       <strong>Conta financeira x plano de contas:</strong> uma conta bancária é onde o dinheiro está;
       o plano de contas explica a natureza de cada movimento. As cinco classes são padrões
@@ -185,8 +185,10 @@ async function submit() {
       <div v-if="listed.length" class="lf-table-scroll"><table class="lf-data-table">
         <thead><tr>
           <th v-for="col in [
-            {key:'code',label:'Código'}, {key:'name',label:'Conta'},
-            {key:'class',label:'Natureza'}, {key:'active',label:'Situação'},
+            ...(!props.bankOnly ? [{key:'code',label:'Código'}] : []),
+            {key:'name',label:'Conta'},
+            ...(!props.bankOnly ? [{key:'class',label:'Natureza'}] : []),
+            {key:'active',label:'Situação'},
             {key:'balance',label:'Saldo'}]" :key="col.key"
             :class="{ 'lf-numeric': col.key==='balance' }" :aria-sort="localSort.ariaSort(col.key)">
             <LfSortableHeader :label="col.label" :column="col.key"
@@ -195,9 +197,10 @@ async function submit() {
           </th>
           <th v-if="manager">Ações</th></tr></thead>
         <tbody><tr v-for="account in listed" :key="account.id">
-          <td class="lf-code">{{ account.code }}</td><td><strong>{{ account.name }}</strong>
+          <td v-if="!props.bankOnly" class="lf-code">{{ account.code }}</td>
+          <td><strong>{{ account.name }}</strong>
             <small v-if="account.is_bank" class="lf-muted">Conta financeira (banco ou caixa)</small></td>
-          <td>{{ filters.find(f=>f.value===account.class)?.label || account.class }}</td>
+          <td v-if="!props.bankOnly">{{ filters.find(f=>f.value===account.class)?.label || account.class }}</td>
           <td><span :class="account.active ? 'lf-state lf-state-good' : 'lf-state'">
             {{ account.active ? 'Ativa' : 'Desativada' }}</span></td>
           <td class="lf-numeric"><strong>{{ naturalBalance(account) }}</strong></td>
@@ -237,8 +240,8 @@ async function submit() {
       <form class="lf-dialog-form" @submit.prevent="submit">
         <NcNoteCard v-if="problem" type="error" role="alert">{{ problem }}</NcNoteCard>
         <NcTextField v-model="form.name" label="Nome da conta" maxlength="150" required />
-        <NcTextField v-model="form.code"
-          :label="props.bankOnly ? 'Código interno da conta' : 'Código contábil'" maxlength="32"
+        <NcTextField v-if="!props.bankOnly" v-model="form.code"
+          label="Código contábil" maxlength="32"
           :disabled="Boolean(form.id)" required placeholder="Ex.: BANCO-001" />
         <LfSelect v-if="!props.bankOnly" id="lf-account-class"
           v-model="form.class" label="Natureza contábil"
@@ -250,7 +253,7 @@ async function submit() {
         <NcCheckboxRadioSwitch v-if="form.id" v-model="form.active" type="checkbox">
           Permitir novos lançamentos nesta conta
         </NcCheckboxRadioSwitch>
-        <NcNoteCard type="info">O código de uma conta existente não muda porque
+        <NcNoteCard v-if="!props.bankOnly" type="info">O código de uma conta existente não muda porque
           identifica seus lançamentos. Contas com saldo ou histórico têm restrições
           de alteração e exclusão. Não use este cadastro para fornecer senhas bancárias.</NcNoteCard>
         <div class="lf-form-actions"><NcButton variant="tertiary" @click="dialog=false">Cancelar</NcButton>

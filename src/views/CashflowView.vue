@@ -55,13 +55,13 @@ const isBanking = computed(() => props.section === 'banking')
 const isDocument = computed(() => isSales.value || isPurchase.value)
 const pageTitle = computed(() => ({
   finance:'A pagar e receber', sales:'Vendas', purchases:'Compras',
-  banking:'Extratos e conciliação',
+  banking:'Extrato da conta',
 })[props.section] || 'Financeiro')
 const pageDescription = computed(() => ({
   finance:'Uma lista de contas e cobranças, com entradas, saídas, vencimentos e situação. Use o filtro para ver apenas a pagar ou a receber.',
   sales:'Registre suas vendas com itens e valores. Ao confirmar, a cobrança aparece em A pagar e receber automaticamente.',
   purchases:'Registre suas compras com itens e valores. Ao confirmar, a conta aparece em A pagar e receber automaticamente.',
-  banking:'Confira os extratos por conta. Importar um extrato não paga uma conta nem registra uma receita novamente.',
+  banking:'Confira os movimentos informados pelo banco. Registros que já existem não precisam ser cadastrados novamente.',
 })[props.section] || '')
 
 const drafts = ref([])
@@ -223,8 +223,8 @@ onBeforeUnmount(() => { ++generation })
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
           Nova compra
         </NcButton>
-        <NcButton v-if="isBanking" variant="secondary" @click="navigate('bankAccounts')">
-          Contas bancárias e caixa
+        <NcButton v-if="isBanking" variant="tertiary" @click="navigate('finance')">
+          Voltar às movimentações
         </NcButton>
         <NcButton v-if="w.writable.value && isBanking && hasBank
           && w.accounts.value.some(account => account.is_bank && account.active)"
