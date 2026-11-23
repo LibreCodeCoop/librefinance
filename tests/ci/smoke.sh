@@ -318,6 +318,10 @@ else
 fi
 
 if [ "${LF_RUN_PLAYWRIGHT:-0}" = 1 ]; then
+  # Only synthetic browser identity A: discover the already-suspended SaaS
+  # group after the finance and authorization suites have finished.
+  # Group eligibility is not a financial grant or workspace membership.
+  compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_finance_group lfmaintestA
   test -x node_modules/.bin/playwright || {
     echo "Missing Playwright dependency: run npm ci --include=dev" >&2
     exit 2

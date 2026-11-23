@@ -18,6 +18,7 @@ import { mdiFolderAccountOutline, mdiHomeOutline, mdiDomain,
   mdiBackupRestore, mdiFolderOpenOutline } from '@mdi/js'
 import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
+import SaasEnvironmentsPanel from '../components/SaasEnvironmentsPanel.vue'
 import { financeError } from '../services/api.js'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
@@ -195,6 +196,7 @@ async function create() {
       <NcButton v-if="w.manager.value && w.activeId.value" variant="secondary"
         @click="navigate('companies')">Cadastrar ou editar empresas</NcButton>
     </div>
+    <SaasEnvironmentsPanel />
     <div v-if="w.spaces.value.length || archived.length" class="lf-native-workspace-filter" role="search">
       <NcTextField v-model="search" label="Filtrar gestões financeiras"
         type="search" placeholder="Nome da área ou tipo" />
