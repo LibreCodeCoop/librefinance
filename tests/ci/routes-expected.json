@@ -724,6 +724,26 @@
       "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/invitations/history",
       "request": "GET",
       "route": "librefinance.saasexternalinvitation.history"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/admin/policies/audit",
+      "request": "GET",
+      "route": "librefinance.saaspolicyaudit.instance"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/policies/audit",
+      "request": "GET",
+      "route": "librefinance.saaspolicyaudit.environment"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/policies/audit",
+      "request": "GET",
+      "route": "librefinance.saaspolicyaudit.workspace"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/policies/me/audit",
+      "request": "GET",
+      "route": "librefinance.saaspolicyaudit.user"
     }
   ],
   "librefinance_nfse": [
