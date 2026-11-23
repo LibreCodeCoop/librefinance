@@ -276,6 +276,11 @@ final class SpaceService {
         if ($uid === '' || !$this->users->userExists($uid)) {
             throw new DomainException('user_not_found');
         }
+        if ($this->access->isSaasWorkspace($spaceId)) {
+            // Never materialize an out-of-tenant financial role that could
+            // silently activate if the recipient joins the group later.
+            $this->access->requireSaasRecipientGroupMember($spaceId, $uid);
+        }
         $qb = $this->db->getQueryBuilder();
         $qb->select('owner_uid')->from('lf_spaces')
             ->where($qb->expr()->eq('id', $qb->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));

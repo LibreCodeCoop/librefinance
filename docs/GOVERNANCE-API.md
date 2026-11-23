@@ -243,6 +243,28 @@ Em uma revisão conflitante (HTTP 409), os valores atuais são recarregados
 e o usuário precisa revisá-los antes de salvar novamente. Revogação,
 suspensão e troca de ambiente descartam respostas desatualizadas no cliente.
 
+### Participantes internos e convites externos SaaS
+
+Conceder um papel financeiro interno pela API
+`POST /api/spaces/{spaceId}/members` requer que o destinatário seja,
+**no momento da concessão**, participante do mesmo grupo Nextcloud
+associado e confirmado ao livro SaaS. Essa verificação usa o vínculo
+autoritativo `lf_environment_spaces`/`lf_environment_groups`, não o
+campo legado `governance_gid`, que pode estar vazio. Uma conta da
+instância ou de outro grupo não recebe uma associação financeira
+persistida apenas por existir no Nextcloud.
+
+A participação no grupo, sozinha, também **não concede acesso**: o
+proprietário deve atribuir explicitamente um papel contábil. A permissão
+é reavaliada nas requisições seguintes, com o estado do ambiente. A
+revogação de associação interna continua permitida como operação de
+limpeza, inclusive se o participante já tiver saído do grupo.
+
+Convites **externos** ainda exigem um fluxo próprio com política
+`externalSharing.enabled`, aprovação, expiração, escopo, auditoria e
+revogação efetiva. A API de membros internos não substitui esse fluxo e
+não deve ser usada para criar concessões antecipadas ou dormentes.
+
 ### Auditoria administrativa de ambientes SaaS
 
 O administrador da instância pode consultar o histórico dos ambientes sem

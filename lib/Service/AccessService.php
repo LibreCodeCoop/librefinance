@@ -298,6 +298,23 @@ final class AccessService {
         return $role;
     }
 
+    /**
+     * Internal SaaS role grants are only for current Nextcloud group members.
+     * An out-of-group recipient must use a separate, explicit, audited external
+     * invitation; persisting a dormant lf_members row is not an invitation.
+     */
+    public function requireSaasRecipientGroupMember(int $spaceId, string $recipientUid): void {
+        $scope = $this->saasScope($spaceId);
+        $gid = (string)($scope['group_gid'] ?? '');
+        if ($scope === null || ($scope['review_state'] ?? null) !== 'confirmed'
+            || ($scope['environment_status'] ?? null) !== 'active'
+            || ($scope['group_state'] ?? null) !== 'active'
+            || $gid === '' || $this->groups->get($gid) === null
+            || !$this->groups->isInGroup($recipientUid, $gid)) {
+            throw new DomainException('permission_denied');
+        }
+    }
+
     /** @return array<string,mixed>|null */
     private function saasScope(int $spaceId): ?array {
         $q = $this->db->getQueryBuilder();
