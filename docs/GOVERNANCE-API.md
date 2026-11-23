@@ -217,6 +217,32 @@ O recurso aplica-se apenas a workspaces SaaS vinculados e confirmados.
 Instalações pessoais legadas continuam com as APIs existentes; não são
 reinterpretadas como novos ambientes ou migradas automaticamente.
 
+### Editor visual das policies SaaS
+
+A interface reutiliza o componente nativo de policies em três contextos,
+sempre com resolução independente no servidor:
+
+- **Configurações do administrador Nextcloud → LibreFinance**: políticas da
+  instância, com origem e revisão; a administração global não concede acesso
+  aos livros contábeis.
+- **Gestões financeiras → Ambientes LibreFinance**: subadministrador ou delegado
+  seleciona explicitamente o ambiente ativo e pode restringir suas políticas,
+  sem ampliar os limites definidos pela instância.
+- **Gestões financeiras → Políticas da gestão atual**: proprietário ou gestor
+  financeiro pode restringir políticas do seu livro SaaS, sem modificar os
+  demais livros. Gestões legadas sem vínculo SaaS não são convertidas.
+
+O editor apresenta valor efetivo, origem, revisão, bloqueio ancestral,
+capacidade de edição e as ações **Salvar restrição** e **Herdar valor**.
+Tipos suportados na UI: booleano, teto numérico inteiro e conjunto permitido.
+O cliente evita formatos inválidos, mas a aplicação **nunca confia** nos
+valores recebidos: os tipos, escopos, permissões, herança, auditoria e a
+revisão otimista continuam sendo validados em cada requisição PHP.
+
+Em uma revisão conflitante (HTTP 409), os valores atuais são recarregados
+e o usuário precisa revisá-los antes de salvar novamente. Revogação,
+suspensão e troca de ambiente descartam respostas desatualizadas no cliente.
+
 ### Participantes internos e convites externos SaaS
 
 Conceder um papel financeiro interno pela API

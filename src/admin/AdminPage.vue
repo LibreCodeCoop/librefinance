@@ -13,6 +13,7 @@ import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import LfSelect from '../components/LfSelect.vue'
+import SaasPolicyEditor from '../components/SaasPolicyEditor.vue'
 
 const managed = ref(false)
 const contexts = ref([])
@@ -190,6 +191,13 @@ onMounted(async () => {
       Os vínculos e delegações dos contextos legados permanecem preservados.
       Em ambientes SaaS novos, administrar um grupo ou a instância não concede,
       por si só, acesso aos dados financeiros.</p>
+
+    <div class="lf-admin-card">
+      <h3>Políticas SaaS da instância</h3>
+      <p>Os limites e bloqueios definidos aqui são herdados pelos ambientes
+        e gestões. Nenhuma edição concede acesso a livros financeiros.</p>
+      <SaasPolicyEditor scope="instance" />
+    </div>
 
     <div v-if="managed" class="lf-admin-card">
       <h3>Grupos Nextcloud disponíveis</h3>

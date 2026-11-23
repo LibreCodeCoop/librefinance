@@ -305,6 +305,13 @@ try {
             'amountMinor' => 8700, 'date' => '2026-11-23',
             'memo' => 'Synthetic isolated A2',
             'externalKey' => 'saas-A2-once'], 201);
+    $t->check('workspace selector marks only A current SaaS financial books', $a,
+        'GET', '/spaces', null, 200,
+        static fn(array $r): bool =>
+            count(array_filter($r['spaces'] ?? [],
+                static fn(array $s): bool =>
+                    in_array((int)$s['id'], [$spaceA, $spaceA2], true)
+                    && ($s['saasManaged'] ?? null) === true)) === 2);
     $t->check('A1 retains only its own journal after A2 posts', $a, 'GET',
         '/spaces/' . $spaceA . '/journals', null, 200,
         static fn(array $r): bool => count($r['journals'] ?? []) === 1);

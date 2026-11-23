@@ -19,6 +19,7 @@ import { mdiFolderAccountOutline, mdiHomeOutline, mdiDomain,
 import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import SaasEnvironmentsPanel from '../components/SaasEnvironmentsPanel.vue'
+import SaasPolicyEditor from '../components/SaasPolicyEditor.vue'
 import { financeError } from '../services/api.js'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
@@ -32,6 +33,7 @@ const creating = ref(false)
 const editing = ref(null)
 const archiving = ref(null)
 const problem = ref('')
+const showWorkspacePolicies = ref(false)
 const notice = ref('')
 const name = ref('')
 const newName = ref('')
@@ -197,6 +199,24 @@ async function create() {
         @click="navigate('companies')">Cadastrar ou editar empresas</NcButton>
     </div>
     <SaasEnvironmentsPanel />
+    <section v-if="w.activeId.value && w.manager.value
+      && w.spaces.value.some(s => Number(s.id) === Number(w.activeId.value)
+        && s.saasManaged === true)" class="lf-surface">
+      <div class="lf-section-heading">
+        <div>
+          <h2>Políticas da gestão atual</h2>
+          <p>Proprietários e gestores financeiros podem restringir recursos
+            de sua gestão SaaS sem modificar outros livros do ambiente.</p>
+        </div>
+        <NcButton variant="secondary"
+          :aria-expanded="showWorkspacePolicies"
+          @click="showWorkspacePolicies=!showWorkspacePolicies">
+          {{ showWorkspacePolicies ? 'Ocultar políticas' : 'Configurar políticas' }}
+        </NcButton>
+      </div>
+      <SaasPolicyEditor v-if="showWorkspacePolicies"
+        scope="workspace" :space-id="Number(w.activeId.value)" hide-unsupported />
+    </section>
     <div v-if="w.spaces.value.length || archived.length" class="lf-native-workspace-filter" role="search">
       <NcTextField v-model="search" label="Filtrar gestões financeiras"
         type="search" placeholder="Nome da área ou tipo" />

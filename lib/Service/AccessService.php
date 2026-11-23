@@ -379,6 +379,9 @@ final class AccessService {
                 unset($spaces[$spaceId]);
             } else {
                 $spaces[$spaceId]['role'] = $role;
+                // Only current, authorized financial members receive the
+                // marker. It is presentation metadata, not a permission grant.
+                $spaces[$spaceId]['saasManaged'] = true;
             }
         }
     }
