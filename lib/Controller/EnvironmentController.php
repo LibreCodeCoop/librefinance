@@ -41,6 +41,13 @@ final class EnvironmentController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/admin/groups/{gid}/audit')]
+    public function audit(string $gid, int $beforeId = 0): JSONResponse {
+        return $this->respond(fn(): array =>
+            ['contractVersion' => 1] + $this->environments->groupAudit($gid, $beforeId));
+    }
+
+    #[NoAdminRequired]
     #[FrontpageRoute(verb: 'PUT', url: '/api/saas/v1/admin/groups/{gid}/enablement')]
     public function enable(string $gid, bool $enabled): JSONResponse {
         return $this->respond(fn(): array => [

@@ -78,6 +78,54 @@ final class EnvironmentService {
         ];
     }
 
+    /**
+     * Instance-only, immutable SaaS lifecycle history. Cursor pagination
+     * follows monotonically increasing audit IDs so new events do not shift
+     * already-read pages. Do not join or return financial ledger records.
+     *
+     * A deleted group still has a durable audit history; do not require its
+     * current Nextcloud group object to exist to inspect that history.
+     *
+     * @return array{environmentId:string,events:list<array<string,mixed>>,nextBeforeId:?int}
+     */
+    public function groupAudit(string $gid, int $beforeId = 0): array {
+        $this->governance->requireInstanceAdmin();
+        if ($gid === '' || strlen($gid) > 64 || $beforeId < 0) {
+            throw new DomainException('environment_not_found');
+        }
+        $row = $this->lookupByGroup($gid);
+        if ($row === null) {
+            throw new DomainException('environment_not_found');
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('id', 'actor_uid', 'action', 'subject_type', 'subject_id', 'occurred_at')
+            ->from('lf_environment_audit')
+            ->where($q->expr()->eq('environment_id',
+                $q->createNamedParameter((int)$row['id'], IQueryBuilder::PARAM_INT)))
+            ->orderBy('id', 'DESC')
+            ->setMaxResults(31);
+        if ($beforeId > 0) {
+            $q->andWhere($q->expr()->lt('id',
+                $q->createNamedParameter($beforeId, IQueryBuilder::PARAM_INT)));
+        }
+        $rows = $q->executeQuery()->fetchAllAssociative();
+        $hasNext = count($rows) > 30;
+        $rows = array_slice($rows, 0, 30);
+        $events = array_map(static fn(array $item): array => [
+            'id' => (int)$item['id'],
+            'actorUid' => (string)$item['actor_uid'],
+            'action' => (string)$item['action'],
+            'subjectType' => (string)$item['subject_type'],
+            'subjectId' => (string)$item['subject_id'],
+            'occurredAt' => (int)$item['occurred_at'],
+        ], $rows);
+        return [
+            'environmentId' => (string)$row['public_id'],
+            'events' => $events,
+            'nextBeforeId' => $hasNext ? (int)end($events)['id'] : null,
+        ];
+    }
+
     /** @return array{id:string,name:string,state:string,canManage:bool} */
     public function enableGroup(string $gid): array {
         $this->governance->requireInstanceAdmin();

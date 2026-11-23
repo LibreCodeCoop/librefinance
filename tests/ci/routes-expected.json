@@ -636,6 +636,11 @@
       "route": "librefinance.environment.admingroups"
     },
     {
+      "path": "/apps/librefinance/api/saas/v1/admin/groups/{gid}/audit",
+      "request": "GET",
+      "route": "librefinance.environment.audit"
+    },
+    {
       "path": "/apps/librefinance/api/saas/v1/admin/groups/{gid}/recover",
       "request": "POST",
       "route": "librefinance.environment.recovergroup"

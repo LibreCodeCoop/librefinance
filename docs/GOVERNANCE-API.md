@@ -242,3 +242,24 @@ revisão otimista continuam sendo validados em cada requisição PHP.
 Em uma revisão conflitante (HTTP 409), os valores atuais são recarregados
 e o usuário precisa revisá-los antes de salvar novamente. Revogação,
 suspensão e troca de ambiente descartam respostas desatualizadas no cliente.
+
+### Auditoria administrativa de ambientes SaaS
+
+O administrador da instância pode consultar o histórico dos ambientes sem
+adquirir acesso aos lançamentos, saldos ou documentos financeiros.
+O endpoint autenticado é
+`GET /api/saas/v1/admin/groups/{gid}/audit?beforeId=N`.
+O `gid` é resolvido para a identidade **durável** do ambiente armazenado,
+inclusive quando o grupo Nextcloud original foi excluído.
+
+Cada resposta contém `environmentId`, `events` e `nextBeforeId`.
+Os eventos incluem ID, ator, ação, tipo/identificador do assunto e data Unix.
+A paginação usa somente IDs anteriores à página atual, até 30 eventos por
+requisição; isso evita duplicações por novos registros simultâneos. A resposta
+não contém dados financeiros, e qualquer não administrador recebe HTTP 403.
+
+Na tela de administração Nextcloud → LibreFinance, o botão
+**Auditoria** abre a lista paginada de ações do ambiente; a consulta não
+modifica políticas, membros nem o estado do grupo. Recuperações auditadas,
+suspensões e exclusões continuam preservadas no banco. O histórico é
+administrativo, diferente da auditoria contábil de cada gestão.

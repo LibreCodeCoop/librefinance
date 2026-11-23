@@ -815,6 +815,64 @@
                 }
             }
         },
+        "/librefinance/api/saas/v1/admin/groups/{gid}/audit": {
+            "get": {
+                "operationId": "librefinance_environment_audit",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "environment audit",
+                "description": "Instance admin only. Cursor-paginated, append-only SaaS lifecycle audit by stored group binding; no ledger records.",
+                "parameters": [
+                    {
+                        "name": "gid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "beforeId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
         "/librefinance/api/saas/v1/admin/groups/{gid}/enablement": {
             "put": {
                 "operationId": "librefinance_environment_enable",
