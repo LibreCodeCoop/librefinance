@@ -166,10 +166,15 @@ async function save() {
         </NcButton>
       </template>
     </LfPageHeader>
+    <NcNoteCard v-if="!personal && companies.length===0" type="warning">
+      Esta gestão ainda não possui empresa cadastrada. É possível organizar
+      lançamentos internos, mas dados jurídicos e emissão fiscal dependem da
+      identificação de uma organização.
+    </NcNoteCard>
     <section class="lf-surface">
       <div class="lf-section-heading">
         <div><h2>Empresas desta gestão</h2>
-          <p>Empresas cadastradas nesta área compartilham livro, caixa e acessos; não há apuração contábil isolada por empresa.</p></div>
+          <p>Cadastro jurídico e identidade visual (inclusive cor e logotipo). Empresas nesta gestão compartilham o mesmo livro, caixa e acessos; não há segregação contábil por CNPJ. Para saldos independentes, crie outra gestão financeira.</p></div>
         <NcTextField v-if="companies.length || searchTerm" v-model="search" label="Pesquisar empresas" type="search"
           placeholder="Buscar em todas as empresas" maxlength="120"
           class="lf-search-field" @update:model-value="scheduleSearch" />

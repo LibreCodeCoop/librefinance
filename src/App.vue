@@ -146,7 +146,7 @@ const searchQuery = ref('')
 const urlSearchTerm = ref(new URLSearchParams(window.location.search).get('search') || '')
 const openGroups = ref({})
 const managementGroupIcons = {
-  'Gestões e identidade': mdiFolderAccountOutline,
+  'Gestões financeiras': mdiFolderAccountOutline,
   'Cadastros': mdiAccountMultipleOutline,
   'Financeiro e fiscal': mdiBookOpenPageVariantOutline,
   'Equipe e personalização': mdiCogOutline,
