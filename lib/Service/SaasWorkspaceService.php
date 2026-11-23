@@ -196,7 +196,7 @@ final class SaasWorkspaceService {
         string $idempotencyKey): ?array {
         $q = $this->db->getQueryBuilder();
         $changed = $q->update('lf_environments')
-            ->set('revision', 'revision + 1')
+            ->set('revision', $q->createFunction('revision + 1'))
             ->where($q->expr()->eq('id',
                 $q->createNamedParameter($environmentId, IQueryBuilder::PARAM_INT)))
             ->andWhere($q->expr()->eq('status',
