@@ -55,7 +55,7 @@ function instanceRequest(string $verb, string $path, ?array $data = null): array
         throw new RuntimeException('Synthetic request failed: ' . curl_error($handle));
     }
     $code = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
-    curl_close($handle);
+    // PHP 8.5 deprecates curl_close(): the handle is released by scope.
     $decoded = json_decode($body, true);
     return ['code' => $code, 'body' => is_array($decoded) ? $decoded : ['invalid_json' => true]];
 }
@@ -367,6 +367,12 @@ try {
                     && ($s['role'] ?? null) === 'viewer')) === 1
             && !in_array($spaceA2, array_column($r['spaces'] ?? [], 'id'), true)
             && !in_array($spaceB, array_column($r['spaces'] ?? [], 'id'), true));
+    instanceCheck('external read-only grant cannot edit legacy viewer dashboard',
+        'PUT', '/spaces/' . $spaceA . '/dashboard-layout',
+        ['widgets' => []], 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'permission_denied');
+    instanceCheck('external viewer can still read own dashboard layout',
+        'GET', '/spaces/' . $spaceA . '/dashboard-layout', null, 200);
     instanceCheck('external viewer cannot post a financial journal',
         'POST', '/spaces/' . $spaceA . '/journals',
         ['debitId' => 1, 'creditId' => 2, 'amountMinor' => 200,
