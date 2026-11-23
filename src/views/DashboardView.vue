@@ -34,7 +34,7 @@ const cash = ref(null)
 const error = ref('')
 const loading = ref(false)
 // User-level dashboard policies control presentation only, not financial API ACL.
-const showOverviewKpis = ref(store.space.value?.saasManaged !== true)
+const showOverviewKpis = ref(false)
 let presentationSequence = 0
 async function loadUserPresentationPolicy() {
   const token = ++presentationSequence
@@ -52,7 +52,7 @@ async function loadUserPresentationPolicy() {
     if (token === presentationSequence) showOverviewKpis.value = false
   }
 }
-watch(activeId, loadUserPresentationPolicy)
+watch(() => [activeId.value, store.space.value?.saasManaged], loadUserPresentationPolicy)
 const today = new Date()
 const year = today.getFullYear()
 const startYear = year + '-01-01'
