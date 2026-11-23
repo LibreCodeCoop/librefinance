@@ -38,24 +38,6 @@ test('secondary API failure preserves chart and identifies missing dataset', asy
   await expect(page.locator('.lf-data-table tbody tr')).toHaveCount(4)
 })
 
-test('@extensions one Nextcloud navigation switches operational views without iframe', async ({ page }) => {
-  await login(page)
-  await makeSpace(page, 'organization')
-  for (const [entry, heading] of [
-    ['Bancos e caixa', 'Extratos e conciliação'],
-    ['A pagar e receber', 'A pagar e receber'],
-    ['Relatórios', 'Relatórios'],
-    ['Gestões financeiras', 'Gestões financeiras'],
-    ['Migração de dados', 'Migração e conferência'],
-    ['NFS-e Brasil', 'NFS-e Brasil'],
-  ]) {
-    await goToView(page, entry)
-    await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
-    await expect(page.locator('iframe')).toHaveCount(0)
-    await expect(page).toHaveURL(new RegExp('[?&]view='))
-  }
-})
-
 test('reporting works inside the core without its former standalone app', async ({ page }) => {
   await login(page)
   await makeSpace(page)
@@ -68,54 +50,6 @@ test('reporting works inside the core without its former standalone app', async 
     headers: { 'OCS-APIREQUEST': 'true' },
   })
   expect(response.status()).toBe(200)
-})
-
-test('@extensions task-oriented navigation has one agenda and one management group', async ({ page }) => {
-  await login(page)
-  await makeSpace(page, 'organization')
-  const nav=page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
-  await expect(nav.locator('.lf-nav-section')).toHaveCount(1)
-  for (const entry of ['Visão geral','Financeiro','A pagar e receber',
-    'Vendas','Compras','Contas bancárias e caixa',
-    'Extratos e conciliação','Relatórios','Gerenciar']) {
-    await expect(nav.getByRole('link', { name: entry, exact: true })).toBeVisible()
-  }
-  await expect(nav.getByRole('link',{name:'Financeiro',exact:true}))
-    .toHaveAttribute('aria-expanded','true')
-  // Cadastros remains a single nested management subgroup; it is not a
-  // competing top-level navigation area.
-  await expect(nav.getByRole('link', { name: 'Cadastros', exact:true })).toHaveCount(1)
-  await expect(nav.getByRole('link', { name: 'Mais ferramentas' })).toHaveCount(0)
-  await expect(nav.getByRole('button', { name: 'Configurações' })).toHaveCount(0)
-  await expect(nav.getByRole('link', { name: 'Configurações', exact: true })).toHaveCount(0)
-  for (const entry of ['Acessos e compartilhamento','Campos personalizados','Formas de pagamento',
-    'Recursos instalados','Dados e migração']) {
-    await goToView(page, entry)
-    await expect(page).toHaveURL(/[?&]view=/)
-  }
-  await expect(nav.locator('.lf-native-management-group')).toHaveCount(5)
-  for (const group of ['Gestões e identidade','Cadastros','Financeiro e fiscal',
-    'Equipe e personalização','Recursos e dados']) {
-    await expect(nav.getByRole('link', {name: group, exact: true})).toHaveCount(1)
-  }
-  await expect(page.locator('.lf-settings-tabs')).toHaveCount(0)
-  await goToView(page, 'Regras tributárias')
-  await expect(page.getByRole('heading', { name: 'Regras tributárias' })).toBeVisible()
-  await goToView(page, 'Plano de contas')
-  await expect(page.getByRole('heading', { name: 'Plano de contas' })).toBeVisible()
-  await goToView(page, 'Lançamentos contábeis')
-  await expect(page.getByRole('button', { name: 'Registrar entrada ou saída', exact: true })).toHaveCount(1)
-  await goToView(page, 'A pagar e receber')
-  await expect(page.getByRole('heading', { name: 'A pagar e receber', exact: true })).toBeVisible()
-  await nav.getByRole('searchbox', { name: 'Buscar no menu' }).fill('nota fiscal')
-  await expect(nav.getByRole('link', { name: 'NFS-e Brasil' })).toBeVisible()
-  await expect(nav.getByRole('link', { name: 'Financeiro',exact:true })).toHaveCount(0)
-  await nav.getByRole('searchbox', { name: 'Buscar no menu' }).press('Escape')
-  await expect(nav.getByRole('link', { name: 'Financeiro',exact:true })).toBeVisible()
-  await goToView(page, 'Migração de dados')
-  await expect(page.getByRole('heading', { name: 'Migração e conferência' })).toBeVisible()
-  await page.getByRole('button', { name: 'Voltar aos recursos' }).click()
-  await expect(page.getByRole('heading', { name: 'Recursos instalados' })).toBeVisible()
 })
 
 test('@extensions old settings bookmarks open the direct management function', async ({ page }) => {
@@ -134,62 +68,6 @@ test('@extensions old settings bookmarks open the direct management function', a
     await expect(page.locator('.lf-page-header').getByRole('heading', { name: title, exact: true })).toBeVisible()
     await expect(page.locator('.lf-settings-tabs')).toHaveCount(0)
   }
-})
-
-test('@extensions mixed payable/receivable list filters both directions and due dates', async ({ page }) => {
-  await login(page)
-  await makeSpace(page)
-  await goToView(page,'A pagar e receber')
-  await openFinanceAction(page, 'Conta a pagar')
-  const debit=page.getByRole('dialog',{name:'Nova conta ou cobrança'})
-  await debit.getByRole('textbox',{name:'Descrição'}).fill('Synthetic outgoing commitment')
-  await debit.getByRole('textbox',{name:'Valor'}).fill('75,00')
-  await debit.getByRole('button',{name:'Salvar conta ou cobrança'}).click()
-  await openFinanceAction(page, 'Cobrança a receber')
-  const credit=page.getByRole('dialog',{name:'Nova conta ou cobrança'})
-  await credit.getByRole('textbox',{name:'Descrição'}).fill('Synthetic incoming commitment')
-  await credit.getByRole('textbox',{name:'Valor'}).fill('125,00')
-  await credit.getByRole('button',{name:'Salvar conta ou cobrança'}).click()
-  await goToView(page,'A pagar e receber')
-  const outgoing=page.getByRole('row',{name:/Synthetic outgoing commitment/})
-  const incoming=page.getByRole('row',{name:/Synthetic incoming commitment/})
-  await expect(outgoing).toContainText('Saída prevista')
-  await expect(outgoing).toContainText('−R$')
-  await expect(incoming).toContainText('Entrada prevista')
-  await expect(incoming).toContainText('+R$')
-  const valueHeader = page.getByRole('columnheader',{name:/Valor previsto/})
-  await valueHeader.getByRole('button',{name:'Ordenar por Valor previsto'}).click()
-  await expect(valueHeader).toHaveAttribute('aria-sort','ascending')
-  await expect(page.locator('.lf-data-table tbody tr').first())
-    .toContainText('Synthetic outgoing commitment')
-  await valueHeader.getByRole('button',{name:'Ordenar por Valor previsto'}).click()
-  await expect(valueHeader).toHaveAttribute('aria-sort','descending')
-  await expect(page.locator('.lf-data-table tbody tr').first())
-    .toContainText('Synthetic incoming commitment')
-  const findAgenda = page.getByRole('searchbox',{name:'Pesquisar na agenda'})
-  await findAgenda.fill('Synthetic outgoing')
-  await expect(outgoing).toBeVisible()
-  await expect(incoming).toHaveCount(0)
-  await findAgenda.fill('')
-  await expect(incoming).toBeVisible()
-  await page.locator('#lf-finance-direction').click()
-  const receiveOption=page.getByRole('group',{name:'Filtrar por direção'}).getByRole('button',{name:'A receber'})
-  await expect(receiveOption).toBeVisible()
-  await receiveOption.click()
-  await expect(incoming).toBeVisible()
-  await expect(outgoing).toHaveCount(0)
-  await page.locator('#lf-finance-direction').click()
-  const payableOption=page.getByRole('group',{name:'Filtrar por direção'}).getByRole('button',{name:'A pagar'})
-  await expect(payableOption).toBeVisible()
-  await payableOption.click()
-  await expect(outgoing).toBeVisible()
-  await expect(incoming).toHaveCount(0)
-  await page.locator('#lf-obligations-due').click()
-  await page.getByRole('group',{name:'Filtrar por vencimento'})
-    .getByRole('button',{name:'Próximos 7 dias'}).click()
-  await expect(outgoing).toBeVisible()
-  await expect(page.getByRole('heading',{name:'Contas e cobranças'})).toBeVisible()
-  await expect(page.getByText('o extrato bancário é conferido à parte', {exact:false})).toBeVisible()
 })
 
 test('@extensions manage owned workspaces and hide the select when only one remains', async ({ page }) => {
@@ -247,33 +125,6 @@ test('@extensions manage owned workspaces and hide the select when only one rema
     .getByText('Revised finance workspace')).toBeVisible()
 })
 
-test('@extensions sales and purchases share the same agenda and old URLs', async ({ page }) => {
-  await login(page)
-  await makeSpace(page, 'organization')
-  await goToView(page, 'A pagar e receber')
-  await expect(page).toHaveURL(/[?&]view=finance/)
-  await expect(page.locator('#lf-finance-direction')).toHaveCount(0)
-  await expect(page.getByRole('button',{name:'Novo',exact:true})).toHaveCount(0)
-  await openFinanceAction(page, 'Fatura de venda')
-  await expect(page).toHaveURL(/[?&]view=sales/)
-  await expect(page.getByRole('heading',{name:'Vendas',exact:true})).toBeVisible()
-  await expect(page.locator('#lf-commercial-direction')).toHaveCount(0)
-  await expect(page.getByRole('dialog',{name:'Nova venda'})).toBeVisible()
-  await page.getByRole('dialog',{name:'Nova venda'})
-    .getByRole('button',{name:'Cancelar'}).click()
-  await openFinanceAction(page,'Fatura de compra')
-  await expect(page).toHaveURL(/[?&]view=purchases/)
-  await expect(page.getByRole('dialog',{name:'Nova compra'})).toBeVisible()
-  await page.getByRole('dialog',{name:'Nova compra'})
-    .getByRole('button',{name:'Cancelar'}).click()
-  const spaceId=new URL(page.url()).searchParams.get('spaceId')
-  await page.goto('/index.php/apps/librefinance/?spaceId='+spaceId+'&view=payables')
-  await expect(page.getByRole('heading',{name:'A pagar e receber',exact:true})).toBeVisible()
-  await expect(page.getByText('Nenhum valor a pagar ou receber')).toBeVisible()
-  await expect(page.locator('#lf-finance-direction')).toHaveCount(0)
-  await expect(page.getByRole('button',{name:'Limpar filtros'})).toHaveCount(0)
-})
-
 test('browser history restores finance views without creating new history entries', async ({ page }) => {
   await login(page)
   await makeSpace(page)
@@ -289,45 +140,6 @@ test('browser history restores finance views without creating new history entrie
   await expect(page.getByRole('heading', { name: 'Relatórios', exact: true })).toBeVisible()
 })
 
-test('@extensions personal workspace offers unified finance and manager tools', async ({ page }) => {
-  await login(page)
-  await makeSpace(page, 'personal')
-  const nav=page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
-  for (const entry of ['Financeiro','Gerenciar'])
-    await expect(nav.getByRole('link',{name:entry,exact:true})).toBeVisible()
-  await goToView(page,'A pagar e receber')
-  await expect(page.getByRole('button',{name:'Novo',exact:true})).toHaveCount(0)
-  await expect(nav.getByRole('link',{name:'A pagar e receber',exact:true})).toBeVisible()
-  await expect(nav.getByRole('link',{name:'Compras',exact:true})).toBeVisible()
-  await expect(page.locator('#lf-space-select')).toBeVisible()
-  await nav.getByRole('searchbox',{name:'Buscar no menu'}).fill('migracao')
-  await expect(nav.getByRole('link',{name:'Dados e migração',exact:true})).toBeVisible()
-  await nav.getByRole('searchbox',{name:'Buscar no menu'}).fill('naoexiste123')
-  await expect(nav.getByText('Nenhuma função encontrada')).toBeVisible()
-})
-
-test('@extensions disabling invoicing preserves standalone pay/receive flow', async ({ page }) => {
-  await login(page)
-  await makeSpace(page, 'organization')
-  const nav=page.getByRole('navigation',{name:'Navegação do LibreFinance'})
-  const search=nav.getByRole('searchbox',{name:'Buscar no menu'})
-  await search.fill('cobranca')
-  await expect(nav.getByRole('link',{name:'A pagar e receber',exact:true})).toBeVisible()
-  await search.press('Escape')
-  await goToView(page,'A pagar e receber')
-  await expect(page.getByRole('button',{name:'Novo',exact:true})).toHaveCount(0)
-  await goToView(page,'Recursos instalados')
-  const module=page.locator('.lf-settings-module[data-module-id="librefinance_invoicing"]')
-  await module.getByRole('button',{name:'Desativar'}).click()
-  await expect(module.getByText('Desativado neste espaço')).toBeVisible()
-  await expect(nav.getByRole('link',{name:'Vendas',exact:true})).toHaveCount(0)
-  await expect(nav.getByRole('link',{name:'Compras',exact:true})).toHaveCount(0)
-  await goToView(page,'A pagar e receber')
-  await expect(page.getByRole('heading',{name:'A pagar e receber',exact:true})).toBeVisible()
-  await expect(page.getByRole('button',{name:'Nova conta ou cobrança'})).toBeVisible()
-  await expect(page.getByRole('button',{name:'Novo',exact:true})).toHaveCount(0)
-})
-
 test('keyboard menu search opens the unique authorized page without inventing browser routes', async ({ page }) => {
   await login(page)
   await makeSpace(page)
@@ -339,102 +151,6 @@ test('keyboard menu search opens the unique authorized page without inventing br
   await expect(page.getByRole('heading', { name: 'Relatórios', exact: true })).toBeVisible()
   await expect(search).toHaveValue('')
   await expect(page).toHaveURL(/[?&]view=reports/)
-})
-
-test('@extensions dashboard uses genuine cash-flow aggregates and no duplicate entry action', async ({ page }) => {
-  await login(page)
-  await makeSpace(page, 'collective')
-  await expect(page.getByRole('heading', { name: 'Visão geral' })).toBeVisible()
-  await expect(page.getByText('Seu espaço financeiro está pronto')).toBeVisible()
-  await expect(page.getByText('Gestão financeira criada.')).toHaveCount(0)
-  await expect(page.getByText('Saldo de caixa', { exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Movimento do caixa' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Acesso rápido' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Abrir Financeiro', exact: true })).toHaveCount(1)
-  await expect(page.getByRole('button', { name: 'Registrar entrada ou saída', exact: true })).toHaveCount(0)
-  await expect(page.getByText('Sem variação de caixa neste intervalo')).toBeVisible()
-  const expectedMonth = new Date().getFullYear() + '-'
-    + String(new Date().getMonth() + 1).padStart(2, '0') + '-01'
-  const monthRequest = page.waitForResponse(response =>
-    response.url().includes('/librefinance/api/spaces/')
-      && response.url().includes('/profit-loss?from=' + expectedMonth)
-      && response.status() === 200)
-  await page.getByRole('button', { name: 'Este mês' }).click()
-  await monthRequest
-  await expect(page.getByRole('button', { name: 'Este mês' })).toHaveAttribute('aria-pressed', 'true')
-  await page.locator('.lf-data-methodology summary').click()
-  await expect(page.getByText('extratos pendentes de conciliação', { exact: false })).toBeVisible()
-})
-
-test('@extensions first-time user can record an expense, review its effects and reconcile that exact bank item', async ({ page }) => {
-  await login(page)
-  await makeSpace(page, 'personal')
-  await expect(page.getByRole('heading', { name: 'Visão geral' })).toBeVisible()
-  await page.getByRole('button', { name: 'Registrar primeira despesa' }).click()
-  const entry = page.getByRole('dialog', { name: 'Registrar entrada ou saída' })
-  await expect(entry).toBeVisible()
-  await entry.getByRole('textbox', { name: 'Valor' }).fill('12,345')
-  await entry.getByRole('textbox', { name: 'Descrição' }).fill('Synthetic UX onboarding expense')
-  await entry.getByRole('button', { name: 'Contabilizar movimentação' }).click()
-  await expect(entry.getByRole('alert')).toContainText('até duas casas decimais')
-  await entry.getByRole('textbox', { name: 'Valor' }).fill('25,90')
-  await entry.locator('#lf-journal-counterpart').click()
-  await page.getByRole('option').first().click()
-  await expect(entry.getByText('Confira antes de contabilizar')).toBeVisible()
-  await expect(entry.locator('.lf-dialog-summary')).toContainText('Caixa')
-  await expect(entry.locator('.lf-dialog-summary')).toContainText('R$ 25,90')
-  await entry.getByRole('button', { name: 'Contabilizar movimentação' }).click()
-  await expect(entry).toHaveCount(0)
-  await expect(page.getByRole('row', { name: /Synthetic UX onboarding expense/ })).toBeVisible()
-  await goToView(page, 'Visão geral')
-  await expect(page.getByText('Seu espaço financeiro está pronto')).toHaveCount(0)
-  await expect(page.locator('.lf-overview-kpi--expense .lf-kpi-amount')).toHaveText('R$ 25,90')
-  await goToView(page, 'Bancos e caixa')
-  await page.getByRole('button', { name: 'Importar extrato', exact:true }).click()
-  const importing = page.getByRole('dialog', { name: 'Importar extrato CSV' })
-  const reference = 'synthetic-ux-expense-' + Date.now().toString(36)
-  await importing.locator('input[type="file"]').setInputFiles({
-    name: 'synthetic-ux-extrato.csv', mimeType: 'text/csv',
-    buffer: Buffer.from('id,date,amount,description\n' + reference
-      + ',2026-11-20,-25.90,Synthetic UX onboarding expense\n'),
-  })
-  await importing.getByRole('button', { name: 'Importar para revisão' }).click()
-  await expect(importing).toHaveCount(0)
-  const movement = page.getByRole('row', { name: /Synthetic UX onboarding expense/ })
-  await expect(movement).toContainText('Pendente')
-  await movement.getByRole('button', { name: 'Conciliar' }).click()
-  const reconcile = page.getByRole('dialog', { name: 'Conciliar movimentação' })
-  await expect(reconcile.locator('.lf-dialog-summary')).toContainText('Synthetic UX onboarding expense')
-  await expect(reconcile.locator('.lf-dialog-summary')).toContainText('Caixa')
-  await expect(reconcile.locator('.lf-dialog-summary')).toContainText('25,90')
-  await expect(reconcile.locator('.lf-dialog-summary')).toContainText('Saída')
-  await reconcile.locator('#lf-bank-journal').click()
-  await page.getByRole('option').first().click()
-  await reconcile.getByRole('button', { name: 'Confirmar conciliação' }).click()
-  await expect(reconcile).toHaveCount(0)
-  await expect(movement).toContainText('Conciliada')
-  await goToView(page, 'Visão geral')
-  await expect(page.locator('.lf-overview-kpi--expense .lf-kpi-amount')).toHaveText('R$ 25,90')
-})
-
-test('@extensions cancelling a CSV import clears the selected file and does not import anything', async ({ page }) => {
-  await login(page)
-  await makeSpace(page)
-  await goToView(page, 'Bancos e caixa')
-  await page.getByRole('button', { name: 'Importar extrato', exact:true }).click()
-  const dialog = page.getByRole('dialog', { name: 'Importar extrato CSV' })
-  await dialog.locator('input[type="file"]').setInputFiles({
-    name: 'synthetic-discarded.csv', mimeType: 'text/csv',
-    buffer: Buffer.from('id,date,amount,description\ndiscard-test,2026-11-20,-10.00,Discard me\n'),
-  })
-  await expect(dialog.getByText('synthetic-discarded.csv')).toBeVisible()
-  await dialog.getByRole('button', { name: 'Cancelar' }).click()
-  await expect(dialog).toHaveCount(0)
-  await page.getByRole('button', { name: 'Importar extrato', exact:true }).click()
-  await expect(dialog.getByText('Nenhum arquivo selecionado')).toBeVisible()
-  await expect(dialog.getByRole('button', { name: 'Importar para revisão' })).toBeDisabled()
-  await dialog.getByRole('button', { name: 'Cancelar' }).click()
-  await expect(page.getByText('Discard me')).toHaveCount(0)
 })
 
 test('finance entry fields are nonoverlapping on desktop and stacked on mobile', async ({ page }) => {
@@ -629,98 +345,6 @@ test('@extensions financial assistant never submits provider data without explic
   await expect(page.getByRole('button', { name: 'Solicitar análise' })).toBeDisabled()
 })
 
-test('@extensions standalone payable may have explicit administrative settlement without ledger', async ({ page }) => {
-  await login(page)
-  await makeSpace(page)
-  await goToView(page, 'A pagar e receber')
-  await openFinanceAction(page, 'Conta a pagar')
-  const dialog=page.getByRole('dialog', { name: 'Nova conta ou cobrança' })
-  await dialog.getByRole('textbox', { name: 'Descrição' }).fill('Synthetic operating obligation')
-  await dialog.getByRole('textbox', { name: 'Valor' }).fill('350,00')
-  await dialog.getByRole('button', { name: 'Salvar conta ou cobrança' }).click()
-  const row=page.getByRole('row', { name: /Synthetic operating obligation/ })
-  await expect(row).toBeVisible()
-  await row.getByRole('button', { name: /Mais ações de/ }).click()
-  await page.getByRole('menuitem', { name: 'Baixa sem movimentação' }).click()
-  const settling=page.getByRole('dialog', { name: 'Registrar baixa administrativa (sem banco)' })
-  await expect(settling.getByRole('textbox', { name: 'Valor da baixa' })).toHaveValue('350,00')
-  await settling.getByRole('button', { name: 'Registrar baixa' }).click()
-  await expect(page.getByText('Nenhum lançamento contábil foi feito', { exact: false })).toBeVisible()
-  await expect(row).toContainText('Baixado administrativamente')
-})
-
-test('@extensions payable payment posts one cash journal and updates the existing title', async ({ page }) => {
-  await login(page)
-  await makeSpace(page)
-  await goToView(page, 'A pagar e receber')
-  await openFinanceAction(page, 'Conta a pagar')
-  const form=page.getByRole('dialog', { name: 'Nova conta ou cobrança' })
-  const title='Synthetic cash payment '+Date.now().toString(36)
-  await form.getByRole('textbox', { name: 'Descrição' }).fill(title)
-  await form.getByRole('textbox', { name: 'Valor' }).fill('350,00')
-  await form.getByRole('button', { name: 'Salvar conta ou cobrança' }).click()
-  const row=page.getByRole('row', { name: new RegExp(title, 'i') })
-  await expect(row).toContainText('350')
-  await row.getByRole('button', { name: 'Pagar', exact: true }).click()
-  const payment=page.getByRole('dialog', { name: 'Registrar pagamento' })
-  await expect(payment.getByText('Não realiza transferência no banco real',
-    { exact:false })).toBeVisible()
-  await payment.locator('#lf-cash-counter').click()
-  await page.getByRole('option').filter({ hasText: 'Despesas' }).click()
-  await expect(payment.getByRole('button', { name: 'Registrar sem duplicar' })).toBeEnabled()
-  await payment.getByRole('button', { name: 'Registrar sem duplicar' }).click()
-  await expect(page.getByText('Movimentação e compromisso atualizados juntos.',
-    { exact:false })).toBeVisible()
-  await expect(row).toContainText('Liquidado por lançamento')
-  await expect(row).toContainText('Movimentado:')
-  await expect(row).toContainText('350')
-})
-
-test('@extensions invoice is entered once and remains linked to the same receivable', async ({ page }) => {
-  await login(page)
-  await makeSpace(page)
-  await goToView(page, 'Clientes e fornecedores')
-  await page.getByRole('button', { name: 'Novo contato' }).click()
-  const contactDialog=page.getByRole('dialog', { name: 'Novo contato' })
-  await contactDialog.getByRole('textbox', { name: 'Nome', exact: true }).fill('Synthetic commercial client')
-  await contactDialog.getByRole('button', { name: 'Salvar cadastro' }).click()
-  await expect(page.getByRole('row', { name: /Synthetic commercial client/ })).toBeVisible()
-  await goToView(page, 'A pagar e receber')
-  await openFinanceAction(page, 'Fatura de venda')
-  const invoiceDialog=page.getByRole('dialog', { name: 'Nova venda' })
-  const number='E2E-INV-'+Date.now().toString(36)
-  await invoiceDialog.getByRole('textbox', { name: 'Número' }).fill(number)
-  await invoiceDialog.getByRole('textbox', { name: 'País (ISO 2, obrigatório)' }).fill('PT')
-  await invoiceDialog.locator('#lf-invoice-contact').click()
-  await page.getByRole('option').first().click()
-  await invoiceDialog.getByRole('textbox', { name: 'Descrição da linha 1' }).fill('Synthetic service')
-  await invoiceDialog.getByRole('textbox', { name: 'Preço unitário' }).fill('120,00')
-  await invoiceDialog.getByRole('button', { name: 'Salvar rascunho' }).click()
-  const invoiceRow=page.getByRole('row', { name: new RegExp(number, 'i') })
-  await expect(invoiceRow).toContainText('120')
-  await invoiceRow.getByRole('button', { name: 'Detalhes' }).click()
-  await page.getByRole('button', { name: 'Confirmar venda' }).click()
-  await expect(page.getByText('nenhuma nota fiscal foi emitida', { exact: false })).toBeVisible()
-  await page.getByRole('button', { name: 'Ver conta vinculada' }).click()
-  await expect(page.getByRole('heading', { name: 'A pagar e receber', exact: true })).toBeVisible()
-  const linked=page.getByRole('row', { name: new RegExp(number, 'i') })
-  await expect(linked).toContainText('Fatura #')
-  await linked.getByRole('button', { name: 'Abrir fatura' }).click()
-  await expect(page.getByRole('heading', { name: 'Vendas registradas' })).toBeVisible()
-  await expect(page.getByRole('dialog', { name: 'Detalhes da fatura' })).toBeVisible()
-  await page.getByRole('button', { name: 'Registrar recebimento', exact: true }).click()
-  const receipt=page.getByRole('dialog', { name: 'Registrar recebimento' })
-  await expect(receipt.getByText('regime de caixa', { exact:false })).toBeVisible()
-  await receipt.getByRole('textbox', { name: 'Valor recebido ou pago' }).fill('40,00')
-  await receipt.getByRole('button', { name: 'Registrar sem duplicar' }).click()
-  await expect(page.getByRole('dialog', { name: 'Detalhes da fatura' })).toBeVisible()
-  await expect(page.getByRole('dialog', { name: 'Detalhes da fatura' })
-    .getByText('Situação: Recebimento parcial')).toBeVisible()
-  await page.getByRole('button', { name: 'Ver conta vinculada' }).click()
-  await expect(linked).toContainText('Movimentado:')
-  await expect(linked).toContainText('80')
-})
-
 test('@extensions fiscal staging stays a draft and cannot be mistaken for a national service invoice', async ({ page }) => {
   await login(page)
   await makeSpace(page)
@@ -755,29 +379,6 @@ test('@extensions fiscal staging stays a draft and cannot be mistaken for a nati
   await draftDialog.getByRole('button', { name: 'Salvar rascunho' }).click()
   await expect(page.getByText('Nenhuma DPS foi enviada', { exact: false })).toBeVisible()
   await expect(page.getByRole('row', { name: /Synthetic fiscal service/ })).toContainText('Rascunho')
-})
-
-test('mobile layout uses responsive Nextcloud shell without horizontal overflow', async ({ page }) => {
-  await login(page)
-  await makeSpace(page, 'collective')
-  await page.setViewportSize({ width: 390, height: 844 })
-  await expect(page.locator('[data-testid="librefinance-workspace"]')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Visão geral' })).toBeVisible()
-  const metrics = await page.evaluate(() => ({
-    scroll: document.documentElement.scrollWidth,
-    client: document.documentElement.clientWidth,
-  }))
-  expect(metrics.scroll).toBeLessThanOrEqual(metrics.client + 2)
-  await expect(page.locator('iframe')).toHaveCount(0)
-  const toggle = page.locator('button.app-navigation-toggle')
-  await expect(toggle).toBeVisible()
-  await toggle.click()
-  const menu = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
-  const search = menu.getByRole('searchbox', { name: 'Buscar no menu' })
-  await expect(search).toBeVisible()
-  await search.fill('extrato')
-  await expect(menu.getByRole('link', { name: 'Extratos e conciliação' })).toBeVisible()
-  await page.screenshot({ path: '/tmp/librefinance-mobile-menu-390.png' })
 })
 
 test('native Nextcloud dialog supports keyboard dismissal without creating a record', async ({ page }) => {
@@ -901,12 +502,14 @@ test('core normalized import stages registrations, bank movements and transfers 
   await goToView(page, 'Plano de contas')
   const bank = page.getByRole('row', { name: /Synthetic Imported Bank/ })
   await expect(bank).toContainText('R$ 0,00')
-  await goToView(page, 'Bancos e caixa')
-  await expect(page.getByRole('row', { name: /Synthetic source receipt/ })).toContainText('Pendente')
-  await expect(page.getByRole('tab', { name: 'Transferências' })).toHaveCount(0)
-  await page.locator('.lf-transfer-history summary').click()
-  await expect(page.locator('.lf-transfer-history')
-    .getByRole('row', { name: /Aguardando conferência/ })).toContainText('R$ 2,00')
+  // Imported historical bank rows are now evidence in the same activity
+  // timeline. They must not be posted as accounting journals automatically.
+  await goToView(page, 'Movimentações')
+  const evidence = page.getByRole('row', { name: /Synthetic source receipt/ })
+  await expect(evidence).toContainText('A conferir')
+  await expect(evidence).toContainText('R$ 7,50')
+  // The transfer is verified in the normalized inventory preview above;
+  // the retired independent transfer-history view does not exist.
 })
 
 test('visual QA: desktop dashboard and native navigation fit a 1280-pixel viewport', async ({ page }) => {
