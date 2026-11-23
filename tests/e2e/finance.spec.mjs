@@ -97,6 +97,78 @@ test('SaaS administration chooses one environment and retries creation idempoten
   await expect(list).not.toContainText('Nova gestão A')
 })
 
+test('SaaS workspace policy editor restricts, audits and restores inheritance', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'personal')
+  // The synthetic owner already has a real disposable Nextcloud book; mark
+  // its listing as a SaaS fixture for this UI-only test. Real markers and
+  // access restrictions are asserted in PHP integration tests.
+  await page.route('**/apps/librefinance/api/spaces', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    const response = await route.fetch()
+    const data = await response.json()
+    return route.fulfill({
+      response, json: { ...data, spaces: (data.spaces || [])
+        .map(space => ({ ...space, saasManaged: true })) },
+    })
+  })
+  await page.reload()
+  let row = {
+    key: 'imports.enabled', type: 'boolean', effectiveValue: true,
+    sourceScope: 'instance', blockedBy: null, revision: 0,
+    inherited: true, editableByCurrentActor: true, allowedValues: [false, true],
+  }
+  const changes = []
+  // Only view metadata is mocked here; authorization, audit and persistence
+  // are verified separately by the real PHP integration suite.
+  await page.route('**/apps/librefinance/api/saas/v1/workspaces/*/policies/effective', route => {
+    return route.fulfill({ status: 200, json: { policies: [row] } })
+  })
+  // The DELETE request carries expectedRevision in the query string.
+  await page.route('**/apps/librefinance/api/saas/v1/workspaces/*/policies/imports.enabled**', route => {
+    if (route.request().method() === 'PUT') {
+      const sent = route.request().postDataJSON()
+      changes.push({ action: 'set', ...sent })
+      expect(sent.expectedRevision).toBe(0)
+      expect(sent.valueJson).toBe('false')
+      row = { ...row, effectiveValue: false, sourceScope: 'workspace',
+        blockedBy: 'workspace', revision: 1, inherited: false,
+        allowedValues: [false, true] }
+      return route.fulfill({ status: 200, json: row })
+    }
+    if (route.request().method() === 'DELETE') {
+      const url = new URL(route.request().url())
+      changes.push({ action: 'clear', expectedRevision: Number(url.searchParams.get('expectedRevision')) })
+      expect(url.searchParams.get('expectedRevision')).toBe('1')
+      row = { ...row, effectiveValue: true, sourceScope: 'instance',
+        blockedBy: null, revision: 2, inherited: true }
+      return route.fulfill({ status: 200, json: row })
+    }
+    return route.continue()
+  })
+
+  await goToView(page, 'Gestões financeiras')
+  await page.getByRole('button', { name: 'Configurar políticas' }).click()
+  const editor = page.getByRole('region', { name: 'Políticas SaaS de workspace' })
+  await expect(editor).toContainText('Origem: Instância Nextcloud')
+  await expect(editor).toContainText('Efetivo: Permitido')
+  const importSwitch = editor.getByRole('switch', { name: 'Permitir importação de dados' })
+  await importSwitch.focus()
+  await importSwitch.press('Space')
+  await expect(importSwitch).not.toBeChecked()
+  await editor.getByRole('button', { name: 'Salvar restrição Importação de dados' }).click()
+  await expect(editor).toContainText('Efetivo: Bloqueado')
+  await expect(editor).toContainText('Origem: Gestão')
+  await expect(editor).toContainText('Revisão: 1')
+  await editor.getByRole('button', { name: 'Herdar política Importação de dados' }).click()
+  await expect(editor).toContainText('Efetivo: Permitido')
+  await expect(editor).toContainText('Revisão: 2')
+  expect(changes).toEqual([
+    { action: 'set', valueJson: 'false', expectedRevision: 0 },
+    { action: 'clear', expectedRevision: 1 },
+  ])
+})
+
 test('creating organization displays a real independent chart of accounts', async ({ page }) => {
   await login(page)
   const name = await makeSpace(page)

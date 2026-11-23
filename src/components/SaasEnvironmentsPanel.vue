@@ -12,6 +12,7 @@ import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import LfSelect from './LfSelect.vue'
+import SaasPolicyEditor from './SaasPolicyEditor.vue'
 import { financeError } from '../services/api.js'
 import {
   chooseSaasEnvironment, createWorkspaceClaimKeys, eligibleSaasEnvironments,
@@ -253,6 +254,10 @@ onBeforeUnmount(() => {
         Se você administra vários grupos, selecione explicitamente qual ambiente deseja gerenciar.
       </p>
       <div v-else class="lf-saas-workspaces">
+        <h4>Políticas deste ambiente</h4>
+        <p>Restrinja o ambiente sem ampliar os limites da instância
+          nem adquirir acesso a livros contábeis.</p>
+        <SaasPolicyEditor scope="environment" :environment-id="selected.id" />
         <h4>Gestões do ambiente {{ selected.name }}</h4>
         <NcLoadingIcon v-if="workspacesLoading" :size="20" />
         <NcNoteCard v-if="workspacesError" type="error" role="alert">{{ workspacesError }}</NcNoteCard>
