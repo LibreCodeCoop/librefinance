@@ -193,7 +193,8 @@ try {
         'GET', $workspacePolicyA2, null, 404);
     $t->check('A owner can read workspace policy catalogue', $a,
         'GET', '/saas/v1/workspaces/' . $spaceA2 . '/policies/effective', null, 200,
-        static fn(array $r): bool => count($r['policies'] ?? []) === 4);
+        static fn(array $r): bool => count($r['policies'] ?? []) === 5
+            && in_array('dashboard.kpis.enabled', array_column($r['policies'] ?? [], 'key'), true));
     $t->check('A owner restricts imports in A2 without changing A1', $a,
         'PUT', $workspacePolicyA2,
         ['valueJson' => 'false', 'expectedRevision' => 0], 200,
