@@ -84,7 +84,9 @@ export async function goToView(page, view) {
     'Recursos instalados': 'Gerenciar',
     'Dados e migração': 'Gerenciar',
   })[view]
-  const target = nav.getByText(view, { exact: true })
+  // Nextcloud navigation renders an additional matching accessible label in
+  // the active navigation subtree; select the actual link deterministically.
+  const target = nav.getByRole('link', { name: view, exact: true }).first()
   if (parent) {
     // The submenu can be open but outside the scroll viewport after creating a
     // space using the footer action. Do not collapse it just because it is

@@ -94,7 +94,8 @@ test('@extensions supported entity pages link quietly to the matching Field Stud
     await btn.click()
     await expect(page).toHaveURL(new RegExp('view=fields'))
     await expect(page).toHaveURL(new RegExp('entity='+entity))
-    await expect(page.locator('#lf-field-studio-entity')).toBeVisible()
+    await expect(page.locator('#lf-field-studio-entity')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Novo campo' })).toBeVisible()
     const picked = {
       company:'Empresa',contact:'Cliente ou fornecedor',
       item:'Produto ou serviço',journal:'Receita ou despesa',
@@ -161,12 +162,14 @@ test('Field Studio targets contacts and the resulting field appears in the conta
   await login(page)
   await makeSpace(page)
   await goToView(page, 'Campos personalizados')
-  await page.locator('#lf-field-studio-entity').click()
-  await page.getByRole('option', { name: 'Cliente ou fornecedor' }).click()
+  await expect(page.locator('#lf-field-studio-entity')).toHaveCount(0)
   await page.getByRole('button', { name: 'Novo campo' }).click()
-  const editor = page.getByRole('dialog', { name: 'Criar campo adicional' })
+  const editor = page.getByRole('dialog', { name: 'Novo campo personalizado' })
+  await editor.getByRole('group', { name: 'Escolher local do campo' })
+    .getByRole('button', { name: 'Clientes e fornecedores' }).click()
   await editor.getByRole('textbox', { name: 'Nome do campo' }).fill('Referência do contrato')
-  await editor.getByRole('textbox', { name: 'Identificador técnico' }).fill('contrato_ux')
+  await editor.locator('summary').filter({ hasText: 'Identificador técnico' }).click()
+  await editor.getByRole('textbox', { name: 'Chave para integrações' }).fill('contrato_ux')
   await editor.getByRole('button', { name: 'Salvar campo' }).click()
   await expect(page.getByText('Referência do contrato')).toBeVisible()
   await goToView(page, 'Clientes e fornecedores')
