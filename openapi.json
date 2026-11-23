@@ -2,7 +2,7 @@
     "openapi": "3.1.0",
     "info": {
         "title": "LibreFinance — native Nextcloud application APIs",
-        "version": "0.18.5",
+        "version": "0.18.7",
         "description": "Original AGPL application contracts. Structural response schemas are provisional and require full OCS/OpenAPI extractor adoption. Every route enforces Nextcloud identity and per-space roles. MCP is read-only; AI is consented."
     },
     "servers": [
