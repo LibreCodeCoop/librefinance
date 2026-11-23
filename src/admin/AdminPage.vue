@@ -12,6 +12,7 @@ import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwit
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
+import LfSelect from '../components/LfSelect.vue'
 
 const managed = ref(false)
 const contexts = ref([])
@@ -23,6 +24,14 @@ const groupSearchError = ref('')
 const groupsLoading = ref(false)
 const groupsNextOffset = ref(null)
 const suspendingGroup = ref(null)
+const recoveringGroup = ref(null)
+const recoveryReason = ref('')
+const recoveryOptions = [
+  {value: 'delegation_reviewed', label: 'Delegação revisada'},
+  {value: 'group_admin_restored', label: 'Administrador do grupo restaurado'},
+  {value: 'security_incident_resolved', label: 'Incidente de segurança resolvido'},
+  {value: 'membership_corrected', label: 'Participação no grupo corrigida'},
+]
 const saasGroupsPath = () => generateUrl('/apps/librefinance/api/saas/v1/admin/groups')
 const groupStatusLabel = state => ({
   disabled: 'Não habilitado',
@@ -69,6 +78,18 @@ function setGroupEnabled(group, enabled) {
     await axios.put(generateUrl('/apps/librefinance/api/saas/v1/admin/groups/'
       + encodeURIComponent(group.id) + '/enablement'), { enabled })
     suspendingGroup.value = null
+    await searchGroups()
+  })
+}
+function recoverGroup() {
+  if (!recoveringGroup.value || !recoveryReason.value || busy.value) return
+  const group = recoveringGroup.value
+  const reasonCode = recoveryReason.value
+  run(async () => {
+    await axios.post(generateUrl('/apps/librefinance/api/saas/v1/admin/groups/'
+      + encodeURIComponent(group.id) + '/recover'), { reasonCode })
+    recoveringGroup.value = null
+    recoveryReason.value = ''
     await searchGroups()
   })
 }
@@ -198,9 +219,11 @@ onMounted(async () => {
             variant="tertiary" :disabled="busy || groupsLoading"
             :aria-label="'Suspender LibreFinance para ' + group.name"
             @click="suspendingGroup=group">Suspender</NcButton>
-          <span v-else class="lf-admin-hint">
-            Reativação exige recuperação administrativa auditada.
-          </span>
+          <NcButton v-else-if="group.state==='suspended'"
+            variant="secondary" :disabled="busy || groupsLoading"
+            :aria-label="'Recuperar ambiente de ' + group.name"
+            @click="recoveringGroup=group">Recuperar</NcButton>
+          <span v-else class="lf-admin-hint">Estado indisponível</span>
         </li>
       </ul>
       <NcButton v-if="groupsNextOffset!==null" variant="tertiary"
@@ -299,6 +322,29 @@ onMounted(async () => {
           <NcButton variant="tertiary" @click="suspendingGroup=null">Cancelar</NcButton>
           <NcButton variant="error" :disabled="busy"
             @click="setGroupEnabled(suspendingGroup, false)">Suspender grupo</NcButton>
+        </div>
+      </div>
+    </NcDialog>
+    <NcDialog :open="Boolean(recoveringGroup)" size="normal"
+      name="Recuperar ambiente do LibreFinance"
+      @update:open="!$event && (recoveringGroup=null)">
+      <div class="lf-admin-confirm">
+        <NcNoteCard type="warning">
+          A recuperação é exclusiva do administrador da instância.
+          O motivo fica registrado na auditoria. A operação mantém os dados
+          financeiros intactos e retorna o ambiente a
+          "Aguardando administrador", sem permitir acesso financeiro automático.
+        </NcNoteCard>
+        <p>Recuperar <strong>{{ recoveringGroup?.name }}</strong>?</p>
+        <LfSelect id="lf-saas-recovery-reason" v-model="recoveryReason"
+          label="Motivo obrigatório da recuperação"
+          :options="recoveryOptions" :disabled="busy"
+          placeholder="Escolha o motivo da recuperação" />
+        <div class="lf-admin-actions">
+          <NcButton variant="tertiary"
+            @click="recoveringGroup=null; recoveryReason=''">Cancelar</NcButton>
+          <NcButton variant="primary" :disabled="busy || !recoveryReason"
+            @click="recoverGroup">Confirmar recuperação</NcButton>
         </div>
       </div>
     </NcDialog>

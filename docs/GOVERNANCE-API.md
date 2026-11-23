@@ -113,8 +113,16 @@ através de PUT /api/saas/v1/admin/groups/{gid}/enablement com
 rotas com componentes Vue do Nextcloud.
 
 Os estados são disabled, enabled_pending_admin, active e suspended.
-Não existe reativação automática de grupos suspensos: a recuperação exige
-um fluxo administrativo auditado ainda pendente de implementação.
+A recuperação de um ambiente suspenso exige a instância autenticada,
+motivo obrigatório e a operação POST
+/api/saas/v1/admin/groups/{gid}/recover com reasonCode tipado:
+delegation_reviewed, group_admin_restored,
+security_incident_resolved ou membership_corrected.
+O evento environment.recovered registra autor, ambiente e motivo em
+lf_environment_audit. O ambiente permanece com a mesma identidade e retorna
+para enabled_pending_admin, nunca diretamente para active.
+A ativação posterior cabe a um administrador qualificado do grupo, com nova
+verificação de delegação e sem concessão de qualquer papel financeiro.
 Administradores de grupos só podem ativar o ambiente previamente habilitado
 se forem subadministradores atuais no Nextcloud ou delegados válidos.
 Nenhum desses papéis concede acesso automático a extratos, lançamentos,

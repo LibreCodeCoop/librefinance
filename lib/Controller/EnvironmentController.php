@@ -52,6 +52,15 @@ final class EnvironmentController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/saas/v1/admin/groups/{gid}/recover')]
+    public function recoverGroup(string $gid, string $reasonCode): JSONResponse {
+        return $this->respond(fn(): array => [
+            'contractVersion' => 1,
+            'environment' => $this->environments->recoverGroup($gid, $reasonCode),
+        ]);
+    }
+
+    #[NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/saas/v1/environments/{environmentId}/provision')]
     public function provision(string $environmentId): JSONResponse {
         return $this->respond(fn(): array => [

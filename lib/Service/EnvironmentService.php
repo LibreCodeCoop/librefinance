@@ -239,6 +239,83 @@ final class EnvironmentService {
     }
 
     /**
+     * Instance-admin-only recovery. Reenablement is deliberately a two-stage
+     * operation: this returns to pending_admin, and only a currently qualified
+     * group subadmin/delegate can activate the environment afterward.
+     *
+     * Recovery reasons are typed codes persisted durably in the append-only
+     * environment audit: (environment_id, actor_uid, action, subject_type,
+     * subject_id, occurred_at). No migration or free-text audit injection.
+     *
+     * @return array{id:string,name:string,state:string,canManage:bool}
+     */
+    public function recoverGroup(string $gid, string $reasonCode): array {
+        $this->governance->requireInstanceAdmin();
+        if (!$this->governance->enabled()) {
+            throw new DomainException('governance_disabled');
+        }
+        $reasons = [
+            'delegation_reviewed',
+            'group_admin_restored',
+            'security_incident_resolved',
+            'membership_corrected',
+        ];
+        if (!in_array($reasonCode, $reasons, true)) {
+            throw new DomainException('invalid_recovery_reason');
+        }
+        $this->governance->requireGroup($gid);
+        $row = $this->lookupByGroup($gid);
+        if ($row === null) {
+            throw new DomainException('environment_not_found');
+        }
+        if ($row['state'] !== 'suspended' || $row['status'] !== 'suspended') {
+            throw new DomainException('environment_not_suspended');
+        }
+        $now = time();
+        $this->db->beginTransaction();
+        try {
+            $q = $this->db->getQueryBuilder();
+            $changed = $q->update('lf_environment_groups')
+                ->set('state', $q->createNamedParameter('enabled_pending_admin'))
+                ->set('updated_at',
+                    $q->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+                ->where($q->expr()->eq('environment_id',
+                    $q->createNamedParameter((int)$row['id'], IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('state',
+                    $q->createNamedParameter('suspended')))
+                ->executeStatement();
+            if ($changed !== 1) {
+                throw new DomainException('concurrent_change');
+            }
+            $q = $this->db->getQueryBuilder();
+            $updated = $q->update('lf_environments')
+                ->set('status', $q->createNamedParameter('enabled_pending_admin'))
+                ->set('revision', 'revision + 1')
+                ->set('updated_at',
+                    $q->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+                ->where($q->expr()->eq('id',
+                    $q->createNamedParameter((int)$row['id'], IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('status',
+                    $q->createNamedParameter('suspended')))
+                ->executeStatement();
+            if ($updated !== 1) {
+                throw new DomainException('concurrent_change');
+            }
+            $this->audit((int)$row['id'], 'environment.recovered',
+                'recovery_reason', $reasonCode);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+        $fresh = $this->lookupByGroup($gid);
+        if ($fresh === null || $fresh['state'] !== 'enabled_pending_admin') {
+            throw new DomainException('concurrent_change');
+        }
+        return $this->publicRow($fresh, false);
+    }
+
+    /**
      * Discovery never includes balances, companies, workspace or grants.
      * One multi-group user sees separate environments, never an ACL union.
      *
