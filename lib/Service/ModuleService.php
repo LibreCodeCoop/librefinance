@@ -26,6 +26,7 @@ final class ModuleService {
         private IURLGenerator $urls,
         private IDBConnection $db,
         private WriteService $write,
+        private SaasPolicyRuntimeGate $policies,
     ) {}
 
     /** @return array<string,ModuleDescriptor> */
@@ -121,6 +122,12 @@ final class ModuleService {
     }
 
     private function enabledInSpace(int $spaceId, string $id): bool {
+        // Runtime policy and per-space module flags both restrict access.
+        // Neither of them supplies a financial ACL grant.
+        if ($id === 'librefinance_import'
+            && $this->policies->workspace($spaceId, 'imports.enabled')['effectiveValue'] !== true) {
+            return false;
+        }
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'enabled')->from('lf_module_flags')
             ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))

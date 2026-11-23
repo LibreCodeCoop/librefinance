@@ -576,6 +576,26 @@
       "path": "/apps/librefinance/api/spaces/{spaceId}/accounts/{accountId}/logo"
     },
     {
+      "path": "/apps/librefinance/api/saas/v1/admin/policies",
+      "request": "GET",
+      "route": "librefinance.saaspolicy.index"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/admin/policies/{policyKey}",
+      "request": "GET",
+      "route": "librefinance.saaspolicy.read"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/admin/policies/{policyKey}",
+      "request": "PUT",
+      "route": "librefinance.saaspolicy.write"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/admin/policies/{policyKey}",
+      "request": "DELETE",
+      "route": "librefinance.saaspolicy.clear"
+    },
+    {
       "path": "/apps/librefinance/api/saas/v1/environments",
       "request": "GET",
       "route": "librefinance.environment.index"
@@ -589,6 +609,26 @@
       "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/provision",
       "request": "POST",
       "route": "librefinance.environment.provision"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/policies/effective",
+      "request": "GET",
+      "route": "librefinance.saaspolicy.effective"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/policies/{policyKey}",
+      "request": "GET",
+      "route": "librefinance.saaspolicy.readenvironment"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/policies/{policyKey}",
+      "request": "PUT",
+      "route": "librefinance.saaspolicy.writeenvironment"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/policies/{policyKey}",
+      "request": "DELETE",
+      "route": "librefinance.saaspolicy.clearenvironment"
     }
   ],
   "librefinance_nfse": [
