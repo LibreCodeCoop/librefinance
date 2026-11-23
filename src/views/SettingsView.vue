@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { computed, inject, ref } from 'vue'
+import { computed, inject, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
@@ -45,16 +45,39 @@ const current = computed(() => sections[props.sectionKey] || sections.access)
 const section = computed(() => current.value.panel)
 const shareDialog=ref('')
 const removeTarget=ref(null)
+const governanceGroup=ref(null)
+const canChangeGroupGrants=ref(false)
+const canGrantManager=ref(false)
+let governanceRequest=0
+async function loadGovernance() {
+  const token=++governanceRequest
+  governanceGroup.value=null
+  canChangeGroupGrants.value=false
+  canGrantManager.value=false
+  if (!activeId.value) return
+  const target=Number(activeId.value)
+  try {
+    const data=await financeApi('librefinance',target,'/governance')
+    if (token!==governanceRequest || target!==Number(activeId.value)) return
+    governanceGroup.value=data.governanceGroup
+    canChangeGroupGrants.value=Boolean(data.canChangeGroupGrants)
+    canGrantManager.value=Boolean(data.canGrantManager)
+  } catch {}
+}
+onMounted(loadGovernance)
+watch(activeId,loadGovernance)
+onBeforeUnmount(()=>{governanceRequest++})
 const problem=ref('')
 const removing=ref(false)
 const selectedRole=computed({
   get:()=>shareDialog.value==='member'?shareRole.value:groupRole.value,
   set:(value)=>{if(shareDialog.value==='member')shareRole.value=value;else groupRole.value=value},
 })
-const roles=[
+const roles=computed(()=>[
   {value:'viewer',label:'Visualizador'},{value:'auditor',label:'Auditor'},
-  {value:'operator',label:'Operador'},{value:'manager',label:'Gestor'},
-]
+  {value:'operator',label:'Operador'},
+  ...(canGrantManager.value?[{value:'manager',label:'Gestor'}]:[]),
+])
 async function share() {
   if (!shareDialog.value) return
   if (shareDialog.value==='member' && !shareUid.value.trim()) return
@@ -91,9 +114,14 @@ async function confirmRemoval() {
             <template #icon><NcIconSvgWrapper :path="mdiAccountPlusOutline" :size="20" /></template>
             Usuário
           </NcButton>
-          <NcButton variant="secondary" @click="shareDialog='group'">Grupo</NcButton>
+          <NcButton v-if="canChangeGroupGrants" variant="secondary" @click="shareDialog='group'">Grupo</NcButton>
         </div>
       </div>
+      <NcNoteCard v-if="governanceGroup" type="info">
+        Este contexto é administrado pelo grupo Nextcloud {{ governanceGroup }}.
+        Administradores delegados podem conceder acesso somente a usuários
+        pertencentes ao grupo autorizado.
+      </NcNoteCard>
       <div v-if="members.length || groupGrants.length" class="lf-table-scroll">
         <table class="lf-data-table">
           <thead><tr><th>Tipo</th><th>Identificador</th><th>Permissão</th><th>Ações</th></tr></thead>
@@ -108,7 +136,7 @@ async function confirmRemoval() {
             </tr>
             <tr v-for="group in groupGrants" :key="'group-'+group.group_gid">
               <td>Grupo</td><td><strong>{{group.group_gid}}</strong></td><td>{{group.role}}</td>
-              <td><NcButton variant="tertiary"
+              <td><NcButton v-if="canChangeGroupGrants" variant="tertiary"
                 :aria-label="'Revogar acesso do grupo '+group.group_gid"
                 @click="removeTarget={type:'group',id:group.group_gid}">
                 <template #icon><NcIconSvgWrapper :path="mdiAccountRemoveOutline" :size="20" /></template>

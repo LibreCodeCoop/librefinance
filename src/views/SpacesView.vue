@@ -19,6 +19,8 @@ import { mdiFolderAccountOutline, mdiHomeOutline, mdiDomain,
 import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import { financeError } from '../services/api.js'
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 
 const w = inject('lfWorkspace')
 const navigate = inject('lfNavigate', () => {})
@@ -33,6 +35,13 @@ const notice = ref('')
 const name = ref('')
 const newName = ref('')
 const newKind = ref('personal')
+const canCreate = ref(false)
+async function loadCreationPolicy() {
+  try {
+    const result = await axios.get(generateUrl('/apps/librefinance/api/governance/capabilities'))
+    canCreate.value = Boolean(result.data.canCreate)
+  } catch { canCreate.value = false }
+}
 const newColor = ref('#64748B')
 const editColor = ref('#64748B')
 const kinds = [
@@ -76,7 +85,7 @@ async function refreshArchived() {
     if (token === requestSeq) loading.value = false
   }
 }
-onMounted(refreshArchived)
+onMounted(() => { refreshArchived(); loadCreationPolicy() })
 onBeforeUnmount(() => { ++requestSeq })
 function startEdit(space) {
   problem.value = ''
@@ -171,7 +180,7 @@ async function create() {
     <LfPageHeader title="Gestões financeiras" eyebrow="GERENCIAR"
       description="Cada área financeira contém um livro contábil, caixa e acessos independentes. Cadastros de empresas dentro de uma área não criam contabilidade separada." >
       <template #actions>
-        <NcButton variant="primary" @click="creating=true">Nova gestão</NcButton>
+        <NcButton v-if="canCreate" variant="primary" @click="creating=true">Nova gestão</NcButton>
       </template>
     </LfPageHeader>
     <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
