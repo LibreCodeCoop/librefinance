@@ -8,7 +8,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
   <name>LibreFinance</name>
   <summary>Free and collaborative financial management for Nextcloud.</summary>
   <description>Independent modular finance app for individuals, groups and organizations, with workspace isolation, an accounting ledger and APIs. Development preview; not certified for financial production use.</description>
-  <version>0.18.3</version>
+  <version>0.18.4</version>
   <licence>AGPL-3.0-or-later</licence>
   <author mail="dev@librecodecoop.org.br">LibreCode Coop</author>
   <namespace>LibreFinance</namespace>
@@ -17,6 +17,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
   <website>https://github.com/LibreCodeCoop/librefinance</website>
   <bugs>https://github.com/LibreCodeCoop/librefinance/issues</bugs>
   <dependencies><php min-version="8.3"/><nextcloud min-version="36" max-version="36"/></dependencies>
+  <settings>
+    <admin>OCA\LibreFinance\Settings\Admin</admin>
+    <admin-section>OCA\LibreFinance\Settings\AdminSection</admin-section>
+  </settings>
   <navigations>
     <navigation><name>LibreFinance</name><route>librefinance.page.index</route><icon>app.svg</icon><order>55</order></navigation>
   </navigations>

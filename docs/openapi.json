@@ -26,6 +26,649 @@
         }
     ],
     "paths": {
+        "/librefinance/api/admin/contexts": {
+            "get": {
+                "operationId": "librefinance_governance_contexts",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance contexts",
+                "description": "Instance-admin only. List scoped finance contexts and binding status.",
+                "parameters": [],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "librefinance_governance_provision",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance provision",
+                "description": "Instance-admin only. Atomically provision a new finance context governed by an existing Nextcloud group.",
+                "parameters": [],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "kind": {
+                                        "type": "string"
+                                    },
+                                    "gid": {
+                                        "type": "string"
+                                    },
+                                    "currency": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "name",
+                                    "kind",
+                                    "gid"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/librefinance/api/admin/contexts/{spaceId}/archive": {
+            "post": {
+                "operationId": "librefinance_governance_archive",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance archive",
+                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/admin/contexts/{spaceId}/group": {
+            "put": {
+                "operationId": "librefinance_governance_bind",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance bind",
+                "description": "Instance-admin only. Bind a pre-existing finance context to a Nextcloud group; no ledger mutation.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "gid": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "gid"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/librefinance/api/admin/contexts/{spaceId}/restore": {
+            "post": {
+                "operationId": "librefinance_governance_restore",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance restore",
+                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/admin/governance": {
+            "get": {
+                "operationId": "librefinance_governance_show",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance show",
+                "description": "Instance-admin only. Read current global provisioning mode.",
+                "parameters": [],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            },
+            "put": {
+                "operationId": "librefinance_governance_configure",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance configure",
+                "description": "Instance-admin only. Enable or disable managed provisioning.",
+                "parameters": [],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "managed": {
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": [
+                                    "managed"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/librefinance/api/admin/groups": {
+            "get": {
+                "operationId": "librefinance_governance_groups",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance groups",
+                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/admin/groups/{gid}/delegates": {
+            "get": {
+                "operationId": "librefinance_governance_delegates",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance delegates",
+                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
+                "parameters": [
+                    {
+                        "name": "gid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "librefinance_governance_grantDelegate",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance grantDelegate",
+                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
+                "parameters": [
+                    {
+                        "name": "gid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "uid": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "uid"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/librefinance/api/admin/groups/{gid}/delegates/{uid}": {
+            "delete": {
+                "operationId": "librefinance_governance_revokeDelegate",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance revokeDelegate",
+                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
+                "parameters": [
+                    {
+                        "name": "gid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "uid",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/governance/capabilities": {
+            "get": {
+                "operationId": "librefinance_governance_capabilities",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance capabilities",
+                "description": "Authenticated user. Read whether context creation is permitted.",
+                "parameters": [],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
         "/librefinance/api/mcp": {
             "post": {
                 "operationId": "librefinance_mcp_handle",
@@ -2801,6 +3444,56 @@
                                 "additionalProperties": false
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/librefinance/api/spaces/{spaceId}/governance": {
+            "get": {
+                "operationId": "librefinance_governance_scoped",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "governance scoped",
+                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
                     }
                 }
             }

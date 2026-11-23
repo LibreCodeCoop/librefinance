@@ -14,8 +14,12 @@ declare(strict_types=1);
  * Use the real HTTP/Behat tests for response and denial contract evidence.
  */
 $project = dirname(__DIR__, 3);
-$core = $project . '/librefinance';
+$core = (string)(getenv('LF_OPENAPI_CORE') ?: $project . '/librefinance');
 $apps = ['librefinance', 'librefinance_nfse'];
+$appRoots = [
+    'librefinance' => $core,
+    'librefinance_nfse' => (string)(getenv('LF_OPENAPI_NFSE') ?: $project . '/librefinance_nfse'),
+];
 
 /**
  * Format: field:type! (required), ? optional; types s/i/b/date/array/object.
@@ -24,6 +28,10 @@ $apps = ['librefinance', 'librefinance_nfse'];
 $writeForms = [
      'librefinance:space#create' => 'name:s!,kind:s!,currency:s!,color:s',
      'librefinance:space#rename' => 'name:s!,color:s',
+    'librefinance:governance#configure' => 'managed:b!',
+    'librefinance:governance#provision' => 'name:s!,kind:s!,gid:s!,currency:s',
+    'librefinance:governance#bind' => 'gid:s!',
+    'librefinance:governance#grantDelegate' => 'uid:s!',
     'librefinance:space#share' => 'uid:s!,role:s!',
     'librefinance:space#shareGroup' => 'gid:s!,role:s!',
     'librefinance:account#create' => 'code:s!,name:s!,class:s!,isBank:b',
@@ -80,6 +88,8 @@ $writeForms = [
     'librefinance:inventory#preview' => 'inventoryJson:s!',
 ];
 $noBody = [
+    'librefinance:governance#archive',
+    'librefinance:governance#restore',
     'librefinance:space#archive',
     'librefinance:space#restore',
     'librefinance:dashboardLayout#reset',
@@ -92,6 +102,7 @@ $noBody = [
     'librefinance:invoice#issue',
 ];
 $query = [
+    'librefinance:governance#groups' => 'search:s,offset:i',
     'librefinance:import#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
     'librefinance:import#accounts' => 'sourceCompanyId:s!,sourceSystem:s,afterId:i',
     'librefinance:movement#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
@@ -119,6 +130,12 @@ $query = [
     'librefinance_nfse:draft#index' => 'afterId:i',
 ];
 $descriptions = [
+    'librefinance:governance#show' => 'Instance-admin only. Read current global provisioning mode.',
+    'librefinance:governance#configure' => 'Instance-admin only. Enable or disable managed provisioning.',
+    'librefinance:governance#contexts' => 'Instance-admin only. List scoped finance contexts and binding status.',
+    'librefinance:governance#provision' => 'Instance-admin only. Atomically provision a new finance context governed by an existing Nextcloud group.',
+    'librefinance:governance#bind' => 'Instance-admin only. Bind a pre-existing finance context to a Nextcloud group; no ledger mutation.',
+    'librefinance:governance#capabilities' => 'Authenticated user. Read whether context creation is permitted.',
     'librefinance:mcp#handle' => 'MCP read-only JSON-RPC; clients must use an authenticated Nextcloud app password and the negotiated 2025-06-18 protocol.',
     'librefinance:ai#analyze' => 'TaskProcessing: only aggregate totals, read-only, requires human consent; provider may be external.',
     'librefinance:invoice#issue' => 'Internal commercial issue status only. This is NOT a fiscal authorization.',
@@ -294,8 +311,8 @@ $responseSchemas = [
  *
  * @return list<array{name:string,url:string,verb:string}>
  */
-function routesFromControllers(string $app, string $project): array {
-    $dir = $project . '/' . $app . '/lib/Controller';
+function routesFromControllers(string $app, string $project, string $appRoot): array {
+    $dir = $appRoot . '/lib/Controller';
     if (!is_dir($dir)) {
         throw new RuntimeException('Missing source app checkout ' . $app);
     }
@@ -334,7 +351,7 @@ function routesFromControllers(string $app, string $project): array {
 $operationCount = 0;
 foreach ($apps as $app) {
     $spec['tags'][] = ['name' => $app, 'description' => 'Nextcloud optional app / native module'];
-    foreach (routesFromControllers($app, $project) as $route) {
+    foreach (routesFromControllers($app, $project, $appRoots[$app]) as $route) {
         $url = $route['url'] ?? '';
         if (!str_starts_with($url, '/api/')) {
             continue; // HTML app pages are not JSON APIs.

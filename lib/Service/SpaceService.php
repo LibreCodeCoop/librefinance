@@ -22,6 +22,7 @@ final class SpaceService {
         private AccessService $access,
         private IUserManager $users,
         private IGroupManager $groups,
+        private GovernanceService $governance,
     ) {}
 
     /** @return array<int, array<string, mixed>> */
@@ -30,7 +31,12 @@ final class SpaceService {
     }
 
     /** @return array<string,mixed> */
-    public function create(string $name, string $kind, string $currency, string $color = '#64748B'): array {
+    public function create(string $name, string $kind, string $currency, string $color = '#64748B', ?string $governanceGroup = null): array {
+        $this->governance->requireCreationAllowed();
+        if ($governanceGroup !== null) {
+            $this->governance->requireInstanceAdmin();
+            $this->governance->requireGroup($governanceGroup);
+        }
         $uid = $this->access->uid();
         $name = trim($name);
         $currency = strtoupper(trim($currency));
@@ -52,12 +58,18 @@ final class SpaceService {
                 'kind' => $kind,
                 'currency' => $currency,
                 'owner_uid' => $uid,
+                'governance_gid' => $governanceGroup,
                 'created_at' => time(),
                 'archived' => 0,
                 'accent_color' => strtoupper($color),
             ]);
             $spaceId = $this->db->lastInsertId('*PREFIX*lf_spaces');
             $this->writer->insert('lf_members', ['space_id' => $spaceId, 'uid' => $uid, 'role' => 'owner']);
+            if ($governanceGroup !== null) {
+                $this->writer->insert('lf_group_grants', [
+                    'space_id' => $spaceId, 'group_gid' => $governanceGroup, 'role' => 'viewer',
+                ]);
+            }
             foreach ([
                 ['1000', 'Caixa', 'asset', true],
                 ['3000', 'Patrimônio líquido', 'equity', false],
@@ -138,13 +150,14 @@ final class SpaceService {
             if ($color !== null) {
                 $q->set('accent_color', $q->createNamedParameter(strtoupper($color)));
             }
-            $changed = $q
-                ->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
-                ->andWhere($q->expr()->eq('owner_uid',
-                    $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)))
+            $q->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
                 ->andWhere($q->expr()->eq('archived',
-                    $q->createNamedParameter(false, IQueryBuilder::PARAM_BOOL)))
-                ->executeStatement();
+                    $q->createNamedParameter(false, IQueryBuilder::PARAM_BOOL)));
+            if (!$this->governance->enabled() && $this->governance->groupFor($spaceId) === null) {
+                $q->andWhere($q->expr()->eq('owner_uid',
+                    $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)));
+            }
+            $changed = $q->executeStatement();
             if ($changed !== 1) {
                 throw new DomainException('concurrent_change');
             }
@@ -180,15 +193,17 @@ final class SpaceService {
             // Archiving only hides the workspace and suspends authorization.
             // Financial entries are never deleted; the owner may restore them.
             $q = $this->db->getQueryBuilder();
-            $changed = $q->update('lf_spaces')
+            $q->update('lf_spaces')
                 ->set('archived', $q->createNamedParameter($target, IQueryBuilder::PARAM_BOOL))
                 ->where($q->expr()->eq('id',
                     $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
-                ->andWhere($q->expr()->eq('owner_uid',
-                    $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)))
                 ->andWhere($q->expr()->eq('archived',
-                    $q->createNamedParameter(!$target, IQueryBuilder::PARAM_BOOL)))
-                ->executeStatement();
+                    $q->createNamedParameter(!$target, IQueryBuilder::PARAM_BOOL)));
+            if (!$this->governance->enabled() && $this->governance->groupFor($spaceId) === null) {
+                $q->andWhere($q->expr()->eq('owner_uid',
+                    $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)));
+            }
+            $changed = $q->executeStatement();
             if ($changed !== 1) {
                 throw new DomainException('concurrent_change');
             }
@@ -203,14 +218,19 @@ final class SpaceService {
 
     /** @return array<string,mixed> */
     private function owned(int $spaceId): array {
+        if ($this->governance->enabled() || $this->governance->groupFor($spaceId) !== null) {
+            $this->governance->requireInstanceAdmin();
+        }
         if ($spaceId < 1) {
             throw new DomainException('space_not_found');
         }
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'name', 'archived', 'accent_color')->from('lf_spaces')
-            ->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
-            ->andWhere($q->expr()->eq('owner_uid',
+            ->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
+        if (!$this->governance->enabled() && $this->governance->groupFor($spaceId) === null) {
+            $q->andWhere($q->expr()->eq('owner_uid',
                 $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)));
+        }
         $record = $q->executeQuery()->fetchAssociative();
         if ($record === false) {
             throw new DomainException('space_not_found');
@@ -222,6 +242,11 @@ final class SpaceService {
         $this->access->requireRole($spaceId, 'manager');
         AccessService::validateGrantRole($role);
         $uid = trim($uid);
+        $this->governance->checkUserGrant($spaceId, $uid);
+        if ($this->governance->groupFor($spaceId) !== null
+            && $role === 'manager' && !$this->governance->isInstanceAdmin()) {
+            throw new DomainException('permission_denied');
+        }
         if ($uid === '' || !$this->users->userExists($uid)) {
             throw new DomainException('user_not_found');
         }
@@ -255,6 +280,7 @@ final class SpaceService {
         $this->access->requireRole($spaceId, 'manager');
         AccessService::validateGrantRole($role);
         $gid = trim($gid);
+        $this->governance->checkGroupGrant($spaceId, $gid);
         if ($gid === '' || $this->groups->get($gid) === null) {
             throw new DomainException('group_not_found');
         }
@@ -280,6 +306,7 @@ final class SpaceService {
 
     public function revokeUser(int $spaceId, string $uid): void {
         $this->access->requireRole($spaceId, 'manager');
+        $this->governance->checkUserGrant($spaceId, $uid);
         $this->db->beginTransaction();
         try {
             $q = $this->db->getQueryBuilder();
@@ -308,6 +335,10 @@ final class SpaceService {
 
     public function revokeGroup(int $spaceId, string $gid): void {
         $this->access->requireRole($spaceId, 'manager');
+        $this->governance->checkGroupGrant($spaceId, $gid);
+        if ($this->governance->groupFor($spaceId) === $gid) {
+            throw new DomainException('permission_denied');
+        }
         $this->db->beginTransaction();
         try {
             $q = $this->db->getQueryBuilder();
@@ -337,7 +368,13 @@ final class SpaceService {
         $qb = $this->db->getQueryBuilder();
         $qb->select('uid', 'role')->from('lf_members')
             ->where($qb->expr()->eq('space_id', $qb->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
-        return $qb->executeQuery()->fetchAllAssociative();
+        $members = $qb->executeQuery()->fetchAllAssociative();
+        $bound = $this->governance->groupFor($spaceId);
+        if ($bound !== null && !$this->governance->isInstanceAdmin()) {
+            $members = array_values(array_filter($members,
+                fn(array $row): bool => $this->groups->isInGroup((string)$row['uid'], $bound)));
+        }
+        return $members;
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -346,6 +383,10 @@ final class SpaceService {
         $qb = $this->db->getQueryBuilder();
         $qb->select('group_gid', 'role')->from('lf_group_grants')
             ->where($qb->expr()->eq('space_id', $qb->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
+        $bound = $this->governance->groupFor($spaceId);
+        if ($bound !== null && !$this->governance->isInstanceAdmin()) {
+            $qb->andWhere($qb->expr()->eq('group_gid', $qb->createNamedParameter($bound)));
+        }
         return $qb->executeQuery()->fetchAllAssociative();
     }
 
