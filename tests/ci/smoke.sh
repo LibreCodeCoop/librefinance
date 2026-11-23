@@ -356,6 +356,23 @@ grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$saas_access_output" || {
   exit 1
 }
 
+# Only this disposable lab may delete a Nextcloud group. The real public
+# GroupDeletedEvent must suspend its tenant, revoke legacy grants/delegates,
+# and preserve the independently-owned accounting ledger on GID reuse.
+if ! saas_delete_output="$(compose exec -T \
+  -e LF_SYNTHETIC_SAAS_GROUP_DELETE=yes \
+  -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
+  php /var/www/html/custom_apps/librefinance/tests/integration/saas-group-delete.php 2>&1)"; then
+  printf '%s\n' "$saas_delete_output" >&2
+  echo 'FAIL: synthetic SaaS group deletion suite exited nonzero' >&2
+  exit 1
+fi
+printf '%s\n' "$saas_delete_output"
+grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$saas_delete_output" || {
+  echo 'FAIL: SaaS deletion/rebinding assertions did not complete' >&2
+  exit 1
+}
+
 if [ "${LF_RUN_BEHAT:-1}" = 1 ]; then
   test -x tests/behat/vendor/bin/behat || {
     echo "Behat dependencies missing. Run composer install in tests/behat before the smoke suite." >&2

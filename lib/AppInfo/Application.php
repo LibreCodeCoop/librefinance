@@ -11,6 +11,8 @@ namespace OCA\LibreFinance\AppInfo;
 
 use OCP\AppFramework\App;
 use OCA\LibreFinance\Search\FinanceSearchProvider;
+use OCA\LibreFinance\Listener\GroupDeletedListener;
+use OCP\Group\Events\GroupDeletedEvent;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
@@ -24,6 +26,7 @@ final class Application extends App implements IBootstrap {
 
     public function register(IRegistrationContext $context): void {
         $context->registerSearchProvider(FinanceSearchProvider::class);
+        $context->registerEventListener(GroupDeletedEvent::class, GroupDeletedListener::class);
     }
     public function boot(IBootContext $context): void {}
 }

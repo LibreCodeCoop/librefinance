@@ -267,6 +267,65 @@ final class EnvironmentService {
     }
 
     /**
+     * Nextcloud has deleted this group. A later group using the same textual
+     * GID is a new administrative principal, not the old SaaS environment.
+     * Keep all accounting and audit records while revoking the old bindings.
+     *
+     * Invoked only by the server's GroupDeletedEvent, never from an HTTP
+     * parameter. A missing or already-suspended environment is safe to process.
+     */
+    public function suspendDeletedGroup(string $gid): void {
+        if ($gid === '' || strlen($gid) > 64) {
+            return;
+        }
+        $now = time();
+        $this->db->beginTransaction();
+        try {
+            $row = $this->lookupByGroup($gid);
+            if ($row !== null) {
+                $q = $this->db->getQueryBuilder();
+                $q->update('lf_environment_groups')
+                    ->set('state', $q->createNamedParameter('suspended'))
+                    ->set('updated_at', $q->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+                    ->where($q->expr()->eq('group_gid', $q->createNamedParameter($gid)))
+                    ->executeStatement();
+
+                $q = $this->db->getQueryBuilder();
+                $q->update('lf_environments')
+                    ->set('status', $q->createNamedParameter('suspended'))
+                    ->set('revision', $q->createFunction('revision + 1'))
+                    ->set('updated_at', $q->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+                    ->where($q->expr()->eq('id',
+                        $q->createNamedParameter((int)$row['id'], IQueryBuilder::PARAM_INT)))
+                    ->executeStatement();
+
+                $this->write->insert('lf_environment_audit', [
+                    'environment_id' => (int)$row['id'],
+                    'actor_uid' => $this->session->getUser()?->getUID() ?? 'system',
+                    'action' => 'environment.group_deleted',
+                    'subject_type' => 'nextcloud_group',
+                    'subject_id' => $gid,
+                    'occurred_at' => $now,
+                ]);
+            }
+            // A recreated group must not inherit historical delegated admins
+            // or legacy group viewer grants from the deleted principal.
+            $q = $this->db->getQueryBuilder();
+            $q->delete('lf_governance_delegates')
+                ->where($q->expr()->eq('group_gid', $q->createNamedParameter($gid)))
+                ->executeStatement();
+            $q = $this->db->getQueryBuilder();
+            $q->delete('lf_group_grants')
+                ->where($q->expr()->eq('group_gid', $q->createNamedParameter($gid)))
+                ->executeStatement();
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
      * Instance-admin-only recovery. Reenablement is deliberately a two-stage
      * operation: this returns to pending_admin, and only a currently qualified
      * group subadmin/delegate can activate the environment afterward.
