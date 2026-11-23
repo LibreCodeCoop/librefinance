@@ -15,6 +15,7 @@ use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
 use OCP\IUserSession;
+use OCP\IRequest;
 
 final class AccessService {
     private const LEVELS = [
@@ -31,6 +32,7 @@ final class AccessService {
         private IGroupManager $groups,
         private GovernanceService $governance,
         private SaasPolicyRuntimeGate $policies,
+        private IRequest $request,
     ) {}
 
     public function uid(): string {
@@ -178,8 +180,12 @@ final class AccessService {
                         $q->createNamedParameter($uid, IQueryBuilder::PARAM_STR)));
                 $role = $q->executeQuery()->fetchOne();
             } else {
-                // Outside the tenant, only an explicitly accepted, non-expired
-                // read-only grant with a still-enabled policy can authorize.
+                // A number of legacy user-preference writes still authorize
+                // using the viewer role. External invitation roles are strictly
+                // read-only across those paths, not just ledger.post.
+                if (!in_array($this->request->getMethod(), ['GET', 'HEAD'], true)) {
+                    throw new DomainException('permission_denied');
+                }
                 $role = $this->externalAcceptedRole($spaceId, $uid);
             }
             if (!is_string($role) || self::rank($role) === 0) {
