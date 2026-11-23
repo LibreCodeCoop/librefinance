@@ -13,9 +13,17 @@ declare(strict_types=1);
  * Limit: response object schemas are structural at this development stage.
  * Use the real HTTP/Behat tests for response and denial contract evidence.
  */
-$project = dirname(__DIR__, 3);
-$core = (string)(getenv('LF_OPENAPI_CORE') ?: $project . '/librefinance');
-$apps = ['librefinance', 'librefinance_nfse'];
+// Generate core OpenAPI from core controllers without optional apps.
+$core = (string)(getenv('LF_OPENAPI_CORE') ?: dirname(__DIR__, 2));
+$project = dirname($core);
+$includeExtensions = in_array('--check-extensions', $argv, true);
+$apps = $includeExtensions ? ['librefinance', 'librefinance_nfse'] : ['librefinance'];
+$info = simplexml_load_file($core . '/appinfo/info.xml');
+if ($info === false || (string)$info->id !== 'librefinance'
+    || trim((string)$info->version) === '') {
+    throw new RuntimeException('Invalid LibreFinance application manifest');
+}
+$appVersion = (string)$info->version;
 $appRoots = [
     'librefinance' => $core,
     'librefinance_nfse' => (string)(getenv('LF_OPENAPI_NFSE') ?: $project . '/librefinance_nfse'),
@@ -205,7 +213,7 @@ $spec = [
     'openapi' => '3.1.0',
     'info' => [
         'title' => 'LibreFinance — native Nextcloud application APIs',
-        'version' => '0.17.0-dev',
+        'version' => $appVersion,
         'description' => 'Original AGPL application contracts. Structural response schemas are provisional and require full OCS/OpenAPI extractor adoption. '
             . 'Every route enforces Nextcloud identity and per-space roles. MCP is read-only; AI is consented.',
     ],
@@ -471,17 +479,25 @@ foreach ($spec['paths'] as &$entry) {
 unset($entry);
 $json = json_encode($spec, JSON_THROW_ON_ERROR
     | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . PHP_EOL;
-$output = $core . '/docs/openapi.json';
-if (in_array('--stdout', $argv, true)) {
-    // Read-only Nextcloud test containers export schema for a local write by the caller.
+$output = $core . '/openapi.json';
+if ($includeExtensions) {
+    // Verify optional contracts separately, without shipping their paths in core.
+    if ($operationCount < 2 || !array_filter(array_keys($spec['paths']),
+        static fn(string $path): bool => str_starts_with($path, '/librefinance_nfse/api/'))) {
+        throw new RuntimeException('No optional NFS-e API routes were extracted');
+    }
+    echo 'Validated ' . $operationCount . ' combined core and extension route contracts' . PHP_EOL;
+} elseif (in_array('--stdout', $argv, true)) {
     echo $json;
 } elseif (in_array('--check', $argv, true)) {
     if (!is_file($output) || file_get_contents($output) !== $json) {
-        fwrite(STDERR, "OpenAPI route/contract drift: regenerate docs/openapi.json\\n");
+        fwrite(STDERR, "OpenAPI route/contract drift: regenerate openapi.json\n");
         exit(1);
     }
-    echo 'OpenAPI matches ' . $operationCount . ' actual Nextcloud API routes' . PHP_EOL;
+    echo 'OpenAPI matches ' . $operationCount . ' actual Nextcloud core API routes' . PHP_EOL;
 } else {
-    file_put_contents($output, $json);
-    echo 'Wrote OpenAPI schema for ' . $operationCount . ' actual API operations' . PHP_EOL;
+    if (file_put_contents($output, $json) === false) {
+        throw new RuntimeException('Cannot write application-root openapi.json');
+    }
+    echo 'Wrote app-root OpenAPI schema for ' . $operationCount . ' API operations' . PHP_EOL;
 }
