@@ -457,6 +457,9 @@ test('management hierarchy has icons on section labels and workspaces stay under
   await expect(nav.getByRole('link',{name:'Gestões financeiras',exact:true}).last()).toBeVisible()
   await goToView(page,'Organizações (opcional)')
   await expect(nav.getByRole('link',{name:'Cadastros',exact:true})).toBeVisible()
+  // Creation belongs to financial-context management, not registration.
+  await expect(page.getByRole('button',{name:'Nova gestão'})).toHaveCount(0)
+  await goToView(page,'Gestões financeiras')
   await expect(page.getByRole('button',{name:'Nova gestão'})).toBeVisible()
   await expect(page.getByRole('button',{name:'Gerenciar áreas financeiras'})).toHaveCount(0)
 })
