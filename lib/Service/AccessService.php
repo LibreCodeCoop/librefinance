@@ -142,6 +142,11 @@ final class AccessService {
         // be checked BEFORE the legacy global-admin and group-admin bypasses.
         $saasScope = $this->saasScope($spaceId);
         if ($saasScope !== null) {
+            // Turning off instance-wide managed mode suspends new SaaS access,
+            // not only provisioning. The app must never keep using stale ACLs.
+            if (!$this->governance->enabled()) {
+                throw new DomainException('space_not_found');
+            }
             if ((string)($saasScope['environment_status'] ?? '') !== 'active'
                 || (string)($saasScope['group_state'] ?? '') !== 'active') {
                 throw new DomainException('space_not_found');
@@ -249,7 +254,8 @@ final class AccessService {
     public function requireSaasOwnerIncludingArchived(int $spaceId): void {
         $uid = $this->uid();
         $scope = $this->saasScope($spaceId);
-        if ($scope === null || ($scope['environment_status'] ?? null) !== 'active'
+        if ($scope === null || !$this->governance->enabled()
+            || ($scope['environment_status'] ?? null) !== 'active'
             || ($scope['group_state'] ?? null) !== 'active') {
             throw new DomainException('space_not_found');
         }
@@ -330,11 +336,12 @@ final class AccessService {
         foreach ($q->executeQuery()->fetchAllAssociative() as $membership) {
             $memberRoles[(int)$membership['space_id']] = (string)$membership['role'];
         }
+        $managedEnabled = $this->governance->enabled();
         foreach ($bindings as $binding) {
             $spaceId = (int)$binding['space_id'];
             $gid = (string)($binding['group_gid'] ?? '');
             $role = $memberRoles[$spaceId] ?? null;
-            if ($gid === '' || $this->groups->get($gid) === null
+            if (!$managedEnabled || $gid === '' || $this->groups->get($gid) === null
                 || !in_array($gid, $gids, true)
                 || ($binding['environment_status'] ?? null) !== 'active'
                 || ($binding['group_state'] ?? null) !== 'active'

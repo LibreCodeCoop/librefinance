@@ -130,6 +130,14 @@ try {
     $spaceB = (int)$bSpace['id'];
     saasCheck('workspace IDs are not reused between environments',
         $spaceA > 0 && $spaceB > 0 && $spaceA !== $spaceB);
+    instanceCheck('legacy instance-admin context list omits new SaaS books',
+        'GET', '/admin/contexts', null, 200,
+        static fn(array $r): bool =>
+            !in_array($spaceA, array_column($r['contexts'] ?? [], 'id'), true)
+            && !in_array($spaceB, array_column($r['contexts'] ?? [], 'id'), true));
+    instanceCheck('legacy bind cannot create group-wide viewer grants in SaaS',
+        'PUT', '/admin/contexts/' . $spaceA . '/group',
+        ['gid' => $groupA], 403);
     $t->check('group admin cannot self-promote to financial owner', $a,
         'POST', $pathB, ['name' => 'Self promoted',
             'ownerUid' => $a, 'idempotencyKey' => 'synthetic-self-grant-001'], 409);
@@ -210,5 +218,14 @@ try {
     instanceCheck('restore legacy governance mode', 'PUT',
         '/admin/governance', ['managed' => false], 200);
 }
+// The global managed toggle is a server-side financial kill switch for SaaS;
+// it must not change historic postings or legacy finance workspaces.
+$t->check('global managed-mode suspension denies active SaaS owner ledger B', $b,
+    'GET', '/spaces/' . $spaceB . '/journals', null, 404);
+$t->check('global managed-mode suspension filters SaaS books from workspace lists', $b,
+    'GET', '/spaces', null, 200,
+    static fn(array $r): bool =>
+        !in_array($spaceA, array_column($r['spaces'] ?? [], 'id'), true)
+        && !in_array($spaceB, array_column($r['spaces'] ?? [], 'id'), true));
 echo 'PASS: synthetic SaaS financial isolation assertions ', $checks, PHP_EOL;
 $t->finish();
