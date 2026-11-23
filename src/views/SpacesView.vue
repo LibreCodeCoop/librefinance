@@ -20,6 +20,7 @@ import LfSelect from '../components/LfSelect.vue'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import SaasEnvironmentsPanel from '../components/SaasEnvironmentsPanel.vue'
 import SaasPolicyEditor from '../components/SaasPolicyEditor.vue'
+import SaasInvitationsPanel from '../components/SaasInvitationsPanel.vue'
 import { financeError } from '../services/api.js'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
@@ -199,6 +200,13 @@ async function create() {
         @click="navigate('companies')">Cadastrar ou editar empresas</NcButton>
     </div>
     <SaasEnvironmentsPanel />
+    <SaasInvitationsPanel mode="inbox" @accepted="w.refreshSpaces()" />
+    <section v-if="w.activeId.value && w.spaces.value.some(s =>
+      Number(s.id) === Number(w.activeId.value)
+      && s.saasManaged === true && s.role === 'owner')" class="lf-surface">
+      <h2>Compartilhamento financeiro externo</h2>
+      <SaasInvitationsPanel mode="owner" :space-id="Number(w.activeId.value)" />
+    </section>
     <section v-if="w.activeId.value && w.manager.value
       && w.spaces.value.some(s => Number(s.id) === Number(w.activeId.value)
         && s.saasManaged === true)" class="lf-surface">

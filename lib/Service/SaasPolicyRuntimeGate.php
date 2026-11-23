@@ -96,6 +96,75 @@ final class SaasPolicyRuntimeGate {
             $this->layers($definition, (int)$environmentId, $spaceId, $actorUid));
     }
 
+    /**
+     * Batch-resolve one policy over several server-validated workspace bindings.
+     * Used for external invite discovery to avoid a policy-query N+1.
+     *
+     * @param array<int,int> $environmentBySpace
+     * @return array<int,bool>
+     */
+    public function workspaceBooleanBatch(array $environmentBySpace, string $key): array {
+        if ($environmentBySpace === []) {
+            return [];
+        }
+        $definition = $this->registry->get($key);
+        if ($definition->type !== 'boolean') {
+            throw new DomainException('invalid_policy_value');
+        }
+        $keys = ['instance'];
+        foreach ($environmentBySpace as $spaceId => $environmentId) {
+            if ($spaceId < 1 || $environmentId < 1) {
+                throw new DomainException('invalid_policy_scope');
+            }
+            $keys[] = 'environment:' . $environmentId;
+            $keys[] = 'workspace:' . $spaceId;
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('scope_key', 'scope_type', 'value_json', 'is_cleared')
+            ->from('lf_saas_policy_values')
+            ->where($q->expr()->eq('policy_key', $q->createNamedParameter($key)))
+            ->andWhere($q->expr()->in('scope_key',
+                $q->createNamedParameter(array_values(array_unique($keys)),
+                    IQueryBuilder::PARAM_STR_ARRAY)));
+        $stored = [];
+        foreach ($q->executeQuery()->fetchAllAssociative() as $row) {
+            if ((bool)$row['is_cleared']) {
+                continue;
+            }
+            if (!is_string($row['value_json'])) {
+                throw new DomainException('invalid_policy_value');
+            }
+            try {
+                $value = json_decode($row['value_json'], true, 32, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                throw new DomainException('invalid_policy_value');
+            }
+            $definition->assertValue($value);
+            $stored[(string)$row['scope_key']] = [
+                'scope' => (string)$row['scope_type'], 'value' => $value,
+            ];
+        }
+        $result = [];
+        foreach ($environmentBySpace as $spaceId => $environmentId) {
+            $layers = [];
+            foreach ([
+                'instance' => 'instance',
+                'environment' => 'environment:' . $environmentId,
+                'workspace' => 'workspace:' . $spaceId,
+            ] as $scope => $scopeKey) {
+                if (!$definition->supports($scope) || !isset($stored[$scopeKey])) {
+                    continue;
+                }
+                if ($stored[$scopeKey]['scope'] !== $scope) {
+                    throw new DomainException('invalid_policy_scope');
+                }
+                $layers[] = $stored[$scopeKey];
+            }
+            $result[$spaceId] = $this->resolver->resolve($definition, $layers)['effectiveValue'] === true;
+        }
+        return $result;
+    }
+
     public function requireInstanceEnabled(string $key): void {
         if ($this->instance($key)['effectiveValue'] !== true) {
             throw new DomainException('module_disabled');

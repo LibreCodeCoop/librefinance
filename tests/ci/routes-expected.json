@@ -694,6 +694,36 @@
       "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/policies/me/{policyKey}",
       "request": "DELETE",
       "route": "librefinance.saaspolicy.clearuser"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/invitations",
+      "request": "GET",
+      "route": "librefinance.saasexternalinvitation.inbox"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/invitations",
+      "request": "GET",
+      "route": "librefinance.saasexternalinvitation.index"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/invitations",
+      "request": "POST",
+      "route": "librefinance.saasexternalinvitation.create"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/invitations/{invitationId}/accept",
+      "request": "POST",
+      "route": "librefinance.saasexternalinvitation.accept"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/invitations/{invitationId}",
+      "request": "DELETE",
+      "route": "librefinance.saasexternalinvitation.revoke"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/invitations/history",
+      "request": "GET",
+      "route": "librefinance.saasexternalinvitation.history"
     }
   ],
   "librefinance_nfse": [
