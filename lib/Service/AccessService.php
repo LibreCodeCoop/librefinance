@@ -183,10 +183,14 @@ final class AccessService {
                 // A number of legacy user-preference writes still authorize
                 // using the viewer role. External invitation roles are strictly
                 // read-only across those paths, not just ledger.post.
-                if (!in_array($this->request->getMethod(), ['GET', 'HEAD'], true)) {
+                $role = $this->externalAcceptedRole($spaceId, $uid);
+                // Preserve resource concealment (404) when no grant exists.
+                // A *valid* read-only grant still cannot mutate via legacy
+                // viewer-only routes, which must return 403 instead.
+                if (is_string($role)
+                    && !in_array($this->request->getMethod(), ['GET', 'HEAD'], true)) {
                     throw new DomainException('permission_denied');
                 }
-                $role = $this->externalAcceptedRole($spaceId, $uid);
             }
             if (!is_string($role) || self::rank($role) === 0) {
                 throw new DomainException('space_not_found');
