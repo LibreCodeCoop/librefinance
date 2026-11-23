@@ -9,6 +9,7 @@ namespace OCA\LibreFinance\Domain\Banking;
 
 use DomainException;
 use OCA\LibreFinance\PublicAPI\FinanceApi;
+use OCA\LibreFinance\Service\SaasPolicyRuntimeGate;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use OCP\IUserSession;
@@ -21,6 +22,7 @@ final class BankingService {
         private FinanceApi $finance,
         private IDBConnection $db,
         private IUserSession $session,
+        private SaasPolicyRuntimeGate $policies,
     ) {}
 
     /** @return array<string,mixed> */
@@ -62,6 +64,7 @@ final class BankingService {
     public function import(int $spaceId, int $bankAccountId, string $csv,
         string $format = 'csv', string $ofx = ''): array {
         $this->finance->requireModule($spaceId, self::MODULE, 'operator');
+        $this->policies->requireWorkspaceEnabled($spaceId, 'imports.enabled');
         $currency = $this->finance->requireBankAccount($spaceId, self::MODULE, $bankAccountId);
         if ($format === 'csv') {
             if (strlen($csv) < 1 || strlen($csv) > 262144 || !mb_check_encoding($csv, 'UTF-8')

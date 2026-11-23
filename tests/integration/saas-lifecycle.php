@@ -83,10 +83,28 @@ function syntheticCheck(string $name, bool $ok): void {
     ++$checks;
 }
 $gid = 'lf_synth_finance_group';
+$a = 'lfmaintestA';
 $b = 'lfmaintestB';
 adminCheck('admin can enable managed governance only in disposable lab',
     'PUT', '/admin/governance', ['managed' => true], 200);
 try {
+    // The instance parent policy is an actual runtime gate for tenant
+    // activation, with no implicit break-glass override by a group admin.
+    $parent = adminCheck('read current environment enablement policy', 'GET',
+        '/saas/v1/admin/policies/environments.enabled', null, 200);
+    $revision = (int)$parent['revision'];
+    adminCheck('instance policy forbids new environment enablement', 'PUT',
+        '/saas/v1/admin/policies/environments.enabled',
+        ['valueJson' => 'false', 'expectedRevision' => $revision], 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false);
+    adminCheck('new environment cannot bypass instance policy', 'PUT',
+        '/saas/v1/admin/groups/' . $gid . '/enablement',
+        ['enabled' => true], 403,
+        static fn(array $r): bool => ($r['error'] ?? '') === 'module_disabled');
+    adminCheck('clear instance parent deny', 'DELETE',
+        '/saas/v1/admin/policies/environments.enabled?expectedRevision=' . ($revision + 1),
+        null, 200, static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === true);
     $first = adminCheck('admin enables one group without ledger creation',
         'PUT', '/saas/v1/admin/groups/' . $gid . '/enablement', ['enabled' => true], 200,
         static fn(array $r): bool =>
@@ -143,6 +161,38 @@ try {
         static fn(array $r): bool => count(array_filter($r['groups'] ?? [],
             static fn(array $g): bool => ($g['id'] ?? '') === $gid
                 && ($g['state'] ?? '') === 'active')) === 1);
+    // Only qualified admins may change typed child policies. A parent
+    // prohibition cannot be reopened at the environment level.
+    $policyPrefix = '/saas/v1/environments/' . $id . '/policies';
+    $t->check('ordinary group user cannot read environment policies', $a,
+        'GET', $policyPrefix . '/effective', null, 404);
+    $t->check('delegated admin reads inherited environment policy', $b,
+        'GET', $policyPrefix . '/imports.enabled', null, 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === true
+            && ($r['inherited'] ?? null) === true
+            && ($r['editableByCurrentActor'] ?? null) === true);
+    $t->check('child cannot override instance-only scope', $b, 'PUT',
+        $policyPrefix . '/environments.enabled',
+        ['valueJson' => 'true', 'expectedRevision' => 0], 422);
+    $t->check('parent denial is not bypassed by child', $b, 'PUT',
+        $policyPrefix . '/externalSharing.enabled',
+        ['valueJson' => 'true', 'expectedRevision' => 0], 403);
+    $t->check('delegated admin restricts environment imports', $b, 'PUT',
+        $policyPrefix . '/imports.enabled',
+        ['valueJson' => 'false', 'expectedRevision' => 0], 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === false
+            && ($r['sourceScope'] ?? null) === 'environment'
+            && ($r['revision'] ?? null) === 1);
+    $t->check('stale environment policy update rejected', $b, 'PUT',
+        $policyPrefix . '/imports.enabled',
+        ['valueJson' => 'true', 'expectedRevision' => 0], 409);
+    $t->check('clearing child policy restores instance inheritance', $b,
+        'DELETE', $policyPrefix . '/imports.enabled?expectedRevision=1',
+        null, 200, static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === true
+            && ($r['inherited'] ?? null) === true);
     adminCheck('instance admin suspends enabled group without deleting data',
         'PUT', '/saas/v1/admin/groups/' . $gid . '/enablement', ['enabled' => false], 200,
         static fn(array $r): bool => ($r['environment']['state'] ?? null) === 'suspended');
