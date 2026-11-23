@@ -28,6 +28,7 @@ final class AccessService {
         private IDBConnection $db,
         private IUserSession $session,
         private IGroupManager $groups,
+        private GovernanceService $governance,
     ) {}
 
     public function uid(): string {
@@ -59,7 +60,8 @@ final class AccessService {
             $qb = $this->db->getQueryBuilder();
             $qb->select('s.*', 'g.role')
                 ->from('lf_spaces', 's')
-                ->innerJoin('s', 'lf_group_grants', 'g', 'g.space_id = s.id')
+                ->innerJoin('s', 'lf_group_grants', 'g',
+                    'g.space_id = s.id AND (s.governance_gid IS NULL OR s.governance_gid = g.group_gid)')
                 ->where($qb->expr()->in('g.group_gid', $qb->createNamedParameter($gids, IQueryBuilder::PARAM_STR_ARRAY)))
                 ->andWhere($qb->expr()->eq('s.archived', $qb->createNamedParameter(false, IQueryBuilder::PARAM_BOOL)));
             foreach ($qb->executeQuery()->fetchAllAssociative() as $row) {
@@ -68,6 +70,53 @@ final class AccessService {
                     $row['id'] = $id;
                     $result[$id] = $row;
                 }
+            }
+        }
+        foreach ($result as $id => $space) {
+            if (!$this->governance->isInstanceAdmin()
+                && (($this->governance->enabled() && $space['governance_gid'] === null)
+                    || ($space['governance_gid'] !== null
+                        && !$this->governance->isInGovernanceGroup((string)$space['governance_gid'])
+                        && !$this->governance->isDelegatedManager((string)$space['governance_gid'])))) {
+                unset($result[$id]);
+            }
+        }
+        foreach ($result as &$space) {
+            if ($space['governance_gid'] !== null
+                && !$this->governance->isInstanceAdmin()) {
+                if ($space['role'] === 'owner') $space['role'] = 'viewer';
+                elseif ($space['role'] === 'manager') $space['role'] = 'operator';
+            }
+        }
+        unset($space);
+        // Nextcloud group subadmins need not be ordinary members of their
+        // managed group; discover those contexts without leaking other groups.
+        if ($user !== null) {
+            $subadminGroups = $this->governance->delegatedGroups();
+            if ($subadminGroups !== []) {
+                $q = $this->db->getQueryBuilder();
+                $q->select('s.*')->from('lf_spaces', 's')
+                    ->where($q->expr()->in('s.governance_gid',
+                        $q->createNamedParameter($subadminGroups, IQueryBuilder::PARAM_STR_ARRAY)))
+                    ->andWhere($q->expr()->eq('s.archived',
+                        $q->createNamedParameter(false, IQueryBuilder::PARAM_BOOL)));
+                foreach ($q->executeQuery()->fetchAllAssociative() as $space) {
+                    $space['id'] = (int)$space['id'];
+                    $space['role'] = 'manager';
+                    $result[$space['id']] = $space;
+                }
+            }
+        }
+        // A global administrator can provision/recover every context without
+        // granting themselves a user membership inside each organization.
+        if ($this->governance->isInstanceAdmin() && $this->governance->enabled()) {
+            $q = $this->db->getQueryBuilder();
+            $q->select('s.*')->from('lf_spaces', 's')
+                ->where($q->expr()->eq('s.archived', $q->createNamedParameter(false, IQueryBuilder::PARAM_BOOL)));
+            foreach ($q->executeQuery()->fetchAllAssociative() as $space) {
+                $space['id'] = (int)$space['id'];
+                $space['role'] = 'owner';
+                $result[$space['id']] = $space;
             }
         }
         ksort($result, SORT_NUMERIC);
@@ -83,7 +132,22 @@ final class AccessService {
         if (!$space || (bool)$space['archived']) {
             throw new DomainException('space_not_found');
         }
-        if ((string)$space['owner_uid'] === $uid) {
+        if ($this->governance->isInstanceAdmin() && $this->governance->enabled()) {
+            return 'owner';
+        }
+        $bound = $this->governance->groupFor($spaceId);
+        if ($bound === null && $this->governance->enabled()) {
+            throw new DomainException('space_not_found');
+        }
+        if ($bound !== null) {
+            if ($this->governance->isDelegatedManager($bound)) {
+                return 'manager';
+            }
+            if (!$this->governance->isInGovernanceGroup($bound)) {
+                throw new DomainException('space_not_found');
+            }
+        }
+        if ($bound === null && (string)$space['owner_uid'] === $uid) {
             return 'owner';
         }
 
@@ -99,6 +163,11 @@ final class AccessService {
 
         $user = $this->session->getUser();
         $gids = $user !== null ? $this->groups->getUserGroupIds($user) : [];
+        if ($bound !== null) {
+            // A grant from a second group must not confer privilege in a
+            // context governed by the first group.
+            $gids = in_array($bound, $gids, true) ? [$bound] : [];
+        }
         if ($gids !== []) {
             $qb = $this->db->getQueryBuilder();
             $qb->select('role')->from('lf_group_grants')
@@ -113,6 +182,14 @@ final class AccessService {
 
         if ($best === null) {
             throw new DomainException('space_not_found');
+        }
+        // Legacy owner membership cannot turn into global governance control
+        // merely because an instance admin bound that old space to a group.
+        if ($bound !== null && $best === 'owner') {
+            $best = 'viewer';
+        } elseif ($bound !== null && $best === 'manager') {
+            // Management comes only from the Nextcloud group-subadmin role.
+            $best = 'operator';
         }
         if (self::rank($best) < self::rank($minRole)) {
             throw new DomainException('permission_denied');
