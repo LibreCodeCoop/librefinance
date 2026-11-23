@@ -48,6 +48,9 @@ nor a client-supplied context ID conveys authorization.
 | GET | `/apps/librefinance/api/admin/governance` | Instance admin |
 | PUT | `/apps/librefinance/api/admin/governance` | Instance admin |
 | GET | `/apps/librefinance/api/admin/contexts` | Instance admin |
+| GET | `/apps/librefinance/api/admin/groups/{gid}/delegates` | Instance admin |
+| POST | `/apps/librefinance/api/admin/groups/{gid}/delegates` | Instance admin |
+| DELETE | `/apps/librefinance/api/admin/groups/{gid}/delegates/{uid}` | Instance admin |
 | GET | `/apps/librefinance/api/admin/groups?search=...&offset=...` | Instance admin |
 | POST | `/apps/librefinance/api/admin/contexts` | Instance admin |
 | PUT | `/apps/librefinance/api/admin/contexts/{spaceId}/group` | Instance admin |
@@ -84,3 +87,17 @@ members before binding. A delegated admin is not automatically an instance
 admin. Test dynamic group membership, revoked subadmin status, cross-space
 read/write, attachment access and optional modules before institutional
 rollout. Only synthetic CSV/OFX fixtures belong in automated tests.
+
+## Delegação pelo painel do LibreFinance
+
+Em Administração do Nextcloud > LibreFinance, um administrador da instância
+pode pesquisar grupos, selecionar um grupo e conceder ou revogar o papel de
+gestor financeiro a um usuário que já pertença a esse grupo. A concessão é
+limitada ao LibreFinance e não cria um subadministrador global do Nextcloud.
+Subadministradores Nextcloud preexistentes continuam reconhecidos, mas a
+revogação no LibreFinance não revoga seu cargo administrativo do Nextcloud.
+
+A associação entre usuário e grupo é revalidada a cada acesso; remover o
+usuário do grupo torna a delegação inefetiva imediatamente. Os endpoints de
+concessão são exclusivos do administrador da instância, mesmo quando o
+requisitante já é gestor de outro perfil financeiro.

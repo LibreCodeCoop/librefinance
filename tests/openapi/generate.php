@@ -31,6 +31,7 @@ $writeForms = [
     'librefinance:governance#configure' => 'managed:b!',
     'librefinance:governance#provision' => 'name:s!,kind:s!,gid:s!,currency:s',
     'librefinance:governance#bind' => 'gid:s!',
+    'librefinance:governance#grantDelegate' => 'uid:s!',
     'librefinance:space#share' => 'uid:s!,role:s!',
     'librefinance:space#shareGroup' => 'gid:s!,role:s!',
     'librefinance:account#create' => 'code:s!,name:s!,class:s!,isBank:b',

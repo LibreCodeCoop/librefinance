@@ -35,3 +35,11 @@ $t->check('capabilities read is available without admin privileges', $a, 'GET',
 
 // Creation in managed mode is covered by a separate disposable admin fixture:
 // it must not toggle shared state in the integration suite.
+
+$t->check('non-admin cannot view group delegates', $a, 'GET',
+    '/admin/groups/lf_synth_finance_group/delegates', null, 403);
+$t->check('non-admin cannot grant group delegation', $a, 'POST',
+    '/admin/groups/lf_synth_finance_group/delegates',
+    ['uid' => $b], 403);
+$t->check('non-admin cannot revoke group delegation', $a, 'DELETE',
+    '/admin/groups/lf_synth_finance_group/delegates/' . $b, null, 403);

@@ -73,6 +73,24 @@ final class GovernanceController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/admin/groups/{gid}/delegates')]
+    public function delegates(string $gid): JSONResponse {
+        return $this->respond(fn() => ['delegates' => $this->governance->delegates($gid)]);
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/admin/groups/{gid}/delegates')]
+    public function grantDelegate(string $gid, string $uid): JSONResponse {
+        return $this->respond(fn() => $this->governance->grantDelegate($gid, $uid), 201);
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'DELETE', url: '/api/admin/groups/{gid}/delegates/{uid}')]
+    public function revokeDelegate(string $gid, string $uid): JSONResponse {
+        return $this->respond(fn() => $this->governance->revokeDelegate($gid, $uid));
+    }
+
+    #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/admin/contexts')]
     public function contexts(): JSONResponse {
         return $this->respond(fn() => ['contexts' => $this->governance->contexts()]);

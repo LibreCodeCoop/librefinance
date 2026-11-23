@@ -26,6 +26,10 @@ const notice = ref('')
 const loaded = ref(false)
 const bindingId = ref(0)
 const bindingGid = ref('')
+const delegateGroup = ref('')
+const delegateUid = ref('')
+const delegates = ref([])
+const delegatesLoading = ref(false)
 const path = route => generateUrl('/apps/librefinance/api/admin/' + route)
 const message = cause => cause?.response?.data?.error || cause.message || 'Erro inesperado'
 
@@ -37,6 +41,34 @@ async function searchGroups() {
     })
     groups.value=response.data.groups||[]
   } catch (cause) {groupSearchError.value=message(cause) }
+}
+async function loadDelegates() {
+  delegates.value = []
+  if (!delegateGroup.value) return
+  delegatesLoading.value = true
+  try {
+    const response = await axios.get(path('groups/' + encodeURIComponent(delegateGroup.value) + '/delegates'))
+    delegates.value = response.data.delegates || []
+  } catch (cause) { error.value = message(cause) }
+  finally { delegatesLoading.value = false }
+}
+function grantDelegate() {
+  if (!delegateGroup.value || !delegateUid.value.trim()) return
+  run(async () => {
+    await axios.post(path('groups/' + encodeURIComponent(delegateGroup.value) + '/delegates'), {
+      uid: delegateUid.value.trim(),
+    })
+    delegateUid.value = ''
+    await loadDelegates()
+  })
+}
+function revokeDelegate(uid) {
+  if (!delegateGroup.value) return
+  run(async () => {
+    await axios.delete(path('groups/' + encodeURIComponent(delegateGroup.value)
+      + '/delegates/' + encodeURIComponent(uid)))
+    await loadDelegates()
+  })
 }
 async function reload() {
   const [config, existing] = await Promise.all([
@@ -119,6 +151,33 @@ onMounted(async () => {
       <NcNoteCard v-if="groupSearchError" type="error">{{ groupSearchError }}</NcNoteCard>
       <p v-if="groups.length===25" class="lf-admin-hint">Mostrando os primeiros 25 resultados.
         Refine a pesquisa para localizar outros grupos.</p>
+    </div>
+    <div v-if="managed" class="lf-admin-card">
+      <h3>Administradores delegados do LibreFinance</h3>
+      <p>Conceda a um membro do grupo permissão de gestor financeiro. Esta delegação
+        vale somente no LibreFinance e não altera as permissões administrativas
+        do usuário em outros aplicativos Nextcloud.</p>
+      <label for="lf-delegate-group">Grupo governante</label>
+      <select id="lf-delegate-group" v-model="delegateGroup" @change="loadDelegates">
+        <option value="">Selecione um grupo</option>
+        <option v-for="group in groups" :key="group.id" :value="group.id">
+          {{ group.name }} ({{ group.id }})
+        </option>
+      </select>
+      <NcLoadingIcon v-if="delegatesLoading" :size="20" />
+      <ul v-if="delegateGroup && delegates.length">
+        <li v-for="delegate in delegates" :key="delegate.uid">
+          {{ delegate.uid }}
+          <NcButton variant="tertiary" :disabled="busy"
+            :aria-label="'Revogar delegação de '+delegate.uid"
+            @click="revokeDelegate(delegate.uid)">Revogar</NcButton>
+        </li>
+      </ul>
+      <p v-else-if="delegateGroup && !delegatesLoading">Nenhum gestor delegado pelo LibreFinance.</p>
+      <form v-if="delegateGroup" @submit.prevent="grantDelegate">
+        <NcTextField v-model="delegateUid" label="Usuário Nextcloud do grupo" required />
+        <NcButton type="submit" :disabled="busy || !delegateUid.trim()">Delegar administração</NcButton>
+      </form>
     </div>
     <div v-if="managed" class="lf-admin-card">
       <h3>Novo contexto financeiro</h3>

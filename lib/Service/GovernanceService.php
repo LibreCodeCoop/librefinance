@@ -11,6 +11,7 @@ use DomainException;
 use OCP\IConfig;
 use OCP\IGroupManager;
 use OCP\IUserSession;
+use OCP\IUserManager;
 use OCP\Group\ISubAdmin;
 use OCP\IDBConnection;
 use OCP\DB\QueryBuilder\IQueryBuilder;
@@ -24,6 +25,7 @@ final class GovernanceService {
         private IUserSession $session,
         private IDBConnection $db,
         private WriteService $write,
+        private IUserManager $users,
     ) {}
 
     public function enabled(): bool {
@@ -156,20 +158,85 @@ final class GovernanceService {
         }
     }
 
+    /** @return list<array{uid:string,group:string}> */
+    public function delegates(string $gid): array {
+        $this->requireInstanceAdmin();
+        $this->requireGroup($gid);
+        $q = $this->db->getQueryBuilder();
+        $q->select('uid')->from('lf_governance_delegates')
+            ->where($q->expr()->eq('group_gid', $q->createNamedParameter($gid)))
+            ->orderBy('uid');
+        $result = [];
+        foreach ($q->executeQuery()->fetchFirstColumn() as $uid) {
+            $result[] = ['uid' => (string)$uid, 'group' => $gid];
+        }
+        return $result;
+    }
+
+    public function grantDelegate(string $gid, string $uid): array {
+        $this->requireInstanceAdmin();
+        $this->requireGroup($gid);
+        $uid = trim($uid);
+        if ($uid === '' || strlen($uid) > 64 || !$this->users->userExists($uid)) {
+            throw new DomainException('user_not_found');
+        }
+        if (!$this->groups->isInGroup($uid, $gid)) {
+            throw new DomainException('permission_denied');
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('id')->from('lf_governance_delegates')
+            ->where($q->expr()->eq('group_gid', $q->createNamedParameter($gid)))
+            ->andWhere($q->expr()->eq('uid', $q->createNamedParameter($uid)));
+        if ($q->executeQuery()->fetchOne() === false) {
+            try {
+                $this->write->insert('lf_governance_delegates', [
+                    'group_gid' => $gid, 'uid' => $uid, 'created_at' => time(),
+                ]);
+            } catch (\OCP\DB\Exception $e) {
+                // If two admins granted the same user concurrently, confirm
+                // that the desired unique relationship exists after the race.
+                $check = $this->db->getQueryBuilder();
+                $check->select('id')->from('lf_governance_delegates')
+                    ->where($check->expr()->eq('group_gid', $check->createNamedParameter($gid)))
+                    ->andWhere($check->expr()->eq('uid', $check->createNamedParameter($uid)));
+                if ($check->executeQuery()->fetchOne() === false) throw $e;
+            }
+        }
+        return ['uid' => $uid, 'group' => $gid];
+    }
+
+    public function revokeDelegate(string $gid, string $uid): array {
+        $this->requireInstanceAdmin();
+        $this->requireGroup($gid);
+        $q = $this->db->getQueryBuilder();
+        $q->delete('lf_governance_delegates')
+            ->where($q->expr()->eq('group_gid', $q->createNamedParameter($gid)))
+            ->andWhere($q->expr()->eq('uid', $q->createNamedParameter($uid)))
+            ->executeStatement();
+        return ['revoked' => true];
+    }
+
     /** Group admin may manage only a context bound to their Nextcloud group. */
     /** @return list<string> */
     public function delegatedGroups(): array {
         $user = $this->session->getUser();
         if ($user === null) return [];
-        return array_map(static fn(\OCP\IGroup $group): string => $group->getGID(),
+        $groups = array_map(static fn(\OCP\IGroup $group): string => $group->getGID(),
             $this->subAdmins->getSubAdminsGroups($user));
+        $q = $this->db->getQueryBuilder();
+        $q->select('group_gid')->from('lf_governance_delegates')
+            ->where($q->expr()->eq('uid', $q->createNamedParameter($user->getUID())));
+        foreach ($q->executeQuery()->fetchFirstColumn() as $gid) {
+            if ($this->groups->isInGroup($user->getUID(), (string)$gid)) $groups[] = (string)$gid;
+        }
+        return array_values(array_unique($groups));
     }
 
     public function isDelegatedManager(?string $gid): bool {
         $user = $this->session->getUser();
         $group = $gid === null ? null : $this->groups->get($gid);
         return $user !== null && $group !== null
-            && $this->subAdmins->isSubAdminOfGroup($user, $group);
+            && in_array($gid, $this->delegatedGroups(), true);
     }
 
     public function isInGovernanceGroup(?string $gid): bool {
