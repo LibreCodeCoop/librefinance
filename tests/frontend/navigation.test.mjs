@@ -99,7 +99,7 @@ test('personal finance retains simple labels and server field boundaries',()=>{
   assert.equal(pageNameForSpace('contacts','organization'),'Clientes e fornecedores')
   assert.equal(pageNameForSpace('finance','personal'),'Movimentações')
   assert.equal(pageNameForSpace('documents','personal'),'Faturas')
-  for(const kind of ['company','contact','item','journal'])
+  for(const kind of ['company','contact','item','journal','invoice','bill'])
     assert.equal(fieldEntityKind(kind),kind)
   for(const unsafe of ['member','../../etc','<script>',''])
     assert.equal(fieldEntityKind(unsafe),'company')

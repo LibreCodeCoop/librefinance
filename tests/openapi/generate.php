@@ -35,10 +35,10 @@ $writeForms = [
     'librefinance:category#update' => 'name:s!,color:s!,active:b',
      'librefinance:company#create' => 'legalName:s!,country:s!,taxId:s,tradeName:s,municipalRegistration:s,stateRegistration:s,customFields:object,profile:object',
      'librefinance:company#update' => 'legalName:s!,country:s!,taxId:s,tradeName:s,municipalRegistration:s,stateRegistration:s,active:b,customFields:object,profile:object',
-    'librefinance:customField#create' => 'key:s!,label:s!,type:s!,required:b,options:array,visible:b,help:s,sortOrder:i,columnSpan:i',
-    'librefinance:customField#createForEntity' => 'key:s!,label:s!,type:s!,required:b,options:array,visible:b,help:s,sortOrder:i,columnSpan:i',
-    'librefinance:customField#updateForEntity' => 'label:s!,required:b,active:b,visible:b,help:s,sortOrder:i,columnSpan:i',
-    'librefinance:customField#update' => 'label:s!,required:b,active:b,visible:b,help:s,sortOrder:i,columnSpan:i',
+    'librefinance:customField#create' => 'key:s!,label:s!,type:s!,required:b,options:array,visible:b,apiVisible:b,help:s,sortOrder:i,columnSpan:i',
+    'librefinance:customField#createForEntity' => 'key:s!,label:s!,type:s!,required:b,options:array,visible:b,apiVisible:b,help:s,sortOrder:i,columnSpan:i',
+    'librefinance:customField#updateForEntity' => 'label:s!,required:b,active:b,visible:b,apiVisible:b,help:s,sortOrder:i,columnSpan:i',
+    'librefinance:customField#update' => 'label:s!,required:b,active:b,visible:b,apiVisible:b,help:s,sortOrder:i,columnSpan:i',
     'librefinance:savedReport#create' => 'name:s!,kind:s!,from:date,through:date!,columns:array,accountClass:s',
     'librefinance:savedReport#update' => 'name:s!,kind:s!,from:date,through:date!,columns:array,accountClass:s',
     'librefinance:contact#create' => 'name:s!,kind:s!,email:s,taxId:s,customFields:object',
@@ -55,12 +55,12 @@ $writeForms = [
         'kind:s!,description:s!,amountMinor:i!,issuedOn:date!,dueOn:date!,reference:s,contactId:i',
     'librefinance:obligation#settle' =>
         'amountMinor:i!,paidOn:date!,operationKey:s!,note:s',
-    'librefinance:banking#import' => 'bankAccountId:i!,csv:s!',
+    'librefinance:banking#import' => 'bankAccountId:i!,format:s,csv:s,ofx:s',
     'librefinance:banking#match' => 'journalId:i!',
     'librefinance:tax#create' =>
         'code:s!,label:s!,country:s!,region:s,kind:s!,rateBps:i!,inclusive:b!,validFrom:date!,validThrough:date,sourceRef:s!',
     'librefinance:invoice#create' =>
-        'number:s!,kind:s!,contactId:i!,issueOn:date!,dueOn:date!,country:s!,region:s,lines:array!',
+        'number:s!,kind:s!,contactId:i!,issueOn:date!,dueOn:date!,country:s!,region:s,lines:array!,customFields:object',
     'librefinance:paymentWorkflow#invoice' =>
         'bankAccountId:i!,counterAccountId:i!,amountMinor:i!,paidOn:date!,operationKey:s!',
     'librefinance:paymentWorkflow#obligation' =>

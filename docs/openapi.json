@@ -1940,6 +1940,9 @@
                                     "visible": {
                                         "type": "boolean"
                                     },
+                                    "apiVisible": {
+                                        "type": "boolean"
+                                    },
                                     "help": {
                                         "type": "string"
                                     },
@@ -2036,6 +2039,9 @@
                                         "type": "boolean"
                                     },
                                     "visible": {
+                                        "type": "boolean"
+                                    },
+                                    "apiVisible": {
                                         "type": "boolean"
                                     },
                                     "help": {
@@ -2498,6 +2504,9 @@
                                     "visible": {
                                         "type": "boolean"
                                     },
+                                    "apiVisible": {
+                                        "type": "boolean"
+                                    },
                                     "help": {
                                         "type": "string"
                                     },
@@ -2603,6 +2612,9 @@
                                         "type": "boolean"
                                     },
                                     "visible": {
+                                        "type": "boolean"
+                                    },
+                                    "apiVisible": {
                                         "type": "boolean"
                                     },
                                     "help": {
@@ -3111,13 +3123,18 @@
                                     "bankAccountId": {
                                         "type": "integer"
                                     },
+                                    "format": {
+                                        "type": "string"
+                                    },
                                     "csv": {
+                                        "type": "string"
+                                    },
+                                    "ofx": {
                                         "type": "string"
                                     }
                                 },
                                 "required": [
-                                    "bankAccountId",
-                                    "csv"
+                                    "bankAccountId"
                                 ],
                                 "additionalProperties": false
                             }
@@ -3351,6 +3368,10 @@
                                         "items": {
                                             "type": "object"
                                         }
+                                    },
+                                    "customFields": {
+                                        "type": "object",
+                                        "additionalProperties": true
                                     }
                                 },
                                 "required": [

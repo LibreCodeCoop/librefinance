@@ -248,10 +248,17 @@ assert_integration_complete() {
 
 if [ "$(printenv LF_BROWSER_DEBUG_ONLY || echo 0)" != 1 ]; then
 # Run native PHP integration suites inside the same Nextcloud PHP runtime.
-for script in basic personal-finance agenda-search-sort spaces advanced catalog categories companies custom-fields ux-enhancements company-logo payment-methods; do
+for script in basic personal-finance agenda-search-sort spaces advanced catalog categories companies custom-fields field-studio-v3 ux-enhancements company-logo payment-methods; do
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/$script.php"
 done
 echo "PASS: Native PHP authorization, ledger, group access and concurrency tests on Nextcloud Server master."
+# A malformed OFX statement must be rejected before any bank account write.
+ofx_unit="$(compose exec -T --user www-data nextcloud php   /var/www/html/custom_apps/librefinance/tests/unit/ofx-parser.php)"
+printf '%s\n' "$ofx_unit"
+grep -Eq '^OFX parser: 19 positive and negative assertions passed$' <<< "$ofx_unit" || {
+  echo 'FAIL: OFX parser unit assertions did not complete' >&2
+  exit 1
+}
 for domain_test in banking obligations invoicing payments reports-cash-flow reports-saved import; do
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/domains/$domain_test.php"
 done

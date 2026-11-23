@@ -127,14 +127,16 @@ test('bank evidence is imported and reconciled inline without a second financial
   const posted=page.getByRole('row',{name:new RegExp(note)})
   await expect(posted).toHaveCount(1)
   await page.getByRole('button',{name:'Importar extrato'}).click()
-  const importing=page.getByRole('dialog',{name:'Importar extrato'})
+  await page.getByRole('group',{name:'Formato do extrato'})
+    .getByRole('button',{name:'Arquivo CSV'}).click()
+  const importing=page.getByRole('dialog',{name:'Importar extrato CSV'})
   await expect(importing).toBeVisible()
   const id='statement-'+Date.now().toString(36)
   await importing.locator('input[type=file]').setInputFiles({
     name:'bank-evidence.csv',mimeType:'text/csv',
     buffer:Buffer.from('id,date,amount,description\n'+id+',2026-11-22,-32.10,E2E bank evidence of water\n'),
   })
-  await importing.getByRole('button',{name:'Importar para conferir'}).click()
+  await importing.getByRole('button',{name:'Importar CSV para conferir'}).click()
   await expect(importing).toHaveCount(0)
   await expect(page.getByRole('heading',{name:'Movimentações',exact:true})).toBeVisible()
   await expect(posted).toHaveCount(1)
