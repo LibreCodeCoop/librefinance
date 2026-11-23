@@ -189,6 +189,9 @@ compose exec -T -e LF_SYNTHETIC_SAAS_POLICY_SCHEMA=yes nextcloud php \
 # All fixtures roll back and never infer legacy company ownership.
 compose exec -T -e LF_SYNTHETIC_SAAS_WORKSPACE_SCHEMA=yes nextcloud php \
   /var/www/html/custom_apps/librefinance/tests/ci/check-saas-workspace-schema.php
+# External grants are opt-in and must not copy any historical lf_members.
+compose exec -T -e LF_SYNTHETIC_SAAS_EXTERNAL_SCHEMA=yes nextcloud php \
+  /var/www/html/custom_apps/librefinance/tests/ci/check-saas-external-schema.php
 # Assert the exact core and optional external route contracts against Nextcloud's real route resolver;
 # linting attributes or checking only one successful URL is insufficient.
 route_apps=(librefinance)
@@ -215,7 +218,7 @@ else
     }
   ' | tr -d '\r')"
 fi
-test "$count" -eq 26
+test "$count" -eq 28
 
 # Imported provenance tables use the lfm_ physical prefix, not lf_.
 # Verify the three durable origin tables independently in every engine.
@@ -240,7 +243,7 @@ echo "PASS: Three core-owned source identity/audit/balance-snapshot import table
 
 http_status="$(compose exec -T nextcloud curl -sS --max-time 12 -o /dev/null -w '%{http_code}' http://127.0.0.1/status.php)"
 test "$http_status" = 200
-echo "PASS: Nextcloud Server master install, LibreFinance activation, twenty-six core tables and HTTP 200."
+echo "PASS: Nextcloud Server master install, LibreFinance activation, twenty-eight core tables and HTTP 200."
 
 # Real two-user authorization, accounting and concurrency checks on this exact master checkout.
 for test_user in lfmaintestA lfmaintestB; do
