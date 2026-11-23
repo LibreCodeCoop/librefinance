@@ -629,6 +629,16 @@
       "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/policies/{policyKey}",
       "request": "DELETE",
       "route": "librefinance.saaspolicy.clearenvironment"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/workspaces",
+      "request": "GET",
+      "route": "librefinance.saasworkspace.index"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/workspaces",
+      "request": "POST",
+      "route": "librefinance.saasworkspace.create"
     }
   ],
   "librefinance_nfse": [
