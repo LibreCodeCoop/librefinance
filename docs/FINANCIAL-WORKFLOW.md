@@ -8,13 +8,15 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 O LibreFinance possui navegacao orientada a tarefas:
 
 - **Visao geral:** indicadores calculados a partir dos lancamentos reais.
-- **Financeiro:** uma entrada para os tres momentos da operacao.
-  - **A pagar e receber:** acompanha contas e cobrancas sem fatura e
-    compromissos que surgem automaticamente de faturas confirmadas.
-  - **Conferir extrato:** importa movimentos do banco como evidencias,
-    pesquisa lancamentos ja contabilizados e permite a conciliacao manual.
-  - **Faturas:** cadastro detalhado de vendas e compras, com itens, tributos
-    e rascunhos; confirmar gera compromisso e nao pagamento.
+- **Financeiro:** um registro principal de compromissos previstos e uma
+  fila unica de tarefas a concluir. Os compromissos de faturas confirmadas
+  entram no mesmo registro de contas a pagar/receber avulsas.
+  - **Documento ainda em elaboracao:** aparece na fila como rascunho e so
+    vira compromisso financeiro depois da confirmacao comercial.
+  - **Extrato importado pendente:** aparece na mesma fila como evidencia a
+    conciliar e nao como uma segunda receita, despesa ou obrigacao.
+  - **Consultar:** abre a consulta detalhada de documentos comerciais ou
+    extratos, sem criar abas permanentes nem um CRUD operacional paralelo.
 - **Relatorios:** demonstrativos, com segregacao por gestao.
 - **Gestoes financeiras:** unidade de isolamento do dinheiro, contas, historico
   e permissoes; configurada em Gerenciar, nao como cadastro cotidiano.
@@ -23,10 +25,15 @@ O LibreFinance possui navegacao orientada a tarefas:
   assistente, acessos, campos personalizados, formas de pagamento e migracao,
   conforme as permissoes do usuario.
 
-Nao ha entradas independentes no menu lateral para Faturas ou Bancos e caixa:
-todos os paineis sao acessados dentro de Financeiro. Somente um menu
-**Novo** apresenta as escolhas Conta a pagar, Cobranca a receber, Fatura de
-venda e Fatura de compra. A acao **Importar extrato** tambem fica nesse
+Nao ha entradas independentes no menu lateral nem abas permanentes
+para Faturas ou Bancos e caixa. O registro Financeiro apresenta de forma
+integrada compromissos e pendencias; a consulta completa e contextual. Somente um menu
+**Novo** separa dinheiro ja movimentado (Despesa ja paga, Receita ja
+recebida), compromisso futuro (Conta a pagar, Cobranca a receber) e
+documentacao comercial (Fatura de venda, Fatura de compra).
+As movimentacoes ja realizadas abrem o mesmo formulario e o mesmo livro
+contabil existentes em Lancamentos contabeis; nao criam um novo CRUD
+nem exigem titulo avulso artificial. A acao **Importar extrato** tambem fica nesse
 cabecalho. O fluxo abre diretamente o formulario escolhido, sem passar por
 um segundo dialogo de selecao. Nao existem menus separados e permanentes
 para Contas a receber e Contas a pagar, nem dois grupos distintos de
@@ -66,8 +73,11 @@ fatura confirmada cria seu titulo vinculado. Nao cadastre novamente esse
 titulo no painel A pagar e receber. O titulo oferece Abrir fatura, e a
 fatura oferece Ver conta vinculada.
 
-**Importar extrato** abre Conferir extrato e solicita conta de banco e CSV.
-Cada linha importada e uma evidencia externa pendente. Uma evidencia nao
+**Importar extrato** abre a conferencia bancaria e solicita conta e CSV.
+O extrato nao e outra lista de contas: e uma evidencia externa
+pendente que aparece na fila de tarefas do Financeiro. Selecionar
+**Conciliar** na fila abre o dialogo de correspondencia da linha exata,
+sem registrar automaticamente pagamento. Uma evidencia nao
 cria uma nova despesa, receita, obrigacao ou pagamento; localizar e
 vincular o lancamento contabil existente e a primeira alternativa.
 Se o usuario tiver apenas o movimento no extrato e nenhum lancamento
@@ -268,8 +278,10 @@ integral de todas as listas ou com uma nova biblioteca de tabelas.
 ## Identidade da gestao, faturas e estados vazios (0.18.2)
 
 As rotas historicas de documentos (view=documents, invoicing, sales e
-purchases) permanecem inalteradas, mas agora apontam para o painel Faturas
-do Financeiro; o acesso a view=banking abre o painel Conferir extrato.
+purchases) permanecem inalteradas, mas agora apontam para a consulta
+contextual do documento dentro do Financeiro; view=banking abre a
+conferencia de extratos. A tela principal view=finance nao possui
+abas independentes para estas origens.
 Uma fatura confirmada cria o compromisso vinculado em A pagar e receber.
 Uma cobranca ou conta sem fatura tambem cria compromisso, porem sem
 documento detalhado. Conciliacao bancaria e contabilizacao real sao
@@ -303,3 +315,35 @@ Empresas na mesma gestao compartilham os mesmos saldos e permissoes.
 Cores, logo ou campos adicionais nao sao contabilidade segregada por CNPJ;
 nao prometer paridade completa com Akaunting, fiscalidade homologada ou
 conciliacao automatica.
+
+
+## Registro operacional unico e fila de trabalho (revisao 2026-11-22)
+
+O usuario nao deve precisar decidir em qual CRUD esta a mesma obrigacao.
+A fonte do valor devido e a obrigacao; quando uma fatura confirmada a
+origina, a relacao lf_invoice_obligation_links permite abrir os detalhes
+do documento sem cadastrar outro compromisso. A tela Financeiro exibe
+apenas a obrigacao para faturas confirmadas, inclusive parcialmente pagas
+ou liquidadas. Nao soma nem exibe novamente a fatura nessa agenda.
+
+A fila de documentos usa GET /invoices?status=attention: o filtro
+server-side seleciona rascunhos e tambem documentos historicos emitidos
+SEM vinculo verificado a obrigacao. Nao faz match por valores ou referencias.
+A selecao ocorre antes da paginacao e respeita o indice composto de vinculos
+por gestao financeira e fatura. Documentos ja emitidos com vinculo
+confirmado ficam SOMENTE na agenda de obrigacoes.
+GET /transactions?status=pending retorna apenas evidencias bancarias
+ainda nao conciliadas. As duas consultas continuam individualmente paginadas,
+sem soma financeira ficticia ou alegacao de contagem total a partir da
+primeira pagina. Concluidos/conciliados nao retornam nessa fila.
+Os filtros historicos de status das faturas continuam disponiveis sem
+mudanca para consumidores da API.
+As consultas completas continuam disponiveis pela acao secundaria Consultar,
+e os enderecos historicos sao preservados.
+
+O motor financeiro nao foi unificado fisicamente: o modelo de faturas
+contem documentos comerciais e itens, o de obrigacoes contem saldos e
+vencimentos e o extrato preserva movimentos externos para conciliacao.
+Consolidar esses tres dominios em um CRUD ou tabela unica eliminaria
+vinculos auditaveis e criaria problemas para liquidacoes parciais e
+conciliacoes. Na interface, esta separacao e detalhe de implementacao.

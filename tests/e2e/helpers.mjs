@@ -44,17 +44,16 @@ export async function login(page) {
 export async function goToView(page, view) {
   const nav = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
   await expect(nav).toBeVisible()
-  const financePanel = ({
-    'A pagar e receber': 'A pagar e receber',
-    'Bancos e caixa': 'Conferir extrato',
-    'Faturas': 'Faturas',
-  })[view]
-  if (financePanel) {
+  if (['A pagar e receber', 'Bancos e caixa', 'Faturas'].includes(view)) {
     await nav.getByRole('link', { name: 'Financeiro', exact: true }).click()
-    const panel = page.getByRole('tab', { name: financePanel, exact: true })
-    await expect(panel).toBeVisible({ timeout: 20_000 })
-    if ((await panel.getAttribute('aria-selected')) !== 'true') await panel.click()
-    await expect(panel).toHaveAttribute('aria-selected', 'true')
+    await expect(page.getByRole('heading', { name: 'Financeiro', exact: true })).toBeVisible()
+    if (view !== 'A pagar e receber') {
+      await page.getByRole('button', { name: 'Consultar', exact: true }).click()
+      const option = view === 'Faturas' ? 'Documentos comerciais' : 'Histórico de extratos'
+      await page.getByRole('group', { name: 'Consultar registros financeiros' })
+        .getByRole('button', { name: option, exact: true }).click()
+      await expect(page).toHaveURL(new RegExp('[?&]view=' + (view === 'Faturas' ? 'documents' : 'banking')))
+    }
     return
   }
   if (view === 'Migração de dados') {

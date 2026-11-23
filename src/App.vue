@@ -64,6 +64,8 @@ const newSimple = ref(false)
 provide('lfNewSimple', newSimple)
 const bankImportRequest = ref(0)
 provide('lfBankImportRequest', bankImportRequest)
+const focusedBank = ref(null)
+provide('lfBankFocus', focusedBank)
 // The navigation follows user tasks, not the internal extension layout.
 // Server-authorized module discovery is still the only source of availability.
 const labels = computed(() => Object.fromEntries(
@@ -301,7 +303,10 @@ function selectSpace(id) {
   activeId.value = Number(id)
   focusedInvoice.value = null
   focusedObligation.value = null
+  focusedBank.value = null
+  bankImportRequest.value = 0
   newDetailed.value = false
+  newSimple.value = false
   clearSearch()
   openGroups.value = {}
   pendingInitialView = null

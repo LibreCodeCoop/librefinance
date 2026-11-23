@@ -22,6 +22,7 @@ const props=defineProps({ embedded:{type:Boolean,default:false} })
 const w=inject('lfWorkspace')
 const navigate=inject('lfNavigate')
 const importRequest=inject('lfBankImportRequest',ref(0))
+const focusedBank=inject('lfBankFocus',ref(null))
 const { activeId, accounts, journals, nextBeforeId,
   loadMore: loadMoreJournals, money, writable } = w
 const chosenAccount=ref(0)
@@ -185,6 +186,20 @@ async function match() {
   finally{if(token===generation)busy.value=false}
 }
 watch([chosenAccount,filter],load)
+// Opening from a pending evidence row lands on that exact authorized
+// statement transaction; no payment or ledger entry is created here.
+watch(focusedBank, focus => {
+  if (!props.embedded || !focus
+    || Number(focus.spaceId) !== Number(activeId.value)) return
+  const row=focus.transaction
+  focusedBank.value=null
+  if (!row || !Number.isSafeInteger(Number(row.id)) || Number(row.id)<1
+    || !banks.value.some(bank=>Number(bank.id)===Number(row.bank_account_id))
+    || row.status!=='pending') return
+  chosenAccount.value=Number(row.bank_account_id)
+  filter.value='pending'
+  if(writable.value) chooseReconciliation(row)
+}, { immediate:true })
 // A toolbar outside this component may request an import while the banking
 // panel is mounting. Consume exactly once, even if the user revisits the tab.
 watch(importRequest, requested => {
