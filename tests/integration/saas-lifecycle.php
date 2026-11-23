@@ -222,7 +222,9 @@ try {
         ['reasonCode' => 'group_admin_restored'], 409,
         static fn(array $r): bool => ($r['error'] ?? '') === 'environment_not_suspended');
     // Confirm persisted, attributable reason using Nextcloud's actual DB,
-    // not only the HTTP payload or a UI success banner.
+    // not only the HTTP payload or a UI success banner. This standalone
+    // HTTP test does not bootstrap Nextcloud until database access is needed.
+    require_once dirname(__DIR__, 4) . '/lib/base.php';
     $db = \OC::$server->get(\OCP\IDBConnection::class);
     $q = $db->getQueryBuilder();
     $q->select('a.actor_uid', 'a.action', 'a.subject_type', 'a.subject_id')
