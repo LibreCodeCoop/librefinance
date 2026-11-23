@@ -114,4 +114,38 @@ $t->checkModule('bank viewer cannot match', $b, $app, 'POST',
     ['journalId' => $journalIncome['id']], 403);
 $t->check('revoke B', $a, 'DELETE', $base . '/members/' . $b, null, 200);
 $t->checkModule('revoked B denied bank lines', $b, $app, 'GET', $base . '/transactions', null, 404);
+// OFX uses the same account-scoped, idempotent bank evidence store as CSV.
+$ofx = "OFXHEADER:100\nDATA:OFXSGML\nVERSION:102\nCHARSET:1252\n"
+    . "<OFX><STMTRS><CURDEF>BRL\n<BANKTRANLIST><DTSTART>20261120\n"
+    . "<STMTTRN><DTPOSTED>20261120\n<TRNAMT>-9.35\n"
+    . "<FITID>ofx-pay-$tag\n<MEMO>Synthetic OFX payment\n</STMTTRN>"
+    . "<STMTTRN><DTPOSTED>20261121\n<TRNAMT>15.50\n"
+    . "<FITID>ofx-income-$tag\n<NAME>Synthetic OFX income\n</STMTTRN>"
+    . "</BANKTRANLIST></STMTRS></OFX>";
+$ofxPayload = ['bankAccountId' => $bankId, 'format' => 'ofx', 'ofx' => $ofx];
+$t->checkModule('OFX 1.x imports two evidence rows', $a, $app, 'POST',
+    $base . '/imports', $ofxPayload, 201,
+    static fn(array $v): bool => ($v['imported'] ?? null) === 2
+        && ($v['skipped'] ?? null) === 0);
+$t->checkModule('repeated OFX is idempotent', $a, $app, 'POST',
+    $base . '/imports', $ofxPayload, 201,
+    static fn(array $v): bool => ($v['imported'] ?? null) === 0
+        && ($v['skipped'] ?? null) === 2);
+$t->checkModule('OFX FITID collision with changed amount fails atomically',
+    $a, $app, 'POST', $base . '/imports',
+    ['bankAccountId'=>$bankId,'format'=>'ofx',
+        'ofx'=>str_replace('-9.35', '-8.35', $ofx)], 409);
+$t->checkModule('OFX currency mismatch denied', $a, $app, 'POST',
+    $base . '/imports', ['bankAccountId'=>$bankId,'format'=>'ofx',
+        'ofx'=>str_replace('<CURDEF>BRL', '<CURDEF>USD', $ofx)], 422);
+$t->checkModule('OFX external entity rejected', $a, $app, 'POST',
+    $base . '/imports', ['bankAccountId'=>$bankId,'format'=>'ofx',
+        'ofx'=>'<!DOCTYPE OFX [<!ENTITY x SYSTEM "file:///etc/passwd">]>' . $ofx], 422);
+$t->checkModule('OFX import cannot choose an unrelated account',
+    $a, $app, 'POST', $base . '/imports',
+    ['bankAccountId'=>9999999,'format'=>'ofx','ofx'=>$ofx], 404);
+$t->checkModule('unrelated user cannot import OFX', $b, $app, 'POST',
+    $base . '/imports', $ofxPayload, 404);
+$t->checkModule('unknown bank format rejected', $a, $app, 'POST',
+    $base . '/imports', ['bankAccountId'=>$bankId,'format'=>'qif','csv'=>$csv], 422);
 $t->finish();
