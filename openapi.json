@@ -2,7 +2,7 @@
     "openapi": "3.1.0",
     "info": {
         "title": "LibreFinance — native Nextcloud application APIs",
-        "version": "0.17.0-dev",
+        "version": "0.18.5",
         "description": "Original AGPL application contracts. Structural response schemas are provisional and require full OCS/OpenAPI extractor adoption. Every route enforces Nextcloud identity and per-space roles. MCP is read-only; AI is consented."
     },
     "servers": [
@@ -18,10 +18,6 @@
     "tags": [
         {
             "name": "librefinance",
-            "description": "Nextcloud optional app / native module"
-        },
-        {
-            "name": "librefinance_nfse",
             "description": "Nextcloud optional app / native module"
         }
     ],
@@ -7980,161 +7976,6 @@
                     },
                     "422": {
                         "description": "Invalid business inputs"
-                    }
-                }
-            }
-        },
-        "/librefinance_nfse/api/spaces/{spaceId}/drafts": {
-            "get": {
-                "operationId": "librefinance_nfse_draft_index",
-                "tags": [
-                    "librefinance_nfse"
-                ],
-                "summary": "draft index",
-                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
-                "parameters": [
-                    {
-                        "name": "spaceId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    },
-                    {
-                        "name": "afterId",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "NextcloudAppPassword": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful operation (response schema remains provisional)",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/JsonObject"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Authenticated user cannot perform this operation"
-                    },
-                    "404": {
-                        "description": "Company not visible or resource unavailable"
-                    },
-                    "409": {
-                        "description": "State or idempotency conflict"
-                    },
-                    "422": {
-                        "description": "Invalid business inputs"
-                    }
-                }
-            },
-            "post": {
-                "operationId": "librefinance_nfse_draft_create",
-                "tags": [
-                    "librefinance_nfse"
-                ],
-                "summary": "draft create",
-                "description": "Staging only. Does not issue DPS, NFS-e, DANFSe or authorized XML.",
-                "parameters": [
-                    {
-                        "name": "spaceId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "NextcloudAppPassword": []
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Successful operation (response schema remains provisional)",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/JsonObject"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Authenticated user cannot perform this operation"
-                    },
-                    "404": {
-                        "description": "Company not visible or resource unavailable"
-                    },
-                    "409": {
-                        "description": "State or idempotency conflict"
-                    },
-                    "422": {
-                        "description": "Invalid business inputs"
-                    }
-                },
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "operationKey": {
-                                        "type": "string"
-                                    },
-                                    "issuerCnpj": {
-                                        "type": "string"
-                                    },
-                                    "municipalityCode": {
-                                        "type": "string"
-                                    },
-                                    "competence": {
-                                        "type": "string",
-                                        "format": "date"
-                                    },
-                                    "serviceCode": {
-                                        "type": "string"
-                                    },
-                                    "description": {
-                                        "type": "string"
-                                    },
-                                    "amountMinor": {
-                                        "type": "integer",
-                                        "minimum": 0
-                                    },
-                                    "companyId": {
-                                        "type": "integer"
-                                    }
-                                },
-                                "required": [
-                                    "operationKey",
-                                    "issuerCnpj",
-                                    "municipalityCode",
-                                    "competence",
-                                    "serviceCode",
-                                    "description",
-                                    "amountMinor"
-                                ],
-                                "additionalProperties": false
-                            }
-                        }
                     }
                 }
             }

@@ -2,7 +2,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import Parser from '@apidevtools/swagger-parser'
 
-const spec = await Parser.validate('./docs/openapi.json')
+const spec = await Parser.validate('./openapi.json')
+// Nextcloud discovers this app's specification at its installed root.
+const { readFile } = await import('node:fs/promises')
+const manifest = await readFile('./appinfo/info.xml', 'utf8')
+const version = manifest.match(/<version>([^<]+)<\/version>/)?.[1]
+if (!version || spec.info.version !== version) {
+  throw new Error('OpenAPI version differs from appinfo/info.xml')
+}
+if (Object.keys(spec.paths).some(path => !path.startsWith('/librefinance/api/'))) {
+  throw new Error('Core OpenAPI must not publish optional app routes')
+}
 const operations = []
 for (const [path, methods] of Object.entries(spec.paths)) {
   for (const [method, operation] of Object.entries(methods)) {
