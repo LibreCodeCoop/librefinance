@@ -5,7 +5,6 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 <script setup>
 import { computed, inject, onBeforeUnmount, provide, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcPopover from '@nextcloud/vue/components/NcPopover'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
@@ -31,10 +30,14 @@ const focusedBank = inject('lfBankFocus', ref(null))
 const newDetailed = inject('lfNewDetailed', ref(false))
 const importRequest = inject('lfBankImportRequest', ref(0))
 const newSimple = inject('lfNewSimple', ref(false))
-const entryDialog = inject('lfEntryDialog', ref(false))
-const menuOpen = ref(false)
-const browseOpen = ref(false)
-const direction = ref(['payable', 'receivable'].includes(routeHint.value) ? routeHint.value : 'all')
+const journalOpenRequest = inject('lfJournalOpenRequest', ref(0))
+// Context is part of the selected route, never inferred from an untrusted
+// document ID. Legacy source links can still supply the preserved hint.
+const direction = computed(() => {
+  if (['payables','purchases'].includes(props.section)) return 'payable'
+  if (['receivables','sales'].includes(props.section)) return 'receivable'
+  return ['payable','receivable'].includes(routeHint.value) ? routeHint.value : 'all'
+})
 const invoiceKind = computed(() => direction.value === 'payable' ? 'bill' : 'invoice')
 provide('lfInvoiceKind', invoiceKind)
 
@@ -46,6 +49,20 @@ const hasTitles = computed(() => enabled('librefinance_obligations'))
 const hasDocuments = computed(() => enabled('librefinance_invoicing'))
 const hasBank = computed(() => enabled('librefinance_banking'))
 const isOverview = computed(() => props.section === 'finance')
+const isSales = computed(() => props.section === 'sales')
+const isPurchase = computed(() => props.section === 'purchases')
+const isBanking = computed(() => props.section === 'banking')
+const isDocument = computed(() => isSales.value || isPurchase.value)
+const pageTitle = computed(() => ({
+  finance:'A pagar e receber', sales:'Vendas', purchases:'Compras',
+  banking:'Extratos e conciliação',
+})[props.section] || 'Financeiro')
+const pageDescription = computed(() => ({
+  finance:'Uma lista de contas e cobranças, com entradas, saídas, vencimentos e situação. Use o filtro para ver apenas a pagar ou a receber.',
+  sales:'Registre suas vendas com itens e valores. Ao confirmar, a cobrança aparece em A pagar e receber automaticamente.',
+  purchases:'Registre suas compras com itens e valores. Ao confirmar, a conta aparece em A pagar e receber automaticamente.',
+  banking:'Confira os extratos por conta. Importar um extrato não paga uma conta nem registra uma receita novamente.',
+})[props.section] || '')
 
 const drafts = ref([])
 const draftNext = ref(null)
@@ -124,11 +141,10 @@ async function moreQueue(kind) {
 function review(item) {
   if (['draft','unlinked'].includes(item.type) && hasDocuments.value) {
     routeHint.value = item.kind === 'bill' ? 'payable' : 'receivable'
-    direction.value = routeHint.value
     focusedInvoice.value = {
       spaceId: Number(w.activeId.value), id: item.id, kind: item.kind,
     }
-    navigate('documents', { preserveDirection: true })
+    navigate(item.kind === 'bill' ? 'purchases' : 'sales')
   } else if (item.type === 'bank' && hasBank.value) {
     focusedBank.value = {
       spaceId: Number(w.activeId.value), transaction: item.transaction,
@@ -136,131 +152,83 @@ function review(item) {
     navigate('banking')
   }
 }
-// A paid expense or a received income is a journal, NOT a new obligation.
-function startPosted(kind) {
-  if (!w.writable.value || !w.activeId.value
-    || !['expense','income'].includes(kind)) return
-  menuOpen.value = false
-  w.direction.value = kind
-  navigate('transactions')
-  entryDialog.value = true
-}
-function startSimple(kind) {
-  if (!w.writable.value || !hasTitles.value) return
-  menuOpen.value = false
+function startSimple(kind='all') {
+  if (!w.writable.value || !hasTitles.value
+    || !['all','payable','receivable'].includes(kind)) return
   routeHint.value = kind
-  direction.value = kind
   newSimple.value = true
-  if (!isOverview.value) navigate('finance', { preserveDirection: true })
+}
+function startPosted() {
+  if (!w.writable.value || !w.activeId.value) return
+  // Do not open a dialog while destroying the source view. The destination
+  // consumes a one-shot request, exactly as bank imports do.
+  journalOpenRequest.value += 1
+  navigate('transactions')
 }
 function startInvoice(kind) {
-  if (!w.writable.value || !hasDocuments.value) return
-  menuOpen.value = false
+  if (!w.writable.value || !hasDocuments.value || !['invoice','bill'].includes(kind)) return
   routeHint.value = kind === 'bill' ? 'payable' : 'receivable'
-  direction.value = routeHint.value
   newDetailed.value = true
-  navigate('documents', { preserveDirection: true })
 }
 function startImport() {
   if (!w.writable.value || !hasBank.value) return
-  menuOpen.value = false
   importRequest.value += 1
-  navigate('banking')
-}
-function browse(section) {
-  browseOpen.value = false
-  if (section === 'documents' && hasDocuments.value) navigate('documents')
-  if (section === 'banking' && hasBank.value) navigate('banking')
 }
 const flow = {
   newSimple,
   newDetailed,
   showDocument(row) {
-    routeHint.value = row?.kind === 'payable' ? 'payable' : 'receivable'
-    navigate('documents', { preserveDirection: true })
+    const kind = row?.kind === 'payable' ? 'payable' : 'receivable'
+    navigate(kind === 'payable' ? 'purchases' : 'sales')
   },
   showAccounts() { navigate('finance') },
   setDocumentDirection(kind) {
-    if (['payable', 'receivable'].includes(kind)) {
-      routeHint.value = kind
-      direction.value = kind
+    if (['payable','receivable'].includes(kind)) {
+      navigate(kind === 'payable' ? 'purchases' : 'sales')
     }
   },
 }
 provide('lfFlowContext', flow)
 watch([w.activeId, hasTitles, hasDocuments, hasBank, () => props.section], loadQueue, { immediate: true })
-watch(routeHint, kind => {
-  direction.value = ['receivable', 'payable'].includes(kind) ? kind : 'all'
-})
 watch(w.activeId, () => {
-  menuOpen.value = false
-  browseOpen.value = false
   newSimple.value = false
   newDetailed.value = false
   focusedBank.value = null
   if (focusedInvoice) focusedInvoice.value = null
   if (focusedObligation) focusedObligation.value = null
 })
-onBeforeUnmount(() => { ++generation; menuOpen.value = false; browseOpen.value = false })
+onBeforeUnmount(() => { ++generation })
 </script>
 
 <template>
   <div class="lf-view lf-unified-finance">
-    <LfPageHeader :title="isOverview ? 'Financeiro'
-      : props.section === 'documents' ? 'Documento comercial' : 'Conferência bancária'"
-      eyebrow="FINANCEIRO"
-      :description="isOverview
-        ? 'Um registro para acompanhar contas e cobranças. Documentos e extratos aparecem como tarefas vinculadas, sem duplicar valores.'
-        : props.section === 'documents'
-          ? 'Prepare ou consulte o documento de origem. Depois de confirmado, o compromisso é acompanhado no Financeiro.'
-          : 'Confronte o extrato com lançamentos já registrados, sem gerar pagamentos duplicados.'">
+    <LfPageHeader :title="pageTitle" eyebrow="FINANCEIRO" :description="pageDescription">
       <template #actions>
-        <NcButton v-if="!isOverview" variant="tertiary" @click="navigate('finance')">
-          <template #icon><NcIconSvgWrapper :path="mdiArrowLeft" :size="20" /></template>
-          Voltar ao Financeiro
+        <NcButton v-if="w.writable.value && isOverview" variant="tertiary"
+          @click="startPosted">
+          Dinheiro já entrou ou saiu
         </NcButton>
-        <NcPopover v-if="w.writable.value && w.activeId.value"
-          v-model:shown="menuOpen" popup-role="dialog">
-          <template #trigger>
-            <NcButton variant="primary" class="lf-finance-create">
-              <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-              Novo
-            </NcButton>
-          </template>
-          <div class="lf-finance-action-menu" role="group" aria-label="Registrar no Financeiro">
-            <p class="lf-muted">Dinheiro que já entrou ou saiu</p>
-            <NcButton variant="tertiary" block @click="startPosted('expense')">
-              Despesa já paga
-            </NcButton>
-            <NcButton variant="tertiary" block @click="startPosted('income')">
-              Receita já recebida
-            </NcButton>
-            <p v-if="hasTitles" class="lf-muted">Dinheiro a pagar ou receber no futuro</p>
-            <NcButton v-if="hasTitles" variant="tertiary" block
-              @click="startSimple('payable')">Conta a pagar</NcButton>
-            <NcButton v-if="hasTitles" variant="tertiary" block
-              @click="startSimple('receivable')">Cobrança a receber</NcButton>
-            <p v-if="hasDocuments" class="lf-muted">Documento com itens e tributos</p>
-            <NcButton v-if="hasDocuments" variant="tertiary" block
-              @click="startInvoice('invoice')">Fatura de venda</NcButton>
-            <NcButton v-if="hasDocuments" variant="tertiary" block
-              @click="startInvoice('bill')">Fatura de compra</NcButton>
-          </div>
-        </NcPopover>
-        <NcPopover v-if="isOverview && (hasDocuments || hasBank)"
-          v-model:shown="browseOpen" popup-role="dialog">
-          <template #trigger>
-            <NcButton variant="tertiary">Consultar</NcButton>
-          </template>
-          <div class="lf-finance-action-menu" role="group" aria-label="Consultar registros financeiros">
-            <NcButton v-if="hasDocuments" variant="tertiary" block
-              @click="browse('documents')">Documentos comerciais</NcButton>
-            <NcButton v-if="hasBank" variant="tertiary" block
-              @click="browse('banking')">Histórico de extratos</NcButton>
-          </div>
-        </NcPopover>
-        <NcButton v-if="w.writable.value && hasBank" variant="secondary"
-          class="lf-finance-import" @click="startImport">
+        <NcButton v-if="w.writable.value && isOverview && hasTitles" variant="primary"
+          @click="startSimple('all')">
+          <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
+          Nova conta ou cobrança
+        </NcButton>
+        <NcButton v-if="w.writable.value && isSales && hasDocuments" variant="primary"
+          @click="startInvoice('invoice')">
+          <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
+          Nova venda
+        </NcButton>
+        <NcButton v-if="w.writable.value && isPurchase && hasDocuments" variant="primary"
+          @click="startInvoice('bill')">
+          <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
+          Nova compra
+        </NcButton>
+        <NcButton v-if="isBanking" variant="secondary" @click="navigate('bankAccounts')">
+          Contas bancárias e caixa
+        </NcButton>
+        <NcButton v-if="w.writable.value && isBanking && hasBank
+          && w.accounts.value.some(account => account.is_bank && account.active)"
+          variant="primary" @click="startImport">
           <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
           Importar extrato
         </NcButton>
@@ -268,10 +236,12 @@ onBeforeUnmount(() => { ++generation; menuOpen.value = false; browseOpen.value =
     </LfPageHeader>
 
     <template v-if="isOverview">
-      <section v-if="hasDocuments || hasBank" class="lf-finance-work-queue" aria-label="Tarefas para resolver">
+      <ObligationsView v-if="hasTitles" :kind="direction" :embedded="true" />
+      <section v-if="(hasDocuments || hasBank) && (pending.length || queueError)"
+        class="lf-finance-work-queue" aria-label="Pendências para revisar">
         <div class="lf-section-heading">
           <div>
-            <h2>Para resolver</h2>
+            <h2>Pendências para revisar</h2>
             <p class="lf-muted">Rascunhos ainda não são cobranças; movimentos importados ainda não são pagamentos.</p>
           </div>
           <NcButton variant="tertiary" aria-label="Atualizar tarefas pendentes"
@@ -311,16 +281,11 @@ onBeforeUnmount(() => { ++generation; menuOpen.value = false; browseOpen.value =
           <NcButton v-if="movementNext" :disabled="queueLoading" @click="moreQueue('bank')">Carregar mais movimentos bancários</NcButton>
         </div>
       </section>
-      <ObligationsView v-if="hasTitles" :kind="direction" :embedded="true" />
-      <InvoicesView v-else-if="hasDocuments" :embedded="true" />
-      <NcEmptyContent v-else-if="!hasBank"
-        name="Nenhum recurso financeiro habilitado"
-        description="Ative os recursos necessários em Gerenciar → Recursos instalados." />
     </template>
-    <InvoicesView v-else-if="props.section === 'documents' && hasDocuments"
-      :key="'documents-' + direction" :embedded="true" />
-    <BankingView v-else-if="props.section === 'banking' && hasBank" :embedded="true" />
+    <InvoicesView v-else-if="isDocument && hasDocuments"
+      :key="'document-' + direction" :embedded="true" />
+    <BankingView v-else-if="isBanking && hasBank" :embedded="true" />
     <NcEmptyContent v-else name="Recurso indisponível nesta gestão"
-      description="Este recurso não está habilitado para a gestão selecionada." />
+      description="Esta função não está habilitada para a gestão selecionada." />
   </div>
 </template>

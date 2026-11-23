@@ -281,10 +281,10 @@ onBeforeUnmount(()=>++generation)
         <NcLoadingIcon :size="44" /> Carregando dados bancários…
       </div>
       <NcEmptyContent v-else-if="!banks.length"
-        name="Nenhuma conta financeira disponível"
-        description="Cadastre uma conta de banco ou caixa no Plano de contas para poder importar extratos.">
+        name="Nenhuma conta bancária ou caixa cadastrada"
+        description="Cadastre onde o dinheiro fica antes de importar um extrato. O cadastro não exige conectar um banco.">
         <template v-if="writable" #action>
-          <NcButton variant="primary" @click="navigate('accounts')">Abrir plano de contas</NcButton>
+          <NcButton variant="primary" @click="navigate('bankAccounts')">Cadastrar banco ou caixa</NcButton>
         </template>
       </NcEmptyContent>
       <NcEmptyContent v-else-if="!rows.length"
@@ -414,7 +414,8 @@ onBeforeUnmount(()=>++generation)
         <NcButton v-if="nextBeforeId" variant="tertiary" :disabled="busy"
           @click="loadMoreJournals">Procurar em lançamentos mais antigos</NcButton>
         <p v-else-if="journalCandidates.length===0" class="lf-dialog-help">
-          Se o lançamento ainda não foi contabilizado, registre-o em Lançamentos contábeis e volte para conciliar.
+          Se não houver lançamento correspondente, registre o dinheiro recebido ou pago
+          uma vez em Lançamentos contábeis e depois volte para conciliar.
         </p>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" @click="closeReconciliation">Cancelar</NcButton>

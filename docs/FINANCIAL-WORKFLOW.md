@@ -3,45 +3,58 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-# Navegacao e operacoes financeiras
+# Navegacao financeira por tarefas
 
-O LibreFinance possui navegacao orientada a tarefas:
+O LibreFinance utiliza apenas uma Visao geral (dashboard).
+O grupo nativo **Financeiro** abre inicialmente expandido com cinco rotas:
 
-- **Visao geral:** indicadores calculados a partir dos lancamentos reais.
-- **Financeiro:** um registro principal de compromissos previstos e uma
-  fila unica de tarefas a concluir. Os compromissos de faturas confirmadas
-  entram no mesmo registro de contas a pagar/receber avulsas.
-  - **Documento ainda em elaboracao:** aparece na fila como rascunho e so
-    vira compromisso financeiro depois da confirmacao comercial.
-  - **Extrato importado pendente:** aparece na mesma fila como evidencia a
-    conciliar e nao como uma segunda receita, despesa ou obrigacao.
-  - **Consultar:** abre a consulta detalhada de documentos comerciais ou
-    extratos, sem criar abas permanentes nem um CRUD operacional paralelo.
-- **Relatorios:** demonstrativos, com segregacao por gestao.
-- **Gestoes financeiras:** unidade de isolamento do dinheiro, contas, historico
-  e permissoes; configurada em Gerenciar, nao como cadastro cotidiano.
-- **Gerenciar:** contatos, produtos/servicos, categorias, dados fiscais de
-  empresas, plano de contas, lancamentos contabeis, regras fiscais, NFS-e,
-  assistente, acessos, campos personalizados, formas de pagamento e migracao,
-  conforme as permissoes do usuario.
+- **A pagar e receber:** um extrato de compromissos em uma unica lista,
+  ordenavel, com entradas e saidas previstas, situacao, saldo e vencimento.
+  Um botao **Nova conta ou cobranca** abre um unico formulario com duas
+  escolhas: **Vou pagar - Dinheiro vai sair** e
+  **Vou receber - Dinheiro vai entrar**. Nao existem duas entradas de menu,
+  dois cadastros operacionais ou um segundo dashboard para estas direcoes.
+- **Vendas:** detalhar venda com itens/servicos, contatos e tributos. Ao
+  confirmar, cria-se o compromisso correspondente automaticamente.
+- **Compras:** detalhar compra recebida com itens/servicos e tributos.
+  Ao confirmar, cria-se o compromisso correspondente automaticamente.
+- **Contas bancarias e caixa:** cadastro visivel das contas financeiras
+  usadas para pagamentos, recebimentos e extratos, separado do plano de
+  contas contabil. Reutiliza a API ja autorizada de contas com isBank=true.
+  O campo Codigo interno nao e numero de conta bancaria; os dados de
+  agencia, numero bancario, credenciais e conexao automatica ainda nao
+  pertencem a esta versao do perfil. O formulario nao finge conectar
+  instituicoes financeiras.
+- **Extratos e conciliacao:** importacao de CSV para uma conta financeira
+  cadastrada, filtros por conta/situacao e conciliacao com lancamentos
+  ja contabilizados. Importar nao duplica pagamentos.
 
-Nao ha entradas independentes no menu lateral nem abas permanentes
-para Faturas ou Bancos e caixa. O registro Financeiro apresenta de forma
-integrada compromissos e pendencias; a consulta completa e contextual. Somente um menu
-**Novo** separa dinheiro ja movimentado (Despesa ja paga, Receita ja
-recebida), compromisso futuro (Conta a pagar, Cobranca a receber) e
-documentacao comercial (Fatura de venda, Fatura de compra).
-As movimentacoes ja realizadas abrem o mesmo formulario e o mesmo livro
-contabil existentes em Lancamentos contabeis; nao criam um novo CRUD
-nem exigem titulo avulso artificial. A acao **Importar extrato** tambem fica nesse
-cabecalho. O fluxo abre diretamente o formulario escolhido, sem passar por
-um segundo dialogo de selecao. Nao existem menus separados e permanentes
-para Contas a receber e Contas a pagar, nem dois grupos distintos de
-Cadastros e Mais ferramentas. Gerenciar apresenta
-cinco **grupos recolhiveis nativos do Nextcloud** (Gestoes e identidade,
-Cadastros, Financeiro e fiscal, Equipe e personalizacao, Recursos e dados); cada funcionalidade e
-aberta diretamente, sem outra pagina ou abas de Configuracoes. As URLs antigas de Configuracoes
-continuam redirecionadas para a funcionalidade correspondente.
+O botao **Dinheiro ja entrou ou saiu** em A pagar e receber abre
+diretamente o formulario existente de movimentacoes realizadas, sem
+criar conta futura ficticia. Em casos ja cadastrados como obrigacao,
+a acao Pagar/Receber da propria linha e a unica maneira correta de
+registrar a liquidacao e o lancamento juntos. O formulario de
+movimento direto alerta contra a duplicidade.
+
+**Gerenciar > Financeiro e fiscal** continua contendo o plano de
+contas e os lancamentos contabeis para consulta avancada, mas nao um
+segundo cadastro de contas a pagar/receber. A pesquisa encontra os
+termos tecnicos. Vendas, compras e extratos nao sao abas concorrentes.
+Nao houve migracao nem novo endpoint nesta rodada de navegacao.
+
+### Integracoes bancarias futuras
+
+A implementacao atual de provider e somente um contrato de leitura:
+BankProviderInterface, RegisterBankProvidersEvent,
+BankConnectionContext, BankStatementEntry e BankProviderRegistry.
+O provider csv_manual e disponivel; automaticSyncEnabled=false e
+implementacoes opcionais nao estao conectadas. O perfil bancario
+ainda precisara, em trabalho separado e homologado, de metadados
+por instituicao, vinculacao a um provedor, consentimento auditavel,
+referencia segura de credenciais, idempotencia de sincronizacao,
+cursor, erros/reautorizacao e isolamento por gestao. Nenhum banco
+brasileiro foi conectado e nenhum acesso bancario externo esta
+implementado nesta refatoracao de interface.
 
 ## Agenda unica, mas nao extrato bancario
 
@@ -61,17 +74,17 @@ de referencia e reutilizada durante a paginacao por cursor, evitando que
 uma passagem da meia-noite altere registros durante a leitura. Este
 parametro opcional controla apenas a consulta, nao muda vencimentos nem
 a contabilizacao. Filtrar ou navegar nao transforma uma cobranca aberta
-em entrada contabilizada. O registro importado do banco aparece em **Conferir extrato**
-e permanece pendente ate ser reconciliado com lancamento contabil. Importar
-nao significa pagar ou receber automaticamente.
+em entrada contabilizada. O registro importado do banco aparece em
+**Extratos e conciliacao** e permanece pendente ate ser conciliado com
+lancamento contabil. Importar nao significa pagar ou receber automaticamente.
 
-Para registrar uma operacao, clique em **Novo** no topo do Financeiro:
-**Conta a pagar** ou **Cobranca a receber** criam compromissos avulsos,
-sem fatura, com valor e vencimento. **Fatura de venda** ou **Fatura de
-compra** abrem diretamente a edicao de itens, contatos e tributos. Uma
-fatura confirmada cria seu titulo vinculado. Nao cadastre novamente esse
-titulo no painel A pagar e receber. O titulo oferece Abrir fatura, e a
-fatura oferece Ver conta vinculada.
+Para cadastrar compromissos, use o botao **Nova conta ou cobranca** em
+**A pagar e receber**, escolhendo vou pagar ou vou receber. Contas
+avulsas possuem valor e vencimento.
+Vendas e Compras cadastram documentos com itens, contatos e tributos.
+Ao confirmar o documento, o sistema cria o compromisso vinculado; nao
+cadastre o mesmo valor novamente. A linha de conta permite abrir a
+fatura, e o documento permite voltar a conta vinculada.
 
 **Importar extrato** abre a conferencia bancaria e solicita conta e CSV.
 O extrato nao e outra lista de contas: e uma evidencia externa
@@ -92,7 +105,7 @@ duplicar receita ou despesa.
 As listas de dados usam diretamente a superficie do NcAppContent, sem
 borda decorativa de card sobre a tabela. Nenhum cabecalho/coluna aparece
 quando nao ha linhas: o NcEmptyContent diferencia lista vazia, filtro sem
-resultado e falta de configuracao inicial. Bancos e caixa apresenta filtros
+resultado e falta de configuracao inicial. Extratos e conciliacao apresenta filtros
 de conta e situacao no alto da propria lista, alem dos estados distintos
 para falta de conta financeira, extrato vazio e transferencias inexistentes.
 
@@ -185,15 +198,18 @@ introduz** exclusao definitiva.
 
 ## Compatibilidade e limites
 
-URLs historicas view=receivables, view=payables e view=obligations
-abrem a agenda, com a direcao adequada. URLs historicas view=sales,
-view=purchases e view=invoicing abrem o painel Faturas dentro de Financeiro,
-preservando o tipo quando informado. view=banking abre Conferir extrato,
-sem uma entrada propria no menu lateral. Links
-view=settings&section=access|fields|payments|modules|data seguem para
-Acessos e compartilhamento, Campos personalizados, Formas de pagamento,
-Recursos instalados ou Dados e migracao, respectivamente. Quando a URL indica
-pagar/receber, o filtro correspondente e recuperado.
+URLs historicas view=receivables e view=payables abrem a mesma tela
+A pagar e receber e preservam o filtro de direcao. view=obligations
+continua em A pagar e receber. view=sales e view=purchases abrem,
+respectivamente, Vendas e Compras. Os aliases antigos view=invoicing
+e view=documents direcionam para Vendas; vinculos internos para
+compras preservam seu contexto explicito. view=banking continua em
+Extratos e conciliacao; view=bankAccounts abre o registro de contas
+bancarias e caixa. Os bookmarks view=transactions continuam abrindo os
+lancamentos contabeis avancados. Links view=settings com secao access, fields,
+payments, modules ou data seguem para as mesmas configuracoes
+administrativas de antes. A interface filtra por gestao, direcao e modulos habilitados,
+sem que o front substitua as checagens do PHP.
 Contratos antigos das APIs financeiras permanecem validos; os novos filtros
 sao opcionais e validados antes da paginacao.
 

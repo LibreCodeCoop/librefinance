@@ -45,6 +45,12 @@ const duePopoverShown=ref(false)
 const next=ref(null)
 const filter=ref('all')
 const kindFilter=ref(props.kind)
+const hasActiveFilters=computed(()=>
+  (props.kind==='all' && kindFilter.value!=='all')
+  || filter.value!=='all' || dueRange.value!=='all' || !!searchTerm.value)
+const emptyTitle=computed(() => props.kind==='payable' ? 'Nenhuma conta a pagar'
+  : props.kind==='receivable' ? 'Nenhuma cobrança a receber'
+    : 'Nenhum valor a pagar ou receber')
 const directionChoices=[
   {value:'all',label:'Tudo'},
   {value:'receivable',label:'A receber'},
@@ -277,10 +283,9 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
       </template>
     </LfPageHeader>
     <NcNoteCard v-if="!embedded" type="info">
-      Faturas confirmadas geram o título financeiro vinculado.
-      A baixa de um título avulso é administrativa: não gera movimentação bancária
-      ou lançamento contábil. Títulos vinculados são liquidados pelo documento
-      de origem, usando um lançamento já contabilizado.
+      Uma venda ou compra confirmada já aparece nesta lista; não registre a
+      mesma conta novamente. Uma baixa sem movimentação não altera o banco.
+      Para pagamentos reais, use a ação Pagar ou Receber.
     </NcNoteCard>
     <NcNoteCard v-if="error" type="error" role="alert">{{error}}</NcNoteCard>
     <NcNoteCard v-if="success" type="success" role="status">{{success}}</NcNoteCard>
@@ -291,14 +296,15 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
     </NcNoteCard>
     <section class="lf-surface">
       <div v-if="displayedRows.length || hasListedRecords" class="lf-section-heading lf-obligation-filters">
-        <div><h2>{{embedded?'Agenda de entradas e saídas':'Títulos financeiros'}}</h2>
-          <p class="lf-muted">Valores previstos e baixas, sem misturar com o extrato bancário.</p>
+        <div><h2>{{props.kind==='payable' ? 'Pagamentos previstos'
+          : props.kind==='receivable' ? 'Recebimentos previstos' : 'Contas e cobranças'}}</h2>
+          <p class="lf-muted">Valores que você precisa pagar ou receber; o extrato bancário é conferido à parte.</p>
         </div>
         <div class="lf-native-agenda-filters">
           <NcTextField v-model="searchDraft" class="lf-native-finance-search"
             type="search" label="Pesquisar na agenda" placeholder="Descrição ou referência"
             maxlength="120" @update:model-value="scheduleSearch" @keyup.enter="applySearch" />
-          <NcPopover v-model:shown="directionPopoverShown" popup-role="dialog">
+          <NcPopover v-if="props.kind==='all'" v-model:shown="directionPopoverShown" popup-role="dialog">
             <template #trigger>
               <NcButton id="lf-finance-direction" variant="tertiary"
                 :pressed="kindFilter !== 'all'"
@@ -351,12 +357,12 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
       </div>
       <NcEmptyContent v-else-if="!error && !displayedRows.length"
         class="lf-agenda-empty"
-        :name="kindFilter !== 'all' || filter !== 'all' || dueRange !== 'all' || searchTerm ? 'Nenhum resultado para os filtros' : 'Nenhum valor a pagar ou receber'"
-        :description="kindFilter !== 'all' || filter !== 'all' || dueRange !== 'all' || searchTerm
-          ? 'Altere os filtros ou a pesquisa para ver outros títulos.'
-          : 'Cadastre uma conta ou cobrança; faturas confirmadas também aparecem aqui automaticamente.'">
-        <template v-if="kindFilter !== 'all' || filter !== 'all' || dueRange !== 'all' || searchTerm" #action>
-          <NcButton @click="kindFilter='all'; filter='all'; dueRange='all'; searchDraft=''; applySearch()">Limpar filtros</NcButton>
+        :name="hasActiveFilters ? 'Nenhum resultado para os filtros' : emptyTitle"
+        :description="hasActiveFilters
+          ? 'Altere os filtros ou a pesquisa para ver outros registros.'
+          : 'Cadastre uma conta ou cobrança; vendas e compras confirmadas aparecem aqui automaticamente.'">
+        <template v-if="hasActiveFilters" #action>
+          <NcButton @click="kindFilter=props.kind; filter='all'; dueRange='all'; searchDraft=''; applySearch()">Limpar filtros</NcButton>
         </template>
         <template v-else-if="writable && !embedded" #action>
           <NcButton variant="primary" @click="formOpen=true">Novo título</NcButton>
@@ -400,7 +406,7 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
                   @click="openLinkedDocument(row)">Abrir fatura</NcButton>
                 <span v-else class="lf-muted"> · Acesso ao documento indisponível</span>
               </template>
-              <span v-else>Título avulso</span>
+              <span v-else>Conta ou cobrança</span>
             </td>
             <td>{{row.due_on}}</td>
             <td class="lf-numeric"><strong
@@ -461,16 +467,30 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
       </div>
     </section>
     <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="formOpen"
-      :name="embedded ? (props.kind==='receivable'?'Cobrança simples':'Conta simples')
-        : 'Novo título financeiro'"
+      :name="props.kind==='receivable' ? 'Nova cobrança'
+        : props.kind==='payable' ? 'Nova conta a pagar' : 'Nova conta ou cobrança'"
       @update:open="formOpen=$event">
       <form class="lf-dialog-form" @submit.prevent="create">
         <NcNoteCard type="warning">
-          Cadastre somente compromissos sem fatura confirmada. Faturas de venda ou
-          compra confirmadas geram a conta a pagar ou receber automaticamente. As vendas e compras confirmadas criam os títulos automaticamente.
+          Use este cadastro para contas ou cobranças sem uma venda ou compra
+          detalhada já confirmada. Vendas e compras confirmadas aparecem aqui
+          automaticamente; não cadastre duas vezes.
         </NcNoteCard>
-        <LfSelect v-if="props.kind==='all'" id="lf-title-type"
-          v-model="draft.kind" :options="kinds" label="Tipo" />
+        <fieldset v-if="props.kind==='all'" class="lf-entry-direction">
+          <legend>O que vai acontecer?</legend>
+          <div class="lf-entry-direction-options">
+            <button type="button" :class="{selected:draft.kind==='payable'}"
+              :aria-pressed="draft.kind==='payable'" @click="draft.kind='payable'">
+              <NcIconSvgWrapper :path="mdiPlus" :size="18" aria-hidden="true" />
+              <span><strong>Vou pagar</strong><small>Dinheiro vai sair</small></span>
+            </button>
+            <button type="button" :class="{selected:draft.kind==='receivable'}"
+              :aria-pressed="draft.kind==='receivable'" @click="draft.kind='receivable'">
+              <NcIconSvgWrapper :path="mdiCashCheck" :size="18" aria-hidden="true" />
+              <span><strong>Vou receber</strong><small>Dinheiro vai entrar</small></span>
+            </button>
+          </div>
+        </fieldset>
         <p v-else class="lf-muted">
           {{props.kind==='receivable'?'Cobrança simples':'Conta simples'}}
         </p>
@@ -489,7 +509,7 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
           @click="loadMoreCatalog('contacts')">Carregar mais contatos</NcButton>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" @click="formOpen=false">Cancelar</NcButton>
-          <NcButton type="submit" variant="primary" :disabled="loading">Cadastrar título</NcButton>
+          <NcButton type="submit" variant="primary" :disabled="loading">Salvar conta ou cobrança</NcButton>
         </div>
       </form>
     </NcDialog>

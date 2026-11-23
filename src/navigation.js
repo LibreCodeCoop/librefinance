@@ -6,17 +6,18 @@
 export const PAGE_NAMES = Object.freeze({
   dashboard: 'Visão geral',
   transactions: 'Lançamentos contábeis',
-  banking: 'Conferir extrato',
+  banking: 'Extratos e conciliação',
+  bankAccounts: 'Contas bancárias e caixa',
   obligations: 'A pagar e receber', // historic bookmark
   reports: 'Relatórios',
-  invoicing: 'Faturas', // legacy deep-link alias
-  sales: 'Faturas', // historic commercial bookmark
+  invoicing: 'Vendas', // legacy deep-link alias
+  sales: 'Vendas',
   receivables: 'A pagar e receber',
-  finance: 'Financeiro',
-  documents: 'Faturas',
+  finance: 'A pagar e receber',
+  documents: 'Vendas', // legacy deep-link alias
   spaces: 'Gestões financeiras',
   payables: 'A pagar e receber',
-  purchases: 'Faturas', // historic commercial bookmark
+  purchases: 'Compras',
   taxes: 'Regras tributárias',
   nfse: 'NFS-e Brasil',
   contacts: 'Clientes e fornecedores',
@@ -39,8 +40,20 @@ export const PAGE_NAMES = Object.freeze({
 export const MENU_STRUCTURE = Object.freeze([
   { id: 'operations', label: 'LIBREFINANCE', items: [
     { id: 'dashboard', icon: 'home', keywords: 'inicio visao geral resumo painel home' },
-    { id: 'finance', icon: 'obligations',
-      keywords: 'a pagar receber banco extrato bancario importar csv conciliacao faturas documentos comerciais vendas compras vencimentos pagamentos cobrancas movimentos conta receita despesa transferencia' },
+    // One record for both payable and receivable commitments. The bank
+    // register is separate from source statements and the accounting COA.
+    { id: 'financeMenu', label: 'Financeiro', icon: 'obligations', children: [
+      { id: 'finance', icon: 'transactions', module:'librefinance_obligations',
+        keywords: 'a pagar e receber movimentacoes contas cobrancas compromissos vencimentos receitas despesas' },
+      { id: 'sales', icon: 'billing', module: 'librefinance_invoicing',
+        keywords: 'vendas faturas clientes produtos servicos itens impostos venda' },
+      { id: 'purchases', icon: 'purchases', module: 'librefinance_invoicing',
+        keywords: 'compras fornecedores produtos servicos itens tributos nota recebida' },
+      { id: 'bankAccounts', icon: 'banking',
+        keywords: 'contas bancarias bancos caixa cadastrar sicoob itau banco do brasil instituicao financeira' },
+      { id: 'banking', icon: 'transactions', module: 'librefinance_banking',
+        keywords: 'extratos conciliacao importar csv correspondencia movimentos bancarios' },
+    ] },
     { id: 'reports', icon: 'reports', module: 'librefinance_reports',
       keywords: 'relatorios demonstrativos fluxo de caixa resultados dre balancete' },
     { id: 'management', label: 'Gerenciar', icon: 'settings', children: [
@@ -58,7 +71,7 @@ export const MENU_STRUCTURE = Object.freeze([
       { id: 'accounts', icon: 'accounts', group: 'Financeiro e fiscal',
         keywords: 'plano de contas contabilidade patrimonio ativo passivo' },
       { id: 'transactions', icon: 'transactions', group: 'Financeiro e fiscal',
-        keywords: 'lancamentos contabeis diario debito credito movimentacao' },
+        keywords: 'lancamentos contabeis diario debito credito dinheiro ja saiu entrou historico realizado' },
       { id: 'paymentMethods', icon: 'banking', group: 'Financeiro e fiscal', managerOnly: true,
         keywords: 'formas pagamento dinheiro pix boleto cartao metodos' },
       { id: 'taxes', icon: 'fiscal', group: 'Financeiro e fiscal', module: 'librefinance_invoicing',
@@ -100,26 +113,17 @@ export function normalizeNavigationText(value) {
     .toLocaleLowerCase('pt-BR').trim().replace(/\s+/g, ' ')
 }
 
-/** Only enabled, user-visible module descriptors enter the navigation. */
-const FINANCE_PANEL_MODULES = Object.freeze({
-  finance: 'librefinance_obligations',
-  documents: 'librefinance_invoicing',
-  banking: 'librefinance_banking',
-})
-
+/** Feature flags hide unavailable screens, but the always-available journal
+ * and finance overview do not depend on optional modules. */
 export function availableSections({ manager = false, modules = [], modulesLoaded = false } = {}) {
   const enabled = new Set(modulesLoaded ? modules.filter(m => m.enabled).map(m => m.id) : [])
-  const financePanels = Object.entries(FINANCE_PANEL_MODULES)
-    .filter(([, module]) => enabled.has(module)).map(([panel]) => panel)
-  function allowed(item) {
-    return (!item.managerOnly || manager)
-      && (item.id === 'finance' ? financePanels.length > 0 : (!item.module || enabled.has(item.module)))
-  }
-  return MENU_STRUCTURE.map(section => ({ ...section,
+  const allowed = item => (!item.managerOnly || manager)
+    && (!item.module || enabled.has(item.module))
+  return MENU_STRUCTURE.map(section => ({
+    ...section,
     items: section.items.map(item => item.children
       ? { ...item, children: item.children.filter(allowed) }
-      : item.id === 'finance' ? { ...item, panels: financePanels } : item)
-      .filter(item => item.children ? item.children.length > 0 : allowed(item)),
+      : item).filter(item => item.children ? item.children.length > 0 : allowed(item)),
   })).filter(section => section.items.length > 0)
 }
 
@@ -138,14 +142,14 @@ const LEGACY_SETTINGS = Object.freeze({
 export function canonicalView(id, section = null) {
   if (id === 'settings') return LEGACY_SETTINGS[section] || 'access'
   if (id === 'import') return 'data'
-  if (['invoicing', 'sales', 'purchases'].includes(id)) return 'documents'
-  if (['obligations', 'receivables', 'payables'].includes(id)) return 'finance'
+  if (['invoicing', 'documents'].includes(id)) return 'sales'
+  if (['obligations','payables','receivables'].includes(id)) return 'finance'
   return id
 }
 
 /** Existing links preserve their intended entry/exit direction as a filter. */
 export function financeDirectionForView(id) {
-  if (['invoicing', 'sales', 'receivables'].includes(id)) return 'receivable'
+  if (['invoicing', 'sales', 'receivables', 'documents'].includes(id)) return 'receivable'
   if (['purchases', 'payables'].includes(id)) return 'payable'
   return 'all'
 }
@@ -153,12 +157,8 @@ export function financeDirectionForView(id) {
 export function canOpenView(sections, id, { manager = false, migrationEnabled = false } = {}) {
   if (id === 'import') return manager && migrationEnabled
   const canonical = canonicalView(id)
-  // Hidden finance panels remain authorized deep-link destinations while the
-  // sidebar exposes only one Financeiro entry. Module discovery owns visibility.
-  if (canonical === 'documents' || canonical === 'banking') {
-    return menuEntries(sections).some(item => item.id === 'finance'
-      && item.panels?.includes(canonical))
-  }
+  // The URL is only a closed screen key; permissions and optional module
+  // availability must be checked against the authorized navigation.
   return menuEntries(sections).some(item => item.id === canonical)
 }
 
@@ -192,6 +192,6 @@ export function parentOfView(sections, id) {
 
 // Task-oriented primary areas are always visible. Only supplementary
 // fiscal/register groups are collapsed by default for all workspace kinds.
-export function defaultGroupOpen() {
-  return false
+export function defaultGroupOpen(id) {
+  return id === 'financeMenu'
 }

@@ -20,7 +20,7 @@ import {
   mdiFileUploadOutline, mdiCogOutline, mdiShapeOutline, mdiRobotOutline,
   mdiDomain, mdiFileDocumentOutline, mdiBookOpenPageVariantOutline,
   mdiPlus, mdiRefresh, mdiMagnify, mdiArrowDownLeft, mdiArrowUpRight,
-  mdiFolderAccountOutline,
+  mdiFolderAccountOutline, mdiCartOutline,
 } from '@mdi/js'
 import {
   PAGE_NAMES, availableSections, canOpenView, navigationSearch,
@@ -59,6 +59,10 @@ const {
 } = workspace
 const quickEntry = ref(false)
 provide('lfEntryDialog', quickEntry)
+// Route handoff token: the destination consumes this only after mount, avoiding
+// a modal open before NcDialog has initialized in a newly rendered screen.
+const journalOpenRequest = ref(0)
+provide('lfJournalOpenRequest', journalOpenRequest)
 // One-shot editor requests must outlive the finance sub-panel route remount.
 const newSimple = ref(false)
 provide('lfNewSimple', newSimple)
@@ -79,11 +83,12 @@ const screens = {
   accounts: AccountsView,
   banking: CashflowView,
   finance: CashflowView,
+  bankAccounts: AccountsView,
   documents: CashflowView,
   spaces: SpacesView,
   receivables: CashflowView,
   payables: CashflowView,
-  // Old route IDs remain recognized but are canonicalized to the unified view.
+  // Separate user-facing tasks preserve the same data-layer ownership.
   obligations: CashflowView,
   sales: CashflowView,
   purchases: CashflowView,
@@ -115,6 +120,8 @@ const icons = {
   obligations: mdiCashClock,
   reports: mdiChartLine,
   billing: mdiReceiptTextOutline,
+  purchases: mdiCartOutline,
+  bankAccounts: mdiBankOutline,
   fiscal: mdiFileDocumentOutline,
   contacts: mdiAccountMultipleOutline,
   categories: mdiShapeOutline,
@@ -254,7 +261,8 @@ provide('lfNewDetailed', newDetailed)
 const focusedObligation = ref(null)
 provide('lfFocusedObligation', focusedObligation)
 const activeLocation = computed(() => {
-  if (['finance','documents','banking'].includes(readyView.value)) return 'Financeiro'
+  if (['finance','payables','receivables','sales','purchases','documents','banking',
+    'bankAccounts'].includes(readyView.value)) return 'Financeiro'
   if (readyView.value === 'settings' || readyView.value === 'spaces' || readyView.value === 'import') return 'Gerenciar'
   const match = menuEntries(availableNav.value).find(item => item.id === readyView.value)
   return match?.parent || match?.section || 'LibreFinance'
@@ -276,7 +284,13 @@ function navigate(view, options = {}) {
   if (view === 'fields') {
     fieldStudioEntity.value = fieldEntityKind(options.entityKind || 'company')
   }
-  if (['finance','documents'].includes(canonicalView(view)) && !options.preserveDirection) {
+  // The historical documents view has no direction in its URL. Internal
+  // document actions already carry a verified purchase/sale context.
+  if (view === 'documents' && options.preserveDirection) {
+    view = financeDirectionHint.value === 'payable' ? 'purchases' : 'sales'
+  }
+  if (['finance','payables','receivables','sales','purchases'].includes(canonicalView(view))
+    && !options.preserveDirection) {
     financeDirectionHint.value = financeDirectionForView(view)
   }
   view = canonicalView(view)
@@ -305,6 +319,8 @@ function selectSpace(id) {
   focusedObligation.value = null
   focusedBank.value = null
   bankImportRequest.value = 0
+  journalOpenRequest.value = 0
+  quickEntry.value = false
   newDetailed.value = false
   newSimple.value = false
   clearSearch()
@@ -336,9 +352,7 @@ function onHistoryChange() {
     activeId.value = destinationSpace
   }
   pendingInitialView = destinationView
-  if (destinationView === 'finance' || values.get('view') !== 'documents') {
-    financeDirectionHint.value = financeDirectionForView(values.get('view'))
-  }
+  financeDirectionHint.value = financeDirectionForView(values.get('view'))
   if (visibleView(destinationView)
     && modulesLoadedFor.value === Number(activeId.value)) {
     // A browser back/forward event must not create a new history entry.
@@ -411,7 +425,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
             <li class="lf-nav-section"><span>RESULTADOS DA BUSCA</span></li>
             <NcAppNavigationItem v-for="entry in searchResults" :key="entry.id"
               :name="labels[entry.id]" :title="entry.parent || entry.section"
-              :href="viewHref(entry.id)" :active="readyView === entry.id || (entry.id === 'finance' && ['documents','banking'].includes(readyView))"
+              :href="viewHref(entry.id)" :active="readyView === entry.id"
               @click="onNavClick($event, entry.id)">
               <template #icon><NcIconSvgWrapper :path="icons[entry.icon]" :size="20" /></template>
             </NcAppNavigationItem>
@@ -429,25 +443,38 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
                   :active="groupHasActive(item)" @click="onNavGroupClick($event, item.id)"
                   @update:open="setGroupOpen(item.id, $event)">
                   <template #icon><NcIconSvgWrapper :path="icons[item.icon]" :size="20" /></template>
-                  <NcAppNavigationItem v-for="subgroup in groupedChildren(item)"
-                    :key="subgroup.name" class="lf-native-management-group"
-                    :name="subgroup.name" :allow-collapse="true"
-                    :open="subgroupOpen(subgroup.name, item)"
-                    :active="subgroup.children.some(child => child.id === readyView)"
-                    @click.prevent="changeSubgroup(subgroup.name, !subgroupOpen(subgroup.name, item))"
-                    @update:open="changeSubgroup(subgroup.name, $event)">
-                    <template #icon>
-                      <NcIconSvgWrapper :path="managementGroupIcons[subgroup.name]" :size="20" />
-                    </template>
-                    <NcAppNavigationItem v-for="child in subgroup.children" :key="child.id"
+                  <template v-if="item.id === 'financeMenu'">
+                    <NcAppNavigationItem v-for="child in item.children" :key="child.id"
                       :name="labels[child.id]" :href="viewHref(child.id)"
                       :active="readyView === child.id" @click="onNavClick($event, child.id)">
-                      <template #icon><NcIconSvgWrapper :path="icons[child.icon]" :size="18" /></template>
+                      <template #icon>
+                        <NcIconSvgWrapper :path="icons[child.icon]" :size="18" />
+                      </template>
                     </NcAppNavigationItem>
-                  </NcAppNavigationItem>
+                  </template>
+                  <template v-else>
+                    <NcAppNavigationItem v-for="subgroup in groupedChildren(item)"
+                      :key="subgroup.name" class="lf-native-management-group"
+                      :name="subgroup.name" :allow-collapse="true"
+                      :open="subgroupOpen(subgroup.name, item)"
+                      :active="subgroup.children.some(child => child.id === readyView)"
+                      @click.prevent="changeSubgroup(subgroup.name, !subgroupOpen(subgroup.name, item))"
+                      @update:open="changeSubgroup(subgroup.name, $event)">
+                      <template #icon>
+                        <NcIconSvgWrapper :path="managementGroupIcons[subgroup.name]" :size="20" />
+                      </template>
+                      <NcAppNavigationItem v-for="child in subgroup.children" :key="child.id"
+                        :name="labels[child.id]" :href="viewHref(child.id)"
+                        :active="readyView === child.id" @click="onNavClick($event, child.id)">
+                        <template #icon>
+                          <NcIconSvgWrapper :path="icons[child.icon]" :size="18" />
+                        </template>
+                      </NcAppNavigationItem>
+                    </NcAppNavigationItem>
+                  </template>
                 </NcAppNavigationItem>
                 <NcAppNavigationItem v-else :name="labels[item.id]" :href="viewHref(item.id)"
-                  :active="readyView === item.id || (item.id === 'finance' && ['documents','banking'].includes(readyView))"
+                  :active="readyView === item.id"
                   @click="onNavClick($event, item.id)">
                   <template #icon><NcIconSvgWrapper :path="icons[item.icon]" :size="20" /></template>
                 </NcAppNavigationItem>
@@ -507,7 +534,9 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         </div>
         <component :is="currentScreen" v-else
           :key="activeId + ':' + readyView + ':' + urlSearchTerm"
-          v-bind="['finance', 'documents', 'banking'].includes(readyView) ? { section: readyView } : {}" />
+          v-bind="readyView === 'bankAccounts' ? { bankOnly: true }
+            : ['finance','sales','purchases','banking'].includes(readyView)
+              ? { section: readyView } : {}" />
       </div>
     </NcAppContent>
 

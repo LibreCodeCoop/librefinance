@@ -6,13 +6,12 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
-import NcPopover from '@nextcloud/vue/components/NcPopover'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiPlus, mdiFileDocumentOutline, mdiFilterVariant } from '@mdi/js'
+import { mdiPlus, mdiFileDocumentOutline } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSortableHeader from '../components/LfSortableHeader.vue'
 import { useLoadedSort } from '../composables/useLoadedSort.js'
@@ -246,7 +245,7 @@ async function issue() {
   const id=chosen.value.id
   const done=await perform(async()=>financeApi(current,activeId.value,
     '/invoices/'+id+'/issue','POST',{}),
-    'Fatura confirmada internamente. Não é uma NFS-e.')
+    'Documento confirmado. Conta vinculada criada; nenhuma nota fiscal foi emitida.')
   if(done){chosen.value=null;await showInvoice(id)}
 }
 async function allocate() {
@@ -327,21 +326,8 @@ function openLinkedObligation() {
     <NcNoteCard v-if="success" type="success" role="status">{{success}}</NcNoteCard>
     <section v-if="tab==='invoices'" class="lf-surface">
       <div v-if="showInvoiceFilters" class="lf-section-heading">
-        <h2>Faturas {{ isPurchase ? 'de compra' : 'de venda' }}</h2>
-        <NcPopover v-if="flow" popup-role="dialog">
-          <template #trigger>
-            <NcButton id="lf-commercial-direction" variant="tertiary">
-              <template #icon><NcIconSvgWrapper :path="mdiFilterVariant" :size="20" /></template>
-              Tipo: {{ isPurchase ? 'Compras' : 'Vendas' }}
-            </NcButton>
-          </template>
-          <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar documentos por tipo">
-            <NcButton variant="tertiary" :aria-pressed="!isPurchase"
-              @click="flow.setDocumentDirection('receivable')">Vendas</NcButton>
-            <NcButton variant="tertiary" :aria-pressed="isPurchase"
-              @click="flow.setDocumentDirection('payable')">Compras</NcButton>
-          </div>
-        </NcPopover>
+        <h2>{{ isPurchase ? 'Compras registradas' : 'Vendas registradas' }}</h2>
+
       </div>
       <div v-if="busy && !invoices.length" class="lf-loading" role="status">
         Carregando faturas…
@@ -404,12 +390,14 @@ function openLinkedObligation() {
     </section>
 
     <NcDialog content-classes="lf-finance-dialog-content" :open="newInvoice"
-      :name="isPurchase ? 'Nova fatura de compra' : 'Nova fatura de venda'" size="large"
+      :name="isPurchase ? 'Nova compra' : 'Nova venda'" size="large"
       @update:open="newInvoice=$event">
       <form class="lf-dialog-form" @submit.prevent="create">
         <div class="lf-form-grid">
           <NcTextField v-model="form.number" label="Número" maxlength="80" required />
-          <p class="lf-muted">Tipo: {{isPurchase ? 'Compra de fornecedor' : 'Venda a cliente'}}</p>
+          <p class="lf-muted">{{isPurchase
+            ? 'Informe o que comprou. Ao confirmar, o valor aparecerá em Contas a pagar.'
+            : 'Informe o que vendeu. Ao confirmar, o valor aparecerá em Contas a receber.'}}</p>
           <LfSelect id="lf-invoice-contact" v-model="form.contactId" :options="contactsChoices"
             label="Cliente ou fornecedor" />
           <NcTextField v-model="form.country" label="País (ISO 2, obrigatório)" maxlength="2" required />
@@ -417,7 +405,7 @@ function openLinkedObligation() {
           <LfDateField id="lf-invoice-date" v-model="form.issueOn" label="Emissão" />
           <LfDateField id="lf-invoice-due" v-model="form.dueOn" label="Vencimento" />
         </div>
-        <h3>Itens da fatura</h3>
+        <h3>Itens {{isPurchase?'da compra':'da venda'}}</h3>
         <div v-for="(line,index) in form.lines" :key="index" class="lf-invoice-line">
           <NcTextField v-model="line.description" :label="'Descrição da linha '+(index+1)"
             maxlength="255" required />
@@ -472,6 +460,10 @@ function openLinkedObligation() {
       <div v-if="chosen" class="lf-dialog-form">
         <h3>{{chosen.number}}</h3>
         <p>Situação: {{commercialStatus(chosen.status)}}</p>
+        <p v-if="chosen.status==='draft'" class="lf-muted">
+          Confirmar este documento cria uma {{isPurchase?'conta a pagar':'conta a receber'}}.
+          Não registra pagamento nem emite nota fiscal.
+        </p>
         <p v-if="chosenObligationId">Conta {{isPurchase?'a pagar':'a receber'}}
           vinculada #{{chosenObligationId}}. A associação do pagamento exige um
           lançamento contábil válido; ela não gera um segundo movimento.</p>
@@ -488,7 +480,7 @@ function openLinkedObligation() {
             <strong>{{money(chosen.total_minor-chosen.paid_minor)}}</strong></div>
         </div>
         <NcButton v-if="manager&&chosen.status==='draft'" variant="primary"
-          :disabled="busy" @click="issue">Confirmar emissão comercial</NcButton>
+          :disabled="busy" @click="issue">{{isPurchase?'Confirmar compra':'Confirmar venda'}}</NcButton>
         <template v-if="writable&&chosenObligationId&&['issued','partially_paid'].includes(chosen.status)">
           <NcNoteCard v-if="Number(chosen.tax_minor)||Number(chosen.withheld_minor)"
             type="warning">
