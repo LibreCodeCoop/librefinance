@@ -96,14 +96,23 @@ test('@extensions supported entity pages link quietly to the matching Field Stud
     await expect(page).toHaveURL(new RegExp('entity='+entity))
     await expect(page.locator('#lf-field-studio-entity')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Novo campo' })).toBeVisible()
-    const picked = {
-      company:'Empresa',contact:'Cliente ou fornecedor',
-      item:'Produto ou serviço',journal:'Receita ou despesa',
+    // Entity shortcuts preserve their URL, but the new Field Studio does not
+    // select an entity on the listing. The new-field dialog owns that choice.
+    const target = {
+      company:'Empresa / organização',contact:'Clientes e fornecedores',
+      item:'Produtos e serviços',journal:'Movimentações realizadas',
     }[entity]
-    await expect(page.locator('.lf-field-studio').getByText(picked,{exact:true})).toBeVisible()
+    await page.getByRole('button', { name: 'Novo campo' }).click()
+    const editor = page.getByRole('dialog', { name: 'Novo campo personalizado' })
+    await expect(editor.getByRole('group', { name: 'Escolher local do campo' })
+      .getByRole('button', { name: target, exact: true })).toBeVisible()
+    await editor.getByRole('group', { name: 'Escolher local do campo' })
+      .getByRole('button', { name: target, exact: true }).click()
+    await expect(editor.getByRole('button', { name: target + ' · Alterar local' })).toBeVisible()
+    await editor.getByRole('button', { name: 'Cancelar' }).click()
     await page.reload()
     await expect(page).toHaveURL(new RegExp('entity='+entity))
-    await expect(page.locator('.lf-field-studio').getByText(picked,{exact:true})).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Novo campo' })).toBeVisible()
   }
   await goToView(page,'Acessos e compartilhamento')
   await expect(page.getByRole('button',{name:/Personalizar campos de/})).toHaveCount(0)
@@ -476,7 +485,11 @@ test('historic payable and receivable bookmarks resolve to current screens', asy
   await login(page)
   await makeSpace(page,'organization')
   const id=new URL(page.url()).searchParams.get('spaceId')
-  for (const view of ['banking','payables','receivables']) {
+  // The legacy bank URL remains a contextual account statement, whereas
+  // payable and receivable bookmarks redirect into the unified activity.
+  await page.goto('/index.php/apps/librefinance/?spaceId='+id+'&view=banking')
+  await expect(page.getByRole('heading',{name:'Extrato da conta',exact:true})).toBeVisible()
+  for (const view of ['payables','receivables']) {
     await page.goto('/index.php/apps/librefinance/?spaceId='+id+'&view='+view)
     await expect(page.getByRole('heading',{name:'Movimentações',exact:true})).toBeVisible()
   }
