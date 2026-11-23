@@ -106,6 +106,10 @@ try {
     $t->check('A activates B as delegated group admin', $a, 'POST',
         '/saas/v1/environments/' . $envB . '/provision', null, 200);
 
+    instanceCheck('instance limits independently counted workspaces per environment',
+        'PUT', '/saas/v1/admin/policies/workspaces.maxCount',
+        ['valueJson' => '1', 'expectedRevision' => 0], 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === 1);
     $pathA = '/saas/v1/environments/' . $envA . '/workspaces';
     $pathB = '/saas/v1/environments/' . $envB . '/workspaces';
     $t->check('regular group member cannot provision financial workspace', $a,
@@ -123,6 +127,11 @@ try {
     $t->check('reusing key for another ledger is rejected', $b, 'POST', $pathA,
         ['name' => 'Different A1', 'ownerUid' => $a,
             'idempotencyKey' => 'synthetic-workspace-A1-001'], 409);
+    $t->check('second independent ledger exceeds tenant A quota', $b,
+        'POST', $pathA,
+        ['name' => 'A2 exceeds quota', 'ownerUid' => $a,
+            'idempotencyKey' => 'synthetic-workspace-A2-002'], 409,
+        static fn(array $r): bool => ($r['error'] ?? '') === 'workspace_limit_exceeded');
     $bSpace = $t->check('A provisions independent workspace owned by B', $a,
         'POST', $pathB,
         ['name' => 'Isolated B1', 'ownerUid' => $b,
@@ -130,6 +139,35 @@ try {
     $spaceB = (int)$bSpace['id'];
     saasCheck('workspace IDs are not reused between environments',
         $spaceA > 0 && $spaceB > 0 && $spaceA !== $spaceB);
+    instanceCheck('clearing instance workspace limit restores inheritance',
+        'DELETE', '/saas/v1/admin/policies/workspaces.maxCount?expectedRevision=1',
+        null, 200, static fn(array $r): bool =>
+            ($r['inherited'] ?? null) === true);
+    // This setting is resolved for the active environment; a user in both
+    // groups never receives a union of permissive child scopes.
+    $policyPathA = '/saas/v1/environments/' . $envA . '/policies/imports.enabled';
+    $t->check('environment A administrator restricts imports only for A', $b,
+        'PUT', $policyPathA,
+        ['valueJson' => 'false', 'expectedRevision' => 0], 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false
+            && ($r['sourceScope'] ?? null) === 'environment');
+    $t->check('A financial owner sees imports blocked by own environment',
+        $a, 'GET', '/spaces/' . $spaceA . '/modules', null, 200,
+        static fn(array $r): bool => count(array_filter($r['modules'] ?? [],
+            static fn(array $m): bool => ($m['id'] ?? '') === 'librefinance_import'
+                && ($m['enabled'] ?? null) === false)) === 1);
+    $t->check('B financial owner in different environment remains eligible',
+        $b, 'GET', '/spaces/' . $spaceB . '/modules', null, 200,
+        static fn(array $r): bool => count(array_filter($r['modules'] ?? [],
+            static fn(array $m): bool => ($m['id'] ?? '') === 'librefinance_import'
+                && ($m['enabled'] ?? null) === true)) === 1);
+    $t->check('A import HTTP request is denied by environment policy',
+        $a, 'POST', '/spaces/' . $spaceA . '/preview',
+        ['exportJson' => 'invalid'], 403,
+        static fn(array $r): bool => ($r['error'] ?? '') === 'module_disabled');
+    $t->check('clear A restriction without modifying B policy', $b,
+        'DELETE', $policyPathA . '?expectedRevision=1',
+        null, 200, static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true);
     instanceCheck('legacy instance-admin context list omits new SaaS books',
         'GET', '/admin/contexts', null, 200,
         static fn(array $r): bool =>

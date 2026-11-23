@@ -30,6 +30,7 @@ final class AccessService {
         private IUserSession $session,
         private IGroupManager $groups,
         private GovernanceService $governance,
+        private SaasPolicyRuntimeGate $policies,
     ) {}
 
     public function uid(): string {
@@ -142,6 +143,11 @@ final class AccessService {
         // be checked BEFORE the legacy global-admin and group-admin bypasses.
         $saasScope = $this->saasScope($spaceId);
         if ($saasScope !== null) {
+            // Policy restrictions are not grants; even direct workspace roles
+            // are suspended when the instance disables SaaS environments.
+            if ($this->policies->instance('environments.enabled')['effectiveValue'] !== true) {
+                throw new DomainException('space_not_found');
+            }
             if (($saasScope['review_state'] ?? null) !== 'confirmed') {
                 throw new DomainException('space_not_found');
             }
@@ -258,6 +264,7 @@ final class AccessService {
         $uid = $this->uid();
         $scope = $this->saasScope($spaceId);
         if ($scope === null || ($scope['review_state'] ?? null) !== 'confirmed'
+            || $this->policies->instance('environments.enabled')['effectiveValue'] !== true
             || !$this->governance->enabled()
             || ($scope['environment_status'] ?? null) !== 'active'
             || ($scope['group_state'] ?? null) !== 'active') {
@@ -340,7 +347,8 @@ final class AccessService {
         foreach ($q->executeQuery()->fetchAllAssociative() as $membership) {
             $memberRoles[(int)$membership['space_id']] = (string)$membership['role'];
         }
-        $managedEnabled = $this->governance->enabled();
+        $managedEnabled = $this->governance->enabled()
+            && $this->policies->instance('environments.enabled')['effectiveValue'] === true;
         foreach ($bindings as $binding) {
             $spaceId = (int)$binding['space_id'];
             $gid = (string)($binding['group_gid'] ?? '');

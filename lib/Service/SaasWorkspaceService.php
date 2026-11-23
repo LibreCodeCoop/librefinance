@@ -29,6 +29,7 @@ final class SaasWorkspaceService {
         private AccessService $access,
         private IGroupManager $groups,
         private IUserManager $users,
+        private SaasPolicyRuntimeGate $policies,
     ) {}
 
     /** @return array{id:int,name:string,kind:string,currency:string,ownerUid:string,environmentId:string} */
@@ -76,6 +77,19 @@ final class SaasWorkspaceService {
         $now = time();
         $this->db->beginTransaction();
         try {
+            // Lock the environment row before checking the active quota.
+            // Concurrent writers must serialize on the same tenant, not
+            // independently count slots and exceed its policy limit.
+            $replayed = $this->reserveWorkspaceSlot(
+                (int)$environment['id'], $environmentUuid, $idempotencyKey);
+            if ($replayed !== null) {
+                $found = $this->existing($replayed, $fingerprint, $environmentUuid);
+                $this->db->commit();
+                return $found;
+            }
+            if (!$this->groups->isInGroup($ownerUid, $gid)) {
+                throw new DomainException('invalid_initial_owner');
+            }
             $this->writer->insert('lf_spaces', [
                 'name' => $name,
                 'kind' => $kind,
@@ -148,6 +162,13 @@ final class SaasWorkspaceService {
                 'subject_id' => (string)$spaceId,
                 'occurred_at' => $now,
             ]);
+            // Re-check server-side administrative authority after all writes,
+            // immediately before commit; revocation cannot be trusted from
+            // an earlier HTTP request or an in-memory UI flag.
+            $this->environments->requireActiveManager($environmentUuid);
+            if (!$this->groups->isInGroup($ownerUid, $gid)) {
+                throw new DomainException('invalid_initial_owner');
+            }
             $this->db->commit();
             return [
                 'id' => $spaceId, 'name' => $name, 'kind' => $kind,
@@ -168,6 +189,42 @@ final class SaasWorkspaceService {
             $this->db->rollBack();
             throw $e;
         }
+    }
+
+    /** @return array<string,mixed>|null Existing idempotent claim when raced. */
+    private function reserveWorkspaceSlot(int $environmentId, string $environmentUuid,
+        string $idempotencyKey): ?array {
+        $q = $this->db->getQueryBuilder();
+        $changed = $q->update('lf_environments')
+            ->set('revision', 'revision + 1')
+            ->where($q->expr()->eq('id',
+                $q->createNamedParameter($environmentId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('status',
+                $q->createNamedParameter('active')))
+            ->executeStatement();
+        if ($changed !== 1) {
+            throw new DomainException('environment_suspended');
+        }
+        $this->environments->requireActiveManager($environmentUuid);
+        // Serialize duplicate-key check after acquiring the environment
+        // row lock. A valid retry must succeed even when the quota is full.
+        $replayed = $this->claim($environmentId, $idempotencyKey);
+        if ($replayed !== null) {
+            return $replayed;
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('COUNT(*) AS occupied')->from('lf_environment_spaces')
+            ->where($q->expr()->eq('environment_id',
+                $q->createNamedParameter($environmentId, IQueryBuilder::PARAM_INT)));
+        // Pending-review legacy books count towards the limit too; otherwise
+        // an unresolved ledger could be used to exceed tenant quotas.
+        $used = (int)$q->executeQuery()->fetchOne();
+        $maxAllowed = $this->policies->environment($environmentId,
+            'workspaces.maxCount')['effectiveValue'];
+        if (!is_int($maxAllowed) || $maxAllowed < 0 || $used >= $maxAllowed) {
+            throw new DomainException('workspace_limit_exceeded');
+        }
+        return null;
     }
 
     /** @return list<array{id:int,name:string,ownerUid:string,kind:string}> */
