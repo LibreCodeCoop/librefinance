@@ -3,7 +3,9 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
@@ -31,6 +33,26 @@ const profit = ref(null)
 const cash = ref(null)
 const error = ref('')
 const loading = ref(false)
+// User-level dashboard policies control presentation only, not financial API ACL.
+const showOverviewKpis = ref(store.space.value?.saasManaged !== true)
+let presentationSequence = 0
+async function loadUserPresentationPolicy() {
+  const token = ++presentationSequence
+  const target = Number(activeId.value)
+  const saas = store.space.value?.saasManaged === true
+  showOverviewKpis.value = !saas
+  if (!saas || !target) return
+  try {
+    const response = await axios.get(generateUrl('/apps/librefinance/api/saas/v1/workspaces/'
+      + target + '/policies/me/dashboard.kpis.enabled'))
+    if (token !== presentationSequence || Number(activeId.value) !== target) return
+    showOverviewKpis.value = response.data.effectiveValue === true
+  } catch {
+    // A transient API failure must not reveal a hidden card in SaaS mode.
+    if (token === presentationSequence) showOverviewKpis.value = false
+  }
+}
+watch(activeId, loadUserPresentationPolicy)
 const today = new Date()
 const year = today.getFullYear()
 const startYear = year + '-01-01'
@@ -74,8 +96,8 @@ async function load() {
     if (token === generation) loading.value = false
   }
 }
-onMounted(() => { load(); loadWidgetLayout() })
-onBeforeUnmount(() => { ++generation; ++layoutSequence })
+onMounted(() => { load(); loadWidgetLayout(); loadUserPresentationPolicy() })
+onBeforeUnmount(() => { ++generation; ++layoutSequence; ++presentationSequence })
 const recent = computed(() => journals.value.slice(0, 5))
 const firstUse = computed(() => writable.value && !workspaceError.value && journals.value.length === 0)
 const namedAccounts = computed(() =>
@@ -331,7 +353,8 @@ function go(view) { navigate(view) }
           </div>
         </div>
         <template v-if="widget.id === 'summary'">
-          <div class="lf-kpis lf-overview-kpis" aria-label="Indicadores financeiros do ano">
+          <div v-if="showOverviewKpis" class="lf-kpis lf-overview-kpis"
+            aria-label="Indicadores financeiros do ano">
                 <section v-for="stat in kpis" :key="stat.id"
                   class="lf-kpi lf-overview-kpi" :class="'lf-overview-kpi--' + stat.tone">
                   <div class="lf-kpi-topline">
@@ -342,6 +365,10 @@ function go(view) { navigate(view) }
                   <span class="lf-kpi-detail">{{ stat.help }}</span>
                 </section>
               </div>
+          <p v-if="!showOverviewKpis" class="lf-muted">
+            Indicadores resumidos ocultos por política de apresentação.
+            A permissão financeira e os demais relatórios permanecem inalterados.
+          </p>
         </template>
         <template v-else-if="widget.id === 'cashflow'">
       <section class="lf-surface lf-trend-panel">

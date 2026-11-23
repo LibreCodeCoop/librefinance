@@ -41,6 +41,9 @@ const resource = computed(() => {
   if (props.scope === 'workspace' && Number.isSafeInteger(props.spaceId) && props.spaceId > 0) {
     return generateUrl(root + '/workspaces/' + props.spaceId + '/policies')
   }
+  if (props.scope === 'user' && Number.isSafeInteger(props.spaceId) && props.spaceId > 0) {
+    return generateUrl(root + '/workspaces/' + props.spaceId + '/policies/me')
+  }
   return ''
 })
 const name = key => ({
@@ -48,6 +51,7 @@ const name = key => ({
   'externalSharing.enabled': 'Compartilhamento externo',
   'imports.enabled': 'Importação de dados',
   'workspaces.maxCount': 'Limite de gestões por ambiente',
+  'dashboard.kpis.enabled': 'Exibir indicadores resumidos no painel',
 })[key] || key
 const sourceLabel = scope => ({
   default: 'Padrão do aplicativo', instance: 'Instância Nextcloud',
