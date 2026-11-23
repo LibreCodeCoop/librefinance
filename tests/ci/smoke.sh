@@ -293,11 +293,15 @@ done
 echo "PASS: Native banking, obligations, invoicing, reporting and core-import integration suites."
 # Instance policy store is checked against the real disposable Nextcloud API
 # with synthetic administrator credentials; no financial permission grant.
-policy_runtime_output="$(compose exec -T -e LF_SYNTHETIC_SAAS_POLICY=yes \
+if ! policy_runtime_output="$(compose exec -T -e LF_SYNTHETIC_SAAS_POLICY=yes \
   -e LF_TEST_ADMIN_PASSWORD="$LF_TEST_ADMIN_PASSWORD" \
   -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
   -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-  php /var/www/html/custom_apps/librefinance/tests/integration/saas-policy.php)"
+  php /var/www/html/custom_apps/librefinance/tests/integration/saas-policy.php 2>&1)"; then
+    printf '%s\n' "$policy_runtime_output" >&2
+    echo "FAIL: synthetic SaaS suite policy_runtime_output exited nonzero" >&2
+    exit 1
+  fi
 printf '%s\n' "$policy_runtime_output"
 grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$policy_runtime_output" || {
   echo 'FAIL: policy persistence and admin authorization assertions did not complete' >&2
@@ -307,11 +311,15 @@ grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$policy_runtime_output" || {
 # This is a disposable CI lab only. Exercise the real instance-admin -> group
 # delegation -> concurrent provisioning -> revocation lifecycle, then restore
 # the initial instance governance toggle. No live data or identities.
-saas_output="$(compose exec -T -e LF_SYNTHETIC_SAAS_LIFECYCLE=yes \
+if ! saas_output="$(compose exec -T -e LF_SYNTHETIC_SAAS_LIFECYCLE=yes \
   -e LF_TEST_ADMIN_PASSWORD="$LF_TEST_ADMIN_PASSWORD" \
   -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
   -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-  php /var/www/html/custom_apps/librefinance/tests/integration/saas-lifecycle.php)"
+  php /var/www/html/custom_apps/librefinance/tests/integration/saas-lifecycle.php 2>&1)"; then
+    printf '%s\n' "$saas_output" >&2
+    echo "FAIL: synthetic SaaS suite saas_output exited nonzero" >&2
+    exit 1
+  fi
 printf '%s\n' "$saas_output"
 grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$saas_output" || {
   echo 'FAIL: SaaS admin lifecycle assertions did not complete' >&2

@@ -52,7 +52,7 @@ function policyAdminCall(string $method, string $path, ?array $data = null): arr
         throw new RuntimeException('Loopback HTTP request failed: ' . curl_error($curl));
     }
     $status = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
-    curl_close($curl);
+    // PHP 8.5 deprecates curl_close(); the handle is released by scope.
     $body = json_decode($response, true);
     return ['status' => $status, 'body' => is_array($body) ? $body : ['invalid_json' => true]];
 }

@@ -83,6 +83,7 @@ function syntheticCheck(string $name, bool $ok): void {
     ++$checks;
 }
 $gid = 'lf_synth_finance_group';
+$a = 'lfmaintestA';
 $b = 'lfmaintestB';
 adminCheck('admin can enable managed governance only in disposable lab',
     'PUT', '/admin/governance', ['managed' => true], 200);
