@@ -33,6 +33,22 @@ $t->check('capabilities read is available without admin privileges', $a, 'GET',
     '/governance/capabilities', null, 200,
     static fn(array $value): bool => isset($value['managed'], $value['canCreate']));
 
+// SaaS discovery is eligibility metadata, never evidence of financial access.
+$t->check('authenticated member can discover eligible SaaS environments', $a,
+    'GET', '/saas/v1/environments', null, 200,
+    static fn(array $value): bool => ($value['contractVersion'] ?? null) === 1
+        && is_array($value['environments'] ?? null)
+        && array_key_exists('nextCursor', $value));
+$t->check('ordinary user cannot enable a Nextcloud group as a SaaS tenant', $a,
+    'PUT', '/saas/v1/admin/groups/lf_synth_finance_group/enablement',
+    ['enabled' => true], 403);
+$t->check('ordinary user cannot suspend a Nextcloud SaaS group', $b,
+    'PUT', '/saas/v1/admin/groups/lf_synth_finance_group/enablement',
+    ['enabled' => false], 403);
+$t->check('disabled SaaS governance denies tenant activation before lookup', $a,
+    'POST', '/saas/v1/environments/123e4567-e89b-42d3-a456-426614174000/provision',
+    null, 403);
+
 // Creation in managed mode is covered by a separate disposable admin fixture:
 // it must not toggle shared state in the integration suite.
 
