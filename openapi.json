@@ -758,6 +758,63 @@
                 "x-read-only-tools": true
             }
         },
+        "/librefinance/api/saas/v1/admin/groups": {
+            "get": {
+                "operationId": "librefinance_environment_adminGroups",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "environment adminGroups",
+                "description": "Instance admin only. Paginated Nextcloud groups with SaaS enablement, pending/suspended state and opaque environment IDs, without financial metadata.",
+                "parameters": [
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
         "/librefinance/api/saas/v1/admin/groups/{gid}/enablement": {
             "put": {
                 "operationId": "librefinance_environment_enable",

@@ -101,3 +101,22 @@ A associação entre usuário e grupo é revalidada a cada acesso; remover o
 usuário do grupo torna a delegação inefetiva imediatamente. Os endpoints de
 concessão são exclusivos do administrador da instância, mesmo quando o
 requisitante já é gestor de outro perfil financeiro.
+
+## Gerenciamento por grupo no LibreFinance SaaS (v1)
+
+Os novos ambientes SaaS têm identidade própria, independente de espaços
+financeiros e do nome do grupo Nextcloud. A administração da instância pode
+consultar o estado por grupo com GET /api/saas/v1/admin/groups?search=&offset=
+(retorno paginado groups, nextOffset), e habilitar/suspender o grupo
+através de PUT /api/saas/v1/admin/groups/{gid}/enablement com
+{ "enabled": true|false }. A tela administrativa do aplicativo usa as mesmas
+rotas com componentes Vue do Nextcloud.
+
+Os estados são disabled, enabled_pending_admin, active e suspended.
+Não existe reativação automática de grupos suspensos: a recuperação exige
+um fluxo administrativo auditado ainda pendente de implementação.
+Administradores de grupos só podem ativar o ambiente previamente habilitado
+se forem subadministradores atuais no Nextcloud ou delegados válidos.
+Nenhum desses papéis concede acesso automático a extratos, lançamentos,
+empresas ou outros dados financeiros. Os contextos gerenciados legados
+continuam distintos e ainda exigem revisão antes de migração ao modelo SaaS.

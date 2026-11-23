@@ -115,6 +115,7 @@ $noBody = [
 ];
 $query = [
     'librefinance:governance#groups' => 'search:s,offset:i',
+    'librefinance:environment#adminGroups' => 'search:s,offset:i',
     'librefinance:import#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
     'librefinance:import#accounts' => 'sourceCompanyId:s!,sourceSystem:s,afterId:i',
     'librefinance:movement#coverage' => 'sourceCompanyId:s!,sourceSystem:s',
@@ -144,6 +145,7 @@ $query = [
 $descriptions = [
     'librefinance:environment#index' => 'Authenticated user. Discover eligible SaaS environments; never financial data.',
     'librefinance:environment#enable' => 'Instance administrator only. Enable or suspend one Nextcloud group without financial grants.',
+    'librefinance:environment#adminGroups' => 'Instance admin only. Paginated Nextcloud groups with SaaS enablement, pending/suspended state and opaque environment IDs, without financial metadata.',
     'librefinance:environment#provision' => 'Qualified current group subadmin/delegate only. Idempotently activate a previously enabled environment without creating ledger rights.',
     'librefinance:governance#show' => 'Instance-admin only. Read current global provisioning mode.',
     'librefinance:governance#configure' => 'Instance-admin only. Enable or disable managed provisioning.',

@@ -30,6 +30,53 @@ final class EnvironmentService {
         private IUserSession $session,
     ) {}
 
+    /**
+     * List Nextcloud groups with SaaS enablement and durable environment state
+     * without exposing workspaces, members, balances or fiscal metadata.
+     *
+     * This is a scoped *instance* administration API, not a finance grant.
+     * The existing GovernanceService search enforces pagination and size.
+     *
+     * @return array{groups:list<array{id:string,name:string,state:string,environmentId:?string}>,nextOffset:?int}
+     */
+    public function listAdminGroups(string $search = '', int $offset = 0): array {
+        $this->governance->requireInstanceAdmin();
+        $listing = $this->governance->searchGroups($search, $offset);
+        $groups = $listing['groups'];
+        if ($groups === []) {
+            return ['groups' => [], 'nextOffset' => $listing['nextOffset']];
+        }
+        $ids = array_column($groups, 'id');
+        $q = $this->db->getQueryBuilder();
+        $q->select('g.group_gid', 'g.state', 'e.status', 'e.public_id')
+            ->from('lf_environment_groups', 'g')
+            ->innerJoin('g', 'lf_environments', 'e', 'e.id = g.environment_id')
+            ->where($q->expr()->in('g.group_gid',
+                $q->createNamedParameter($ids, IQueryBuilder::PARAM_STR_ARRAY)));
+        $byGid = [];
+        foreach ($q->executeQuery()->fetchAllAssociative() as $row) {
+            $byGid[(string)$row['group_gid']] = $row;
+        }
+        return [
+            'groups' => array_map(static function (array $group) use ($byGid): array {
+                $gid = (string)$group['id'];
+                $stored = $byGid[$gid] ?? null;
+                $state = $stored === null ? 'disabled' : (string)$stored['state'];
+                if ($stored !== null && $stored['state'] !== $stored['status']) {
+                    // Inconsistent lifecycle state must never display as active.
+                    $state = 'suspended';
+                }
+                return [
+                    'id' => $gid,
+                    'name' => (string)$group['name'],
+                    'state' => $state,
+                    'environmentId' => $stored === null ? null : (string)$stored['public_id'],
+                ];
+            }, $groups),
+            'nextOffset' => $listing['nextOffset'],
+        ];
+    }
+
     /** @return array{id:string,name:string,state:string,canManage:bool} */
     public function enableGroup(string $gid): array {
         $this->governance->requireInstanceAdmin();
