@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace OCA\LibreFinance\Service;
 
 use DomainException;
+use OCA\LibreFinance\Domain\Saas\FinancialCapabilities;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
@@ -119,6 +120,11 @@ final class AccessService {
                 $result[$space['id']] = $space;
             }
         }
+        // SaaS scopes are a strict exception to legacy managed-space roles:
+        // no instance-admin, delegated-subadmin or group grant may manufacture
+        // financial access. One query for bindings and one for memberships,
+        // avoiding an N+1 lookup for every listed workspace.
+        $this->filterSaasListing($result, $uid, $gids);
         ksort($result, SORT_NUMERIC);
         return array_values($result);
     }
@@ -131,6 +137,33 @@ final class AccessService {
         $space = $qb->executeQuery()->fetchAssociative();
         if (!$space || (bool)$space['archived']) {
             throw new DomainException('space_not_found');
+        }
+        // The new environment-to-workspace binding is authoritative and must
+        // be checked BEFORE the legacy global-admin and group-admin bypasses.
+        $saasScope = $this->saasScope($spaceId);
+        if ($saasScope !== null) {
+            if ((string)($saasScope['environment_status'] ?? '') !== 'active'
+                || (string)($saasScope['group_state'] ?? '') !== 'active') {
+                throw new DomainException('space_not_found');
+            }
+            $gid = (string)($saasScope['group_gid'] ?? '');
+            $user = $this->session->getUser();
+            if ($gid === '' || $this->groups->get($gid) === null
+                || $user === null
+                || !in_array($gid, $this->groups->getUserGroupIds($user), true)) {
+                throw new DomainException('space_not_found');
+            }
+            $q = $this->db->getQueryBuilder();
+            $q->select('role')->from('lf_members')
+                ->where($q->expr()->eq('space_id',
+                    $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('uid',
+                    $q->createNamedParameter($uid, IQueryBuilder::PARAM_STR)));
+            $role = $q->executeQuery()->fetchOne();
+            if (!is_string($role) || self::rank($role) < self::rank($minRole)) {
+                throw new DomainException('space_not_found');
+            }
+            return $role;
         }
         if ($this->governance->isInstanceAdmin() && $this->governance->enabled()) {
             return 'owner';
@@ -195,6 +228,117 @@ final class AccessService {
             throw new DomainException('permission_denied');
         }
         return $best;
+    }
+
+    /**
+     * A SaaS binding is authoritative. Do not infer it from legacy GIDs.
+     */
+    public function isSaasWorkspace(int $spaceId): bool {
+        return $this->saasScope($spaceId) !== null;
+    }
+
+    /**
+     * Owner-only lifecycle access also permits an archived space. Ordinary
+     * requireRole() intentionally denies financial reads from archived spaces.
+     */
+    public function requireSaasOwnerIncludingArchived(int $spaceId): void {
+        $uid = $this->uid();
+        $scope = $this->saasScope($spaceId);
+        if ($scope === null || ($scope['environment_status'] ?? null) !== 'active'
+            || ($scope['group_state'] ?? null) !== 'active') {
+            throw new DomainException('space_not_found');
+        }
+        $gid = (string)($scope['group_gid'] ?? '');
+        $user = $this->session->getUser();
+        if ($gid === '' || $this->groups->get($gid) === null || $user === null
+            || !in_array($gid, $this->groups->getUserGroupIds($user), true)) {
+            throw new DomainException('space_not_found');
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('s.id')->from('lf_spaces', 's')
+            ->innerJoin('s', 'lf_members', 'm', 'm.space_id = s.id')
+            ->where($q->expr()->eq('s.id',
+                $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('s.owner_uid',
+                $q->createNamedParameter($uid, IQueryBuilder::PARAM_STR)))
+            ->andWhere($q->expr()->eq('m.uid',
+                $q->createNamedParameter($uid, IQueryBuilder::PARAM_STR)))
+            ->andWhere($q->expr()->eq('m.role',
+                $q->createNamedParameter('owner')));
+        if ($q->executeQuery()->fetchOne() === false) {
+            throw new DomainException('space_not_found');
+        }
+    }
+
+    public function requireFinancialCapability(int $spaceId, string $capability): string {
+        $role = $this->requireRole($spaceId, 'viewer');
+        FinancialCapabilities::requireAllowed($role, $capability);
+        return $role;
+    }
+
+    /** @return array<string,mixed>|null */
+    private function saasScope(int $spaceId): ?array {
+        $q = $this->db->getQueryBuilder();
+        $q->select('es.space_id', 'e.status AS environment_status',
+                'g.group_gid', 'g.state AS group_state')
+            ->from('lf_environment_spaces', 'es')
+            ->leftJoin('es', 'lf_environments', 'e', 'e.id = es.environment_id')
+            ->leftJoin('es', 'lf_environment_groups', 'g', 'g.environment_id = es.environment_id')
+            ->where($q->expr()->eq('es.space_id',
+                $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
+        $row = $q->executeQuery()->fetchAssociative();
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * The user may be in multiple groups, but their financial roles cannot
+     * combine. Filter each environment's ledger using its unique binding and
+     * direct membership, never the inherited group/subadmin grants.
+     *
+     * @param array<int,array<string,mixed>> $spaces
+     * @param list<string> $gids
+     */
+    private function filterSaasListing(array &$spaces, string $uid, array $gids): void {
+        if ($spaces === []) {
+            return;
+        }
+        $ids = array_map('intval', array_keys($spaces));
+        $q = $this->db->getQueryBuilder();
+        $q->select('es.space_id', 'e.status AS environment_status',
+                'g.group_gid', 'g.state AS group_state')
+            ->from('lf_environment_spaces', 'es')
+            ->leftJoin('es', 'lf_environments', 'e', 'e.id = es.environment_id')
+            ->leftJoin('es', 'lf_environment_groups', 'g', 'g.environment_id = es.environment_id')
+            ->where($q->expr()->in('es.space_id',
+                $q->createNamedParameter($ids, IQueryBuilder::PARAM_INT_ARRAY)));
+        $bindings = $q->executeQuery()->fetchAllAssociative();
+        if ($bindings === []) {
+            return;
+        }
+        $boundIds = array_map(static fn(array $row): int => (int)$row['space_id'], $bindings);
+        $q = $this->db->getQueryBuilder();
+        $q->select('space_id', 'role')->from('lf_members')
+            ->where($q->expr()->eq('uid', $q->createNamedParameter($uid, IQueryBuilder::PARAM_STR)))
+            ->andWhere($q->expr()->in('space_id',
+                $q->createNamedParameter($boundIds, IQueryBuilder::PARAM_INT_ARRAY)));
+        $memberRoles = [];
+        foreach ($q->executeQuery()->fetchAllAssociative() as $membership) {
+            $memberRoles[(int)$membership['space_id']] = (string)$membership['role'];
+        }
+        foreach ($bindings as $binding) {
+            $spaceId = (int)$binding['space_id'];
+            $gid = (string)($binding['group_gid'] ?? '');
+            $role = $memberRoles[$spaceId] ?? null;
+            if ($gid === '' || $this->groups->get($gid) === null
+                || !in_array($gid, $gids, true)
+                || ($binding['environment_status'] ?? null) !== 'active'
+                || ($binding['group_state'] ?? null) !== 'active'
+                || $role === null || self::rank($role) === 0) {
+                unset($spaces[$spaceId]);
+            } else {
+                $spaces[$spaceId]['role'] = $role;
+            }
+        }
     }
 
     public static function rank(string $role): int {

@@ -67,7 +67,7 @@ final class LedgerService {
 
     /** @return array<int, array<string, mixed>> */
     public function accounts(int $spaceId): array {
-        $this->access->requireRole($spaceId);
+        $this->access->requireFinancialCapability($spaceId, 'accounts.read');
         $qb = $this->db->getQueryBuilder();
         $qb->select('id', 'code', 'name', 'class', 'currency', 'is_bank', 'active', 'institution_name', 'institution_code',
             'branch_number', 'account_number', 'account_type', 'iban', 'swift_bic', 'logo_version')
@@ -97,7 +97,7 @@ final class LedgerService {
 
     /** @return array<string, mixed> */
     public function createAccount(int $spaceId, string $code, string $name, string $class, bool $isBank, bool $active = true, array $bankDetails = []): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'accounts.manage');
         $code = strtoupper(trim($code));
         $name = trim($name);
         if (!preg_match('/^[A-Z0-9_-]{1,32}$/', $code) || $name === '' || mb_strlen($name) > 150) {
@@ -135,7 +135,7 @@ final class LedgerService {
      * The existing balance must be zero before deactivation.
      */
     public function updateAccount(int $spaceId, int $accountId, string $name, bool $active, array $bankDetails = []): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'accounts.manage');
         $name = trim($name);
         if ($name === '' || mb_strlen($name) > 150) {
             throw new DomainException('invalid_account');
@@ -182,7 +182,7 @@ final class LedgerService {
      * @return array{accountId:int,canDelete:bool,reasons:list<string>}
      */
     public function accountDeletionPreview(int $spaceId, int $accountId): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'accounts.manage');
         $q = $this->db->getQueryBuilder();
         $q->select('id')->from('lf_accounts')
             ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
@@ -201,7 +201,7 @@ final class LedgerService {
      * Modules must also reject writes to inactive accounts.
      */
     public function deleteAccount(int $spaceId, int $accountId): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'accounts.manage');
         $this->db->beginTransaction();
         try {
             $q = $this->db->getQueryBuilder();
@@ -290,7 +290,7 @@ final class LedgerService {
         ?string $notesMarkdown = null,
         ?int $paymentMethodId = null,
     ): array {
-        $this->access->requireRole($spaceId, 'operator');
+        $this->access->requireFinancialCapability($spaceId, 'ledger.post');
         if ($debitId <= 0 || $creditId <= 0 || $debitId === $creditId) {
             throw new DomainException('invalid_postings');
         }
@@ -411,7 +411,7 @@ final class LedgerService {
 
     /** @return array<string,mixed> */
     public function reverse(int $spaceId, int $journalId): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'ledger.reverse');
         $this->db->beginTransaction();
         try {
             $q = $this->db->getQueryBuilder();
@@ -462,7 +462,7 @@ final class LedgerService {
 
     /** @return array<string, mixed> */
     public function journals(int $spaceId, int $beforeId = 0): array {
-        $this->access->requireRole($spaceId);
+        $this->access->requireFinancialCapability($spaceId, 'ledger.read');
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'effective_on', 'memo', 'notes_md', 'payment_method_id', 'created_by', 'created_at', 'reversed_journal_id', 'category_id')
             ->from('lf_journals')

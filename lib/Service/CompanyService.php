@@ -65,11 +65,43 @@ final class CompanyService {
         $now = time();
         $this->db->beginTransaction();
         try {
+            // A new SaaS ledger can contain at most one legal company.
+            // Existing legacy shared-company ledgers are NOT split or backfilled.
+            $q = $this->db->getQueryBuilder();
+            $q->select('id')->from('lf_environment_spaces')
+                ->where($q->expr()->eq('space_id',
+                    $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
+            $saas = $q->executeQuery()->fetchOne() !== false;
+            if ($saas) {
+                $q = $this->db->getQueryBuilder();
+                $q->select('id')->from('lf_companies')
+                    ->where($q->expr()->eq('space_id',
+                        $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                    ->setMaxResults(1);
+                if ($q->executeQuery()->fetchOne() !== false) {
+                    throw new DomainException('company_workspace_occupied');
+                }
+            }
             $this->writer->insert('lf_companies', [
                 'space_id' => $spaceId, ...$fields, 'active' => 1,
                 'created_at' => $now, 'updated_at' => $now,
             ]);
             $id = (int)$this->db->lastInsertId('*PREFIX*lf_companies');
+            if ($saas) {
+                try {
+                    $this->writer->insert('lf_saas_company_workspaces', [
+                        'space_id' => $spaceId,
+                        'company_id' => $id,
+                        'linked_by' => $this->access->uid(),
+                        'linked_at' => $now,
+                    ]);
+                } catch (\OCP\DB\Exception $e) {
+                    if ($e->getReason() === \OCP\DB\Exception::REASON_UNIQUE_CONSTRAINT_VIOLATION) {
+                        throw new DomainException('company_workspace_occupied', previous: $e);
+                    }
+                    throw $e;
+                }
+            }
             $this->customFields->saveValues($spaceId, $id, $custom);
             $this->audit($spaceId, $id, 'company.created');
             $this->db->commit();

@@ -147,6 +147,30 @@ final class EnvironmentService {
         return $this->publicRow($fresh, true);
     }
 
+    /**
+     * Verify a current, active SaaS environment manager, without implying
+     * financial data access or membership of any workspace.
+     *
+     * @return array{id:int,publicId:string,groupGid:string}
+     */
+    public function requireActiveManager(string $publicId): array {
+        if (!$this->governance->enabled()) {
+            throw new DomainException('governance_disabled');
+        }
+        $row = $this->requireByPublicId($publicId);
+        if (!$this->governance->isDelegatedManager((string)$row['group_gid'])) {
+            throw new DomainException('environment_not_found');
+        }
+        if ((string)$row['state'] !== 'active' || (string)$row['status'] !== 'active') {
+            throw new DomainException('environment_suspended');
+        }
+        return [
+            'id' => (int)$row['id'],
+            'publicId' => (string)$row['public_id'],
+            'groupGid' => (string)$row['group_gid'],
+        ];
+    }
+
     /** @return array{id:string,name:string,state:string,canManage:bool} */
     public function suspendGroup(string $gid): array {
         $this->governance->requireInstanceAdmin();

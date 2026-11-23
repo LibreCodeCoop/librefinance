@@ -30,6 +30,7 @@ $writeForms = [
      'librefinance:space#rename' => 'name:s!,color:s',
     'librefinance:governance#configure' => 'managed:b!',
     'librefinance:environment#enable' => 'enabled:b!',
+    'librefinance:saasWorkspace#create' => 'name:s!,ownerUid:s!,idempotencyKey:s!,kind:s,currency:s,color:s',
     'librefinance:governance#provision' => 'name:s!,kind:s!,gid:s!,currency:s',
     'librefinance:governance#bind' => 'gid:s!',
     'librefinance:governance#grantDelegate' => 'uid:s!',
@@ -137,6 +138,8 @@ $descriptions = [
     'librefinance:environment#index' => 'Authenticated user. Discover eligible SaaS environments; never financial data.',
     'librefinance:environment#enable' => 'Instance administrator only. Enable or suspend one Nextcloud group without financial grants.',
     'librefinance:environment#provision' => 'Qualified current group subadmin/delegate only. Idempotently activate a previously enabled environment without creating ledger rights.',
+    'librefinance:saasWorkspace#index' => 'Qualified environment manager only. Lists administrative workspace metadata without financial records.',
+    'librefinance:saasWorkspace#create' => 'Qualified environment manager. Create a distinct ledger for a group member as explicit financial owner, with idempotency and without group-wide visibility.',
     'librefinance:governance#show' => 'Instance-admin only. Read current global provisioning mode.',
     'librefinance:governance#configure' => 'Instance-admin only. Enable or disable managed provisioning.',
     'librefinance:governance#contexts' => 'Instance-admin only. List scoped finance contexts and binding status.',
@@ -370,7 +373,7 @@ foreach ($apps as $app) {
         $parameters = [];
         preg_match_all('/\\{([a-zA-Z][a-zA-Z0-9]*)\\}/', $url, $matches);
         foreach ($matches[1] as $variable) {
-            $isText = in_array($variable, ['uid', 'gid', 'moduleId', 'sourceId'], true);
+            $isText = in_array($variable, ['uid', 'gid', 'moduleId', 'sourceId', 'environmentId'], true);
             $parameters[] = [
                 'name' => $variable, 'in' => 'path', 'required' => true,
                 'schema' => $isText ? ['type' => 'string']
