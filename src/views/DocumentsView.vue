@@ -3,34 +3,46 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { computed, inject, nextTick, provide, ref } from 'vue'
+import { inject, nextTick, provide, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiPlus } from '@mdi/js'
+import { mdiPlus, mdiFilterVariant } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import InvoicesView from './InvoicesView.vue'
 
 const w = inject('lfWorkspace')
 const navigate = inject('lfNavigate', () => {})
-const hint = inject('lfFinanceDirectionHint', ref('receivable'))
+const hint = inject('lfFinanceDirectionHint', ref('all'))
 const newDetailed = inject('lfNewDetailed', ref(false))
-const kind = computed(() => hint.value === 'payable' ? 'bill' : 'invoice')
-const isPurchase = computed(() => kind.value === 'bill')
-provide('lfInvoiceKind', kind)
+// Filter and creation kind are independent: selecting a purchase in the list
+// must not silently turn the next new document into a purchase.
+const filterKind = ref(hint.value === 'payable' ? 'bill'
+  : hint.value === 'receivable' ? 'invoice' : 'all')
+const filterAvailable = ref(false)
+const filterOpen = ref(false)
+const filterOptions = [
+  {value:'all', label:'Todas'}, {value:'invoice', label:'Vendas'},
+  {value:'bill', label:'Compras'},
+]
+provide('lfInvoiceFilter', filterKind)
+provide('lfInvoiceFilterAvailable', filterAvailable)
 provide('lfFlowContext', {
   newDetailed,
   showAccounts() { navigate('finance') },
-  setDocumentDirection(direction) {
-    if (direction === 'payable' || direction === 'receivable') hint.value = direction
-  },
 })
-function choose(value) {
-  if (newDetailed.value) newDetailed.value = false
-  hint.value = value
+function setFilter(value) {
+  if (!filterOptions.some(option => option.value === value)) return
+  filterKind.value = value
+  filterOpen.value = false
 }
+watch(w.activeId, () => {
+  filterKind.value = 'all'
+  filterAvailable.value = false
+  filterOpen.value = false
+  newDetailed.value = false
+})
 async function start() {
-  // A form may have been cancelled; a second click should create a fresh
-  // request without navigating to a different CRUD screen.
   newDetailed.value = false
   await nextTick()
   newDetailed.value = true
@@ -41,18 +53,29 @@ async function start() {
     <LfPageHeader title="Faturas" eyebrow="FINANCEIRO"
       description="Se precisar discriminar produtos ou serviços, registre uma venda ou compra aqui. Os valores a receber ou pagar aparecem automaticamente em Movimentações.">
       <template #actions>
+        <NcPopover v-if="filterAvailable || filterKind !== 'all'"
+          v-model:shown="filterOpen" popup-role="dialog">
+          <template #trigger>
+            <NcButton id="lf-invoices-type-filter" variant="tertiary"
+              :aria-pressed="filterKind !== 'all'">
+              <template #icon>
+                <NcIconSvgWrapper :path="mdiFilterVariant" :size="20" />
+              </template>
+              Tipo: {{filterOptions.find(option => option.value === filterKind)?.label}}
+            </NcButton>
+          </template>
+          <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar faturas por tipo">
+            <NcButton v-for="option in filterOptions" :key="option.value"
+              variant="tertiary" :aria-pressed="filterKind === option.value"
+              @click="setFilter(option.value)">{{option.label}}</NcButton>
+          </div>
+        </NcPopover>
         <NcButton v-if="w.writable.value" variant="primary" @click="start">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-          {{isPurchase?'Nova compra':'Nova venda'}}
+          Nova fatura
         </NcButton>
       </template>
     </LfPageHeader>
-    <div class="lf-document-direction" role="group" aria-label="Ver faturas de venda ou compra">
-      <NcButton variant="tertiary" :aria-pressed="!isPurchase"
-        @click="choose('receivable')">Vendas</NcButton>
-      <NcButton variant="tertiary" :aria-pressed="isPurchase"
-        @click="choose('payable')">Compras</NcButton>
-    </div>
-    <InvoicesView :key="'documents-'+kind" :embedded="true" />
+    <InvoicesView :embedded="true" />
   </div>
 </template>

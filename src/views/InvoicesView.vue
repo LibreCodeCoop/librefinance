@@ -27,15 +27,20 @@ const props = defineProps({
 const w=inject('lfWorkspace')
 const flow=inject('lfFlowContext',null)
 const documentKind=inject('lfInvoiceKind',ref('invoice'))
+const invoiceFilter=inject('lfInvoiceFilter',ref(documentKind.value))
+const filterAvailable=inject('lfInvoiceFilterAvailable',ref(false))
+const creationKind=ref('invoice')
+const creationStep=ref('choose')
 const navigate=inject('lfNavigate',()=>{})
 const focusedInvoice=inject('lfFocusedInvoice',ref(null))
 const focusedObligation=inject('lfFocusedObligation',ref(null))
-const isPurchase=computed(()=>documentKind.value==='bill')
-function commercialStatus(status) {
+const isPurchase=computed(()=>(chosen.value?.kind || creationKind.value)==='bill')
+function commercialStatus(status, kind = chosen.value?.kind || creationKind.value) {
+  const purchase = kind === 'bill'
   return ({
     draft: 'Rascunho',
-    issued: isPurchase.value?'Compra confirmada':'Venda confirmada',
-    partially_paid: isPurchase.value?'Pagamento parcial':'Recebimento parcial',
+    issued: purchase?'Compra confirmada':'Venda confirmada',
+    partially_paid: purchase?'Pagamento parcial':'Recebimento parcial',
     paid: 'Liquidado por lançamento',
   })[status] || status
 }
@@ -79,7 +84,7 @@ async function onCashPaid(result) {
 const chosenObligationId=ref(null)
 const allocated=ref(false)
 const form=ref({
-  number:'',kind:documentKind.value,contactId:0,country:'',region:'',
+  number:'',kind:creationKind.value,contactId:0,country:'',region:'',
   issueOn:today,dueOn:today,
   lines:[{description:'',quantity:1,price:'',taxRuleId:0}],
 })
@@ -132,21 +137,27 @@ function rateBps(value) {
 async function load() {
   const token=++generation;busy.value=true;error.value=''
   try{
+    const kindParam = invoiceFilter.value === 'all' ? '' : '?kind=' + invoiceFilter.value
     const [docs,tax]=await Promise.all([
-      financeApi(current,activeId.value,'/invoices?kind='+documentKind.value),
+      financeApi(current,activeId.value,'/invoices'+kindParam),
       financeApi(current,activeId.value,'/tax-rules'),
     ])
     if(token!==generation)return
     invoices.value=docs.invoices;invoiceNext.value=docs.nextAfterId
-    if (docs.invoices.length) hasListedInvoices.value=true
+    if (docs.invoices.length) {
+      hasListedInvoices.value=true
+      filterAvailable.value=true
+    }
     taxes.value=tax.rules;taxNext.value=tax.nextAfterId
-    // An empty direction must not hide existing faturas of the opposite kind.
     hasOtherDocs.value=false
-    if (!docs.invoices.length && tab.value==='invoices') {
-      const opposite=documentKind.value==='invoice'?'bill':'invoice'
-      const other=await financeApi(current,activeId.value,'/invoices?kind='+opposite)
+    // When a filtered list is empty but another kind exists, keep the filter
+    // available; never hide purchases merely because only sales were loaded.
+    if (!docs.invoices.length && invoiceFilter.value!=='all' && tab.value==='invoices') {
+      const other=await financeApi(current,activeId.value,
+        '/invoices?kind='+(invoiceFilter.value==='invoice'?'bill':'invoice'))
       if(token!==generation)return
       hasOtherDocs.value=other.invoices.length>0
+      if(hasOtherDocs.value)filterAvailable.value=true
     }
   }catch(e){if(token===generation)error.value=financeError(e)}
   finally{if(token===generation)busy.value=false}
@@ -156,8 +167,9 @@ async function more(kind) {
   if(!cursor||busy.value)return
   const token=generation;busy.value=true
   try{
+    const filter = invoiceFilter.value === 'all' ? '' : '&kind=' + invoiceFilter.value
     const response=await financeApi(current,activeId.value,
-      (kind==='invoice'?'/invoices?kind='+documentKind.value+'&afterId='+cursor:'/tax-rules?afterId='+cursor))
+      (kind==='invoice'?'/invoices?afterId='+cursor+filter:'/tax-rules?afterId='+cursor))
     if(token!==generation)return
     if(kind==='invoice'){
       invoices.value=[...invoices.value,...response.invoices]
@@ -199,7 +211,7 @@ async function create() {
       taxRuleId:Number(line.taxRuleId)||null,
     }))
     await financeApi(current,activeId.value,'/invoices','POST',{
-      number:form.value.number.trim(),kind:documentKind.value,
+      number:form.value.number.trim(),kind:creationKind.value,
       contactId:Number(form.value.contactId),issueOn:form.value.issueOn,
       dueOn:form.value.dueOn,country:form.value.country.trim(),
       region:form.value.region.trim()||null,lines,
@@ -208,7 +220,9 @@ async function create() {
     :'Fatura de venda salva como rascunho, sem emissão fiscal.')
   if(successResult){
     newInvoice.value=false
-    form.value={number:'',kind:documentKind.value,contactId:0,country:'',region:'',
+    if (invoiceFilter.value !== 'all' && invoiceFilter.value !== creationKind.value)
+      invoiceFilter.value = creationKind.value
+    form.value={number:'',kind:creationKind.value,contactId:0,country:'',region:'',
       issueOn:today,dueOn:today,lines:[{description:'',quantity:1,price:'',taxRuleId:0}]}
   }
 }
@@ -228,10 +242,6 @@ async function showInvoice(id) {
   try{
     const response=await financeApi(current,activeId.value,'/invoices/'+id)
     if(token===generation){
-      if(response.invoice.kind!==documentKind.value){
-        error.value='Este documento pertence a outra área comercial.'
-        return
-      }
       chosen.value=response.invoice
       chosenObligationId.value=response.obligationId
       allocation.value={bankAccountId:0,journalId:0,
@@ -266,7 +276,7 @@ async function allocate() {
 async function openFocusedInvoice() {
   const focus=focusedInvoice.value
   if(!focus||Number(focus.spaceId)!==Number(activeId.value)
-    ||focus.kind!==documentKind.value)return
+    ||!['invoice','bill'].includes(focus.kind))return
   focusedInvoice.value=null
   await showInvoice(Number(focus.id))
 }
@@ -274,20 +284,28 @@ watch(activeId, () => {
   // A previous workspace's documents must not expose filters in a new empty space.
   hasListedInvoices.value=false
   hasOtherDocs.value=false
+  filterAvailable.value=false
 })
-watch([activeId,documentKind],async()=>{
+watch([activeId,invoiceFilter],async()=>{
   chosen.value=null
   chosenObligationId.value=null
   allocated.value=false
   newInvoice.value=false
-  form.value.kind=documentKind.value
   await load()
   await openFocusedInvoice()
 },{immediate:true})
 // Opening a detailed document must run after the initial active-space watcher,
 // which resets forms while resolving the authorized workspace data.
+function selectCreationKind(value) {
+  if (!['invoice','bill'].includes(value)) return
+  creationKind.value=value
+  form.value={number:'',kind:value,contactId:0,country:'',region:'',
+    issueOn:today,dueOn:today,lines:[{description:'',quantity:1,price:'',taxRuleId:0}]}
+  creationStep.value='details'
+}
 watch(() => flow?.newDetailed.value, requested => {
   if (!requested || !w.writable.value || !w.activeId.value) return
+  creationStep.value='choose'
   newInvoice.value=true
   flow.newDetailed.value=false
 }, { immediate:true })
@@ -308,9 +326,7 @@ function openLinkedObligation() {
       :eyebrow="tab === 'taxes' ? 'CONFIGURAÇÃO FISCAL' : 'FATURAS'"
       :description="tab === 'taxes'
         ? 'Configure regras de cálculo, jurisdição e vigência. Esta seção não emite documentos fiscais.'
-        : (isPurchase
-          ? 'Registre faturas recebidas de fornecedores com itens, tributos e vencimento. Após confirmar, o valor aparece em A pagar e receber.'
-          : 'Cadastre faturas para clientes. Após confirmar, o valor aparece automaticamente em A pagar e receber.')">
+        : 'Cadastre vendas e compras com itens e impostos. Ao confirmar, o valor aparece em Movimentações.'">
       <template #actions>
         <NcButton v-if="tab === 'taxes' ? manager : writable" variant="primary"
           @click="tab==='taxes'?newRule=true:newInvoice=true">
@@ -324,10 +340,10 @@ function openLinkedObligation() {
     </NcNoteCard>
     <NcNoteCard v-if="error" type="error" role="alert">{{error}}</NcNoteCard>
     <NcNoteCard v-if="success" type="success" role="status">{{success}}</NcNoteCard>
-    <section v-if="tab==='invoices'" class="lf-surface">
+    <section v-if="tab==='invoices'" :class="{ 'lf-surface': !embedded }">
       <div v-if="showInvoiceFilters" class="lf-section-heading">
-        <h2>{{ isPurchase ? 'Compras registradas' : 'Vendas registradas' }}</h2>
-
+        <h2>{{ invoiceFilter === 'all' ? 'Faturas cadastradas'
+          : invoiceFilter === 'bill' ? 'Compras registradas' : 'Vendas registradas' }}</h2>
       </div>
       <div v-if="busy && !invoices.length" class="lf-loading" role="status">
         Carregando faturas…
@@ -349,7 +365,7 @@ function openLinkedObligation() {
           <tbody><tr v-for="invoice in orderedInvoices" :key="invoice.id">
             <td class="lf-code">{{invoice.number}}</td>
             <td>{{invoice.kind==='invoice'?'Venda':'Compra'}}</td>
-            <td><span class="lf-state">{{commercialStatus(invoice.status)}}</span></td>
+            <td><span class="lf-state">{{commercialStatus(invoice.status, invoice.kind)}}</span></td>
             <td>{{invoice.due_on}}</td>
             <td class="lf-numeric">{{money(invoice.total_minor)}}</td>
             <td class="lf-numeric">{{money(invoice.paid_minor)}}</td>
@@ -360,10 +376,10 @@ function openLinkedObligation() {
         </table>
       </div>
       <NcEmptyContent v-else-if="!error"
-        :name="hasOtherDocs ? 'Nenhuma fatura nesta categoria' : 'Nenhuma fatura cadastrada'"
+        :name="hasOtherDocs ? 'Nenhuma fatura neste filtro' : 'Nenhuma fatura cadastrada'"
         :description="hasOtherDocs
-          ? 'Selecione a outra categoria para ver as faturas cadastradas.'
-          : 'Cadastre uma fatura de compra ou de venda. Confirme-a para gerar o valor em A pagar e receber.'" />
+          ? 'Use o filtro Tipo e escolha Todas para visualizar os outros registros.'
+          : 'Use Nova fatura para registrar uma venda ou compra. Confirmar a fatura cria o valor correspondente em Movimentações.'" />
       <p v-if="localSort.column.value && invoiceNext" class="lf-muted">
         Ordenação aplicada somente aos documentos carregados.</p>
       <div v-if="invoiceNext" class="lf-table-footer">
@@ -390,9 +406,30 @@ function openLinkedObligation() {
     </section>
 
     <NcDialog content-classes="lf-finance-dialog-content" :open="newInvoice"
-      :name="isPurchase ? 'Nova compra' : 'Nova venda'" size="large"
+      name="Nova fatura" size="large"
       @update:open="newInvoice=$event">
-      <form class="lf-dialog-form" @submit.prevent="create">
+      <div v-if="creationStep==='choose'" class="lf-dialog-form">
+        <fieldset class="lf-entry-direction">
+          <legend>O que deseja registrar?</legend>
+          <div class="lf-entry-direction-options">
+            <button type="button" @click="selectCreationKind('invoice')">
+              <span><strong>Venda</strong>
+                <small>Vou cobrar por produtos ou serviços</small></span>
+            </button>
+            <button type="button" @click="selectCreationKind('bill')">
+              <span><strong>Compra</strong>
+                <small>Vou pagar a um fornecedor</small></span>
+            </button>
+          </div>
+        </fieldset>
+        <div class="lf-form-actions">
+          <NcButton variant="tertiary" @click="newInvoice=false">Cancelar</NcButton>
+        </div>
+      </div>
+      <form v-else class="lf-dialog-form" @submit.prevent="create">
+        <NcButton variant="tertiary" @click="creationStep='choose'">
+          {{isPurchase?'Compra':'Venda'}} · Alterar tipo
+        </NcButton>
         <div class="lf-form-grid">
           <NcTextField v-model="form.number" label="Número" maxlength="80" required />
           <p class="lf-muted">{{isPurchase
@@ -461,8 +498,8 @@ function openLinkedObligation() {
         <h3>{{chosen.number}}</h3>
         <p>Situação: {{commercialStatus(chosen.status)}}</p>
         <p v-if="chosen.status==='draft'" class="lf-muted">
-          Confirmar este documento cria uma {{isPurchase?'conta a pagar':'conta a receber'}}.
-          Não registra pagamento nem emite nota fiscal.
+          Confirmar este documento cria uma {{isPurchase?'saída prevista':'entrada prevista'}}
+          em Movimentações. Não registra pagamento nem emite nota fiscal.
         </p>
         <p v-if="chosenObligationId">Conta {{isPurchase?'a pagar':'a receber'}}
           vinculada #{{chosenObligationId}}. A associação do pagamento exige um

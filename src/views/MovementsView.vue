@@ -12,7 +12,7 @@ import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiPlus, mdiFilterVariant, mdiRefresh, mdiBankOutline, mdiArrowLeftRight } from '@mdi/js'
+import { mdiPlus, mdiFilterVariant, mdiRefresh, mdiBankOutline, mdiFileUploadOutline } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfDateField from '../components/LfDateField.vue'
 import LfSelect from '../components/LfSelect.vue'
@@ -23,9 +23,10 @@ import { toMinorUnits } from '../money.js'
 const w = inject('lfWorkspace')
 const navigate = inject('lfNavigate', () => {})
 const focusedInvoice = inject('lfFocusedInvoice', ref(null))
-const focusedBank = inject('lfBankFocus', ref(null))
 const directionHint = inject('lfFinanceDirectionHint', ref('all'))
 const bankContext = inject('lfBankContext', ref(0))
+const accountFilterOpen = ref(false)
+const moreActionsOpen = ref(false)
 const rows = ref([])
 const nextCursor = ref(null)
 const loading = ref(false)
@@ -113,12 +114,124 @@ function debounceSearch() {
   searchTimer.value = setTimeout(setSearch, 260)
 }
 function setAccount(id) {
-  accountFilter.value = Number(id)
-  bankContext.value = Number(id)
+  const chosen = Number(id)
+  accountFilter.value = chosen
+  bankContext.value = chosen
+  accountFilterOpen.value = false
 }
-function goToBank() {
-  bankContext.value = accountFilter.value
-  navigate('banking')
+// A bank statement is evidence inside the same activity feed. The bank
+// extension is used only for scoped import/match operations, never as a
+// second user-facing register.
+const importOpen = ref(false)
+const importAccount = ref(0)
+const importFile = ref(null)
+const importFileInput = ref(null)
+const importError = ref('')
+const importing = ref(false)
+const bankBusy = ref(false)
+const reconcileRow = ref(null)
+const journalId = ref(0)
+const reconciliationError = ref('')
+let bankActionVersion = 0
+const journalCandidates = computed(() => {
+  if (!reconcileRow.value) return []
+  const evidence = reconcileRow.value
+  return w.journals.value.filter(item => item.postings?.some(post =>
+    Number(post.accountId)===Number(evidence.accountId)
+    && Number(post.amountMinor)===Number(evidence.amountMinor)))
+    .map(item => ({value:Number(item.id),
+      label:(item.effective_on || '')+' · '+(item.memo || 'Movimentação')
+        +' (#'+item.id+')'}))
+})
+function openImport() {
+  if (!w.writable.value || !canReviewBank.value || !banks.value.length) return
+  importError.value=''
+  importFile.value=null
+  importAccount.value = Number(accountFilter.value)
+    || (banks.value.length===1 ? Number(banks.value[0].id) : 0)
+  importOpen.value=true
+}
+function closeImport() {
+  if (importing.value) return
+  importOpen.value=false
+  importFile.value=null
+  importError.value=''
+}
+function chooseImportFile(event) {
+  importFile.value=event.target?.files?.[0] || null
+  importError.value=''
+  if (event.target) event.target.value=''
+}
+async function importStatement() {
+  if (!importFile.value || !importAccount.value || importing.value
+    || !w.writable.value || !canReviewBank.value) return
+  importError.value=''
+  const token=++bankActionVersion
+  const spaceId=Number(w.activeId.value)
+  const bankId=Number(importAccount.value)
+  importing.value=true
+  try {
+    if(importFile.value.size>262144)throw new Error('Arquivo acima do limite de 256 KiB.')
+    const csv=await importFile.value.text()
+    if(token!==bankActionVersion || spaceId!==Number(w.activeId.value))return
+    const result=await financeApi('librefinance_banking',spaceId,
+      '/imports','POST',{bankAccountId:bankId,csv})
+    if(token!==bankActionVersion || spaceId!==Number(w.activeId.value))return
+    importOpen.value=false
+    importFile.value=null
+    success.value = result.imported+' movimentações importadas; '
+      +result.skipped+' já existentes. Confira as pendências na lista.'
+    if(accountFilter.value!==bankId)setAccount(bankId)
+    else await load()
+  } catch (cause) {
+    if(token===bankActionVersion && spaceId===Number(w.activeId.value))
+      importError.value=financeError(cause)
+  } finally {
+    if(token===bankActionVersion)importing.value=false
+  }
+}
+function reviewStatement(row) {
+  if (!w.writable.value || !canReviewBank.value
+    || row.source!=='statement' || row.state!=='pending'
+    || !banks.value.some(bank=>Number(bank.id)===Number(row.accountId))) return
+  reconcileRow.value={...row}
+  journalId.value=0
+  reconciliationError.value=''
+}
+function closeReconciliation() {
+  if(bankBusy.value)return
+  reconcileRow.value=null
+  journalId.value=0
+  reconciliationError.value=''
+}
+async function matchStatement() {
+  if(bankBusy.value || !w.writable.value || !canReviewBank.value || !reconcileRow.value)return
+  const selected=Number(journalId.value)
+  if(!Number.isSafeInteger(selected)
+    || !journalCandidates.value.some(candidate=>candidate.value===selected)){
+    reconciliationError.value='Escolha a movimentação correspondente para conferir.'
+    return
+  }
+  const token=++bankActionVersion
+  const spaceId=Number(w.activeId.value)
+  const evidenceId=Number(reconcileRow.value.sourceId)
+  reconciliationError.value=''
+  bankBusy.value=true
+  try {
+    await financeApi('librefinance_banking',spaceId,
+      '/transactions/'+evidenceId+'/match','POST',{journalId:selected})
+    if(token!==bankActionVersion || spaceId!==Number(w.activeId.value))return
+    reconcileRow.value=null
+    journalId.value=0
+    success.value='Movimentação conferida. Nenhum novo pagamento foi registrado.'
+    await w.refreshCurrent({preserveView:true})
+    await load()
+  } catch (cause) {
+    if(token===bankActionVersion && spaceId===Number(w.activeId.value))
+      reconciliationError.value=financeError(cause)
+  } finally {
+    if(token===bankActionVersion)bankBusy.value=false
+  }
 }
 function viewInvoice(row) {
   if (!row.invoiceId || !canInvoice.value) return
@@ -129,16 +242,6 @@ function viewInvoice(row) {
     kind:row.kind === 'out' ? 'bill' : 'invoice',
   }
   navigate('documents', { preserveDirection:true })
-}
-function reviewStatement(row) {
-  if (!canReviewBank.value) return
-  bankContext.value = Number(row.accountId)
-  focusedBank.value = {
-    spaceId:Number(w.activeId.value),
-    transaction: {id:row.sourceId,bank_account_id:row.accountId,
-      description:row.description,amount_minor:row.amountMinor,booking_date:row.date,status:'pending'},
-  }
-  navigate('banking')
 }
 const payment = ref(null)
 const paymentError = ref('')
@@ -297,6 +400,15 @@ function clearFilters() {
   search.value = ''
 }
 watch([w.activeId,w.modulesLoadedFor], () => {
+  bankActionVersion++
+  importOpen.value=false
+  importFile.value=null
+  importError.value=''
+  importing.value=false
+  reconcileRow.value=null
+  journalId.value=0
+  reconciliationError.value=''
+  bankBusy.value=false
   formOpen.value = false
   transferOpen.value = false
   payment.value = null
@@ -307,6 +419,7 @@ watch([w.activeId,w.modulesLoadedFor,accountFilter,directionFilter,statusFilter,
   {immediate:true})
 onBeforeUnmount(() => {
   requestVersion++
+  bankActionVersion++
   if (searchTimer.value) clearTimeout(searchTimer.value)
 })
 const stateLabel = row => ({
@@ -323,6 +436,22 @@ const currency = row => w.money(row.amountMinor)
     <LfPageHeader title="Movimentações" eyebrow="FINANCEIRO"
       description="Tudo que vai entrar ou sair e o que já aconteceu, em uma lista. Os lançamentos do banco que precisam de conferência ficam identificados.">
       <template #actions>
+        <NcButton v-if="w.writable.value && canReviewBank && banks.length"
+          variant="secondary" @click="openImport">
+          <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
+          Importar extrato
+        </NcButton>
+        <NcPopover v-if="w.writable.value && banks.length>1"
+          v-model:shown="moreActionsOpen" popup-role="dialog">
+          <template #trigger>
+            <NcButton variant="tertiary">Mais ações</NcButton>
+          </template>
+          <div class="lf-agenda-filter-content" role="group" aria-label="Outras ações financeiras">
+            <NcButton variant="tertiary" @click="moreActionsOpen=false;startTransfer()">
+              Transferir entre contas
+            </NcButton>
+          </div>
+        </NcPopover>
         <NcButton v-if="w.writable.value" variant="primary" @click="start">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
           Registrar
@@ -333,37 +462,7 @@ const currency = row => w.money(row.amountMinor)
     <NcNoteCard v-if="paymentError" type="error" role="alert">{{paymentError}}</NcNoteCard>
     <NcNoteCard v-if="success" type="success" role="status">{{success}}</NcNoteCard>
 
-    <div v-if="banks.length" class="lf-activity-accounts">
-      <NcPopover popup-role="dialog">
-        <template #trigger>
-          <NcButton variant="secondary" id="lf-activity-bank">
-            <template #icon><NcIconSvgWrapper :path="mdiBankOutline" :size="18" /></template>
-            {{selectedBank?.name || 'Todas as contas'}}
-          </NcButton>
-        </template>
-        <div class="lf-agenda-filter-content" role="group" aria-label="Escolher conta financeira">
-          <NcButton variant="tertiary" :aria-pressed="accountFilter===0"
-            @click="setAccount(0)">Todas as contas</NcButton>
-          <NcButton v-for="bank in banks" :key="bank.id" variant="tertiary"
-            :aria-pressed="Number(accountFilter)===Number(bank.id)"
-            @click="setAccount(bank.id)">{{bank.name}}</NcButton>
-        </div>
-      </NcPopover>
-      <span v-if="selectedBank" class="lf-muted lf-activity-balance">
-        Saldo registrado: <strong>{{w.money(selectedBank.balance_minor)}}</strong>
-      </span>
-      <NcButton variant="tertiary" @click="navigate('bankAccounts')">
-        Gerenciar contas
-      </NcButton>
-      <NcButton v-if="w.writable.value && banks.length>1" variant="tertiary"
-        @click="startTransfer">
-        Transferir entre contas
-      </NcButton>
-      <NcButton v-if="canReviewBank" variant="tertiary" @click="goToBank()">
-        Conferir extrato
-      </NcButton>
-    </div>
-    <div v-else class="lf-activity-first-account">
+    <div v-if="!banks.length" class="lf-activity-first-account">
       <NcButton variant="secondary" @click="navigate('bankAccounts')">
         <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="18" /></template>
         Adicionar conta ou caixa
@@ -375,6 +474,25 @@ const currency = row => w.money(row.amountMinor)
         label="Pesquisar movimentações" placeholder="Pesquisar pela descrição"
         maxlength="120" @update:model-value="debounceSearch" @keyup.enter="setSearch" />
       <div class="lf-native-agenda-filters">
+        <NcPopover v-if="banks.length" v-model:shown="accountFilterOpen" popup-role="dialog">
+          <template #trigger>
+            <NcButton variant="tertiary" id="lf-activity-bank"
+              :aria-pressed="accountFilter!==0">
+              <template #icon><NcIconSvgWrapper :path="mdiBankOutline" :size="18" /></template>
+              {{selectedBank?.name || 'Todas as contas'}}
+            </NcButton>
+          </template>
+          <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar por conta">
+            <NcButton variant="tertiary" :aria-pressed="accountFilter===0"
+              @click="setAccount(0)">Todas as contas</NcButton>
+            <NcButton v-for="bank in banks" :key="bank.id" variant="tertiary"
+              :aria-pressed="Number(accountFilter)===Number(bank.id)"
+              @click="setAccount(bank.id)">{{bank.name}}</NcButton>
+            <NcButton variant="tertiary" @click="accountFilterOpen=false;navigate('bankAccounts')">
+              Gerenciar contas
+            </NcButton>
+          </div>
+        </NcPopover>
         <NcPopover popup-role="dialog">
           <template #trigger>
             <NcButton variant="tertiary" id="lf-activity-direction"
@@ -403,10 +521,14 @@ const currency = row => w.money(row.amountMinor)
               @click="statusFilter=option.value">{{option.label}}</NcButton>
           </div>
         </NcPopover>
-        <NcButton v-if="statusFilter!=='all'||directionFilter!=='all'||search"
+        <NcButton v-if="accountFilter||statusFilter!=='all'||directionFilter!=='all'||search"
           variant="tertiary" @click="clearFilters">Limpar filtros</NcButton>
       </div>
     </div>
+    <p v-if="showFilters && selectedBank" class="lf-muted lf-activity-balance">
+      Saldo registrado em {{selectedBank.name}}:
+      <strong>{{w.money(selectedBank.balance_minor)}}</strong>
+    </p>
 
     <div v-if="loading && !rows.length" role="status" class="lf-loading">
       <NcLoadingIcon :size="32" /> Carregando movimentações…
@@ -449,8 +571,9 @@ const currency = row => w.money(row.amountMinor)
               </NcButton>
               <NcButton v-if="row.invoiceId && canInvoice" variant="tertiary"
                 size="small" @click="viewInvoice(row)">Fatura</NcButton>
-              <NcButton v-if="row.state==='pending' && canReviewBank" variant="tertiary"
-                size="small" @click="reviewStatement(row)">Conferir</NcButton>
+              <NcButton v-if="row.state==='pending' && canReviewBank && w.writable.value"
+                variant="tertiary" size="small"
+                @click="reviewStatement(row)">Conferir</NcButton>
               <span v-if="row.state==='posted'" class="lf-muted">Registrada</span>
             </td>
           </tr>
@@ -464,6 +587,82 @@ const currency = row => w.money(row.amountMinor)
       <template #icon><NcIconSvgWrapper :path="mdiRefresh" :size="18" /></template>
       Atualizar
     </NcButton>
+
+    <NcDialog :open="importOpen" size="normal"
+      content-classes="lf-finance-dialog-content" name="Importar extrato"
+      @update:open="!$event && closeImport()">
+      <form class="lf-dialog-form" @submit.prevent="importStatement">
+        <p>Importe o arquivo da conta bancária. Os movimentos aparecerão nesta
+          lista como <strong>A conferir</strong>, sem registrar novamente o dinheiro.</p>
+        <NcNoteCard v-if="importError" type="error" role="alert">{{importError}}</NcNoteCard>
+        <LfSelect v-if="banks.length>1" id="lf-import-bank"
+          v-model="importAccount" label="Conta do extrato"
+          :options="bankOptions" :disabled="importing" />
+        <p v-else-if="banks.length===1" class="lf-muted">
+          Conta: <strong>{{banks[0].name}}</strong>
+        </p>
+        <input ref="importFileInput" class="lf-visually-hidden" type="file"
+          accept=".csv,text/csv" @change="chooseImportFile" />
+        <NcButton variant="secondary" :disabled="importing" @click="importFileInput?.click()">
+          <template #icon>
+            <NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" />
+          </template>
+          Selecionar arquivo CSV
+        </NcButton>
+        <p class="lf-muted">{{importFile?.name||'Nenhum arquivo selecionado'}}</p>
+        <details class="lf-finance-explanation">
+          <summary>Qual formato de arquivo posso importar?</summary>
+          <p>CSV com colunas <code>id,date,amount,description</code>,
+            valores com ponto decimal e sinal negativo para saídas.
+            Tamanho máximo: 256 KiB.</p>
+        </details>
+        <div class="lf-form-actions">
+          <NcButton variant="tertiary" :disabled="importing"
+            @click="closeImport">Cancelar</NcButton>
+          <NcButton variant="primary" type="submit"
+            :disabled="importing||!importAccount||!importFile">
+            {{importing?'Importando…':'Importar para conferir'}}
+          </NcButton>
+        </div>
+      </form>
+    </NcDialog>
+
+    <NcDialog :open="Boolean(reconcileRow)" size="normal"
+      content-classes="lf-finance-dialog-content" name="Conferir movimentação"
+      @update:open="!$event && closeReconciliation()">
+      <form class="lf-dialog-form" @submit.prevent="matchStatement">
+        <p>Este valor veio do extrato. Relacione-o ao dinheiro que já
+          foi registrado, sem criar outro pagamento ou recebimento.</p>
+        <NcNoteCard v-if="reconciliationError" type="error" role="alert">
+          {{reconciliationError}}
+        </NcNoteCard>
+        <div v-if="reconcileRow" class="lf-dialog-summary">
+          <strong>{{reconcileRow.description}}</strong>
+          <div class="lf-reconciliation-details">
+            <span>Data</span><strong>{{reconcileRow.date}}</strong>
+            <span>Conta</span><strong>{{w.accountNameById(reconcileRow.accountId)}}</strong>
+            <span>Valor</span><strong>{{currency(reconcileRow)}}</strong>
+          </div>
+        </div>
+        <LfSelect id="lf-bank-journal" v-model="journalId"
+          label="Movimentação correspondente" :options="journalCandidates"
+          placeholder="Selecione pela data e descrição" :disabled="bankBusy" />
+        <NcNoteCard v-if="!journalCandidates.length" type="info">
+          Nenhuma movimentação correspondente foi encontrada entre os registros carregados.
+          Confira se já registrou este dinheiro; não cadastre outra operação só para conferir.
+        </NcNoteCard>
+        <NcButton v-if="w.nextBeforeId.value" variant="tertiary" :disabled="bankBusy"
+          @click="w.loadMore()">Procurar movimentações mais antigas</NcButton>
+        <div class="lf-form-actions">
+          <NcButton variant="tertiary" :disabled="bankBusy"
+            @click="closeReconciliation">Cancelar</NcButton>
+          <NcButton variant="primary" type="submit"
+            :disabled="bankBusy||!journalCandidates.some(row=>row.value===Number(journalId))">
+            {{bankBusy?'Conferindo…':'Confirmar conferência'}}
+          </NcButton>
+        </div>
+      </form>
+    </NcDialog>
 
     <NcDialog :open="formOpen" size="normal" content-classes="lf-finance-dialog-content"
       name="Registrar movimentação" @update:open="!$event && (formOpen=false)">

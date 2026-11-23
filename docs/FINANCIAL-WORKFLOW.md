@@ -57,9 +57,17 @@ A tela ocupa a largura disponivel do aplicativo, incluindo monitores grandes.
 
 Abra **Faturas** somente quando for necessario discriminar produtos, servicos,
 quantidades, tributos ou manter um documento comercial detalhado.
-Selecione **Vendas** ou **Compras** na mesma pagina e salve um rascunho.
+A lista e unica e, quando existem registros, oferece o filtro **Tipo**:
+**Todas**, **Vendas** e **Compras**. Esse filtro consulta o servidor antes da
+paginacao; nao sao abas ou dois CRUDs diferentes.
+
+Para criar, clique sempre em **Nova fatura**. A primeira etapa do mesmo dialogo
+pergunta se a fatura e uma **Venda** ou **Compra**. Somente depois aparecem
+os campos do documento e os itens. O filtro aplicado a listagem nao decide o
+tipo do novo documento: isso precisa ser uma escolha explicita de quem cadastra.
+
 Confirmar um documento cria a conta ou cobranca prevista vinculada quando
-o modulo de obrigações estiver ativo. O documento nao significa que
+o modulo de obrigacoes estiver ativo. O documento nao significa que
 o dinheiro entrou, nem significa nota fiscal autorizada pelo governo.
 
 Quando houver pagamento, utilize o saldo em Movimentacoes. O vinculo com
@@ -75,11 +83,21 @@ dinheiro fica, incluindo dinheiro em caixa. A pessoa informa o nome da
 conta; o codigo interno necessario para os registros e gerado pela interface,
 sem exigir conhecimento contabil.
 
-Em **Movimentacoes**, selecione a conta desejada e use **Conferir extrato**
-para importar um CSV, comparar operacoes e vincular a uma movimentacao
-ja registrada. O arquivo importado nao realiza pagamento, nem publica
-outra movimentacao contabil. Para prevenir duplicidade, o sistema exige
-revisao antes de conciliar.
+Em **Movimentacoes**, o controle **Todas as contas** faz parte dos filtros
+da propria lista, junto de Tipo (Entrada/Saida), Situacao e Pesquisa.
+Selecionar uma conta nao abre outro modulo: apenas limita o historico
+consultado, e mostra seu saldo contabilizado, se houver.
+
+O botao **Importar extrato** abre um dialogo nessa mesma tela para selecionar
+uma conta e importar um CSV. Quando existem varias contas, a pessoa precisa
+selecionar explicitamente qual recebeu o arquivo. O arquivo nao registra
+outro pagamento: cada movimento importado aparece em Movimentacoes com
+situacao **A conferir**. Na propria linha, clique em **Conferir** e vincule
+a uma movimentacao ja registrada com mesmo valor e conta. Ao confirmar, a
+evidencia pendente deixa de aparecer como segunda linha. Se nenhum registro
+correspondente foi encontrado, procure em movimentacoes mais antigas ou
+registre o dinheiro uma unica vez antes de conferir. Nao ha um novo CRUD,
+uma lista paralela nem uma tela obrigatoria de extratos e conciliacao.
 
 Quando houver pelo menos duas contas, a acao **Transferir entre contas**
 registra uma transferencia ja realizada em uma unica operacao balanceada.
