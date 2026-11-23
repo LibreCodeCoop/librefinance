@@ -75,9 +75,9 @@ $key = '/saas/v1/admin/policies/environments.enabled';
 policyCheck('instance admin can list typed registry', 'GET',
     '/saas/v1/admin/policies', null, 200,
     static fn(array $r): bool => count($r['policies'] ?? []) === 4);
-policyCheck('instance policy defaults to deny and revision zero', 'GET',
+policyCheck('instance policies inherit enabled SaaS feature under separately disabled managed mode', 'GET',
     $key, null, 200, static fn(array $r): bool =>
-        ($r['effectiveValue'] ?? null) === false && ($r['revision'] ?? null) === 0
+        ($r['effectiveValue'] ?? null) === true && ($r['revision'] ?? null) === 0
         && ($r['inherited'] ?? null) === true);
 policyCheck('unknown policy does not fall back to permissive default', 'GET',
     '/saas/v1/admin/policies/unknown.key', null, 404);
@@ -86,11 +86,11 @@ $t->check('ordinary finance operator cannot enumerate instance policies',
 $t->check('ordinary finance operator cannot set privileged instance policy',
     'lfmaintestB', 'PUT', $key, ['valueJson' => 'true', 'expectedRevision' => 0], 403);
 policyCheck('instance admin sets a typed boolean at expected revision zero',
-    'PUT', $key, ['valueJson' => 'true', 'expectedRevision' => 0], 200,
-    static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true
+    'PUT', $key, ['valueJson' => 'false', 'expectedRevision' => 0], 200,
+    static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false
         && ($r['revision'] ?? null) === 1 && ($r['sourceScope'] ?? null) === 'instance');
 policyCheck('stale revision cannot overwrite policy',
-    'PUT', $key, ['valueJson' => 'false', 'expectedRevision' => 0], 409,
+    'PUT', $key, ['valueJson' => 'true', 'expectedRevision' => 0], 409,
     static fn(array $r): bool => ($r['error'] ?? '') === 'revision_conflict');
 policyCheck('malformed JSON is rejected',
     'PUT', $key, ['valueJson' => '{invalid', 'expectedRevision' => 1], 422,
@@ -100,19 +100,52 @@ policyCheck('incorrect type cannot mutate boolean',
     static fn(array $r): bool => ($r['error'] ?? '') === 'invalid_policy_value');
 policyCheck('unchanged revision remains valid after rejected writes', 'GET',
     $key, null, 200, static fn(array $r): bool =>
-        ($r['revision'] ?? null) === 1 && ($r['effectiveValue'] ?? null) === true);
+        ($r['revision'] ?? null) === 1 && ($r['effectiveValue'] ?? null) === false);
 policyCheck('valid policy deny updates with matching revision',
-    'PUT', $key, ['valueJson' => 'false', 'expectedRevision' => 1], 200,
+    'PUT', $key, ['valueJson' => 'true', 'expectedRevision' => 1], 200,
     static fn(array $r): bool =>
-        ($r['revision'] ?? null) === 2 && ($r['effectiveValue'] ?? null) === false);
+        ($r['revision'] ?? null) === 2 && ($r['effectiveValue'] ?? null) === true);
 policyCheck('stale clear rejected', 'DELETE', $key . '?expectedRevision=1',
     null, 409, static fn(array $r): bool => ($r['error'] ?? '') === 'revision_conflict');
 policyCheck('revision-guarded clear restores default', 'DELETE',
     $key . '?expectedRevision=2', null, 200, static fn(array $r): bool =>
         ($r['revision'] ?? null) === 3 && ($r['inherited'] ?? null) === true
-        && ($r['effectiveValue'] ?? null) === false);
-policyCheck('cleared policy remains deny-by-default', 'GET', $key, null, 200,
-    static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false
+        && ($r['effectiveValue'] ?? null) === true);
+policyCheck('cleared environment feature inherits compatibility default', 'GET', $key, null, 200,
+    static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true
         && ($r['sourceScope'] ?? null) === 'default');
+// A typed, instance-level restriction must affect actual module discovery
+// and request handling immediately, not just the policy JSON response.
+$workspace = $t->check('synthetic finance owner creates import-policy workspace',
+    'lfmaintestA', 'POST', '/spaces',
+    ['name' => 'Synthetic policy authorization', 'kind' => 'personal',
+        'currency' => 'BRL'], 201);
+$spaceId = (int)$workspace['id'];
+$t->check('import module initially enabled under inherited instance policy',
+    'lfmaintestA', 'GET', '/spaces/' . $spaceId . '/modules', null, 200,
+    static fn(array $r): bool => count(array_filter($r['modules'] ?? [],
+        static fn(array $m): bool => ($m['id'] ?? '') === 'librefinance_import'
+            && ($m['enabled'] ?? null) === true)) === 1);
+$importsKey = '/saas/v1/admin/policies/imports.enabled';
+policyCheck('instance admin disables all imports immediately', 'PUT',
+    $importsKey, ['valueJson' => 'false', 'expectedRevision' => 0], 200,
+    static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false);
+$t->check('disabled imports disappear as enabled module', 'lfmaintestA',
+    'GET', '/spaces/' . $spaceId . '/modules', null, 200,
+    static fn(array $r): bool => count(array_filter($r['modules'] ?? [],
+        static fn(array $m): bool => ($m['id'] ?? '') === 'librefinance_import'
+            && ($m['enabled'] ?? null) === false)) === 1);
+$t->check('server denies real import preview when instance forbids imports',
+    'lfmaintestA', 'POST', '/spaces/' . $spaceId . '/preview',
+    ['exportJson' => 'invalid'], 403,
+    static fn(array $r): bool => ($r['error'] ?? '') === 'module_disabled');
+policyCheck('clearing instance import restriction restores inheritance',
+    'DELETE', $importsKey . '?expectedRevision=1', null, 200,
+    static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true);
+$t->check('next request sees restored import capability', 'lfmaintestA',
+    'GET', '/spaces/' . $spaceId . '/modules', null, 200,
+    static fn(array $r): bool => count(array_filter($r['modules'] ?? [],
+        static fn(array $m): bool => ($m['id'] ?? '') === 'librefinance_import'
+            && ($m['enabled'] ?? null) === true)) === 1);
 echo "PASS: synthetic typed policy persistence and revocation lifecycle $checks assertions\n";
 echo 'ALL CHECKS PASSED: ', $checks, PHP_EOL;

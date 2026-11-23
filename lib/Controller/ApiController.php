@@ -31,7 +31,7 @@ abstract class ApiController extends Controller {
                 'revision_conflict', 'provision_conflict', 'governance_group_conflict', 'category_code_conflict', 'company_tax_id_conflict', 'custom_field_key_conflict', 'ai_preview_changed' => 409,
                 'ai_task_not_found' => 404,
                 'ai_provider_unavailable' => 503,
-                'module_disabled', 'governance_disabled' => 403,
+                'policy_override_forbidden', 'module_disabled', 'governance_disabled' => 403,
                 'environment_suspended' => 423,
                 'account_has_balance', 'account_in_use', 'account_reference_busy', 'payment_method_in_use', 'idempotency_conflict', 'sku_conflict', 'journal_claimed', 'journal_already_claimed', 'journal_not_available', 'invoice_overpayment', 'invoice_not_issued', 'invoice_tax_allocation_required', 'obligation_closed', 'amount_exceeds_balance', 'invoice_payment_via_allocation', 'invoice_obligation_unlinked', 'concurrent_change', 'invoice_concurrent_change', 'space_archived', 'space_already_archived', 'space_not_archived' => 409,
                 default => 422,

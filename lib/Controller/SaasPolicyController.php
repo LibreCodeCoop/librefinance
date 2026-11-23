@@ -25,6 +25,44 @@ final class SaasPolicyController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/environments/{environmentId}/policies/effective')]
+    public function effective(string $environmentId): JSONResponse {
+        return $this->respond(fn(): array => $this->policies->listEnvironment($environmentId));
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/environments/{environmentId}/policies/{policyKey}')]
+    public function readEnvironment(string $environmentId, string $policyKey): JSONResponse {
+        return $this->respond(fn(): array => $this->policies->getEnvironment($environmentId, $policyKey));
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'PUT', url: '/api/saas/v1/environments/{environmentId}/policies/{policyKey}')]
+    public function writeEnvironment(string $environmentId, string $policyKey,
+        string $valueJson, int $expectedRevision): JSONResponse {
+        return $this->respond(function () use ($environmentId, $policyKey, $valueJson, $expectedRevision): array {
+            if (strlen($valueJson) > 16384) {
+                throw new DomainException('invalid_policy_value');
+            }
+            try {
+                $value = json_decode($valueJson, true, 32, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                throw new DomainException('invalid_policy_value');
+            }
+            return $this->policies->writeEnvironment($environmentId, $policyKey,
+                $value, $expectedRevision);
+        });
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'DELETE', url: '/api/saas/v1/environments/{environmentId}/policies/{policyKey}')]
+    public function clearEnvironment(string $environmentId, string $policyKey,
+        int $expectedRevision): JSONResponse {
+        return $this->respond(fn(): array => $this->policies->clearEnvironment(
+            $environmentId, $policyKey, $expectedRevision));
+    }
+
+    #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/admin/policies')]
     public function index(): JSONResponse {
         return $this->respond(fn(): array => $this->policies->listInstance());

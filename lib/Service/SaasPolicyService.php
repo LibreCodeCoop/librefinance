@@ -30,6 +30,8 @@ final class SaasPolicyService {
         private IUserSession $session,
         private PolicyRegistry $registry,
         private PolicyResolver $resolver,
+        private EnvironmentService $environments,
+        private SaasPolicyRuntimeGate $runtime,
     ) {}
 
     /** @return array<string,mixed> */
@@ -86,6 +88,89 @@ final class SaasPolicyService {
     }
 
     /**
+     * Environment administrators can inspect the effective policy within
+     * their own active environment, but this never conveys ledger access.
+     *
+     * @return array<string,mixed>
+     */
+    public function getEnvironment(string $uuid, string $key): array {
+        $environment = $this->environments->requireActiveManager($uuid);
+        $definition = $this->registry->get($key);
+        $scopeKey = 'environment:' . $environment['id'];
+        $stored = $this->lookup($scopeKey, $key);
+        $resolved = $this->runtime->environment($environment['id'], $key);
+        $parent = $this->runtime->instance($key);
+        $editable = $definition->supports('environment')
+            && $definition->allowChildOverride;
+        return [
+            'key' => $definition->key,
+            'type' => $definition->type,
+            'contractVersion' => $definition->version,
+            'supportedScopes' => $definition->supportedScopes,
+            'allowChildOverride' => $definition->allowChildOverride,
+            'effectiveValue' => $resolved['effectiveValue'],
+            'sourceScope' => $resolved['sourceScope'],
+            'blockedBy' => $resolved['blockedBy'],
+            'allowedValues' => $definition->type === 'boolean'
+                ? ($parent['effectiveValue'] === false ? [false] : [false, true])
+                : ($definition->type === 'allowed_set'
+                    ? $parent['effectiveValue'] : null),
+            'maxAllowed' => $definition->type === 'ceiling'
+                ? $parent['effectiveValue'] : null,
+            'editableByCurrentActor' => $editable,
+            'revision' => $stored === null ? 0 : (int)$stored['revision'],
+            'inherited' => $stored === null || (bool)$stored['is_cleared'],
+        ];
+    }
+
+    /** @return array{policies:list<array<string,mixed>>} */
+    public function listEnvironment(string $uuid): array {
+        // Current environment authority is verified before revealing metadata.
+        $this->environments->requireActiveManager($uuid);
+        return ['policies' => array_map(
+            fn(PolicyDefinition $definition): array => $this->getEnvironment($uuid, $definition->key),
+            $this->registry->all(),
+        )];
+    }
+
+    /** @return array<string,mixed> */
+    public function writeEnvironment(string $uuid, string $key, mixed $value,
+        int $expectedRevision): array {
+        $environment = $this->environments->requireActiveManager($uuid);
+        $definition = $this->registry->get($key);
+        if (!$definition->supports('environment') || !$definition->allowChildOverride) {
+            throw new DomainException('unsupported_scope');
+        }
+        $definition->assertValue($value);
+        $parent = $this->runtime->instance($key)['effectiveValue'];
+        $narrower = match ($definition->type) {
+            'boolean' => $parent === true || $value === false,
+            'ceiling' => $value <= $parent,
+            'allowed_set' => array_values(array_intersect($value, $parent)) === $value,
+            default => false,
+        };
+        if (!$narrower) {
+            throw new DomainException('policy_override_forbidden');
+        }
+        $this->mutate('environment:' . $environment['id'],
+            $definition, $value, false, $expectedRevision);
+        return $this->getEnvironment($uuid, $key);
+    }
+
+    /** @return array<string,mixed> */
+    public function clearEnvironment(string $uuid, string $key,
+        int $expectedRevision): array {
+        $environment = $this->environments->requireActiveManager($uuid);
+        $definition = $this->registry->get($key);
+        if (!$definition->supports('environment') || !$definition->allowChildOverride) {
+            throw new DomainException('unsupported_scope');
+        }
+        $this->mutate('environment:' . $environment['id'],
+            $definition, null, true, $expectedRevision);
+        return $this->getEnvironment($uuid, $key);
+    }
+
+    /**
      * Canonical storage key must be constructed exclusively from server-trusted
      * identities. Non-instance scopes are not opened to public HTTP here.
      *
@@ -133,7 +218,7 @@ final class SaasPolicyService {
                 try {
                     $this->writer->insert('lf_saas_policy_values', [
                         'scope_key' => $scopeKey,
-                        'scope_type' => 'instance',
+                        'scope_type' => $scopeKey === 'instance' ? 'instance' : 'environment',
                         'policy_key' => $definition->key,
                         'value_json' => $valueJson,
                         'is_cleared' => $clear,
