@@ -19,7 +19,7 @@ final class PolicyRegistry {
 
     public function __construct() {
         $specs = [
-            new PolicyDefinition('environments.enabled', 'boolean', ['instance'], false, false),
+            new PolicyDefinition('environments.enabled', 'boolean', ['instance'], true, false),
             new PolicyDefinition('externalSharing.enabled', 'boolean',
                 ['instance', 'environment', 'workspace'], false, true),
             new PolicyDefinition('imports.enabled', 'boolean',

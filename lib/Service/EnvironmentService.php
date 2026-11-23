@@ -28,6 +28,7 @@ final class EnvironmentService {
         private GovernanceService $governance,
         private IGroupManager $groups,
         private IUserSession $session,
+        private SaasPolicyRuntimeGate $policies,
     ) {}
 
     /** @return array{id:string,name:string,state:string,canManage:bool} */
@@ -36,6 +37,7 @@ final class EnvironmentService {
         if (!$this->governance->enabled()) {
             throw new DomainException('governance_disabled');
         }
+        $this->policies->requireInstanceEnabled('environments.enabled');
         $this->governance->requireGroup($gid);
         $existing = $this->lookupByGroup($gid);
         if ($existing !== null) {
@@ -92,6 +94,7 @@ final class EnvironmentService {
         if (!$this->governance->enabled()) {
             throw new DomainException('governance_disabled');
         }
+        $this->policies->requireInstanceEnabled('environments.enabled');
         $row = $this->requireByPublicId($publicId);
         $gid = $row['group_gid'];
         // A Nextcloud instance admin never implicitly becomes a financial
@@ -145,6 +148,31 @@ final class EnvironmentService {
             throw new DomainException('concurrent_change');
         }
         return $this->publicRow($fresh, true);
+    }
+
+    /**
+     * Scope checks are always against the current qualified group admin,
+     * without creating financial ledger membership.
+     *
+     * @return array{id:int,publicId:string,groupGid:string}
+     */
+    public function requireActiveManager(string $publicId): array {
+        if (!$this->governance->enabled()) {
+            throw new DomainException('governance_disabled');
+        }
+        $this->policies->requireInstanceEnabled('environments.enabled');
+        $row = $this->requireByPublicId($publicId);
+        if (!$this->governance->isDelegatedManager((string)$row['group_gid'])) {
+            throw new DomainException('environment_not_found');
+        }
+        if ((string)$row['state'] !== 'active' || (string)$row['status'] !== 'active') {
+            throw new DomainException('environment_suspended');
+        }
+        return [
+            'id' => (int)$row['id'],
+            'publicId' => (string)$row['public_id'],
+            'groupGid' => (string)$row['group_gid'],
+        ];
     }
 
     /** @return array{id:string,name:string,state:string,canManage:bool} */
