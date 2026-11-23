@@ -306,6 +306,126 @@ try {
          'date' => '2026-11-23', 'memo' => 'Denied',
          'externalKey' => 'synthetic-admin-unauthorized'], 404);
 
+    // External financial invitations never materialize internal group
+    // membership and are denied until explicit policy and account consent.
+    $invitationPath = '/saas/v1/workspaces/' . $spaceA . '/invitations';
+    $recipientUid = 'synthetictestadmin';
+    $invitationData = ['recipientUid' => $recipientUid, 'role' => 'viewer',
+        'expiresAt' => time() + 3600, 'expectedRevision' => 0];
+    $t->check('SaaS owner cannot invite outsiders with default-deny policy',
+        $a, 'POST', $invitationPath, $invitationData, 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled');
+    $t->check('nonowner cannot create external financial invitations',
+        $b, 'POST', $invitationPath, $invitationData, 404);
+    instanceCheck('external sharing requires explicit instance enablement',
+        'PUT', '/saas/v1/admin/policies/externalSharing.enabled',
+        ['valueJson' => 'true', 'expectedRevision' => 0], 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true);
+    $t->check('external owner cannot invite an already-group-member user',
+        $a, 'POST', $invitationPath,
+        ['recipientUid' => $b, 'role' => 'viewer', 'expiresAt' => time() + 3600], 403);
+    $t->check('external role manager is never permitted',
+        $a, 'POST', $invitationPath,
+        ['recipientUid' => $recipientUid, 'role' => 'manager',
+            'expiresAt' => time() + 3600], 422);
+    $t->check('external invite expiry outside allowed window is rejected',
+        $a, 'POST', $invitationPath,
+        ['recipientUid' => $recipientUid, 'role' => 'viewer',
+            'expiresAt' => time() + 60], 422);
+    $invite = $t->check('owner creates pending external viewer invitation',
+        $a, 'POST', $invitationPath, $invitationData, 201,
+        static fn(array $r): bool =>
+            ($r['status'] ?? null) === 'invited'
+            && ($r['revision'] ?? null) === 1
+            && ($r['recipientUid'] ?? null) === 'synthetictestadmin');
+    $inviteId = (int)$invite['id'];
+    $recipientAcceptPath = $invitationPath . '/' . $inviteId . '/accept';
+    instanceCheck('unaccepted invite grants no journal access',
+        'GET', '/spaces/' . $spaceA . '/journals', null, 404);
+    instanceCheck('recipient sees only its own pending invite',
+        'GET', '/saas/v1/invitations', null, 200,
+        static fn(array $r): bool =>
+            count($r['invitations'] ?? []) === 1
+            && (int)($r['invitations'][0]['spaceId'] ?? 0) === $spaceA);
+    $t->check('another tenant member cannot accept recipient invitation',
+        $b, 'POST', $recipientAcceptPath, ['expectedRevision' => 1], 403);
+    instanceCheck('stale invitation acceptance revision is rejected',
+        'POST', $recipientAcceptPath, ['expectedRevision' => 0], 409);
+    instanceCheck('recipient explicitly accepts external viewer invitation',
+        'POST', $recipientAcceptPath, ['expectedRevision' => 1], 200,
+        static fn(array $r): bool =>
+            ($r['status'] ?? null) === 'accepted' && ($r['revision'] ?? null) === 2);
+    instanceCheck('external user now reads only invited financial journal',
+        'GET', '/spaces/' . $spaceA . '/journals', null, 200);
+    instanceCheck('external account sees invited A1 but not A2 or B',
+        'GET', '/spaces', null, 200,
+        static fn(array $r): bool =>
+            count(array_filter($r['spaces'] ?? [],
+                static fn(array $s): bool =>
+                    (int)$s['id'] === $spaceA
+                    && ($s['externalInvitation'] ?? false) === true
+                    && ($s['role'] ?? null) === 'viewer')) === 1
+            && !in_array($spaceA2, array_column($r['spaces'] ?? [], 'id'), true)
+            && !in_array($spaceB, array_column($r['spaces'] ?? [], 'id'), true));
+    instanceCheck('external viewer cannot post a financial journal',
+        'POST', '/spaces/' . $spaceA . '/journals',
+        ['debitId' => 1, 'creditId' => 2, 'amountMinor' => 200,
+            'date' => '2026-11-23', 'memo' => 'Forbidden external posting',
+            'externalKey' => 'external-denied'], 403);
+    $t->check('owner lists exact accepted external invitation',
+        $a, 'GET', $invitationPath, null, 200,
+        static fn(array $r): bool =>
+            count($r['invitations'] ?? []) === 1
+            && ($r['invitations'][0]['status'] ?? '') === 'accepted');
+    $t->check('outsider cannot manage finance invitations of another book',
+        $b, 'GET', $invitationPath, null, 404);
+    $t->check('stale revocation revision does not affect grant', $a,
+        'DELETE', $invitationPath . '/' . $inviteId . '?expectedRevision=1',
+        null, 409);
+    $t->check('financial owner revokes accepted external grant', $a,
+        'DELETE', $invitationPath . '/' . $inviteId . '?expectedRevision=2',
+        null, 200,
+        static fn(array $r): bool =>
+            ($r['status'] ?? null) === 'revoked' && ($r['revision'] ?? null) === 3);
+    instanceCheck('external access denied at next read after revocation',
+        'GET', '/spaces/' . $spaceA . '/journals', null, 404);
+    instanceCheck('revoked external book removed from workspace selector',
+        'GET', '/spaces', null, 200,
+        static fn(array $r): bool =>
+            !in_array($spaceA, array_column($r['spaces'] ?? [], 'id'), true));
+    $t->check('reinvite requires current revision after revocation', $a,
+        'POST', $invitationPath, $invitationData, 409);
+    $reinstate = $t->check('reinvite creates new pending state, never implicit access',
+        $a, 'POST', $invitationPath,
+        ['recipientUid' => $recipientUid, 'role' => 'auditor',
+            'expiresAt' => time() + 3600, 'expectedRevision' => 3], 201,
+        static fn(array $r): bool =>
+            ($r['status'] ?? null) === 'invited'
+            && ($r['role'] ?? null) === 'auditor'
+            && ($r['revision'] ?? null) === 4);
+    instanceCheck('reinvited recipient still denied before fresh acceptance',
+        'GET', '/spaces/' . $spaceA . '/journals', null, 404);
+    instanceCheck('parent policy denial immediately blocks acceptance',
+        'PUT', '/saas/v1/admin/policies/externalSharing.enabled',
+        ['valueJson' => 'false', 'expectedRevision' => 1], 200);
+    instanceCheck('recipient cannot accept when ancestor disables policy',
+        'POST', $recipientAcceptPath, ['expectedRevision' => 4], 403);
+    $t->check('owner can revoke a pending invite under disabled policy',
+        $a, 'DELETE', $invitationPath . '/' . $inviteId . '?expectedRevision=4',
+        null, 200);
+    $t->check('external audit retains invite, acceptance, revoke and reinvite',
+        $a, 'GET', $invitationPath . '/history', null, 200,
+        static fn(array $r): bool =>
+            count($r['events'] ?? []) === 5
+            && ($r['events'][0]['action'] ?? null) === 'invited'
+            && ($r['events'][4]['action'] ?? null) === 'revoked');
+    instanceCheck('restore default-deny external sharing policy',
+        'DELETE', '/saas/v1/admin/policies/externalSharing.enabled?expectedRevision=2',
+        null, 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === false
+            && ($r['inherited'] ?? null) === true);
+
     $accounts = $t->check('A can list its ledger accounts', $a, 'GET',
         '/spaces/' . $spaceA . '/accounts', null, 200,
         static fn(array $r): bool => count($r['accounts'] ?? []) === 4);

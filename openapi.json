@@ -1697,6 +1697,397 @@
                 }
             }
         },
+        "/librefinance/api/saas/v1/invitations": {
+            "get": {
+                "operationId": "librefinance_saasExternalInvitation_inbox",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "saasExternalInvitation inbox",
+                "description": "Authenticated invitee only. Pending and accepted invitations to that exact Nextcloud UID.",
+                "parameters": [
+                    {
+                        "name": "afterId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/saas/v1/workspaces/{spaceId}/invitations": {
+            "get": {
+                "operationId": "librefinance_saasExternalInvitation_index",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "saasExternalInvitation index",
+                "description": "Financial owner only. Paginated external-grant status and expiry for one ledger.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "afterId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "librefinance_saasExternalInvitation_create",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "saasExternalInvitation create",
+                "description": "Financial owner only. Invite an existing out-of-group Nextcloud account for an expiring, read-only financial grant when restrictive policy permits.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "recipientUid": {
+                                        "type": "string"
+                                    },
+                                    "role": {
+                                        "type": "string"
+                                    },
+                                    "expiresAt": {
+                                        "type": "integer"
+                                    },
+                                    "expectedRevision": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "required": [
+                                    "recipientUid",
+                                    "role",
+                                    "expiresAt"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/librefinance/api/saas/v1/workspaces/{spaceId}/invitations/history": {
+            "get": {
+                "operationId": "librefinance_saasExternalInvitation_history",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "saasExternalInvitation history",
+                "description": "Financial owner only. Cursor-paginated immutable external-grant audit.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "afterId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/saas/v1/workspaces/{spaceId}/invitations/{invitationId}": {
+            "delete": {
+                "operationId": "librefinance_saasExternalInvitation_revoke",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "saasExternalInvitation revoke",
+                "description": "Financial owner only. Immediate revision-guarded revocation; no deletion of audit history.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "invitationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "expectedRevision",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/saas/v1/workspaces/{spaceId}/invitations/{invitationId}/accept": {
+            "post": {
+                "operationId": "librefinance_saasExternalInvitation_accept",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "saasExternalInvitation accept",
+                "description": "Invitation recipient only. Explicit revision-guarded consent before access; no tenant group membership.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "invitationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "expectedRevision": {
+                                        "type": "integer"
+                                    }
+                                },
+                                "required": [
+                                    "expectedRevision"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/librefinance/api/saas/v1/workspaces/{spaceId}/policies/effective": {
             "get": {
                 "operationId": "librefinance_saasPolicy_effectiveWorkspace",

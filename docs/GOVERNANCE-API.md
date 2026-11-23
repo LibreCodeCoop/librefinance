@@ -285,3 +285,49 @@ Na tela de administração Nextcloud → LibreFinance, o botão
 modifica políticas, membros nem o estado do grupo. Recuperações auditadas,
 suspensões e exclusões continuam preservadas no banco. O histórico é
 administrativo, diferente da auditoria contábil de cada gestão.
+
+### Concessões financeiras externas (SaaS)
+
+Um convite externo não é participação no grupo Nextcloud e não cria linhas em
+`lf_members`. Destinatários devem ter uma **conta Nextcloud existente**;
+convites por e-mail, URL pública e contas anônimas não são oferecidos.
+Somente o proprietário financeiro atual do livro SaaS pode convidar. A policy
+`externalSharing.enabled` precisa permitir o compartilhamento em **todos**
+os níveis (instância, ambiente e workspace). O valor padrão é **false**.
+
+O backend permite os papéis externos `viewer` ou `auditor`, exclusivamente
+de leitura: não há papel externo de lançamento, aprovação, gestão ou
+administração do ambiente. O convidado, que deve estar **fora do grupo
+Nextcloud do ambiente**, precisa aceitar explicitamente o convite usando a
+própria sessão autenticada. A validade deve estar entre 5 minutos e 30 dias.
+O aceite não concede permissões em outros livros ou grupos.
+
+- `GET /api/saas/v1/invitations?afterId=N`: caixa pessoal do destinatário,
+  limitada a 50 convites ativos por página; nunca mostra outros destinatários.
+- `GET /api/saas/v1/workspaces/{spaceId}/invitations?afterId=N`: proprietário
+  lista destinatários, papéis, revisões, estado e expiração do livro.
+- `POST /api/saas/v1/workspaces/{spaceId}/invitations`: proprietário envia
+  `recipientUid`, `role`, `expiresAt` (Unix segundos) e
+  `expectedRevision` (0 na criação). Conflitos impedem convites duplicados.
+- `POST /api/saas/v1/workspaces/{spaceId}/invitations/{id}/accept`: somente
+  destinatário, com `expectedRevision` atual, aceita convite pendente.
+- `DELETE /api/saas/v1/workspaces/{spaceId}/invitations/{id}?expectedRevision=N`:
+  somente proprietário revoga o acesso em tempo de requisição.
+- `GET /api/saas/v1/workspaces/{spaceId}/invitations/history?afterId=N`:
+  proprietário consulta eventos append-only, até 50 por página.
+
+A conta externa vê apenas os livros especificamente aceitos. A autorização
+é reconstruída **no servidor em cada requisição** e revogada quando o
+convite for revogado, expirar, a policy de qualquer ancestral bloquear, o
+grupo ou ambiente for suspenso ou o livro for arquivado. Não se confia no
+campo `spaceId` da URL para concessão implícita. Uma nova concessão após
+revogação precisa de uma revisão atual e **novo aceite**. Uma conta que
+passar a integrar o grupo Nextcloud deve obter um papel financeiro interno
+separado; o convite externo não se converte em participação interna.
+
+Limites desta primeira entrega: não há envio automático de e-mail, convite
+por endereço que ainda não pertença ao Nextcloud, acesso de escrita externo
+nem edição visual destes convites. O fluxo de API é auditado e intencionalmente
+restritivo. Administradores da instância não ganham leitura financeira pelo
+fato de serem administradores: só um convite dirigido à própria conta,
+aceito e não expirado, pode conceder leitura a um livro particular.

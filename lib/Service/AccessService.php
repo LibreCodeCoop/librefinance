@@ -126,6 +126,9 @@ final class AccessService {
         // financial access. One query for bindings and one for memberships,
         // avoiding an N+1 lookup for every listed workspace.
         $this->filterSaasListing($result, $uid, $gids);
+        // Accepted external invitations discover only their exact workspace,
+        // never the whole Nextcloud group or another tenant's financial data.
+        $this->addExternalListing($result, $uid, $gids);
         ksort($result, SORT_NUMERIC);
         return array_values($result);
     }
@@ -162,18 +165,23 @@ final class AccessService {
             }
             $gid = (string)($saasScope['group_gid'] ?? '');
             $user = $this->session->getUser();
-            if ($gid === '' || $this->groups->get($gid) === null
-                || $user === null
-                || !in_array($gid, $this->groups->getUserGroupIds($user), true)) {
+            if ($gid === '' || $this->groups->get($gid) === null || $user === null) {
                 throw new DomainException('space_not_found');
             }
-            $q = $this->db->getQueryBuilder();
-            $q->select('role')->from('lf_members')
-                ->where($q->expr()->eq('space_id',
-                    $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
-                ->andWhere($q->expr()->eq('uid',
-                    $q->createNamedParameter($uid, IQueryBuilder::PARAM_STR)));
-            $role = $q->executeQuery()->fetchOne();
+            $isMember = in_array($gid, $this->groups->getUserGroupIds($user), true);
+            if ($isMember) {
+                $q = $this->db->getQueryBuilder();
+                $q->select('role')->from('lf_members')
+                    ->where($q->expr()->eq('space_id',
+                        $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                    ->andWhere($q->expr()->eq('uid',
+                        $q->createNamedParameter($uid, IQueryBuilder::PARAM_STR)));
+                $role = $q->executeQuery()->fetchOne();
+            } else {
+                // Outside the tenant, only an explicitly accepted, non-expired
+                // read-only grant with a still-enabled policy can authorize.
+                $role = $this->externalAcceptedRole($spaceId, $uid);
+            }
             if (!is_string($role) || self::rank($role) === 0) {
                 throw new DomainException('space_not_found');
             }
@@ -382,6 +390,84 @@ final class AccessService {
                 // Only current, authorized financial members receive the
                 // marker. It is presentation metadata, not a permission grant.
                 $spaces[$spaceId]['saasManaged'] = true;
+            }
+        }
+    }
+
+    /**
+     * External grants are evaluated on every protected request. A revoked
+     * grant or a newly restrictive ancestor immediately denies the next call.
+     */
+    private function externalAcceptedRole(int $spaceId, string $uid): ?string {
+        if ($this->policies->workspace($spaceId, 'externalSharing.enabled')['effectiveValue'] !== true) {
+            return null;
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('role')->from('lf_saas_external_grants')
+            ->where($q->expr()->eq('space_id',
+                $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('recipient_uid', $q->createNamedParameter($uid)))
+            ->andWhere($q->expr()->eq('status', $q->createNamedParameter('accepted')))
+            ->andWhere($q->expr()->gt('expires_at',
+                $q->createNamedParameter(time(), IQueryBuilder::PARAM_INT)));
+        $role = $q->executeQuery()->fetchOne();
+        return in_array($role, ['viewer', 'auditor'], true) ? $role : null;
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $spaces
+     * @param list<string> $gids
+     */
+    private function addExternalListing(array &$spaces, string $uid, array $gids): void {
+        if (!$this->governance->enabled()
+            || $this->policies->instance('environments.enabled')['effectiveValue'] !== true) {
+            return;
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('s.*', 'x.role', 'es.environment_id', 'eg.group_gid')
+            ->from('lf_saas_external_grants', 'x')
+            ->innerJoin('x', 'lf_spaces', 's', 's.id = x.space_id')
+            ->innerJoin('x', 'lf_environment_spaces', 'es', 'es.space_id = x.space_id')
+            ->innerJoin('x', 'lf_environments', 'e', 'e.id = es.environment_id')
+            ->innerJoin('x', 'lf_environment_groups', 'eg', 'eg.environment_id = es.environment_id')
+            ->where($q->expr()->eq('x.recipient_uid', $q->createNamedParameter($uid)))
+            ->andWhere($q->expr()->eq('x.status', $q->createNamedParameter('accepted')))
+            ->andWhere($q->expr()->in('x.role', $q->createNamedParameter(
+                ['viewer', 'auditor'], IQueryBuilder::PARAM_STR_ARRAY)))
+            ->andWhere($q->expr()->gt('x.expires_at',
+                $q->createNamedParameter(time(), IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('s.archived',
+                $q->createNamedParameter(false, IQueryBuilder::PARAM_BOOL)))
+            ->andWhere($q->expr()->eq('es.review_state',
+                $q->createNamedParameter('confirmed')))
+            ->andWhere($q->expr()->eq('e.status', $q->createNamedParameter('active')))
+            ->andWhere($q->expr()->eq('eg.state', $q->createNamedParameter('active')));
+        $external = [];
+        $environmentBySpace = [];
+        $groupExists = [];
+        foreach ($q->executeQuery()->fetchAllAssociative() as $row) {
+            $id = (int)$row['id'];
+            $gid = (string)$row['group_gid'];
+            if ($gid === '' || in_array($gid, $gids, true)) {
+                continue;
+            }
+            if (!array_key_exists($gid, $groupExists)) {
+                $groupExists[$gid] = $this->groups->get($gid) !== null;
+            }
+            if (!$groupExists[$gid]) {
+                continue;
+            }
+            $environmentBySpace[$id] = (int)$row['environment_id'];
+            unset($row['environment_id'], $row['group_gid']);
+            $row['id'] = $id;
+            $row['saasManaged'] = true;
+            $row['externalInvitation'] = true;
+            $external[$id] = $row;
+        }
+        $allowed = $this->policies->workspaceBooleanBatch($environmentBySpace, 'externalSharing.enabled');
+        foreach ($external as $id => $row) {
+            if (($allowed[$id] ?? false) === true && !isset($spaces[$id])) {
+                $spaces[$id] = $row;
             }
         }
     }
