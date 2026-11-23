@@ -70,7 +70,10 @@ test('SaaS administration chooses one environment and retries creation idempoten
   await expect(page.getByRole('list', { name: 'Gestões administrativas do ambiente' })).toHaveCount(0)
   const selection = page.locator('#lf-saas-selected-environment')
   await selection.click()
-  await page.getByRole('option', { name: 'Ambiente A' }).click()
+  // NcSelect splits long visual labels across spans; use the full title
+  // inside its semantic option instead of a fragmented accessible name.
+  await page.getByRole('option')
+    .filter({ has: page.getByTitle('Ambiente A', { exact: true }) }).click()
   const list = page.getByRole('list', { name: 'Gestões administrativas do ambiente' })
   await expect(list).toContainText('Gestão A')
   await expect(list).not.toContainText('Gestão B')
@@ -87,7 +90,8 @@ test('SaaS administration chooses one environment and retries creation idempoten
   expect(attemptedKeys[0]).toBe(attemptedKeys[1])
 
   await selection.click()
-  await page.getByRole('option', { name: 'Ambiente B' }).click()
+  await page.getByRole('option')
+    .filter({ has: page.getByTitle('Ambiente B', { exact: true }) }).click()
   await expect(list).toContainText('Gestão B')
   await expect(list).not.toContainText('Gestão A')
   await expect(list).not.toContainText('Nova gestão A')
