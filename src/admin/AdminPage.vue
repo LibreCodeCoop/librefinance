@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -41,6 +41,13 @@ const groupStatusLabel = state => ({
   suspended: 'Suspenso',
 })[state] || 'Estado indisponível'
 let groupRequestSeq = 0
+const auditGroup = ref(null)
+const auditRows = ref([])
+const auditNextBeforeId = ref(null)
+const auditLoading = ref(false)
+const auditError = ref('')
+let auditRequestSeq = 0
+const auditTimestamp = seconds => new Date(Number(seconds) * 1000).toLocaleString('pt-BR')
 const kind = ref('organization')
 const busy = ref(false)
 const error = ref('')
@@ -71,6 +78,49 @@ async function searchGroups(offset = 0) {
     if (sequence === groupRequestSeq) groupSearchError.value = message(cause)
   } finally {
     if (sequence === groupRequestSeq) groupsLoading.value = false
+  }
+}
+function closeGroupAudit() {
+  ++auditRequestSeq
+  auditGroup.value = null
+  auditRows.value = []
+  auditNextBeforeId.value = null
+  auditLoading.value = false
+  auditError.value = ''
+}
+async function openGroupAudit(group) {
+  closeGroupAudit()
+  if (!group?.environmentId) return
+  auditGroup.value = group
+  await loadGroupAudit(false)
+}
+async function loadGroupAudit(more = false) {
+  const group = auditGroup.value
+  if (!group || auditLoading.value || (more && auditNextBeforeId.value === null)) return
+  const seq = ++auditRequestSeq
+  const beforeId = more ? auditNextBeforeId.value : null
+  auditLoading.value = true
+  auditError.value = ''
+  try {
+    const response = await axios.get(generateUrl('/apps/librefinance/api/saas/v1/admin/groups/'
+      + encodeURIComponent(group.id) + '/audit'), {
+      params: beforeId === null ? {} : { beforeId },
+    })
+    if (seq !== auditRequestSeq || auditGroup.value?.id !== group.id) return
+    if (response.data.environmentId !== group.environmentId) {
+      throw new Error('O vínculo administrativo do grupo mudou. Reabra o histórico.')
+    }
+    const rows = Array.isArray(response.data.events) ? response.data.events : []
+    auditRows.value = more ? [...auditRows.value, ...rows] : rows
+    auditNextBeforeId.value = Number.isSafeInteger(response.data.nextBeforeId)
+      && response.data.nextBeforeId > 0 ? response.data.nextBeforeId : null
+  } catch (cause) {
+    if (seq === auditRequestSeq && auditGroup.value?.id === group.id) {
+      auditError.value = message(cause)
+      if (!more) auditRows.value = []
+    }
+  } finally {
+    if (seq === auditRequestSeq) auditLoading.value = false
   }
 }
 function setGroupEnabled(group, enabled) {
@@ -173,6 +223,10 @@ onMounted(async () => {
   finally { loaded.value = true }
   await searchGroups()
 })
+onBeforeUnmount(() => {
+  ++groupRequestSeq
+  closeGroupAudit()
+})
 </script>
 
 <template>
@@ -232,6 +286,10 @@ onMounted(async () => {
             :aria-label="'Recuperar ambiente de ' + group.name"
             @click="recoveringGroup=group">Recuperar</NcButton>
           <span v-else class="lf-admin-hint">Estado indisponível</span>
+          <NcButton v-if="group.environmentId" variant="tertiary"
+            :disabled="auditLoading"
+            :aria-label="'Ver histórico de auditoria de ' + group.name"
+            @click="openGroupAudit(group)">Auditoria</NcButton>
         </li>
       </ul>
       <NcButton v-if="groupsNextOffset!==null" variant="tertiary"
@@ -318,6 +376,32 @@ onMounted(async () => {
         <NcButton type="submit" :disabled="busy || !bindingId || !bindingGid.trim()">Vincular</NcButton>
       </form>
     </div>
+    <NcDialog :open="Boolean(auditGroup)" size="normal"
+      name="Histórico de auditoria do LibreFinance"
+      @update:open="!$event && closeGroupAudit()">
+      <div class="lf-admin-confirm">
+        <h3>Histórico do ambiente {{ auditGroup?.name }}</h3>
+        <p>Registro cronológico das ações de administração do ambiente.
+          Não contém saldos, lançamentos ou documentos financeiros.</p>
+        <NcNoteCard v-if="auditError" type="error" role="alert">{{ auditError }}</NcNoteCard>
+        <NcLoadingIcon v-if="auditLoading" :size="20" />
+        <ol v-if="auditRows.length" aria-label="Eventos de auditoria administrativa">
+          <li v-for="event in auditRows" :key="event.id">
+            <strong>{{ event.action }}</strong>
+            <p>{{ auditTimestamp(event.occurredAt) }} · Por {{ event.actorUid }}</p>
+            <p class="lf-admin-hint">{{ event.subjectType }} · {{ event.subjectId }}</p>
+          </li>
+        </ol>
+        <p v-else-if="!auditLoading && !auditError">Ainda não há eventos registrados.</p>
+        <div class="lf-admin-actions">
+          <NcButton v-if="auditNextBeforeId !== null" variant="secondary"
+            :disabled="auditLoading" @click="loadGroupAudit(true)">
+            Carregar eventos anteriores
+          </NcButton>
+          <NcButton variant="tertiary" @click="closeGroupAudit()">Fechar</NcButton>
+        </div>
+      </div>
+    </NcDialog>
     <NcDialog :open="Boolean(suspendingGroup)" size="normal"
       name="Suspender grupo do LibreFinance"
       @update:open="!$event && (suspendingGroup=null)">

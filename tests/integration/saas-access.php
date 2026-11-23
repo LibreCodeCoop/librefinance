@@ -97,6 +97,33 @@ try {
         ['enabled' => true], 200)['environment']['id'];
     saasCheck('distinct immutable SaaS identities', is_string($envA)
         && is_string($envB) && $envA !== $envB);
+    $auditPathA = '/saas/v1/admin/groups/' . $groupA . '/audit';
+    $auditPathB = '/saas/v1/admin/groups/' . $groupB . '/audit';
+    instanceCheck('instance admin reads only lifecycle audit of tenant A',
+        'GET', $auditPathA, null, 200,
+        static fn(array $r): bool => ($r['environmentId'] ?? null) === $envA
+            && ($r['events'][0]['action'] ?? null) === 'environment.enabled'
+            && ($r['events'][0]['actorUid'] ?? null) === 'synthetictestadmin'
+            && ($r['events'][0]['subjectId'] ?? null) === $groupA
+            && is_int($r['events'][0]['occurredAt'] ?? null)
+            && array_key_exists('nextBeforeId', $r)
+            && $r['nextBeforeId'] === null
+            && !array_key_exists('journal', $r['events'][0] ?? [])
+            && !array_key_exists('balanceMinor', $r['events'][0] ?? []));
+    instanceCheck('admin audit of tenant B never reveals tenant A group',
+        'GET', $auditPathB, null, 200,
+        static fn(array $r): bool => ($r['environmentId'] ?? null) === $envB
+            && count($r['events'] ?? []) === 1
+            && ($r['events'][0]['subjectId'] ?? null) === $groupB);
+    $t->check('ordinary SaaS member cannot enumerate admin lifecycle audit',
+        $a, 'GET', $auditPathA, null, 403);
+    instanceCheck('unknown group audit does not disclose other group events',
+        'GET', '/saas/v1/admin/groups/nonexistent_synthetic_gid/audit', null, 404);
+    instanceCheck('audit cursor beyond latest returns no events', 'GET',
+        $auditPathA . '?beforeId=1', null, 200,
+        static fn(array $r): bool => ($r['events'] ?? null) === []
+            && array_key_exists('nextBeforeId', $r)
+            && $r['nextBeforeId'] === null);
     instanceCheck('delegate environment A to B without finance grant', 'POST',
         '/admin/groups/' . $groupA . '/delegates', ['uid' => $b], 201);
     instanceCheck('delegate environment B to A without finance grant', 'POST',
