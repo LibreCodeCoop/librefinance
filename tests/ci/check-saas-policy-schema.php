@@ -47,7 +47,7 @@ try {
     $statement = $db->prepare('INSERT INTO ' . $table
         . ' (scope_key,scope_type,policy_key,value_json,is_cleared,revision,updated_by,updated_at)'
         . ' VALUES (?,?,?,?,?,?,?,?)');
-    $args = ['instance', 'instance', 'imports.enabled', 'true', false, 1, 'synthetic', $now];
+    $args = ['instance', 'instance', 'imports.enabled', 'true', 0, 1, 'synthetic', $now];
     $statement->execute($args);
     $db->exec('SAVEPOINT lf_policy_unique');
     try {
