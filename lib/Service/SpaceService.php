@@ -121,7 +121,21 @@ final class SpaceService {
             $row['role'] = 'owner';
         }
         unset($row);
-        return $rows;
+        // Legacy archived views must not reveal a newly bound SaaS ledger
+        // after a group, owner role or environment has been revoked.
+        $safe = [];
+        foreach ($rows as $row) {
+            $spaceId = (int)$row['id'];
+            if ($this->access->isSaasWorkspace($spaceId)) {
+                try {
+                    $this->access->requireSaasOwnerIncludingArchived($spaceId);
+                } catch (DomainException) {
+                    continue;
+                }
+            }
+            $safe[] = $row;
+        }
+        return $safe;
     }
 
     /** @return array<string,mixed> */
@@ -153,7 +167,8 @@ final class SpaceService {
             $q->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
                 ->andWhere($q->expr()->eq('archived',
                     $q->createNamedParameter(false, IQueryBuilder::PARAM_BOOL)));
-            if (!$this->governance->enabled() && $this->governance->groupFor($spaceId) === null) {
+            if ($this->access->isSaasWorkspace($spaceId)
+                || (!$this->governance->enabled() && $this->governance->groupFor($spaceId) === null)) {
                 $q->andWhere($q->expr()->eq('owner_uid',
                     $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)));
             }
@@ -199,7 +214,8 @@ final class SpaceService {
                     $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
                 ->andWhere($q->expr()->eq('archived',
                     $q->createNamedParameter(!$target, IQueryBuilder::PARAM_BOOL)));
-            if (!$this->governance->enabled() && $this->governance->groupFor($spaceId) === null) {
+            if ($this->access->isSaasWorkspace($spaceId)
+                || (!$this->governance->enabled() && $this->governance->groupFor($spaceId) === null)) {
                 $q->andWhere($q->expr()->eq('owner_uid',
                     $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)));
             }
@@ -218,16 +234,21 @@ final class SpaceService {
 
     /** @return array<string,mixed> */
     private function owned(int $spaceId): array {
-        if ($this->governance->enabled() || $this->governance->groupFor($spaceId) !== null) {
-            $this->governance->requireInstanceAdmin();
-        }
         if ($spaceId < 1) {
             throw new DomainException('space_not_found');
+        }
+        if ($this->access->isSaasWorkspace($spaceId)) {
+            // Instance administrator is not a financial owner; a workspace
+            // owner with current active environment membership is.
+            $this->access->requireSaasOwnerIncludingArchived($spaceId);
+        } elseif ($this->governance->enabled() || $this->governance->groupFor($spaceId) !== null) {
+            $this->governance->requireInstanceAdmin();
         }
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'name', 'archived', 'accent_color')->from('lf_spaces')
             ->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
-        if (!$this->governance->enabled() && $this->governance->groupFor($spaceId) === null) {
+        if ($this->access->isSaasWorkspace($spaceId)
+                || (!$this->governance->enabled() && $this->governance->groupFor($spaceId) === null)) {
             $q->andWhere($q->expr()->eq('owner_uid',
                 $q->createNamedParameter($this->access->uid(), IQueryBuilder::PARAM_STR)));
         }
@@ -239,11 +260,16 @@ final class SpaceService {
     }
 
     public function shareUser(int $spaceId, string $uid, string $role): void {
-        $this->access->requireRole($spaceId, 'manager');
+        if ($this->access->isSaasWorkspace($spaceId)) {
+            $this->access->requireFinancialCapability($spaceId, 'roles.manage');
+        } else {
+            $this->access->requireRole($spaceId, 'manager');
+        }
         AccessService::validateGrantRole($role);
         $uid = trim($uid);
         $this->governance->checkUserGrant($spaceId, $uid);
-        if ($this->governance->groupFor($spaceId) !== null
+        if (!$this->access->isSaasWorkspace($spaceId)
+            && $this->governance->groupFor($spaceId) !== null
             && $role === 'manager' && !$this->governance->isInstanceAdmin()) {
             throw new DomainException('permission_denied');
         }
@@ -278,6 +304,9 @@ final class SpaceService {
 
     public function shareGroup(int $spaceId, string $gid, string $role): void {
         $this->access->requireRole($spaceId, 'manager');
+        if ($this->access->isSaasWorkspace($spaceId)) {
+            throw new DomainException('permission_denied');
+        }
         AccessService::validateGrantRole($role);
         $gid = trim($gid);
         $this->governance->checkGroupGrant($spaceId, $gid);
@@ -305,7 +334,11 @@ final class SpaceService {
     }
 
     public function revokeUser(int $spaceId, string $uid): void {
-        $this->access->requireRole($spaceId, 'manager');
+        if ($this->access->isSaasWorkspace($spaceId)) {
+            $this->access->requireFinancialCapability($spaceId, 'roles.manage');
+        } else {
+            $this->access->requireRole($spaceId, 'manager');
+        }
         $this->governance->checkUserGrant($spaceId, $uid);
         $this->db->beginTransaction();
         try {
@@ -335,6 +368,9 @@ final class SpaceService {
 
     public function revokeGroup(int $spaceId, string $gid): void {
         $this->access->requireRole($spaceId, 'manager');
+        if ($this->access->isSaasWorkspace($spaceId)) {
+            throw new DomainException('permission_denied');
+        }
         $this->governance->checkGroupGrant($spaceId, $gid);
         if ($this->governance->groupFor($spaceId) === $gid) {
             throw new DomainException('permission_denied');
@@ -364,7 +400,11 @@ final class SpaceService {
 
     /** @return array<int, array<string, mixed>> */
     public function members(int $spaceId): array {
-        $this->access->requireRole($spaceId, 'manager');
+        if ($this->access->isSaasWorkspace($spaceId)) {
+            $this->access->requireFinancialCapability($spaceId, 'roles.read');
+        } else {
+            $this->access->requireRole($spaceId, 'manager');
+        }
         $qb = $this->db->getQueryBuilder();
         $qb->select('uid', 'role')->from('lf_members')
             ->where($qb->expr()->eq('space_id', $qb->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
@@ -379,6 +419,10 @@ final class SpaceService {
 
     /** @return array<int, array<string, mixed>> */
     public function groupGrants(int $spaceId): array {
+        if ($this->access->isSaasWorkspace($spaceId)) {
+            $this->access->requireFinancialCapability($spaceId, 'roles.read');
+            return []; // Group membership never conveys financial grants in SaaS.
+        }
         $this->access->requireRole($spaceId, 'manager');
         $qb = $this->db->getQueryBuilder();
         $qb->select('group_gid', 'role')->from('lf_group_grants')

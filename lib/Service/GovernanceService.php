@@ -93,8 +93,14 @@ final class GovernanceService {
     public function contexts(): array {
         $this->requireInstanceAdmin();
         $q = $this->db->getQueryBuilder();
-        $q->select('id', 'name', 'kind', 'governance_gid', 'archived')
-            ->from('lf_spaces')->orderBy('id', 'ASC');
+        // Instance admins may enumerate legacy governance contexts, not
+        // newly isolated SaaS books. SaaS workspace metadata is managed by
+        // the qualified environment admin through a separate authorization.
+        $q->select('s.id', 's.name', 's.kind', 's.governance_gid', 's.archived')
+            ->from('lf_spaces', 's')
+            ->leftJoin('s', 'lf_environment_spaces', 'es', 'es.space_id = s.id')
+            ->where($q->expr()->isNull('es.space_id'))
+            ->orderBy('s.id', 'ASC');
         $rows = $q->executeQuery()->fetchAllAssociative();
         return array_map(static fn(array $r): array => [
             'id' => (int)$r['id'], 'name' => $r['name'], 'kind' => $r['kind'],
@@ -114,6 +120,15 @@ final class GovernanceService {
                 ->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
             $row = $q->executeQuery()->fetchAssociative();
             if (!$row) throw new DomainException('space_not_found');
+            // Never convert a SaaS ledger into a legacy group-granted book:
+            // bind() previously inserted a default viewer grant for everyone.
+            $saas = $this->db->getQueryBuilder();
+            $saas->select('id')->from('lf_environment_spaces')
+                ->where($saas->expr()->eq('space_id',
+                    $saas->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
+            if ($saas->executeQuery()->fetchOne() !== false) {
+                throw new DomainException('permission_denied');
+            }
             if ($row['governance_gid'] !== null && $row['governance_gid'] !== $gid) {
                 throw new DomainException('governance_group_conflict');
             }
