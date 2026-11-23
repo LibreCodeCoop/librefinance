@@ -44,23 +44,25 @@ export async function login(page) {
 export async function goToView(page, view) {
   const nav = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
   await expect(nav).toBeVisible()
-  if (['A pagar e receber', 'Bancos e caixa', 'Faturas'].includes(view)) {
-    await nav.getByRole('link', { name: 'Financeiro', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Financeiro', exact: true })).toBeVisible()
-    if (view !== 'A pagar e receber') {
-      await page.getByRole('button', { name: 'Consultar', exact: true }).click()
-      const option = view === 'Faturas' ? 'Documentos comerciais' : 'Histórico de extratos'
-      await page.getByRole('group', { name: 'Consultar registros financeiros' })
-        .getByRole('button', { name: option, exact: true }).click()
-      await expect(page).toHaveURL(new RegExp('[?&]view=' + (view === 'Faturas' ? 'documents' : 'banking')))
-    }
-    return
+  // Old test vocabulary follows the same safe, task-specific navigation.
+  const aliases = {
+    'Resumo financeiro': 'A pagar e receber',
+    'Contas a pagar': 'A pagar e receber',
+    'Contas a receber': 'A pagar e receber',
+    'Bancos e caixa': 'Extratos e conciliação',
+    'Bancos e extratos': 'Extratos e conciliação',
+    'Faturas': 'Vendas',
+    'Entradas e saídas': 'Lançamentos contábeis',
   }
+  view = aliases[view] || view
   if (view === 'Migração de dados') {
     await goToView(page, 'Dados e migração')
     return
   }
   const parent = ({
+    'A pagar e receber':'Financeiro', 'Vendas':'Financeiro',
+    'Compras':'Financeiro', 'Contas bancárias e caixa':'Financeiro',
+    'Extratos e conciliação':'Financeiro',
     'Regras tributárias': 'Gerenciar',
     'NFS-e Brasil': 'Gerenciar',
     'Plano de contas': 'Gerenciar',
@@ -98,7 +100,8 @@ export async function goToView(page, view) {
       'Produtos e serviços':'Cadastros', 'Categorias':'Cadastros',
       'Dados da organização':'Gestões e identidade', 'Organizações (opcional)':'Gestões e identidade',
       'Gestões financeiras':'Gestões e identidade',
-      'Plano de contas':'Financeiro e fiscal', 'Lançamentos contábeis':'Financeiro e fiscal',
+      'Plano de contas':'Financeiro e fiscal',
+      'Lançamentos contábeis':'Financeiro e fiscal',
       'Formas de pagamento':'Financeiro e fiscal',
       'Regras tributárias':'Financeiro e fiscal','NFS-e Brasil':'Financeiro e fiscal',
       'Acessos e compartilhamento':'Equipe e personalização',
@@ -152,13 +155,36 @@ export async function makeSpace(page, kind = 'organization') {
 }
 
 
-/** The finance workbench has one creation menu regardless of active panel. */
+/** A single pay/receive form chooses direction; sales and purchases are separate. */
 export async function openFinanceAction(page, action) {
-  const create = page.getByRole('button', { name: 'Novo', exact: true })
+  if (['Conta a pagar', 'Cobrança a receber'].includes(action)) {
+    await goToView(page, 'A pagar e receber')
+    const create=page.getByRole('button',{name:'Nova conta ou cobrança',exact:true})
+    await expect(create).toBeVisible()
+    await create.click()
+    const editor=page.getByRole('dialog',{name:'Nova conta ou cobrança'})
+    await expect(editor).toBeVisible()
+    await editor.getByRole('button',{
+      name:action==='Conta a pagar'?/Vou pagar/:/Vou receber/,
+    }).click()
+    return
+  }
+  if (['Despesa já paga','Receita já recebida'].includes(action)) {
+    await goToView(page,'A pagar e receber')
+    await page.getByRole('button',{name:'Dinheiro já entrou ou saiu'}).click()
+    const editor=page.getByRole('dialog',{name:'Registrar entrada ou saída'})
+    await expect(editor).toBeVisible()
+    if (action==='Receita já recebida')
+      await editor.getByRole('button',{name:/Receita Dinheiro entrou/}).click()
+    return
+  }
+  const target={
+    'Fatura de venda':['Vendas','Nova venda'],
+    'Fatura de compra':['Compras','Nova compra'],
+  }[action]
+  if (!target) throw new Error('Unsupported finance action in test: '+action)
+  await goToView(page,target[0])
+  const create=page.getByRole('button',{name:target[1],exact:true})
   await expect(create).toBeVisible()
   await create.click()
-  const option = page.getByRole('group', { name: 'Registrar no Financeiro' })
-    .getByRole('button', { name: action, exact: true })
-  await expect(option).toBeVisible()
-  await option.click()
 }
