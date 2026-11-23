@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 - Status: proposed contract for issue #12; **not implemented**
 - Date: 2026-11-23
-- Supersedes: only the managed-SaaS assumptions in GOV-ERNANCE-API.md; current APIs remain as documented until implementation
+- Supersedes: only the managed-SaaS assumptions in `docs/GOVERNANCE-API.md`; current APIs remain as documented until implementation
 - Target: Nextcloud 36 dev, PHP >=8.3, one native LibreFinance app
 - Implementation gates: #13 persistence, #14 policies, #15 administration, #16 financial permissions
 
