@@ -218,7 +218,7 @@ else
     }
   ' | tr -d '\r')"
 fi
-test "$count" -eq 26
+test "$count" -eq 28
 
 # Imported provenance tables use the lfm_ physical prefix, not lf_.
 # Verify the three durable origin tables independently in every engine.
@@ -243,7 +243,7 @@ echo "PASS: Three core-owned source identity/audit/balance-snapshot import table
 
 http_status="$(compose exec -T nextcloud curl -sS --max-time 12 -o /dev/null -w '%{http_code}' http://127.0.0.1/status.php)"
 test "$http_status" = 200
-echo "PASS: Nextcloud Server master install, LibreFinance activation, twenty-six core tables and HTTP 200."
+echo "PASS: Nextcloud Server master install, LibreFinance activation, twenty-eight core tables and HTTP 200."
 
 # Real two-user authorization, accounting and concurrency checks on this exact master checkout.
 for test_user in lfmaintestA lfmaintestB; do
