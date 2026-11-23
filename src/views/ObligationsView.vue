@@ -158,14 +158,18 @@ const contactChoices=computed(()=>[
   ...contacts.value.map(c=>({value:c.id,label:c.name})),
 ])
 const outstanding=row=>Number(row.amount_minor)-Number(row.paid_minor)
-const overdue=row=>['open','partial'].includes(row.status)&&row.due_on<today
+const overdue=row=>['open','partial'].includes(row.status)&&row.due_on<new Date().toLocaleDateString('sv-SE')
+// Keep the calendar anchor stable for keyset continuation, even if the user
+// crosses midnight while paging through the currently filtered records.
+const referenceDate=ref(new Date().toLocaleDateString('sv-SE'))
 let generation=0
 async function load() {
   const token=++generation
+  referenceDate.value=new Date().toLocaleDateString('sv-SE')
   loading.value=true;error.value=''
   try{
     const data=await financeApi('librefinance_obligations',activeId.value,
-      '/obligations?kind='+kindFilter.value+'&status='+filter.value+'&dueRange='+dueRange.value
+      '/obligations?kind='+kindFilter.value+'&status='+filter.value+'&dueRange='+dueRange.value+'&referenceDate='+referenceDate.value
         +'&search='+encodeURIComponent(searchTerm.value)
         +'&sortBy='+sortBy.value+'&sortDirection='+sortDirection.value)
     if(token!==generation)return
@@ -182,7 +186,7 @@ async function more() {
   try{
     const data=await financeApi('librefinance_obligations',activeId.value,
       '/obligations?kind='+kindFilter.value+'&status='+filter.value
-        +'&dueRange='+dueRange.value+'&search='+encodeURIComponent(searchTerm.value)
+        +'&dueRange='+dueRange.value+'&referenceDate='+referenceDate.value+'&search='+encodeURIComponent(searchTerm.value)
         +'&sortBy='+sortBy.value+'&sortDirection='+sortDirection.value
         +'&afterId='+next.value)
     if(token!==generation)return

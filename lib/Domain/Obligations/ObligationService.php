@@ -26,7 +26,8 @@ final class ObligationService {
     /** @return array<string,mixed> */
     public function list(int $spaceId, int $afterId = 0, string $status = 'all',
         string $kind = 'all', string $dueRange = 'all', string $search = '',
-        string $sortBy = 'id', string $sortDirection = 'asc'): array {
+        string $sortBy = 'id', string $sortDirection = 'asc',
+        string $referenceDate = ''): array {
         $this->finance->requireModule($spaceId, self::MODULE);
         if ($afterId < 0) {
             throw new DomainException('invalid_cursor');
@@ -110,8 +111,23 @@ final class ObligationService {
         if ($dueRange !== 'all') {
             $q->andWhere($q->expr()->in('status', $q->createNamedParameter(
                 ['open', 'partial'], IQueryBuilder::PARAM_STR_ARRAY)));
+            // Browser-local calendar dates can differ by one day from UTC
+            // around midnight. This bounded hint only controls read filters,
+            // never amounts, due dates or audit/posting timestamps.
             $today = (new \DateTimeImmutable('today', new \DateTimeZone('UTC')))
                 ->format('Y-m-d');
+            if ($referenceDate !== '') {
+                if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/D', $referenceDate, $parts)
+                    || !checkdate((int)$parts[2], (int)$parts[3], (int)$parts[1])) {
+                    throw new DomainException('invalid_reference_date');
+                }
+                $utcDay = new \DateTimeImmutable($today, new \DateTimeZone('UTC'));
+                $userDay = new \DateTimeImmutable($referenceDate, new \DateTimeZone('UTC'));
+                if ($utcDay->diff($userDay)->days > 1) {
+                    throw new DomainException('invalid_reference_date');
+                }
+                $today = $referenceDate;
+            }
             if ($dueRange === 'overdue') {
                 $q->andWhere($q->expr()->lt('due_on', $q->createNamedParameter($today)));
             } else {
