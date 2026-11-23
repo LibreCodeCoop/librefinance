@@ -8,7 +8,9 @@
     "dev": "vite build --watch",
     "test": "node --test tests/frontend/*.test.mjs",
     "test:e2e": "playwright test",
-    "test:openapi": "node tests/openapi/validate.mjs"
+    "test:openapi": "node tests/openapi/validate.mjs",
+    "generate:openapi": "php tests/openapi/generate.php",
+    "check:openapi": "php tests/openapi/generate.php --check"
   },
   "dependencies": {
     "@mdi/js": "7.4.47",

@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 A API nativa usa atributos `#[FrontpageRoute]` nos métodos dos controllers
 PHP do núcleo e dos seis aplicativos opcionais. Não existe arquivo
 `appinfo/routes.php`: o controller define a rota. A especificação
-[openapi.json](openapi.json) é gerada a partir dos atributos reais e dos
+[openapi.json](../openapi.json) é gerada a partir dos atributos reais e dos
 contratos JSON declarados; o gerador falha diante de um formato não
 reconhecido, em vez de omitir silenciosamente uma operação.
 
@@ -23,22 +23,29 @@ reconhecido, em vez de omitir silenciosamente uma operação.
   enumeração. Erros de estado/duplicação usam 409 e validações de negócio 422.
 - Operações `POST`, `PUT` e `DELETE` não aceitam ignorar CSRF na
   interface. Não instale outros provedores de autenticação por conta própria.
-- A documentação cobre **91 operações** e **66 caminhos HTTP** na revisão
+- A documentação cobre as operações extraídas diretamente dos controllers na revisão
   atual; cada PR deve verificar contagem e diferença real de rotas.
 
 ### Gerar e validar
 
-No diretório do núcleo, mantendo os outros seis projetos adjacentes em
-`../librefinance_*`:
+No diretório do núcleo, sem exigir aplicativos opcionais:
 
 ```sh
-php tests/openapi/generate.php
-php tests/openapi/generate.php --check
+composer openapi
+composer openapi:check
 npm ci --include=dev
 npm run test:openapi
 ```
 
 O segundo comando falha quando uma mudança de rota torna o JSON obsoleto.
+O arquivo gerado e versionado fica em `openapi.json` na raiz do
+aplicativo, como esperado pelo OCS API Viewer. A instalação Nextcloud recebe
+o arquivo pronto; não há geração no runtime nem escrita no diretório do app.
+O CI gera/valida a especificação durante o desenvolvimento e rejeita
+alterações de controllers sem atualização da especificação.
+As extensões opcionais mantêm especificações próprias em seus repositórios.
+Quando o código NFS-e está disponível, a opção `--check-extensions`
+verifica os contratos agregados sem incorporá-los ao OpenAPI do núcleo.
 O gerador também rejeita novas rotas mutáveis não declaradas na tabela de
 contratos. O terceiro valida OpenAPI 3.1 via biblioteca Swagger Parser e
 verifica segurança, parâmetros, consentimento IA e leitura MCP.

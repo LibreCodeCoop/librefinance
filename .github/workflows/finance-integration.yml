@@ -29,12 +29,18 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Install PHP for native OpenAPI generation
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2.40.0
+        with:
+          php-version: '8.3'
+          coverage: none
       - run: npm ci --include=dev
       - run: npm test
+      - run: php tests/openapi/generate.php --check
       - run: npm run test:openapi
       - run: npm run build
       - name: Assert production assets are synchronized
-        run: git diff --exit-code -- js/main.js css/main.css js/main.js.license
+        run: git diff --exit-code -- js/main.js css/main.css js/main.js.license openapi.json
 
   integrated:
     name: Installed Nextcloud + NFS-e draft app / ${{ matrix.database }}

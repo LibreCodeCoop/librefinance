@@ -156,12 +156,25 @@ $CONFIG["apps_paths"] = [
 ];
 file_put_contents("/var/www/html/config/config.php", "<?php\n\$CONFIG = " . var_export($CONFIG, true) . ";\n");
 '
+# The spec must be distributed at the installed app root for API Viewer.
+compose exec -T nextcloud php -r '
+$path = "/var/www/html/custom_apps/librefinance/openapi.json";
+$spec = json_decode((string)@file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
+if (!is_array($spec) || ($spec["openapi"] ?? "") !== "3.1.0"
+    || empty($spec["paths"])
+    || count(array_filter(array_keys($spec["paths"]),
+        static fn(string $route): bool => !str_starts_with($route, "/librefinance/api/"))) > 0) {
+    throw new RuntimeException("Invalid application-root OpenAPI artifact");
+}
+echo "PASS: installed application-root OpenAPI is discoverable and valid\n";
+'
 compose exec -T --user www-data nextcloud php occ app:enable librefinance
 compose exec -T nextcloud php /var/www/html/custom_apps/librefinance/tests/import/source-system.php
 if [ "$LF_WITH_EXTENSIONS" = 1 ]; then
   compose exec -T --user www-data nextcloud php occ app:enable librefinance_nfse
   # Source-backed OpenAPI gate across core + all separately installed apps.
   compose exec -T nextcloud php /var/www/html/custom_apps/librefinance/tests/openapi/generate.php --check
+  compose exec -T nextcloud php /var/www/html/custom_apps/librefinance/tests/openapi/generate.php --check-extensions
 fi
 # Nextcloud may detect newer appinfo versions after installation; complete
 # schema/version migrations before browser access instead of exposing the
