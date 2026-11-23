@@ -92,6 +92,9 @@ try {
         static fn(array $r): bool =>
             ($r['environment']['state'] ?? null) === 'enabled_pending_admin'
             && ($r['environment']['canManage'] ?? null) === false);
+    $t->check('unknown active-governance environment has 404 without enumeration', $b,
+        'POST', '/saas/v1/environments/123e4567-e89b-42d3-a456-426614174000/provision',
+        null, 404);
     $id = (string)$first['environment']['id'];
     syntheticCheck('tenant has an opaque UUID', preg_match(
         '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id) === 1);

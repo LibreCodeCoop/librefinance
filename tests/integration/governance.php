@@ -45,9 +45,9 @@ $t->check('ordinary user cannot enable a Nextcloud group as a SaaS tenant', $a,
 $t->check('ordinary user cannot suspend a Nextcloud SaaS group', $b,
     'PUT', '/saas/v1/admin/groups/lf_synth_finance_group/enablement',
     ['enabled' => false], 403);
-$t->check('unknown SaaS tenant UUID is not enumerable', $a,
+$t->check('disabled SaaS governance denies tenant activation before lookup', $a,
     'POST', '/saas/v1/environments/123e4567-e89b-42d3-a456-426614174000/provision',
-    null, 404);
+    null, 403);
 
 // Creation in managed mode is covered by a separate disposable admin fixture:
 // it must not toggle shared state in the integration suite.
