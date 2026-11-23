@@ -594,6 +594,21 @@
       "path": "/apps/librefinance/api/saas/v1/admin/policies/{policyKey}",
       "request": "DELETE",
       "route": "librefinance.saaspolicy.clear"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/environments",
+      "request": "GET",
+      "route": "librefinance.environment.index"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/admin/groups/{gid}/enablement",
+      "request": "PUT",
+      "route": "librefinance.environment.enable"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/provision",
+      "request": "POST",
+      "route": "librefinance.environment.provision"
     }
   ],
   "librefinance_nfse": [

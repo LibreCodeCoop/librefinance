@@ -183,6 +183,9 @@ compose exec -T --user www-data nextcloud php occ upgrade
 # Portable SaaS policy schema verified in disposable databases only.
 compose exec -T -e LF_SYNTHETIC_SAAS_POLICY_SCHEMA=yes nextcloud php \
   /var/www/html/custom_apps/librefinance/tests/ci/check-saas-policy-schema.php
+# Separate SaaS environment schema: no speculative legacy backfill.
+compose exec -T -e LF_SYNTHETIC_SAAS_SCHEMA_CHECK=yes nextcloud php \
+  /var/www/html/custom_apps/librefinance/tests/ci/check-saas-schema.php
 # Assert the exact core and optional external route contracts against Nextcloud's real route resolver;
 # linting attributes or checking only one successful URL is insufficient.
 route_apps=(librefinance)
@@ -209,7 +212,7 @@ else
     }
   ' | tr -d '\r')"
 fi
-test "$count" -eq 20
+test "$count" -eq 24
 
 # Imported provenance tables use the lfm_ physical prefix, not lf_.
 # Verify the three durable origin tables independently in every engine.
@@ -234,7 +237,7 @@ echo "PASS: Three core-owned source identity/audit/balance-snapshot import table
 
 http_status="$(compose exec -T nextcloud curl -sS --max-time 12 -o /dev/null -w '%{http_code}' http://127.0.0.1/status.php)"
 test "$http_status" = 200
-echo "PASS: Nextcloud Server master install, LibreFinance activation, twenty core tables and HTTP 200."
+echo "PASS: Nextcloud Server master install, LibreFinance activation, twenty-four core tables and HTTP 200."
 
 # Real two-user authorization, accounting and concurrency checks on this exact master checkout.
 for test_user in lfmaintestA lfmaintestB; do
@@ -300,6 +303,21 @@ grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$policy_runtime_output" || {
   echo 'FAIL: policy persistence and admin authorization assertions did not complete' >&2
   exit 1
 }
+
+# This is a disposable CI lab only. Exercise the real instance-admin -> group
+# delegation -> concurrent provisioning -> revocation lifecycle, then restore
+# the initial instance governance toggle. No live data or identities.
+saas_output="$(compose exec -T -e LF_SYNTHETIC_SAAS_LIFECYCLE=yes \
+  -e LF_TEST_ADMIN_PASSWORD="$LF_TEST_ADMIN_PASSWORD" \
+  -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
+  -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
+  php /var/www/html/custom_apps/librefinance/tests/integration/saas-lifecycle.php)"
+printf '%s\n' "$saas_output"
+grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$saas_output" || {
+  echo 'FAIL: SaaS admin lifecycle assertions did not complete' >&2
+  exit 1
+}
+
 
 if [ "${LF_RUN_BEHAT:-1}" = 1 ]; then
   test -x tests/behat/vendor/bin/behat || {

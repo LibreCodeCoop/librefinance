@@ -37,6 +37,7 @@ $writeForms = [
      'librefinance:space#create' => 'name:s!,kind:s!,currency:s!,color:s',
      'librefinance:space#rename' => 'name:s!,color:s',
     'librefinance:saasPolicy#write' => 'valueJson:s!,expectedRevision:i!',
+    'librefinance:environment#enable' => 'enabled:b!',
     'librefinance:governance#configure' => 'managed:b!',
     'librefinance:governance#provision' => 'name:s!,kind:s!,gid:s!,currency:s',
     'librefinance:governance#bind' => 'gid:s!',
@@ -98,6 +99,7 @@ $writeForms = [
     'librefinance:inventory#preview' => 'inventoryJson:s!',
 ];
 $noBody = [
+    'librefinance:environment#provision',
     'librefinance:governance#archive',
     'librefinance:governance#restore',
     'librefinance:space#archive',
@@ -142,6 +144,9 @@ $query = [
     'librefinance_nfse:draft#index' => 'afterId:i',
 ];
 $descriptions = [
+    'librefinance:environment#index' => 'Authenticated group member may discover eligible environments only, without finance data.',
+    'librefinance:environment#enable' => 'Instance admin only. Enable or suspend an individual Nextcloud group without granting ledger rights.',
+    'librefinance:environment#provision' => 'Qualified current group admin or delegate only. Idempotently activate an existing enabled SaaS environment.',
     'librefinance:saasPolicy#index' => 'Instance admin only. List typed policy definitions and effective instance values; never an access grant.',
     'librefinance:saasPolicy#read' => 'Instance admin only. Read source and revision of one typed policy.',
     'librefinance:saasPolicy#write' => 'Instance admin only. Compare-and-set an instance policy using canonical JSON string, typed backend validation and audit.',

@@ -1,0 +1,296 @@
+<?php
+/**
+ * SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+ * SPDX-License-Identifier: AGPL-3.0-or-later
+ */
+declare(strict_types=1);
+
+namespace OCA\LibreFinance\Service;
+
+use DomainException;
+use OCP\DB\Exception as DatabaseException;
+use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\IDBConnection;
+use OCP\IGroupManager;
+use OCP\IUserSession;
+
+/**
+ * SaaS environment lifecycle deliberately excludes financial-space grants.
+ *
+ * An instance administrator enables a Nextcloud group and allocates its
+ * durable tenant identity; a qualified subadmin/delegate activates the
+ * environment. Neither action creates or exposes a ledger.
+ */
+final class EnvironmentService {
+    public function __construct(
+        private IDBConnection $db,
+        private WriteService $write,
+        private GovernanceService $governance,
+        private IGroupManager $groups,
+        private IUserSession $session,
+    ) {}
+
+    /** @return array{id:string,name:string,state:string,canManage:bool} */
+    public function enableGroup(string $gid): array {
+        $this->governance->requireInstanceAdmin();
+        if (!$this->governance->enabled()) {
+            throw new DomainException('governance_disabled');
+        }
+        $this->governance->requireGroup($gid);
+        $existing = $this->lookupByGroup($gid);
+        if ($existing !== null) {
+            if ($existing['state'] === 'suspended') {
+                // Never automatically reactivate a suspended identity.
+                throw new DomainException('environment_suspended');
+            }
+            return $this->publicRow($existing, false);
+        }
+
+        $now = time();
+        $uuid = self::uuid();
+        $this->db->beginTransaction();
+        try {
+            $this->write->insert('lf_environments', [
+                'public_id' => $uuid,
+                'name' => (string)$this->groups->get($gid)?->getDisplayName(),
+                'status' => 'enabled_pending_admin',
+                'revision' => 1,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $environmentId = (int)$this->db->lastInsertId('*PREFIX*lf_environments');
+            $this->write->insert('lf_environment_groups', [
+                'environment_id' => $environmentId,
+                'group_gid' => $gid,
+                'state' => 'enabled_pending_admin',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            $this->audit($environmentId, 'environment.enabled', 'nextcloud_group', $gid);
+            $this->db->commit();
+        } catch (DatabaseException $e) {
+            $this->db->rollBack();
+            if ($e->getReason() !== DatabaseException::REASON_UNIQUE_CONSTRAINT_VIOLATION) {
+                throw $e;
+            }
+            // A simultaneous request for the same GID is an expected race;
+            // a UUID collision or unrelated unique conflict is not.
+            $existing = $this->lookupByGroup($gid);
+            if ($existing === null) {
+                throw $e;
+            }
+            return $this->publicRow($existing, false);
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+        return $this->publicRow($this->requireByPublicId($uuid), false);
+    }
+
+    /** @return array{id:string,name:string,state:string,canManage:bool} */
+    public function activate(string $publicId): array {
+        if (!$this->governance->enabled()) {
+            throw new DomainException('governance_disabled');
+        }
+        $row = $this->requireByPublicId($publicId);
+        $gid = $row['group_gid'];
+        // A Nextcloud instance admin never implicitly becomes a financial
+        // environment operator or a qualified group subadministrator.
+        if (!$this->governance->isDelegatedManager($gid)) {
+            throw new DomainException('environment_not_found');
+        }
+        if ($row['state'] === 'suspended') {
+            throw new DomainException('environment_suspended');
+        }
+        if ($row['state'] === 'active') {
+            return $this->publicRow($row, true);
+        }
+        if ($row['state'] !== 'enabled_pending_admin') {
+            throw new DomainException('invalid_state_transition');
+        }
+        $now = time();
+        $this->db->beginTransaction();
+        try {
+            $q = $this->db->getQueryBuilder();
+            $changed = $q->update('lf_environment_groups')
+                ->set('state', $q->createNamedParameter('active'))
+                ->set('updated_at', $q->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+                ->where($q->expr()->eq('environment_id',
+                    $q->createNamedParameter((int)$row['id'], IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('state',
+                    $q->createNamedParameter('enabled_pending_admin')))
+                ->executeStatement();
+            if ($changed === 1) {
+                $q = $this->db->getQueryBuilder();
+                $updated = $q->update('lf_environments')
+                    ->set('status', $q->createNamedParameter('active'))
+                    ->set('updated_at', $q->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+                    ->where($q->expr()->eq('id',
+                        $q->createNamedParameter((int)$row['id'], IQueryBuilder::PARAM_INT)))
+                    ->andWhere($q->expr()->eq('status',
+                        $q->createNamedParameter('enabled_pending_admin')))
+                    ->executeStatement();
+                if ($updated !== 1) {
+                    throw new DomainException('concurrent_change');
+                }
+                $this->audit((int)$row['id'], 'environment.activated', 'nextcloud_group', $gid);
+            }
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+        $fresh = $this->requireByPublicId($publicId);
+        if ($fresh['state'] !== 'active') {
+            throw new DomainException('concurrent_change');
+        }
+        return $this->publicRow($fresh, true);
+    }
+
+    /** @return array{id:string,name:string,state:string,canManage:bool} */
+    public function suspendGroup(string $gid): array {
+        $this->governance->requireInstanceAdmin();
+        if (!$this->governance->enabled()) {
+            throw new DomainException('governance_disabled');
+        }
+        $row = $this->lookupByGroup($gid);
+        if ($row === null) {
+            throw new DomainException('environment_not_found');
+        }
+        if ($row['state'] === 'suspended') {
+            return $this->publicRow($row, false);
+        }
+        $now = time();
+        $this->db->beginTransaction();
+        try {
+            $q = $this->db->getQueryBuilder();
+            $changed = $q->update('lf_environment_groups')
+                ->set('state', $q->createNamedParameter('suspended'))
+                ->set('updated_at', $q->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+                ->where($q->expr()->eq('environment_id',
+                    $q->createNamedParameter((int)$row['id'], IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('state',
+                    $q->createNamedParameter((string)$row['state'])))
+                ->executeStatement();
+            if ($changed !== 1) {
+                throw new DomainException('concurrent_change');
+            }
+            $q = $this->db->getQueryBuilder();
+            $q->update('lf_environments')
+                ->set('status', $q->createNamedParameter('suspended'))
+                ->set('updated_at', $q->createNamedParameter($now, IQueryBuilder::PARAM_INT))
+                ->where($q->expr()->eq('id',
+                    $q->createNamedParameter((int)$row['id'], IQueryBuilder::PARAM_INT)))
+                ->executeStatement();
+            $this->audit((int)$row['id'], 'environment.suspended', 'nextcloud_group', $gid);
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+        return $this->publicRow($this->lookupByGroup($gid) ?? throw new DomainException('environment_not_found'), false);
+    }
+
+    /**
+     * Discovery never includes balances, companies, workspace or grants.
+     * One multi-group user sees separate environments, never an ACL union.
+     *
+     * @return list<array{id:string,name:string,state:string,canManage:bool}>
+     */
+    public function discover(): array {
+        $user = $this->session->getUser();
+        if ($user === null) {
+            throw new DomainException('authentication_required');
+        }
+        $groupIds = array_unique(array_merge(
+            $this->groups->getUserGroupIds($user),
+            $this->governance->delegatedGroups(),
+        ));
+        if ($groupIds === []) {
+            return [];
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('e.id', 'e.public_id', 'e.name', 'e.status', 'g.group_gid', 'g.state')
+            ->from('lf_environment_groups', 'g')
+            ->innerJoin('g', 'lf_environments', 'e', 'e.id = g.environment_id')
+            ->where($q->expr()->in('g.group_gid',
+                $q->createNamedParameter($groupIds, IQueryBuilder::PARAM_STR_ARRAY)))
+            ->orderBy('e.id', 'ASC');
+        $items = [];
+        foreach ($q->executeQuery()->fetchAllAssociative() as $row) {
+            if ($this->groups->get((string)$row['group_gid']) === null) {
+                continue;
+            }
+            $items[] = $this->publicRow($row,
+                $this->governance->isDelegatedManager((string)$row['group_gid']));
+        }
+        return $items;
+    }
+
+    /** @return array<string,mixed>|null */
+    private function lookupByGroup(string $gid): ?array {
+        $q = $this->db->getQueryBuilder();
+        $q->select('e.id', 'e.public_id', 'e.name', 'e.status', 'g.group_gid', 'g.state')
+            ->from('lf_environment_groups', 'g')
+            ->innerJoin('g', 'lf_environments', 'e', 'e.id = g.environment_id')
+            ->where($q->expr()->eq('g.group_gid',
+                $q->createNamedParameter($gid, IQueryBuilder::PARAM_STR)));
+        $row = $q->executeQuery()->fetchAssociative();
+        return $row === false ? null : $row;
+    }
+
+    /** @return array<string,mixed> */
+    private function requireByPublicId(string $publicId): array {
+        if (preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D',
+                $publicId) !== 1) {
+            throw new DomainException('environment_not_found');
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('e.id', 'e.public_id', 'e.name', 'e.status', 'g.group_gid', 'g.state')
+            ->from('lf_environment_groups', 'g')
+            ->innerJoin('g', 'lf_environments', 'e', 'e.id = g.environment_id')
+            ->where($q->expr()->eq('e.public_id',
+                $q->createNamedParameter($publicId, IQueryBuilder::PARAM_STR)));
+        $row = $q->executeQuery()->fetchAssociative();
+        if ($row === false || $this->groups->get((string)$row['group_gid']) === null) {
+            throw new DomainException('environment_not_found');
+        }
+        return $row;
+    }
+
+    /** @param array<string,mixed> $row
+     *  @return array{id:string,name:string,state:string,canManage:bool}
+     */
+    private function publicRow(array $row, bool $canManage): array {
+        return [
+            'id' => (string)$row['public_id'],
+            'name' => (string)$row['name'],
+            'state' => (string)$row['state'],
+            'canManage' => $canManage,
+        ];
+    }
+
+    private static function uuid(): string {
+        $bytes = random_bytes(16);
+        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
+        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
+        $hex = bin2hex($bytes);
+        return substr($hex, 0, 8) . '-' . substr($hex, 8, 4) . '-'
+            . substr($hex, 12, 4) . '-' . substr($hex, 16, 4) . '-' . substr($hex, 20, 12);
+    }
+
+    private function audit(int $environmentId, string $action, string $subjectType, string $subjectId): void {
+        $uid = $this->session->getUser()?->getUID();
+        if ($uid === null) {
+            throw new DomainException('authentication_required');
+        }
+        $this->write->insert('lf_environment_audit', [
+            'environment_id' => $environmentId,
+            'actor_uid' => $uid,
+            'action' => $action,
+            'subject_type' => $subjectType,
+            'subject_id' => $subjectId,
+            'occurred_at' => time(),
+        ]);
+    }
+}
