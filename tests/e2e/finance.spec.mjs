@@ -17,6 +17,9 @@ test('Nextcloud official navigation and dashboard load without iframe', async ({
 
 test('eligible group shows suspended SaaS environment without financial grants', async ({ page }) => {
   await login(page)
+  // Fresh installs hide management until a first personal book exists.
+  // Create a real synthetic book; never fake Nextcloud navigation.
+  await makeSpace(page, 'personal')
   await goToView(page, 'Gestões financeiras')
   await expect(page.getByRole('heading', { name: 'Ambientes LibreFinance' })).toBeVisible()
   const group = page.getByRole('list', { name: 'Ambientes SaaS disponíveis' })
