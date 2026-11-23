@@ -26,7 +26,11 @@ async function load() {
     const response = await financeApi('librefinance', Number(w.activeId.value),
       '/custom-fields/' + encodeURIComponent(props.entityKind))
     if (token !== generation) return
-    fields.value = response.fields.filter(field => field.visible && field.active)
+    // Field values are loaded through the role-scoped entity API. Managers
+    // also edit internal metadata; members never receive fields not allowed
+    // to them by the service.
+    fields.value = response.fields.filter(field => field.active
+      && (w.manager.value || (field.visible && field.apiVisible)))
   } catch (e) { if (token === generation) error.value = financeError(e) }
 }
 function setValue(id, value) {
@@ -65,6 +69,8 @@ onMounted(load)
           :inputmode="['integer', 'number'].includes(field.type) ? 'decimal' : 'text'"
           :maxlength="field.type === 'text' ? 500 : 400"
           @update:model-value="setValue(field.id, $event)" />
+        <small v-if="w.manager.value && (!field.visible || !field.apiVisible)"
+          class="lf-muted">Dado interno: somente gestores podem consultar e preencher.</small>
         <small v-if="field.help" class="lf-muted">{{ field.help }}</small>
         <small v-if="['integer','number'].includes(field.type)" class="lf-muted">Use ponto como separador decimal; não arredondamos valores.</small>
       </div>

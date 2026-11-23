@@ -59,13 +59,28 @@ final class BankingService {
     }
 
     /** @return array<string,mixed> */
-    public function import(int $spaceId, int $bankAccountId, string $csv): array {
+    public function import(int $spaceId, int $bankAccountId, string $csv,
+        string $format = 'csv', string $ofx = ''): array {
         $this->finance->requireModule($spaceId, self::MODULE, 'operator');
         $currency = $this->finance->requireBankAccount($spaceId, self::MODULE, $bankAccountId);
-        if (strlen($csv) < 1 || strlen($csv) > 262144 || !mb_check_encoding($csv, 'UTF-8')) {
-            throw new DomainException('invalid_csv');
+        if ($format === 'csv') {
+            if (strlen($csv) < 1 || strlen($csv) > 262144 || !mb_check_encoding($csv, 'UTF-8')
+                || $ofx !== '') {
+                throw new DomainException('invalid_csv');
+            }
+            $rows = self::parse($csv);
+        } elseif ($format === 'ofx') {
+            if ($csv !== '') {
+                throw new DomainException('invalid_ofx');
+            }
+            $statement = OfxStatementParser::parse($ofx);
+            if ($statement['currency'] !== null && $statement['currency'] !== $currency) {
+                throw new DomainException('bank_import_currency_mismatch');
+            }
+            $rows = $statement['rows'];
+        } else {
+            throw new DomainException('unsupported_bank_import_format');
         }
-        $rows = self::parse($csv);
         if ($rows === []) {
             throw new DomainException('empty_import');
         }

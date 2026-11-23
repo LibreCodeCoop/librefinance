@@ -7,6 +7,7 @@ import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
+import NcColorPicker from '@nextcloud/vue/components/NcColorPicker'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
@@ -27,6 +28,7 @@ const { companies, companyNextAfterId, manager, busy, companyEditId,
   companyCustomValues, companyMunicipal, companyState, companyProfile,
   companyActive, editCompany, saveCompany, resetCompanyForm, loadMoreCompanies } = w
 const dialog = ref(false)
+const onboarding=inject('lfCompanyOnboarding',ref(false))
 const saveError = ref('')
 const search = ref(new URLSearchParams(window.location.search).get('search') || '')
 const searchTerm = ref(search.value.trim())
@@ -128,6 +130,12 @@ const personal = computed(() => w.space.value?.kind === 'personal')
 const countryChoices = countryOptions()
 const countryValid = computed(() => /^[A-Za-z]{2}$/.test(companyCountry.value.trim()))
 function beginCreate() { resetCompanyForm(); logoVersion.value = null; logoError.value = ''; saveError.value = ''; dialog.value = true }
+onMounted(() => {
+  if (onboarding.value && manager.value) {
+    onboarding.value=false
+    beginCreate()
+  }
+})
 function beginEdit(company) { editCompany(company); logoVersion.value = company.logo_version; logoError.value = ''; saveError.value = ''; dialog.value = true }
 function closeCompany() { saveError.value = ''; dialog.value = false }
 async function save() {
@@ -146,7 +154,7 @@ async function save() {
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Dados fiscais da empresa" eyebrow="DENTRO DA ÁREA FINANCEIRA"
+    <LfPageHeader title="Dados da organização" eyebrow="IDENTIDADE E CADASTRO"
       :description="personal
         ? 'Opcional: seu dinheiro e suas contas da casa funcionam sem empresa ou CNPJ.'
         : 'Cadastre as empresas ou emissores fiscais vinculados à área financeira atual. Um cadastro fiscal não cria outra área nem mistura os saldos.'">
@@ -160,7 +168,7 @@ async function save() {
     </LfPageHeader>
     <section class="lf-surface">
       <div class="lf-section-heading">
-        <div><h2>Empresas desta área financeira</h2>
+        <div><h2>Empresas desta gestão</h2>
           <p>Empresas cadastradas nesta área compartilham livro, caixa e acessos; não há apuração contábil isolada por empresa.</p></div>
         <NcTextField v-if="companies.length || searchTerm" v-model="search" label="Pesquisar empresas" type="search"
           placeholder="Buscar em todas as empresas" maxlength="120"
@@ -182,6 +190,8 @@ async function save() {
             <th v-if="manager">Ações</th></tr></thead>
           <tbody><tr v-for="company in listedCompanies" :key="company.id">
             <td><span class="lf-company-list-identity">
+              <span class="lf-category-dot" :style="{backgroundColor: company.brand_color || '#64748B'}"
+                aria-hidden="true" />
               <img v-if="company.logo_version" class="lf-company-mini-logo"
                 :src="generateUrl('/apps/librefinance/api/spaces/' + Number(w.activeId.value)
                   + '/companies/' + company.id + '/logo?v=' + company.logo_version)"
@@ -217,8 +227,8 @@ async function save() {
       @update:open="!$event && closeCompany()">
       <form class="lf-dialog-form" @submit.prevent="save">
         <p class="lf-company-ledger-scope">Este cadastro identifica a empresa nos documentos.
-          Contas, saldos, histórico e acessos permanecem na área financeira atual.
-          Para separar caixa e contabilidade entre empresas, crie outra área financeira.</p>
+          Contas, saldos, histórico e acessos permanecem na gestão financeira atual.
+          Para separar caixa e contabilidade entre empresas, crie outra gestão financeira.</p>
         <NcNoteCard v-if="saveError" type="error" role="alert">{{ saveError }}</NcNoteCard>
 
         <fieldset class="lf-company-form-section">
@@ -276,6 +286,15 @@ async function save() {
 
         <fieldset class="lf-company-form-section">
           <legend>Identidade visual</legend>
+          <div class="lf-field">
+            <span class="lf-field-label">Cor de identificação</span>
+            <NcColorPicker v-model="companyProfile.brandColor">
+              <NcButton variant="secondary" aria-label="Escolher cor da organização">
+                <span class="lf-category-color-swatch" :style="{backgroundColor: companyProfile.brandColor}" aria-hidden="true" />
+                Escolher cor
+              </NcButton>
+            </NcColorPicker>
+          </div>
           <div class="lf-company-logo-settings">
             <label class="lf-field-label" for="lf-company-logo-file">Logotipo da empresa</label>
             <template v-if="companyEditId">

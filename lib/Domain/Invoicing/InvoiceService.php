@@ -9,6 +9,7 @@ namespace OCA\LibreFinance\Domain\Invoicing;
 use DomainException;
 use OCA\LibreFinance\PublicAPI\FinanceApi;
 use OCA\LibreFinance\Domain\Obligations\ObligationService;
+use OCA\LibreFinance\Service\CustomFieldService;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use OCP\IUserSession;
@@ -22,31 +23,64 @@ final class InvoiceService {
         private ObligationService $obligations,
         private IDBConnection $db,
         private IUserSession $session,
+        private CustomFieldService $customFields,
     ) {}
 
-    public function list(int $spaceId,int $afterId=0,string $kind=''):array {
+    public function list(int $spaceId,int $afterId=0,string $kind='',string $status=''):array {
         $this->finance->requireModule($spaceId,self::MODULE);
         if($afterId<0){throw new DomainException('invalid_cursor');}
         if($kind!=='' && !in_array($kind,['invoice','bill'],true)){
             throw new DomainException('invalid_invoice_kind');
         }
+        if($status!=='' && !in_array($status,['draft','issued','partially_paid','paid','attention'],true)){
+            throw new DomainException('invalid_invoice_status');
+        }
         $q=$this->db->getQueryBuilder();
-        $q->select('id','number','kind','status','contact_id','currency',
+        $fields=['id','number','kind','status','contact_id','currency',
             'issue_on','due_on','country','region','subtotal_minor','tax_minor','withheld_minor',
-            'total_minor','paid_minor','version')
-            ->from('lfi_invoices')
-            ->where($q->expr()->eq('space_id',$q->createNamedParameter($spaceId,IQueryBuilder::PARAM_INT)))
-            ->andWhere($q->expr()->gt('id',$q->createNamedParameter($afterId,IQueryBuilder::PARAM_INT)));
+            'total_minor','paid_minor','version'];
+        $q->select(...array_map(static fn(string $field):string=>'i.'.$field,$fields))
+            ->from('lfi_invoices','i')
+            ->where($q->expr()->eq('i.space_id',$q->createNamedParameter($spaceId,IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->gt('i.id',$q->createNamedParameter($afterId,IQueryBuilder::PARAM_INT)));
         // Filter before pagination, never after a page is loaded in Vue.
         if($kind!==''){
-            $q->andWhere($q->expr()->eq('kind',$q->createNamedParameter($kind)));
+            $q->andWhere($q->expr()->eq('i.kind',$q->createNamedParameter($kind)));
         }
-        $q->orderBy('id','ASC')->setMaxResults(51);
+        // Issued documents without a verified obligation link must remain
+        // actionable. A scoped LEFT JOIN uses the per-space unique index
+        // and avoids a DBAL-escaped NOT IN subquery (invalid on PostgreSQL).
+        if($status==='attention'){
+            $q->leftJoin('i','lf_invoice_obligation_links','l',
+                $q->expr()->andX(
+                    $q->expr()->eq('l.invoice_id','i.id'),
+                    $q->expr()->eq('l.space_id','i.space_id'),
+                ));
+            $q->andWhere($q->expr()->orX(
+                $q->expr()->eq('i.status',$q->createNamedParameter('draft')),
+                $q->expr()->isNull('l.invoice_id'),
+            ));
+        }elseif($status!==''){
+            $q->andWhere($q->expr()->eq('i.status',$q->createNamedParameter($status)));
+        }
+        $q->orderBy('i.id','ASC')->setMaxResults(51);
         $rows=$q->executeQuery()->fetchAllAssociative();
         $more=count($rows)>50;
         $rows=array_slice($rows,0,50);
         foreach($rows as &$row){$row=self::cast($row);}
         unset($row);
+        // Two batched reads, not a per-invoice query; respect each sales/bills
+        // field definition and the authenticated finance-space permissions.
+        foreach(['invoice','bill'] as $type){
+            $ids=array_column(array_filter($rows,static fn(array $row):bool=>$row['kind']===$type),'id');
+            $values=$this->customFields->valuesForEntities($spaceId,$type,$ids);
+            foreach($rows as &$row){
+                if($row['kind']===$type){
+                    $row['custom_fields']=$values[$row['id']]??[];
+                }
+            }
+            unset($row);
+        }
         return ['invoices'=>$rows,'nextAfterId'=>$more?(int)end($rows)['id']:null];
     }
 
@@ -81,7 +115,10 @@ final class InvoiceService {
             foreach(['id','bank_account_id','journal_id','amount_minor','created_at'] as $f){$a[$f]=(int)$a[$f];}
         }
         unset($a);
-        return ['invoice'=>self::cast($invoice),'lines'=>$lines,'allocations'=>$allocations,
+        $cast=self::cast($invoice);
+        $cast['custom_fields']=$this->customFields->valuesForEntities($spaceId,
+            $cast['kind'],[$invoiceId])[$invoiceId]??[];
+        return ['invoice'=>$cast,'lines'=>$lines,'allocations'=>$allocations,
             'obligationId'=>$this->obligations->linkedObligationId($spaceId,$invoiceId)];
     }
 
@@ -92,7 +129,8 @@ final class InvoiceService {
      * @param list<array<string,mixed>> $lines
      */
     public function create(int $spaceId,string $number,string $kind,int $contactId,
-        string $issueOn,string $dueOn,array $lines,string $country,?string $region=null):array {
+        string $issueOn,string $dueOn,array $lines,string $country,?string $region=null,
+        array $customFields=[]):array {
         $this->finance->requireModule($spaceId,self::MODULE,'operator');
         $number=strtoupper(trim($number));
         if(!preg_match('~^[A-Z0-9_./:-]{2,80}$~',$number)){throw new DomainException('invalid_invoice_number');}
@@ -137,6 +175,7 @@ final class InvoiceService {
         }
         if($totals['totalMinor']<=0){throw new DomainException('invalid_invoice_total');}
         $currency=$this->finance->currency($spaceId,self::MODULE);
+        $custom=$this->customFields->validateValues($spaceId,$customFields,true,0,$kind);
         $this->db->beginTransaction();
         try{
             $this->insert('lfi_invoices',[
@@ -152,6 +191,7 @@ final class InvoiceService {
             foreach($details as $line){
                 $this->insert('lfi_invoice_lines',['space_id'=>$spaceId,'invoice_id'=>$id]+$line);
             }
+            $this->customFields->saveValues($spaceId,$id,$custom,$kind);
             $this->audit($spaceId,$id,'invoice.created');
             $this->db->commit();
             return ['id'=>$id,'number'=>$number,'status'=>'draft','currency'=>$currency,

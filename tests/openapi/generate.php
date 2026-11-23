@@ -22,8 +22,8 @@ $apps = ['librefinance', 'librefinance_nfse'];
  * Each spec describes the controller JSON contract, NOT Akaunting's database.
  */
 $writeForms = [
-    'librefinance:space#create' => 'name:s!,kind:s!,currency:s!',
-    'librefinance:space#rename' => 'name:s!',
+     'librefinance:space#create' => 'name:s!,kind:s!,currency:s!,color:s',
+     'librefinance:space#rename' => 'name:s!,color:s',
     'librefinance:space#share' => 'uid:s!,role:s!',
     'librefinance:space#shareGroup' => 'gid:s!,role:s!',
     'librefinance:account#create' => 'code:s!,name:s!,class:s!,isBank:b',
@@ -33,12 +33,12 @@ $writeForms = [
     'librefinance:account#update' => 'name:s!,active:b',
     'librefinance:category#create' => 'code:s!,name:s!,kind:s!,parentId:i,accountId:i,color:s',
     'librefinance:category#update' => 'name:s!,color:s!,active:b',
-    'librefinance:company#create' => 'legalName:s!,country:s!,taxId:s,tradeName:s,municipalRegistration:s,stateRegistration:s,customFields:object',
-    'librefinance:company#update' => 'legalName:s!,country:s!,taxId:s,tradeName:s,municipalRegistration:s,stateRegistration:s,active:b,customFields:object',
-    'librefinance:customField#create' => 'key:s!,label:s!,type:s!,required:b,options:array,visible:b,help:s,sortOrder:i,columnSpan:i',
-    'librefinance:customField#createForEntity' => 'key:s!,label:s!,type:s!,required:b,options:array,visible:b,help:s,sortOrder:i,columnSpan:i',
-    'librefinance:customField#updateForEntity' => 'label:s!,required:b,active:b,visible:b,help:s,sortOrder:i,columnSpan:i',
-    'librefinance:customField#update' => 'label:s!,required:b,active:b,visible:b,help:s,sortOrder:i,columnSpan:i',
+     'librefinance:company#create' => 'legalName:s!,country:s!,taxId:s,tradeName:s,municipalRegistration:s,stateRegistration:s,customFields:object,profile:object',
+     'librefinance:company#update' => 'legalName:s!,country:s!,taxId:s,tradeName:s,municipalRegistration:s,stateRegistration:s,active:b,customFields:object,profile:object',
+    'librefinance:customField#create' => 'key:s!,label:s!,type:s!,required:b,options:array,visible:b,apiVisible:b,help:s,sortOrder:i,columnSpan:i',
+    'librefinance:customField#createForEntity' => 'key:s!,label:s!,type:s!,required:b,options:array,visible:b,apiVisible:b,help:s,sortOrder:i,columnSpan:i',
+    'librefinance:customField#updateForEntity' => 'label:s!,required:b,active:b,visible:b,apiVisible:b,help:s,sortOrder:i,columnSpan:i',
+    'librefinance:customField#update' => 'label:s!,required:b,active:b,visible:b,apiVisible:b,help:s,sortOrder:i,columnSpan:i',
     'librefinance:savedReport#create' => 'name:s!,kind:s!,from:date,through:date!,columns:array,accountClass:s',
     'librefinance:savedReport#update' => 'name:s!,kind:s!,from:date,through:date!,columns:array,accountClass:s',
     'librefinance:contact#create' => 'name:s!,kind:s!,email:s,taxId:s,customFields:object',
@@ -55,12 +55,12 @@ $writeForms = [
         'kind:s!,description:s!,amountMinor:i!,issuedOn:date!,dueOn:date!,reference:s,contactId:i',
     'librefinance:obligation#settle' =>
         'amountMinor:i!,paidOn:date!,operationKey:s!,note:s',
-    'librefinance:banking#import' => 'bankAccountId:i!,csv:s!',
+    'librefinance:banking#import' => 'bankAccountId:i!,format:s,csv:s,ofx:s',
     'librefinance:banking#match' => 'journalId:i!',
     'librefinance:tax#create' =>
         'code:s!,label:s!,country:s!,region:s,kind:s!,rateBps:i!,inclusive:b!,validFrom:date!,validThrough:date,sourceRef:s!',
     'librefinance:invoice#create' =>
-        'number:s!,kind:s!,contactId:i!,issueOn:date!,dueOn:date!,country:s!,region:s,lines:array!',
+        'number:s!,kind:s!,contactId:i!,issueOn:date!,dueOn:date!,country:s!,region:s,lines:array!,customFields:object',
     'librefinance:paymentWorkflow#invoice' =>
         'bankAccountId:i!,counterAccountId:i!,amountMinor:i!,paidOn:date!,operationKey:s!',
     'librefinance:paymentWorkflow#obligation' =>
@@ -100,6 +100,7 @@ $query = [
     'librefinance:banking#transfers' => 'afterId:i',
     'librefinance:search#index' => 'query:s!,type:s',
     'librefinance:journal#index' => 'beforeId:i',
+    'librefinance:activity#index' => 'cursor:s,direction:s,state:s,accountId:i,search:s',
     'librefinance:ai#preview' => 'from:date!,through:date!',
     'librefinance:category#index' => 'afterId:i',
     'librefinance:company#index' => 'afterId:i',
@@ -110,11 +111,11 @@ $query = [
     'librefinance:report#trialBalance' => 'through:date!,afterId:i,accountClass:s',
     'librefinance:report#cashFlow' => 'from:date!,through:date!',
     'librefinance:savedReport#index' => 'afterId:i',
-    'librefinance:obligation#index' => 'afterId:i,status:s,kind:s,dueRange:s',
+    'librefinance:obligation#index' => 'afterId:i,status:s,kind:s,dueRange:s,search:s,sortBy:s,sortDirection:s,referenceDate:s',
     'librefinance:obligation#settlements' => 'afterId:i',
     'librefinance:banking#index' => 'afterId:i',
     'librefinance:tax#index' => 'afterId:i',
-    'librefinance:invoice#index' => 'afterId:i,kind:s',
+    'librefinance:invoice#index' => 'afterId:i,kind:s,status:s',
     'librefinance_nfse:draft#index' => 'afterId:i',
 ];
 $descriptions = [

@@ -20,7 +20,7 @@ import {
   mdiFileUploadOutline, mdiCogOutline, mdiShapeOutline, mdiRobotOutline,
   mdiDomain, mdiFileDocumentOutline, mdiBookOpenPageVariantOutline,
   mdiPlus, mdiRefresh, mdiMagnify, mdiArrowDownLeft, mdiArrowUpRight,
-  mdiFolderAccountOutline,
+  mdiFolderAccountOutline, mdiCartOutline,
 } from '@mdi/js'
 import {
   PAGE_NAMES, availableSections, canOpenView, navigationSearch,
@@ -39,10 +39,11 @@ import CategoriesView from './views/CategoriesView.vue'
 import SettingsView from './views/SettingsView.vue'
 import AiView from './views/AiView.vue'
 import ReportsView from './views/ReportsView.vue'
-import BankingView from './views/BankingView.vue'
 import ObligationsView from './views/ObligationsView.vue'
 import InvoicesView from './views/InvoicesView.vue'
 import CashflowView from './views/CashflowView.vue'
+import MovementsView from './views/MovementsView.vue'
+import DocumentsView from './views/DocumentsView.vue'
 import SpacesView from './views/SpacesView.vue'
 import TaxRulesView from './views/TaxRulesView.vue'
 import NfseView from './views/NfseView.vue'
@@ -60,6 +61,19 @@ const {
 } = workspace
 const quickEntry = ref(false)
 provide('lfEntryDialog', quickEntry)
+// Route handoff token: the destination consumes this only after mount, avoiding
+// a modal open before NcDialog has initialized in a newly rendered screen.
+const journalOpenRequest = ref(0)
+provide('lfJournalOpenRequest', journalOpenRequest)
+// One-shot editor requests must outlive the finance sub-panel route remount.
+const newSimple = ref(false)
+provide('lfNewSimple', newSimple)
+const bankImportRequest = ref(0)
+provide('lfBankImportRequest', bankImportRequest)
+const focusedBank = ref(null)
+provide('lfBankFocus', focusedBank)
+const bankContext = ref(0)
+provide('lfBankContext', bankContext)
 // The navigation follows user tasks, not the internal extension layout.
 // Server-authorized module discovery is still the only source of availability.
 const labels = computed(() => Object.fromEntries(
@@ -71,17 +85,18 @@ const screens = {
   dashboard: DashboardView,
   transactions: TransactionsView,
   accounts: AccountsView,
-  banking: BankingView,
-  finance: CashflowView,
-  documents: CashflowView,
+  banking: CashflowView,
+  finance: MovementsView,
+  bankAccounts: AccountsView,
+  documents: DocumentsView,
   spaces: SpacesView,
   receivables: CashflowView,
   payables: CashflowView,
-  // Old route IDs remain recognized but are canonicalized to the unified view.
-  obligations: CashflowView,
-  sales: CashflowView,
-  purchases: CashflowView,
-  invoicing: CashflowView,
+  // Historic links map to the same two user-facing financial screens.
+  obligations: MovementsView,
+  sales: DocumentsView,
+  purchases: DocumentsView,
+  invoicing: DocumentsView,
   taxes: TaxRulesView,
   contacts: ContactsView,
   items: ItemsView,
@@ -109,6 +124,8 @@ const icons = {
   obligations: mdiCashClock,
   reports: mdiChartLine,
   billing: mdiReceiptTextOutline,
+  purchases: mdiCartOutline,
+  bankAccounts: mdiBankOutline,
   fiscal: mdiFileDocumentOutline,
   contacts: mdiAccountMultipleOutline,
   categories: mdiShapeOutline,
@@ -128,6 +145,15 @@ const searchQuery = ref('')
 // Remount only when history navigation supplies a different record search.
 const urlSearchTerm = ref(new URLSearchParams(window.location.search).get('search') || '')
 const openGroups = ref({})
+const managementGroupIcons = {
+  'Gestões e identidade': mdiFolderAccountOutline,
+  'Cadastros': mdiAccountMultipleOutline,
+  'Financeiro e fiscal': mdiBookOpenPageVariantOutline,
+  'Equipe e personalização': mdiCogOutline,
+  'Recursos e dados': mdiFileUploadOutline,
+}
+const companyOnboarding = ref(false)
+provide('lfCompanyOnboarding', companyOnboarding)
 const availableNav = computed(() => availableSections({
   manager: manager.value,
   modules: modules.value,
@@ -239,6 +265,8 @@ provide('lfNewDetailed', newDetailed)
 const focusedObligation = ref(null)
 provide('lfFocusedObligation', focusedObligation)
 const activeLocation = computed(() => {
+  if (['finance','payables','receivables','sales','purchases','documents','banking',
+    'bankAccounts'].includes(readyView.value)) return 'Financeiro'
   if (readyView.value === 'settings' || readyView.value === 'spaces' || readyView.value === 'import') return 'Gerenciar'
   const match = menuEntries(availableNav.value).find(item => item.id === readyView.value)
   return match?.parent || match?.section || 'LibreFinance'
@@ -260,9 +288,14 @@ function navigate(view, options = {}) {
   if (view === 'fields') {
     fieldStudioEntity.value = fieldEntityKind(options.entityKind || 'company')
   }
-  if (canonicalView(view) === 'finance'
-    || (canonicalView(view) === 'documents' && (view !== 'documents' || !options.preserveDirection))) {
+  // The historical documents view has no direction in its URL. Internal
+  // document actions already carry a verified purchase/sale context.
+  if (['payables','receivables','sales','purchases','invoicing'].includes(view)
+    && !options.preserveDirection) {
     financeDirectionHint.value = financeDirectionForView(view)
+  }
+  if (view === 'finance' && !options.preserveDirection) {
+    financeDirectionHint.value = 'all'
   }
   view = canonicalView(view)
   expandParent(view)
@@ -288,7 +321,13 @@ function selectSpace(id) {
   activeId.value = Number(id)
   focusedInvoice.value = null
   focusedObligation.value = null
+  focusedBank.value = null
+  bankContext.value = 0
+  bankImportRequest.value = 0
+  journalOpenRequest.value = 0
+  quickEntry.value = false
   newDetailed.value = false
+  newSimple.value = false
   clearSearch()
   openGroups.value = {}
   pendingInitialView = null
@@ -301,9 +340,8 @@ function selectSpace(id) {
   window.history.pushState(null, '', url.pathname + url.search)
 }
 function openEntry() {
-  if (!writable.value || !activeId.value) return
-  navigate('transactions')
-  quickEntry.value = true
+  if (!writable.value || !activeId.value || !visibleView('finance')) return
+  navigate('finance')
 }
 
 function onHistoryChange() {
@@ -319,9 +357,7 @@ function onHistoryChange() {
     activeId.value = destinationSpace
   }
   pendingInitialView = destinationView
-  if (destinationView === 'finance' || values.get('view') !== 'documents') {
-    financeDirectionHint.value = financeDirectionForView(values.get('view'))
-  }
+  financeDirectionHint.value = financeDirectionForView(values.get('view'))
   if (visibleView(destinationView)
     && modulesLoadedFor.value === Number(activeId.value)) {
     // A browser back/forward event must not create a new history entry.
@@ -367,17 +403,14 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         </div>
         <LfSelect v-if="spaceOptions.length > 1" id="lf-space-select"
           :model-value="activeId" :options="spaceOptions"
-          label="Área financeira atual" placeholder="Escolha uma área"
+          label="Gestão financeira atual" placeholder="Escolha uma gestão"
           @update:model-value="selectSpace" />
-        <p v-else-if="space" class="lf-space-current" aria-label="Área financeira atual">
+        <p v-else-if="space" class="lf-space-current" aria-label="Gestão financeira atual">
           <strong>{{selectedSpace}}</strong>
         </p>
-        <NcButton v-if="space" class="lf-manage-spaces-link" size="small"
-          variant="tertiary" @click="navigate('spaces')">
-          <template #icon><NcIconSvgWrapper :path="mdiFolderAccountOutline" :size="18" /></template>
-          Gerenciar áreas financeiras
-        </NcButton>
         <p v-if="space" class="lf-space-meta">
+          <span class="lf-category-dot" :style="{backgroundColor:space.accent_color||'#64748B'}"
+            aria-hidden="true" />
           <span>{{ spaceKind }}</span><span aria-hidden="true">·</span>
           <span>{{ space.currency }}</span><span aria-hidden="true">·</span>
           <span>{{ spaceRole }}</span>
@@ -415,22 +448,39 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
                   :active="groupHasActive(item)" @click="onNavGroupClick($event, item.id)"
                   @update:open="setGroupOpen(item.id, $event)">
                   <template #icon><NcIconSvgWrapper :path="icons[item.icon]" :size="20" /></template>
-                  <NcAppNavigationItem v-for="subgroup in groupedChildren(item)"
-                    :key="subgroup.name" class="lf-native-management-group"
-                    :name="subgroup.name" :allow-collapse="true"
-                    :open="subgroupOpen(subgroup.name, item)"
-                    :active="subgroup.children.some(child => child.id === readyView)"
-                    @click.prevent="changeSubgroup(subgroup.name, !subgroupOpen(subgroup.name, item))"
-                    @update:open="changeSubgroup(subgroup.name, $event)">
-                    <NcAppNavigationItem v-for="child in subgroup.children" :key="child.id"
+                  <template v-if="item.id === 'financeMenu'">
+                    <NcAppNavigationItem v-for="child in item.children.filter(child => !child.hidden)" :key="child.id"
                       :name="labels[child.id]" :href="viewHref(child.id)"
                       :active="readyView === child.id" @click="onNavClick($event, child.id)">
-                      <template #icon><NcIconSvgWrapper :path="icons[child.icon]" :size="18" /></template>
+                      <template #icon>
+                        <NcIconSvgWrapper :path="icons[child.icon]" :size="18" />
+                      </template>
                     </NcAppNavigationItem>
-                  </NcAppNavigationItem>
+                  </template>
+                  <template v-else>
+                    <NcAppNavigationItem v-for="subgroup in groupedChildren(item)"
+                      :key="subgroup.name" class="lf-native-management-group"
+                      :name="subgroup.name" :allow-collapse="true"
+                      :open="subgroupOpen(subgroup.name, item)"
+                      :active="subgroup.children.some(child => child.id === readyView)"
+                      @click.prevent="changeSubgroup(subgroup.name, !subgroupOpen(subgroup.name, item))"
+                      @update:open="changeSubgroup(subgroup.name, $event)">
+                      <template #icon>
+                        <NcIconSvgWrapper :path="managementGroupIcons[subgroup.name]" :size="20" />
+                      </template>
+                      <NcAppNavigationItem v-for="child in subgroup.children" :key="child.id"
+                        :name="labels[child.id]" :href="viewHref(child.id)"
+                        :active="readyView === child.id" @click="onNavClick($event, child.id)">
+                        <template #icon>
+                          <NcIconSvgWrapper :path="icons[child.icon]" :size="18" />
+                        </template>
+                      </NcAppNavigationItem>
+                    </NcAppNavigationItem>
+                  </template>
                 </NcAppNavigationItem>
                 <NcAppNavigationItem v-else :name="labels[item.id]" :href="viewHref(item.id)"
-                  :active="readyView === item.id" @click="onNavClick($event, item.id)">
+                  :active="readyView === item.id"
+                  @click="onNavClick($event, item.id)">
                   <template #icon><NcIconSvgWrapper :path="icons[item.icon]" :size="20" /></template>
                 </NcAppNavigationItem>
               </template>
@@ -453,7 +503,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
             <span class="lf-context-currency">{{ space.currency }}</span>
             <NcButton v-if="writable && readyView === 'dashboard'" variant="primary" @click="openEntry">
               <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-              Registrar entrada ou saída
+              Ver movimentações
             </NcButton>
             <NcButton variant="tertiary" aria-label="Atualizar dados"
               :disabled="busy" @click="refreshCurrent">
@@ -469,7 +519,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
           description="Crie uma gestão financeira ou restaure uma gestão arquivada.">
           <template #action>
             <NcButton variant="primary" @click="navigate('spaces')">
-              Gerenciar áreas financeiras
+              Criar primeira gestão
             </NcButton>
           </template>
         </NcEmptyContent>
@@ -489,7 +539,9 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         </div>
         <component :is="currentScreen" v-else
           :key="activeId + ':' + readyView + ':' + urlSearchTerm"
-          v-bind="['finance', 'documents'].includes(readyView) ? { section: readyView } : {}" />
+          v-bind="readyView === 'bankAccounts' ? { bankOnly: true }
+            : ['finance','sales','purchases','banking'].includes(readyView)
+              ? { section: readyView } : {}" />
       </div>
     </NcAppContent>
 

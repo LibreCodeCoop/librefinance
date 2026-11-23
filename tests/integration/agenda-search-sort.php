@@ -75,6 +75,42 @@ foreach ([['amount','desc'], ['amount','asc'], ['due','asc'],
     }
     echo 'PASS stable sorted complete '.$column.' '.$direction.' 57 unique rows' . PHP_EOL;
 }
+// Calendar-relative filters are about the user's local date, not UTC midnight.
+// Two reference days can be valid at a time-zone boundary. A due date on
+// yesterday UTC must appear as upcoming in a browser still on that local date.
+$utc = new DateTimeImmutable('today', new DateTimeZone('UTC'));
+$previousDay = $utc->modify('-1 day')->format('Y-m-d');
+$nextDay = $utc->modify('+1 day')->format('Y-m-d');
+$boundary = $t->checkModule('create UTC boundary payable', $a, $app, 'POST',
+    $base.'/obligations', [
+        'reference' => 'AGENDADATE-'.$token,
+        'kind' => 'payable', 'description' => 'Local due date boundary '.$token,
+        'amountMinor' => 1500, 'issuedOn' => $previousDay, 'dueOn' => $previousDay,
+    ], 201);
+$boundaryId = (int)$boundary['id'];
+$matching = static function (array $response) use ($boundaryId): bool {
+    return count(array_filter($response['obligations'] ?? [],
+        static fn(array $row): bool => (int)$row['id'] === $boundaryId)) === 1;
+};
+$missing = static function (array $response) use ($boundaryId): bool {
+    return count(array_filter($response['obligations'] ?? [],
+        static fn(array $row): bool => (int)$row['id'] === $boundaryId)) === 0;
+};
+$t->checkModule('UTC today excludes yesterday from next seven days', $a, $app,
+    'GET', $base.'/obligations?dueRange=next7&search=Local%20due%20date%20boundary', null, 200, $missing);
+$t->checkModule('local yesterday includes its same-day payable', $a, $app,
+    'GET', $base.'/obligations?dueRange=next7&referenceDate='.$previousDay
+        .'&search=Local%20due%20date%20boundary', null, 200, $matching);
+$t->checkModule('today treats yesterday as overdue', $a, $app,
+    'GET', $base.'/obligations?dueRange=overdue&referenceDate='.$utc->format('Y-m-d')
+        .'&search=Local%20due%20date%20boundary', null, 200, $matching);
+$t->checkModule('invalid day is rejected', $a, $app,
+    'GET', $base.'/obligations?dueRange=next7&referenceDate=2026-02-30', null, 422,
+    static fn(array $v): bool => ($v['error'] ?? '') === 'invalid_reference_date');
+$t->checkModule('unsupported remote date is rejected', $a, $app,
+    'GET', $base.'/obligations?dueRange=next7&referenceDate=2025-01-01', null, 422);
+$t->checkModule('foreign actor cannot use time boundary search', $b, $app,
+    'GET', $base.'/obligations?dueRange=next7&referenceDate='.$nextDay, null, 404);
 $t->checkModule('user text search filters before server pagination', $a, $app,
     'GET', $base.'/obligations?search=entry%2057', null, 200,
     static fn(array $v): bool => count($v['obligations'] ?? []) === 1);

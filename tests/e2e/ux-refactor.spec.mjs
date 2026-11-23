@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { test, expect } from '@playwright/test'
-import { login, makeSpace, goToView } from './helpers.mjs'
+import { login, makeSpace, goToView, openFinanceAction, selectFinanceSpace } from './helpers.mjs'
 
 test('dashboard widgets can be reordered, resized, hidden, and restored after reload', async ({ page }) => {
   await login(page)
@@ -69,8 +69,8 @@ test('@extensions household workspace uses personal terms without requiring a co
     await expect(page.getByRole('option',{name:option,exact:true})).toBeVisible()
   await page.keyboard.press('Escape')
   await contact.getByRole('button',{name:'Cancelar'}).click()
-  await goToView(page, 'Dados fiscais (opcional)')
-  await expect(page.getByRole('heading',{name:'Dados fiscais da empresa',exact:true})).toBeVisible()
+  await goToView(page, 'Organizações (opcional)')
+  await expect(page.getByRole('heading',{name:'Dados da organização',exact:true})).toBeVisible()
   await expect(page.getByText('Opcional: seu dinheiro e suas contas da casa', {exact:false})).toBeVisible()
   const currentSpace = new URL(page.url()).searchParams.get('spaceId')
   await expect(page.locator('.lf-context-identity')).toContainText(name)
@@ -82,7 +82,7 @@ test('@extensions supported entity pages link quietly to the matching Field Stud
   await login(page)
   await makeSpace(page, 'organization')
   for (const [screen, entity, label] of [
-    ['Dados fiscais da empresa', 'company','empresas'],
+    ['Dados da organização', 'company','empresas'],
     ['Clientes e fornecedores','contact','contatos'],
     ['Produtos e serviços','item','produtos e serviços'],
     ['Lançamentos contábeis','journal','lançamentos'],
@@ -94,15 +94,25 @@ test('@extensions supported entity pages link quietly to the matching Field Stud
     await btn.click()
     await expect(page).toHaveURL(new RegExp('view=fields'))
     await expect(page).toHaveURL(new RegExp('entity='+entity))
-    await expect(page.locator('#lf-field-studio-entity')).toBeVisible()
-    const picked = {
-      company:'Empresa',contact:'Cliente ou fornecedor',
-      item:'Produto ou serviço',journal:'Receita ou despesa',
+    await expect(page.locator('#lf-field-studio-entity')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Novo campo' })).toBeVisible()
+    // Entity shortcuts preserve their URL, but the new Field Studio does not
+    // select an entity on the listing. The new-field dialog owns that choice.
+    const target = {
+      company:'Empresa / organização',contact:'Clientes e fornecedores',
+      item:'Produtos e serviços',journal:'Movimentações realizadas',
     }[entity]
-    await expect(page.locator('.lf-field-studio').getByText(picked,{exact:true})).toBeVisible()
+    await page.getByRole('button', { name: 'Novo campo' }).click()
+    const editor = page.getByRole('dialog', { name: 'Novo campo personalizado' })
+    await expect(editor.getByRole('group', { name: 'Escolher local do campo' })
+      .getByRole('button', { name: target, exact: true })).toBeVisible()
+    await editor.getByRole('group', { name: 'Escolher local do campo' })
+      .getByRole('button', { name: target, exact: true }).click()
+    await expect(editor.getByRole('button', { name: target + ' · Alterar local' })).toBeVisible()
+    await editor.getByRole('button', { name: 'Cancelar' }).click()
     await page.reload()
     await expect(page).toHaveURL(new RegExp('entity='+entity))
-    await expect(page.locator('.lf-field-studio').getByText(picked,{exact:true})).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Novo campo' })).toBeVisible()
   }
   await goToView(page,'Acessos e compartilhamento')
   await expect(page.getByRole('button',{name:/Personalizar campos de/})).toHaveCount(0)
@@ -161,12 +171,14 @@ test('Field Studio targets contacts and the resulting field appears in the conta
   await login(page)
   await makeSpace(page)
   await goToView(page, 'Campos personalizados')
-  await page.locator('#lf-field-studio-entity').click()
-  await page.getByRole('option', { name: 'Cliente ou fornecedor' }).click()
+  await expect(page.locator('#lf-field-studio-entity')).toHaveCount(0)
   await page.getByRole('button', { name: 'Novo campo' }).click()
-  const editor = page.getByRole('dialog', { name: 'Criar campo adicional' })
+  const editor = page.getByRole('dialog', { name: 'Novo campo personalizado' })
+  await editor.getByRole('group', { name: 'Escolher local do campo' })
+    .getByRole('button', { name: 'Clientes e fornecedores' }).click()
   await editor.getByRole('textbox', { name: 'Nome do campo' }).fill('Referência do contrato')
-  await editor.getByRole('textbox', { name: 'Identificador técnico' }).fill('contrato_ux')
+  await editor.locator('summary').filter({ hasText: 'Identificador técnico' }).click()
+  await editor.getByRole('textbox', { name: 'Chave para integrações' }).fill('contrato_ux')
   await editor.getByRole('button', { name: 'Salvar campo' }).click()
   await expect(page.getByText('Referência do contrato')).toBeVisible()
   await goToView(page, 'Clientes e fornecedores')
@@ -216,8 +228,8 @@ test('new journal form shows accessible short description and optional Markdown 
   await login(page)
   await makeSpace(page)
   await goToView(page, 'Lançamentos contábeis')
-  await page.getByRole('button', { name: 'Novo lançamento', exact: true }).click()
-  const dialog = page.getByRole('dialog', { name: 'Novo lançamento contábil' })
+  await page.getByRole('button', { name: 'Registrar entrada ou saída', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Registrar entrada ou saída' })
   await expect(dialog.getByRole('textbox', { name: 'Descrição breve' })).toBeVisible()
   const notes = dialog.getByRole('textbox', { name: 'Notas em Markdown' })
   await expect(notes).toBeVisible()
@@ -273,7 +285,7 @@ test('category colors use the official Nextcloud color picker, not a custom inpu
 test('company private AppData logo is uploaded, displayed, retrieved and removed in a browser', async ({ page }) => {
   await login(page)
   await makeSpace(page)
-  await goToView(page, 'Dados fiscais da empresa')
+  await goToView(page, 'Dados da organização')
   await page.getByRole('button', { name: 'Cadastrar empresa' }).click()
   const create = page.getByRole('dialog', { name: 'Cadastrar empresa' })
   await create.getByRole('textbox', { name: 'Nome legal' }).fill('Empresa com logo')
@@ -317,8 +329,8 @@ test('manual payment methods can be named, edited, and selected without claiming
   await update.getByRole('button', { name: 'Salvar forma' }).click()
   await expect(page.getByRole('row', { name: /Carteira para pagamentos/ })).toBeVisible()
   await goToView(page, 'Lançamentos contábeis')
-  await page.getByRole('button', { name: 'Novo lançamento', exact: true }).click()
-  const journal = page.getByRole('dialog', { name: 'Novo lançamento contábil' })
+  await page.getByRole('button', { name: 'Registrar entrada ou saída', exact: true }).click()
+  const journal = page.getByRole('dialog', { name: 'Registrar entrada ou saída' })
   await journal.locator('#lf-journal-payment-method').click()
   await expect(page.getByRole('option').last()).toBeVisible()
   await page.keyboard.press('Escape')
@@ -334,31 +346,6 @@ test('accounts page provides a direct contextual shortcut to payment methods', a
 })
 
 
-test('financial agenda fills a 4K workspace and hides columns in an empty result', async ({ page }) => {
-  await page.setViewportSize({ width: 3840, height: 2160 })
-  await login(page)
-  await makeSpace(page)
-  await goToView(page, 'A pagar e receber')
-  const dimensions = await page.locator('.lf-workspace').evaluate(element => ({
-    width: element.getBoundingClientRect().width,
-    parent: element.parentElement.getBoundingClientRect().width,
-  }))
-  expect(dimensions.width).toBeGreaterThan(2500)
-  expect(dimensions.width / dimensions.parent).toBeGreaterThan(0.95)
-  const search = page.getByRole('searchbox',{name:'Pesquisar na agenda'})
-  await search.fill('sem-titulo-este-resultado-nao-existe-2026')
-  await expect(page.getByText('Nenhum resultado para os filtros')).toBeVisible()
-  await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
-  await page.locator('#lf-obligations-filter').click()
-  await expect(page.getByRole('group',{name:'Filtrar por situação'})
-    .getByRole('button',{name:'Em aberto'})).toBeVisible()
-  await page.getByRole('group',{name:'Filtrar por situação'})
-    .getByRole('button',{name:'Em aberto'}).click()
-  await expect(page.locator('#lf-obligations-filter')).toContainText('Em aberto')
-  await page.getByRole('button',{name:'Limpar filtros'}).click()
-  await expect(page.locator('#lf-obligations-filter')).toContainText('Todas')
-})
-
 test('empty contacts and companies show native empty state instead of header-only tables', async ({ page }) => {
   await login(page)
   await makeSpace(page)
@@ -366,7 +353,7 @@ test('empty contacts and companies show native empty state instead of header-onl
   await page.getByRole('searchbox',{name:'Buscar contatos'}).fill('zz-no-finance-contact-found-999')
   await expect(page.getByText('Nenhum contato encontrado')).toBeVisible()
   await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
-  await goToView(page, 'Dados fiscais da empresa')
+  await goToView(page, 'Dados da organização')
   await expect(page.getByText('Nenhuma empresa cadastrada')).toBeVisible()
   await expect(page.getByRole('searchbox',{name:'Pesquisar empresas'})).toHaveCount(0)
   await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
@@ -404,37 +391,6 @@ test('list pages use an unboxed Nextcloud content surface and sortable headers',
   await expect(page.locator('.lf-data-table tbody tr')).toHaveCount(4)
 })
 
-test('banking hides filters and columns on empty lists', async ({ page }) => {
-  await login(page)
-  await makeSpace(page)
-  await goToView(page, 'Bancos e caixa')
-  await expect(page.locator('#lf-bank-filter')).toHaveCount(0)
-  await expect(page.locator('#lf-bank-status')).toHaveCount(0)
-  await expect(page.getByText('Nenhuma movimentação importada')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Importar extrato CSV' })).toHaveCount(1)
-  await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
-  await page.getByRole('tab',{name:'Transferências'}).click()
-  await expect(page.getByText('Nenhuma transferência registrada')).toBeVisible()
-  await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
-})
-
-test('@extensions commercial documents have their own route and create actions', async ({ page }) => {
-  await login(page)
-  await makeSpace(page,'organization')
-  await goToView(page,'Documentos comerciais')
-  await expect(page).toHaveURL(/[?&]view=documents/)
-  await expect(page.locator('.lf-flow-tabs')).toHaveCount(0)
-  await page.getByRole('button',{name:'Nova compra'}).click()
-  await expect(page.getByRole('dialog',{name:'Novo documento de compra'})).toBeVisible()
-  await page.getByRole('dialog',{name:'Novo documento de compra'})
-    .getByRole('button',{name:'Cancelar'}).click()
-  await page.locator('#lf-commercial-direction').click()
-  await page.getByRole('group',{name:'Filtrar documentos por tipo'})
-    .getByRole('button',{name:'Vendas'}).click()
-  await expect(page.getByRole('heading',{name:'Vendas detalhadas e rascunhos'})).toBeVisible()
-})
-
-
 test('payment methods empty state has one native action and no empty columns', async ({ page }) => {
   await login(page)
   await makeSpace(page)
@@ -459,11 +415,11 @@ test('payment methods empty state has one native action and no empty columns', a
 test('company editor exposes fiscal, contact, address and scope without hidden accordion', async ({ page }) => {
   await login(page)
   const area = await makeSpace(page, 'organization')
-  await goToView(page, 'Dados fiscais da empresa')
+  await goToView(page, 'Dados da organização')
   await expect(page.getByRole('searchbox', { name: 'Pesquisar empresas' })).toHaveCount(0)
   await page.getByRole('button',{name:'Cadastrar empresa'}).click()
   const form = page.getByRole('dialog',{name:'Cadastrar empresa'})
-  await expect(form.getByText('Contas, saldos, histórico e acessos permanecem na área financeira atual', {exact:false})).toBeVisible()
+  await expect(form.getByText('Contas, saldos, histórico e acessos permanecem na gestão financeira atual.', {exact:false})).toBeVisible()
   for (const field of ['Nome legal','Nome comercial','Identificador fiscal local',
     'Inscrição estadual ou regional','Inscrição municipal ou local', 'E-mail da empresa',
     'Telefone da empresa','Site da empresa (URL)', 'Endereço (logradouro e número)',
@@ -480,10 +436,84 @@ test('company editor exposes fiscal, contact, address and scope without hidden a
   await expect(page.getByRole('row',{name:/Empresa com dados completos/})).toBeVisible()
   await page.reload()
   await expect(page.locator('.lf-context-identity')).toContainText(area)
-  await goToView(page,'Dados fiscais da empresa')
+  await goToView(page,'Dados da organização')
   await page.getByRole('button',{name:'Editar Empresa com dados completos'}).click()
   const edit=page.getByRole('dialog',{name:'Editar empresa'})
   await expect(edit.getByRole('textbox',{name:'Inscrição municipal ou local'})).toHaveValue('REG-401')
   await expect(edit.getByRole('textbox',{name:'E-mail da empresa'})).toHaveValue('financeiro@example.org')
   await expect(edit.getByRole('textbox',{name:'Cidade'})).toHaveValue('Rio de Janeiro')
+})
+
+
+test('management hierarchy has icons on section labels and workspaces stay under management', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'personal')
+  const nav=page.getByRole('navigation',{name:'Navegação do LibreFinance'})
+  await expect(nav.getByRole('link',{name:'Gerenciar',exact:true})).toBeVisible()
+  await goToView(page,'Gestões financeiras')
+  const group=nav.getByRole('link',{name:'Gestões e identidade',exact:true})
+  await expect(group).toBeVisible()
+  expect(await group.locator('svg').count()).toBeGreaterThan(0)
+  await expect(nav.getByRole('link',{name:'Gestões financeiras',exact:true})).toBeVisible()
+  await expect(nav.getByRole('link',{name:'Organizações (opcional)',exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:'Nova gestão'})).toBeVisible()
+  await expect(page.getByRole('button',{name:'Gerenciar áreas financeiras'})).toHaveCount(0)
+})
+
+test('the entity profile exposes the native color picker and private logo workflow', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'organization')
+  await goToView(page,'Dados da organização')
+  await page.getByRole('button',{name:'Cadastrar empresa'}).click()
+  const create=page.getByRole('dialog',{name:'Cadastrar empresa'})
+  await expect(create.getByRole('button',{name:'Escolher cor da organização'})).toBeVisible()
+  await create.getByRole('textbox',{name:'Nome legal'}).fill('Org Visual Synthetic')
+  await create.locator('#lf-company-country').click()
+  await page.getByRole('option').filter({hasText:'Brasil (BR)'}).click()
+  await create.getByRole('button',{name:'Salvar empresa'}).click()
+  const row=page.getByRole('row',{name:/Org Visual Synthetic/})
+  await expect(row).toBeVisible()
+  await expect(row.locator('.lf-category-dot')).toBeVisible()
+  await page.getByRole('button',{name:'Editar Org Visual Synthetic'}).click()
+  const edit=page.getByRole('dialog',{name:'Editar empresa'})
+  await expect(edit.getByRole('button',{name:'Escolher cor da organização'})).toBeVisible()
+  await expect(edit.locator('#lf-company-logo-file')).toBeVisible()
+})
+
+
+test('historic payable and receivable bookmarks resolve to current screens', async ({ page }) => {
+  await login(page)
+  await makeSpace(page,'organization')
+  const id=new URL(page.url()).searchParams.get('spaceId')
+  // The legacy bank URL remains a contextual account statement, whereas
+  // payable and receivable bookmarks redirect into the unified activity.
+  await page.goto('/index.php/apps/librefinance/?spaceId='+id+'&view=banking')
+  await expect(page.getByRole('heading',{name:'Extrato da conta',exact:true})).toBeVisible()
+  for (const view of ['payables','receivables']) {
+    await page.goto('/index.php/apps/librefinance/?spaceId='+id+'&view='+view)
+    await expect(page.getByRole('heading',{name:'Movimentações',exact:true})).toBeVisible()
+  }
+  for (const view of ['sales','purchases']) {
+    await page.goto('/index.php/apps/librefinance/?spaceId='+id+'&view='+view)
+    await expect(page.getByRole('heading',{name:'Faturas',exact:true})).toBeVisible()
+  }
+})
+
+test('bank accounts are isolated across financial spaces and cannot leak by switching the sidebar', async ({ page }) => {
+  await login(page)
+  const first=await makeSpace(page,'personal')
+  await goToView(page,'Contas e bancos')
+  await page.getByRole('button',{name:'Nova conta bancária ou caixa',exact:true}).click()
+  const form=page.getByRole('dialog',{name:'Nova conta bancária ou caixa'})
+  const bankName='Isolated bank '+Date.now().toString(36)
+  await form.getByRole('textbox',{name:'Nome da conta'}).fill(bankName)
+  await expect(form.getByRole('textbox',{name:'Código interno da conta'})).toHaveCount(0)
+  await form.getByRole('button',{name:'Salvar conta'}).click()
+  await expect(page.getByRole('row',{name:new RegExp(bankName)})).toBeVisible()
+  await makeSpace(page,'personal')
+  await goToView(page,'Contas e bancos')
+  await expect(page.getByRole('row',{name:new RegExp(bankName)})).toHaveCount(0)
+  await selectFinanceSpace(page,first)
+  await goToView(page,'Contas e bancos')
+  await expect(page.getByRole('row',{name:new RegExp(bankName)})).toBeVisible()
 })

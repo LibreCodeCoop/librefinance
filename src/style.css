@@ -1090,3 +1090,53 @@
   margin-block: 4px 8px;
 }
 #librefinance-app .lf-area-guidance p { margin: 0; }
+
+
+#librefinance-app .lf-bank-intro {
+  margin: 0 0 14px;
+}
+/* Single operational register; drafts and unmatched external evidence are
+ * projected as actions, never as duplicated payable/receivable records. */
+#librefinance-app .lf-finance-work-queue {
+  margin-bottom: 24px;
+  padding: 12px 0 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+#librefinance-app .lf-finance-work-queue .lf-section-heading {
+  margin-bottom: 12px;
+  align-items: center;
+}
+#librefinance-app .lf-finance-work-queue .lf-table-footer {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Finance-first navigation: no bordered container around full-width lists. */
+#librefinance-app .lf-activity-first-account {
+  display:flex; align-items:center; flex-wrap:wrap; gap:8px;
+  margin:4px 0 18px;
+}
+#librefinance-app .lf-activity-toolbar {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; flex-wrap:wrap; padding-block:8px;
+}
+#librefinance-app .lf-activity-toolbar .lf-native-finance-search {
+  flex:1; min-width:200px; max-width:400px;
+}
+#librefinance-app .lf-activity-table {width:100%; min-width:670px;}
+#librefinance-app .lf-activity-table td {vertical-align:middle;}
+#librefinance-app .lf-activity-sub {
+  display:block; font-size:12px; margin-top:3px;
+}
+#librefinance-app .lf-activity-entry fieldset {margin:0;}
+@media (max-width:700px) {
+  #librefinance-app .lf-activity-toolbar {align-items:stretch;}
+  #librefinance-app .lf-activity-toolbar .lf-native-finance-search {max-width:none; width:100%;}
+  #librefinance-app .lf-activity-toolbar .lf-native-agenda-filters {flex-wrap:wrap;}
+}
+
+#librefinance-app .lf-activity-balance {
+  margin: 4px 0 12px;
+  color: var(--color-text-maxcontrast);
+}

@@ -13,7 +13,9 @@ $a = 'lfmaintestA';
 $b = 'lfmaintestB';
 $token = bin2hex(random_bytes(6));
 $space = $t->check('create owner-managed financial space', $a, 'POST', '/spaces',
-    ['name'=>'Synthetic finance '.$token,'kind'=>'organization','currency'=>'BRL'], 201);
+    ['name'=>'Synthetic finance '.$token,'kind'=>'organization','currency'=>'BRL',
+        'color'=>'#1A2B3C'], 201,
+    static fn(array $v):bool=>($v['accent_color']??null)==='#1A2B3C');
 $id = (int)$space['id'];
 $base = '/spaces/'.$id;
 $t->check('foreign user cannot rename a workspace', $b, 'PUT', $base,
@@ -22,9 +24,16 @@ $t->check('foreign user cannot archive a workspace', $b, 'POST',
     $base.'/archive', [], 404);
 $t->check('invalid workspace name rejected', $a, 'PUT', $base,
     ['name'=>str_repeat('Z',151)], 422);
+$t->check('invalid color rejected by backend', $a, 'PUT', $base,
+    ['name'=>'Invalid accent', 'color'=>'red;url(unsafe)'], 422);
+$t->check('foreign user cannot update color', $b, 'PUT', $base,
+    ['name'=>'Unauthorised color', 'color'=>'#123456'], 404);
 $t->check('owner can rename a workspace', $a, 'PUT', $base,
     ['name'=>'Renamed synthetic finance '.$token], 200,
     static fn(array $v): bool => ($v['name']??null)==='Renamed synthetic finance '.$token);
+$t->check('owner can edit workspace color without changing ledger', $a, 'PUT',
+    $base, ['name'=>'Renamed synthetic finance '.$token,'color'=>'#ABCDEF'], 200,
+    static fn(array $v):bool=>($v['accent_color']??null)==='#ABCDEF');
 $t->check('repeating the same workspace name is a safe no-op', $a, 'PUT', $base,
     ['name'=>'Renamed synthetic finance '.$token], 200,
     static fn(array $v): bool=>($v['name']??null)==='Renamed synthetic finance '.$token);
@@ -32,7 +41,8 @@ $t->check('renaming is reflected in authorized workspace listing', $a, 'GET',
     '/spaces', null, 200,
     static fn(array $v): bool =>
         count(array_filter($v['spaces']??[],static fn(array $row):bool=>
-            (int)$row['id']===$id && $row['name']==='Renamed synthetic finance '.$token))===1);
+            (int)$row['id']===$id && $row['name']==='Renamed synthetic finance '.$token
+            && ($row['accent_color']??null)==='#ABCDEF'))===1);
 $accountResult = $t->check('owner obtains default cash and revenue accounts', $a,
     'GET',$base.'/accounts',null,200);
 $accounts = [];

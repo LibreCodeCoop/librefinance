@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { computed, inject, onMounted, ref, watch } from 'vue'
+import { computed, inject, nextTick, onMounted, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
@@ -22,6 +22,7 @@ import { financeApi, financeError } from '../services/api.js'
 
 const w = inject('lfWorkspace')
 const dialog = inject('lfEntryDialog')
+const journalOpenRequest = inject('lfJournalOpenRequest', ref(0))
 const { writable, activeId, journals, accounts, categoryRecords,
   direction, bankId, categoryId, transactionCategoryId, amount, memo,
   date, busy, banks, categories, nextBeforeId, createEntry, loadMore,
@@ -98,6 +99,16 @@ watch([dialog, counterpartChoices], ([opened, choices]) => {
     categoryId.value = Number(choices[0].value)
   }
 })
+watch([journalOpenRequest, w.activeTab], ([request, view]) => {
+  if (!request || view !== 'transactions') return
+  journalOpenRequest.value = 0
+  if (!writable.value) return
+  nextTick(() => {
+    if (w.activeTab.value === 'transactions' && writable.value) {
+      dialog.value = true
+    }
+  })
+}, { immediate: true })
 function closeDialog() { entryError.value = ''; dialog.value = false }
 async function submit() {
   entryError.value = ''
@@ -124,13 +135,13 @@ const formatted = row => money(Math.abs(row.postings?.[0]?.amountMinor || 0))
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Lançamentos contábeis" eyebrow="MOVIMENTAÇÕES FINANCEIRAS"
-      description="Consulte o registro contábil de entradas e saídas já realizadas. Para valores ainda devidos, utilize Contas a pagar e receber.">
+    <LfPageHeader title="Entradas e saídas" eyebrow="FINANCEIRO"
+      description="Registre dinheiro já movimentado sem conta pendente cadastrada. Quando houver uma conta a pagar ou receber, use Pagar ou Receber nela; para conferir o banco, use Extratos e conciliação.">
       <template #actions>
         <FieldStudioShortcut entity-kind="journal" />
         <NcButton v-if="writable" variant="primary" @click="dialog = true">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-          Novo lançamento
+          Registrar entrada ou saída
         </NcButton>
       </template>
     </LfPageHeader>
@@ -145,7 +156,7 @@ const formatted = row => money(Math.abs(row.postings?.[0]?.amountMinor || 0))
         <summary>Como interpretar os lançamentos?</summary>
         <p>Débito e crédito são os dois lados do registro contábil. Um lançamento concluído não é editado:
           diferenças precisam ser corrigidas por outro registro. A busca filtra apenas as páginas carregadas.
-          Extratos importados e ainda pendentes são revisados em Bancos e conciliação.</p>
+          Extratos importados e ainda pendentes são revisados em Extratos e conciliação.</p>
       </details>
       <div v-if="filtered.length" class="lf-table-scroll">
         <table class="lf-data-table">
@@ -171,18 +182,20 @@ const formatted = row => money(Math.abs(row.postings?.[0]?.amountMinor || 0))
       </div>
       <NcEmptyContent v-else
         :name="search ? 'Nenhum lançamento encontrado nesta página' : 'Nenhum lançamento contabilizado'"
-        description="Utilize a ação Novo lançamento ou carregue mais páginas do histórico." />
+        description="Use Registrar entrada ou saída ou carregue mais páginas do histórico." />
       <div v-if="nextBeforeId" class="lf-table-footer">
         <NcButton variant="secondary" :disabled="busy" @click="loadMore">Carregar mais lançamentos</NcButton>
       </div>
     </section>
 
-    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="dialog" name="Novo lançamento contábil"
+    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="dialog" name="Registrar entrada ou saída"
       @update:open="dialog = $event">
       <form class="lf-dialog-form" @submit.prevent="submit">
         <p>Registre uma <strong>{{ direction === 'expense' ? 'despesa paga' : 'receita recebida' }}</strong>.
           O saldo contábil da conta financeira será atualizado imediatamente.
-          Para apenas conferir um extrato, utilize Bancos e conciliação.</p>
+          Se estiver pagando uma conta ou cobrança cadastrada, use a ação
+          Pagar ou Receber nessa conta para evitar duplicidade.
+          Para apenas conferir um extrato, utilize Extratos e conciliação.</p>
         <NcNoteCard v-if="entryError" type="error" role="alert">{{ entryError }}</NcNoteCard>
         <fieldset class="lf-entry-direction">
           <legend>O que aconteceu?</legend>

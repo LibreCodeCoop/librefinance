@@ -45,8 +45,10 @@ final class BankingController extends Controller {
 
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/imports')]
-    public function import(int $spaceId, int $bankAccountId, string $csv): JSONResponse {
-        return $this->respond(fn() => $this->service->import($spaceId, $bankAccountId, $csv), 201);
+    public function import(int $spaceId, int $bankAccountId, string $csv = '',
+        string $format = 'csv', string $ofx = ''): JSONResponse {
+        return $this->respond(
+            fn() => $this->service->import($spaceId, $bankAccountId, $csv, $format, $ofx), 201);
     }
 
     #[NoAdminRequired]

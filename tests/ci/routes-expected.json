@@ -489,6 +489,11 @@
       "path": "/apps/librefinance/api/spaces/{spaceId}/restore",
       "request": "POST",
       "route": "librefinance.space.restore"
+    },
+    {
+      "route": "librefinance.activity.index",
+      "request": "GET",
+      "path": "/apps/librefinance/api/spaces/{spaceId}/activity"
     }
   ],
   "librefinance_nfse": [

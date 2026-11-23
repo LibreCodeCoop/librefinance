@@ -17,8 +17,8 @@ final class InvoiceController extends Controller {
     }
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/invoices')]
-    public function index(int $spaceId,int $afterId=0,string $kind=''):JSONResponse {
-        return $this->respond(fn()=>$this->service->list($spaceId,$afterId,$kind));
+    public function index(int $spaceId,int $afterId=0,string $kind='',string $status=''):JSONResponse {
+        return $this->respond(fn()=>$this->service->list($spaceId,$afterId,$kind,$status));
     }
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/invoices/{invoiceId}')]
@@ -28,9 +28,10 @@ final class InvoiceController extends Controller {
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/invoices')]
     public function create(int $spaceId,string $number,string $kind,int $contactId,
-        string $issueOn,string $dueOn,array $lines,string $country,?string $region=null):JSONResponse {
+        string $issueOn,string $dueOn,array $lines,string $country,?string $region=null,
+        array $customFields=[]):JSONResponse {
         return $this->respond(fn()=>$this->service->create($spaceId,$number,$kind,
-            $contactId,$issueOn,$dueOn,$lines,$country,$region),201);
+            $contactId,$issueOn,$dueOn,$lines,$country,$region,$customFields),201);
     }
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/invoices/{invoiceId}/issue')]

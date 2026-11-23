@@ -3,10 +3,11 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { computed, inject, onMounted, onBeforeUnmount, ref } from 'vue'
+import { computed, inject, nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
+import NcColorPicker from '@nextcloud/vue/components/NcColorPicker'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcListItem from '@nextcloud/vue/components/NcListItem'
@@ -21,6 +22,7 @@ import { financeError } from '../services/api.js'
 
 const w = inject('lfWorkspace')
 const navigate = inject('lfNavigate', () => {})
+const onboarding = inject('lfCompanyOnboarding', ref(false))
 const archived = ref([])
 const loading = ref(false)
 const creating = ref(false)
@@ -31,6 +33,8 @@ const notice = ref('')
 const name = ref('')
 const newName = ref('')
 const newKind = ref('personal')
+const newColor = ref('#64748B')
+const editColor = ref('#64748B')
 const kinds = [
   { value: 'personal', label: 'Pessoal ou da casa' },
   { value: 'collective', label: 'Grupo ou coletivo' },
@@ -78,6 +82,7 @@ function startEdit(space) {
   problem.value = ''
   editing.value = space
   name.value = space.name
+  editColor.value = space.accent_color || '#64748B'
 }
 async function rename() {
   if (!editing.value || !name.value.trim() || loading.value) return
@@ -85,7 +90,7 @@ async function rename() {
   loading.value = true
   problem.value = ''
   try {
-    await w.call('PUT', '/api/spaces/' + Number(target.id), { name: name.value.trim() })
+    await w.call('PUT', '/api/spaces/' + Number(target.id), { name: name.value.trim(), color: editColor.value })
     editing.value = null
     await w.refreshSpaces()
     notice.value = 'Nome da gestão atualizado.'
@@ -105,7 +110,7 @@ async function archive() {
     archiving.value = null
     await w.refreshSpaces()
     await refreshArchived()
-    notice.value = 'Área arquivada sem apagar lançamentos ou documentos.'
+    notice.value = 'Gestão arquivada sem apagar lançamentos ou documentos.'
   } catch (error) {
     problem.value = financeError(error)
   } finally {
@@ -120,7 +125,7 @@ async function restore(space) {
     await w.call('POST', '/api/spaces/' + Number(space.id) + '/restore', {})
     await w.refreshSpaces()
     await refreshArchived()
-    notice.value = 'Área restaurada com seu histórico.'
+    notice.value = 'Gestão restaurada com seu histórico.'
   } catch (error) {
     problem.value = financeError(error)
   } finally {
@@ -133,14 +138,22 @@ async function create() {
   problem.value = ''
   try {
     const created = await w.call('POST', '/api/spaces', {
-      name: newName.value.trim(), kind: newKind.value, currency: 'BRL',
+      name: newName.value.trim(), kind: newKind.value, currency: 'BRL', color: newColor.value,
     })
     creating.value = false
     newName.value = ''
+    newColor.value = '#64748B'
     await w.refreshSpaces()
     w.activeId.value = Number(created.id)
-    notice.value = 'Gestão financeira independente criada.'
-    navigate('dashboard')
+    // Wait until activeId watchers have reset navigation before opening onboarding.
+    await nextTick()
+    notice.value = 'Gestão independente criada.'
+    if (newKind.value === 'organization') {
+      onboarding.value = true
+      navigate('companies')
+    } else {
+      navigate('dashboard')
+    }
   } catch (error) {
     problem.value = financeError(error)
   } finally {
@@ -151,10 +164,10 @@ async function create() {
 
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Áreas financeiras" eyebrow="ORGANIZAÇÃO DOS DADOS"
+    <LfPageHeader title="Gestões financeiras" eyebrow="GERENCIAR"
       description="Cada área financeira contém um livro contábil, caixa e acessos independentes. Cadastros de empresas dentro de uma área não criam contabilidade separada." >
       <template #actions>
-        <NcButton variant="primary" @click="creating=true">Criar área</NcButton>
+        <NcButton variant="primary" @click="creating=true">Nova gestão</NcButton>
       </template>
     </LfPageHeader>
     <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
@@ -164,27 +177,28 @@ async function create() {
         contas, lançamentos, documentos e acessos independentes. Não é um departamento,
         nem um cadastro de empresa ou filial.</p>
       <p>Para cadastrar ou editar empresas e filiais no financeiro atual, use
-        <strong>Dados fiscais da empresa</strong>, sem criar outra área.
+        <strong>Dados da organização</strong>, sem criar outra área.
         Para livros e saldos separados por empresa, use áreas independentes.</p>
       <NcButton v-if="w.manager.value && w.activeId.value" variant="secondary"
         @click="navigate('companies')">Cadastrar ou editar empresas</NcButton>
     </div>
-    <div class="lf-native-workspace-filter" role="search">
-      <NcTextField v-model="search" label="Filtrar áreas financeiras"
+    <div v-if="w.spaces.value.length || archived.length" class="lf-native-workspace-filter" role="search">
+      <NcTextField v-model="search" label="Filtrar gestões financeiras"
         type="search" placeholder="Nome da área ou tipo" />
     </div>
     <section class="lf-surface">
       <div class="lf-section-heading">
-        <div><h2>Minhas áreas</h2>
+        <div><h2>Minhas gestões</h2>
           <p>Abrir acessa o livro financeiro. Renomear ou arquivar não modifica os lançamentos.</p></div>
       </div>
       <ul v-if="owned.length" class="lf-native-space-list" aria-label="Áreas de minha propriedade">
         <NcListItem v-for="item in owned" :key="item.id"
           :name="item.name" :details="item.currency"
-          :href="href(item)" :actions-aria-label="'Ações da área ' + item.name"
+          :href="href(item)" :actions-aria-label="'Ações da gestão ' + item.name"
           force-menu force-display-actions @click="openSpace($event, item)">
           <template #icon><NcIconSvgWrapper :path="typeIcon(item.kind)" :size="26" /></template>
           <template #subname>
+            <span class="lf-category-dot" :style="{backgroundColor:item.accent_color||'#64748B'}" aria-hidden="true" />
             {{ kinds.find(k => k.value===item.kind)?.label || item.kind }}
             · Proprietário
           </template>
@@ -195,7 +209,7 @@ async function create() {
             </NcActionButton>
             <NcActionButton close-after-click @click="startEdit(item)">
               <template #icon><NcIconSvgWrapper :path="mdiPencilOutline" :size="20" /></template>
-              Renomear
+              Editar nome e cor
             </NcActionButton>
             <NcActionButton close-after-click @click="problem=''; archiving=item">
               <template #icon><NcIconSvgWrapper :path="mdiArchiveArrowDownOutline" :size="20" /></template>
@@ -204,14 +218,14 @@ async function create() {
           </template>
         </NcListItem>
       </ul>
-      <NcEmptyContent v-else name="Nenhuma área nesta busca"
-        description="Crie uma área, remova o filtro ou restaure uma área arquivada." />
+      <NcEmptyContent v-else name="Nenhuma gestão nesta busca"
+        description="Crie uma gestão, remova o filtro ou restaure uma gestão arquivada." />
     </section>
     <section v-if="archivedFiltered.length" class="lf-surface">
-      <div class="lf-section-heading"><h2>Áreas arquivadas</h2></div>
-      <ul class="lf-native-space-list" aria-label="Áreas financeiras arquivadas">
+      <div class="lf-section-heading"><h2>Gestões arquivadas</h2></div>
+      <ul class="lf-native-space-list" aria-label="Gestões financeiras arquivadas">
         <NcListItem v-for="item in archivedFiltered" :key="item.id" :name="item.name"
-          :details="item.currency" :actions-aria-label="'Ações da área arquivada ' + item.name" force-menu force-display-actions>
+          :details="item.currency" :actions-aria-label="'Ações da gestão arquivada ' + item.name" force-menu force-display-actions>
           <template #icon><NcIconSvgWrapper :path="typeIcon(item.kind)" :size="26" /></template>
           <template #subname>
             {{ kinds.find(k => k.value===item.kind)?.label || item.kind }} · Arquivada
@@ -227,9 +241,9 @@ async function create() {
     </section>
     <section v-if="other.length" class="lf-surface">
       <div class="lf-section-heading"><h2>Compartilhadas comigo</h2></div>
-      <ul class="lf-native-space-list" aria-label="Áreas financeiras compartilhadas">
+      <ul class="lf-native-space-list" aria-label="Gestões financeiras compartilhadas">
         <NcListItem v-for="item in other" :key="item.id" :name="item.name"
-          :href="href(item)" :actions-aria-label="'Ações da área ' + item.name"
+          :href="href(item)" :actions-aria-label="'Ações da gestão ' + item.name"
           :details="item.currency" force-menu force-display-actions @click="openSpace($event,item)">
           <template #icon><NcIconSvgWrapper :path="typeIcon(item.kind)" :size="26" /></template>
           <template #subname>{{ item.role }} · Compartilhada</template>
@@ -247,15 +261,15 @@ async function create() {
       auditoria; uma exclusão segura requer proteger também dados e referências
       de módulos vinculados.</p>
 
-    <NcDialog :open="creating" name="Criar área financeira"
+    <NcDialog :open="creating" name="Criar gestão financeira"
       content-classes="lf-finance-dialog-content" size="normal"
       @update:open="creating=$event">
       <form class="lf-dialog-form" @submit.prevent="create">
         <NcNoteCard type="warning">
           <strong>Esta opção cria uma gestão financeira independente.</strong>
           Contas, caixa, títulos, saldos e acessos ficarão separados.
-          Se você quer apenas cadastrar outra empresa ou filial com o mesmo financeiro,
-          cancele e use Gerenciar → Dados fiscais da empresa.
+          Se você precisa apenas cadastrar outra empresa ou filial no mesmo financeiro,
+          cancele e use Gerenciar → Dados da organização.
         </NcNoteCard>
         <p>Use uma área separada somente para um financeiro realmente independente,
           como sua casa, outro negócio ou um grupo que não compartilha o caixa.</p>
@@ -263,9 +277,20 @@ async function create() {
           @click="creating=false; navigate('companies')">
           Quero cadastrar uma empresa no financeiro atual
         </NcButton>
-        <NcTextField v-model="newName" label="Nome da área" maxlength="150" required />
+        <NcTextField v-model="newName" label="Nome da gestão" maxlength="150" required />
         <LfSelect id="lf-space-kind-new" v-model="newKind"
           label="Tipo de gestão" :options="kinds" />
+        <div class="lf-field"><span class="lf-field-label">Cor da gestão</span>
+          <NcColorPicker v-model="newColor">
+            <NcButton variant="secondary" aria-label="Escolher cor da gestão">
+              <span class="lf-category-color-swatch" :style="{backgroundColor:newColor}" aria-hidden="true" />
+              Selecionar cor
+            </NcButton>
+          </NcColorPicker>
+        </div>
+        <p v-if="newKind==='organization'" class="lf-muted">
+          Em seguida, configure o cadastro legal, a identidade visual, o logotipo
+          e os campos adicionais em Dados da organização.</p>
         <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" @click="creating=false">Cancelar</NcButton>
@@ -274,11 +299,19 @@ async function create() {
       </form>
     </NcDialog>
 
-    <NcDialog :open="Boolean(editing)" name="Renomear área financeira"
+    <NcDialog :open="Boolean(editing)" name="Editar gestão financeira"
       content-classes="lf-finance-dialog-content" size="normal"
       @update:open="editing=$event?editing:null">
       <form class="lf-dialog-form" @submit.prevent="rename">
-        <NcTextField v-model="name" label="Novo nome" required maxlength="150" />
+        <NcTextField v-model="name" label="Nome da gestão" required maxlength="150" />
+        <div class="lf-field"><span class="lf-field-label">Cor da gestão</span>
+          <NcColorPicker v-model="editColor">
+            <NcButton variant="secondary" aria-label="Alterar cor da gestão">
+              <span class="lf-category-color-swatch" :style="{backgroundColor:editColor}" aria-hidden="true" />
+              Selecionar cor
+            </NcButton>
+          </NcColorPicker>
+        </div>
         <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" @click="editing=null">Cancelar</NcButton>
@@ -288,7 +321,7 @@ async function create() {
       </form>
     </NcDialog>
 
-    <NcDialog :open="Boolean(archiving)" name="Arquivar área financeira"
+    <NcDialog :open="Boolean(archiving)" name="Arquivar gestão financeira"
       content-classes="lf-finance-dialog-content" size="normal"
       @update:open="archiving=$event?archiving:null">
       <div class="lf-dialog-form">
@@ -301,7 +334,7 @@ async function create() {
         <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" @click="archiving=null">Cancelar</NcButton>
-          <NcButton variant="error" :disabled="loading" @click="archive">Arquivar área</NcButton>
+          <NcButton variant="error" :disabled="loading" @click="archive">Arquivar gestão</NcButton>
         </div>
       </div>
     </NcDialog>
