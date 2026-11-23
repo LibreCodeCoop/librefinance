@@ -649,6 +649,26 @@
       "path": "/apps/librefinance/api/saas/v1/environments/{environmentId}/workspaces",
       "request": "POST",
       "route": "librefinance.saasworkspace.create"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/policies/effective",
+      "request": "GET",
+      "route": "librefinance.saaspolicy.effectiveworkspace"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/policies/{policyKey}",
+      "request": "GET",
+      "route": "librefinance.saaspolicy.readworkspace"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/policies/{policyKey}",
+      "request": "PUT",
+      "route": "librefinance.saaspolicy.writeworkspace"
+    },
+    {
+      "path": "/apps/librefinance/api/saas/v1/workspaces/{spaceId}/policies/{policyKey}",
+      "request": "DELETE",
+      "route": "librefinance.saaspolicy.clearworkspace"
     }
   ],
   "librefinance_nfse": [
