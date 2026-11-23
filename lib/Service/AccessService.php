@@ -160,8 +160,13 @@ final class AccessService {
                 ->andWhere($q->expr()->eq('uid',
                     $q->createNamedParameter($uid, IQueryBuilder::PARAM_STR)));
             $role = $q->executeQuery()->fetchOne();
-            if (!is_string($role) || self::rank($role) < self::rank($minRole)) {
+            if (!is_string($role) || self::rank($role) === 0) {
                 throw new DomainException('space_not_found');
+            }
+            if (self::rank($role) < self::rank($minRole)) {
+                // Membership is known, but the selected operation is
+                // forbidden. Do not mask a valid viewer as a missing space.
+                throw new DomainException('permission_denied');
             }
             return $role;
         }
