@@ -43,3 +43,5 @@ $t->check('non-admin cannot grant group delegation', $a, 'POST',
     ['uid' => $b], 403);
 $t->check('non-admin cannot revoke group delegation', $a, 'DELETE',
     '/admin/groups/lf_synth_finance_group/delegates/' . $b, null, 403);
+
+$t->finish();

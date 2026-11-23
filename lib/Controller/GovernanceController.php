@@ -102,7 +102,7 @@ final class GovernanceController extends ApiController {
         return $this->respond(function () use ($name, $kind, $gid, $currency) {
             $this->governance->requireInstanceAdmin();
             if (!$this->governance->enabled()) throw new \DomainException('governance_disabled');
-            return $this->spaces->create($name, $kind, $currency, $gid);
+            return $this->spaces->create($name, $kind, $currency, '#64748B', $gid);
         }, 201);
     }
 

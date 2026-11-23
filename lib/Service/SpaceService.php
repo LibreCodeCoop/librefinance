@@ -31,7 +31,12 @@ final class SpaceService {
     }
 
     /** @return array<string,mixed> */
-    public function create(string $name, string $kind, string $currency, string $color = '#64748B'): array {
+    public function create(string $name, string $kind, string $currency, string $color = '#64748B', ?string $governanceGroup = null): array {
+        $this->governance->requireCreationAllowed();
+        if ($governanceGroup !== null) {
+            $this->governance->requireInstanceAdmin();
+            $this->governance->requireGroup($governanceGroup);
+        }
         $uid = $this->access->uid();
         $name = trim($name);
         $currency = strtoupper(trim($currency));
