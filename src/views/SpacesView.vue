@@ -90,7 +90,10 @@ async function rename() {
   loading.value = true
   problem.value = ''
   try {
-    await w.call('PUT', '/api/spaces/' + Number(target.id), { name: name.value.trim(), color: editColor.value })
+    await w.call('PUT', '/api/spaces/' + Number(target.id), {
+      name: name.value.trim(),
+      ...(target.kind === 'organization' ? {} : { color: editColor.value }),
+    })
     editing.value = null
     await w.refreshSpaces()
     notice.value = 'Nome da gestão atualizado.'
@@ -138,7 +141,8 @@ async function create() {
   problem.value = ''
   try {
     const created = await w.call('POST', '/api/spaces', {
-      name: newName.value.trim(), kind: newKind.value, currency: 'BRL', color: newColor.value,
+      name: newName.value.trim(), kind: newKind.value, currency: 'BRL',
+      color: newKind.value === 'organization' ? '#64748B' : newColor.value,
     })
     creating.value = false
     newName.value = ''
@@ -177,8 +181,8 @@ async function create() {
         contas, lançamentos, documentos e acessos independentes. Não é um departamento,
         nem um cadastro de empresa ou filial.</p>
       <p>Para cadastrar ou editar empresas e filiais no financeiro atual, use
-        <strong>Dados da organização</strong>, sem criar outra área.
-        Para livros e saldos separados por empresa, use áreas independentes.</p>
+        <strong>Dados da organização</strong>, em Cadastros, sem criar outra área.
+        Para apuração e saldos separados por CNPJ, use gestões independentes: várias empresas cadastradas na mesma gestão não possuem livros contábeis segregados.</p>
       <NcButton v-if="w.manager.value && w.activeId.value" variant="secondary"
         @click="navigate('companies')">Cadastrar ou editar empresas</NcButton>
     </div>
@@ -198,7 +202,7 @@ async function create() {
           force-menu force-display-actions @click="openSpace($event, item)">
           <template #icon><NcIconSvgWrapper :path="typeIcon(item.kind)" :size="26" /></template>
           <template #subname>
-            <span class="lf-category-dot" :style="{backgroundColor:item.accent_color||'#64748B'}" aria-hidden="true" />
+            <span v-if="item.kind!=='organization'" class="lf-category-dot" :style="{backgroundColor:item.accent_color||'#64748B'}" aria-hidden="true" />
             {{ kinds.find(k => k.value===item.kind)?.label || item.kind }}
             · Proprietário
           </template>
@@ -280,15 +284,16 @@ async function create() {
         <NcTextField v-model="newName" label="Nome da gestão" maxlength="150" required />
         <LfSelect id="lf-space-kind-new" v-model="newKind"
           label="Tipo de gestão" :options="kinds" />
-        <div class="lf-field"><span class="lf-field-label">Cor da gestão</span>
+        <div v-if="newKind!=='organization'" class="lf-field"><span class="lf-field-label">Cor de identificação da gestão</span>
           <NcColorPicker v-model="newColor">
-            <NcButton variant="secondary" aria-label="Escolher cor da gestão">
+            <NcButton variant="secondary" aria-label="Escolher cor da gestão financeira">
               <span class="lf-category-color-swatch" :style="{backgroundColor:newColor}" aria-hidden="true" />
               Selecionar cor
             </NcButton>
           </NcColorPicker>
         </div>
         <p v-if="newKind==='organization'" class="lf-muted">
+          A cor, o logotipo e a identidade visual pertencem à empresa, não à gestão.
           Em seguida, configure o cadastro legal, a identidade visual, o logotipo
           e os campos adicionais em Dados da organização.</p>
         <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
@@ -304,9 +309,9 @@ async function create() {
       @update:open="editing=$event?editing:null">
       <form class="lf-dialog-form" @submit.prevent="rename">
         <NcTextField v-model="name" label="Nome da gestão" required maxlength="150" />
-        <div class="lf-field"><span class="lf-field-label">Cor da gestão</span>
+        <div v-if="editing?.kind!=='organization'" class="lf-field"><span class="lf-field-label">Cor de identificação da gestão</span>
           <NcColorPicker v-model="editColor">
-            <NcButton variant="secondary" aria-label="Alterar cor da gestão">
+            <NcButton variant="secondary" aria-label="Alterar cor da gestão financeira">
               <span class="lf-category-color-swatch" :style="{backgroundColor:editColor}" aria-hidden="true" />
               Selecionar cor
             </NcButton>

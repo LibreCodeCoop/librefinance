@@ -3,7 +3,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  PAGE_NAMES, availableSections, menuEntries, canOpenView, defaultGroupOpen,
+  PAGE_NAMES, MENU_STRUCTURE, availableSections, menuEntries, canOpenView, defaultGroupOpen,
   canonicalView, financeDirectionForView, navigationSearch, parentOfView,
   normalizeNavigationText, pageNameForSpace, fieldEntityKind,
 } from '../../src/navigation.js'
@@ -103,4 +103,15 @@ test('personal finance retains simple labels and server field boundaries',()=>{
     assert.equal(fieldEntityKind(kind),kind)
   for(const unsafe of ['member','../../etc','<script>',''])
     assert.equal(fieldEntityKind(unsafe),'company')
+})
+
+test('organization profiles are cadastros, while finance spaces manage independent ledgers',()=>{
+  const manage=MENU_STRUCTURE[0].items.find(item=>item.id==='management')
+  const spaces=manage.children.find(item=>item.id==='spaces')
+  const companies=manage.children.find(item=>item.id==='companies')
+  const banks=manage.children.find(item=>item.id==='bankAccounts')
+  assert.equal(spaces.group,'Gestões financeiras')
+  assert.equal(companies.group,'Cadastros')
+  assert.equal(banks.group,'Cadastros')
+  assert.notEqual(spaces.group,companies.group)
 })

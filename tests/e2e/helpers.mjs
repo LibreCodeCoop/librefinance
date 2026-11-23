@@ -102,8 +102,8 @@ export async function goToView(page, view) {
     const subgroup = ({
       'Clientes e fornecedores':'Cadastros', 'Pessoas e estabelecimentos':'Cadastros',
       'Produtos e serviços':'Cadastros', 'Categorias':'Cadastros',
-      'Dados da organização':'Gestões e identidade', 'Organizações (opcional)':'Gestões e identidade',
-      'Gestões financeiras':'Gestões e identidade',
+      'Dados da organização':'Cadastros', 'Organizações (opcional)':'Cadastros',
+      'Gestões financeiras':'Gestões financeiras',
       'Plano de contas':'Financeiro e fiscal',
       'Histórico contábil':'Financeiro e fiscal',
       'Contas e bancos':'Cadastros',

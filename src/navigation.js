@@ -54,9 +54,9 @@ export const MENU_STRUCTURE = Object.freeze([
     { id: 'reports', icon: 'reports', module: 'librefinance_reports',
       keywords: 'relatorios demonstrativos fluxo de caixa resultados dre balancete' },
     { id: 'management', label: 'Gerenciar', icon: 'settings', children: [
-      { id: 'spaces', icon: 'spaces', group: 'Gestões e identidade',
+      { id: 'spaces', icon: 'spaces', group: 'Gestões financeiras',
         keywords: 'gestoes financeiras areas financeiras espacos areas financas criar renomear arquivar restaurar organizacao pessoal' },
-      { id: 'companies', icon: 'companies', group: 'Gestões e identidade',
+      { id: 'companies', icon: 'companies', group: 'Cadastros',
         keywords: 'empresa cnpj dados fiscais empresa emissora identidade legal cadastro juridico logotipo cor' },
       { id: 'contacts', icon: 'contacts', group: 'Cadastros',
         keywords: 'clientes fornecedores pessoas contatos' },

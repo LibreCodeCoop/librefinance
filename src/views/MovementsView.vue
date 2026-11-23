@@ -7,13 +7,15 @@ import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcPopover from '@nextcloud/vue/components/NcPopover'
+import NcActions from '@nextcloud/vue/components/NcActions'
+import NcActionButton from '@nextcloud/vue/components/NcActionButton'
 import NcFilePicker from '@nextcloud/vue/components/NcFilePicker'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiPlus, mdiFilterVariant, mdiRefresh, mdiBankOutline, mdiFileUploadOutline } from '@mdi/js'
+import { mdiPlus, mdiFilterVariant, mdiRefresh, mdiBankOutline, mdiFileUploadOutline, mdiFileDelimitedOutline, mdiFileCodeOutline } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfDateField from '../components/LfDateField.vue'
 import LfSelect from '../components/LfSelect.vue'
@@ -126,7 +128,6 @@ function setAccount(id) {
 // second user-facing register.
 const importOpen = ref(false)
 const importFormat = ref('csv')
-const importMenuOpen = ref(false)
 const importAccount = ref(0)
 const importFile = ref(null)
 const csvExample = 'data:text/csv;charset=utf-8,' + encodeURIComponent(
@@ -153,7 +154,6 @@ function openImport(format = 'csv') {
   if (!['csv','ofx'].includes(format) || !w.writable.value
     || !canReviewBank.value || !banks.value.length) return
   importFormat.value=format
-  importMenuOpen.value=false
   importError.value=''
   importFile.value=null
   importAccount.value = Number(accountFilter.value)
@@ -480,19 +480,19 @@ const currency = row => w.money(row.amountMinor)
     <LfPageHeader title="Movimentações" eyebrow="FINANCEIRO"
       description="Tudo que vai entrar ou sair e o que já aconteceu, em uma lista. Os lançamentos do banco que precisam de conferência ficam identificados.">
       <template #actions>
-        <NcPopover v-if="w.writable.value && canReviewBank && banks.length"
-          v-model:shown="importMenuOpen" popup-role="dialog">
-          <template #trigger>
-            <NcButton variant="secondary" id="lf-import-menu">
-              <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
-              Importar extrato
-            </NcButton>
-          </template>
-          <div class="lf-agenda-filter-content" role="group" aria-label="Formato do extrato">
-            <NcButton variant="tertiary" @click="openImport('csv')">Arquivo CSV</NcButton>
-            <NcButton variant="tertiary" @click="openImport('ofx')">Arquivo OFX</NcButton>
-          </div>
-        </NcPopover>
+        <NcActions v-if="w.writable.value && canReviewBank && banks.length"
+          id="lf-import-menu" menu-name="Importar extrato"
+          aria-label="Importar extrato bancário" :default-icon="mdiFileUploadOutline"
+          variant="secondary" force-menu>
+          <NcActionButton close-after-click @click="openImport('csv')">
+            <template #icon><NcIconSvgWrapper :path="mdiFileDelimitedOutline" :size="20" /></template>
+            Arquivo CSV
+          </NcActionButton>
+          <NcActionButton close-after-click @click="openImport('ofx')">
+            <template #icon><NcIconSvgWrapper :path="mdiFileCodeOutline" :size="20" /></template>
+            Arquivo OFX
+          </NcActionButton>
+        </NcActions>
         <NcPopover v-if="w.writable.value && banks.length>1"
           v-model:shown="moreActionsOpen" popup-role="dialog">
           <template #trigger>
