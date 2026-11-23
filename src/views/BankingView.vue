@@ -18,8 +18,10 @@ import LfSortableHeader from '../components/LfSortableHeader.vue'
 import { useLoadedSort } from '../composables/useLoadedSort.js'
 import LfSelect from '../components/LfSelect.vue'
 import { financeApi, financeError } from '../services/api.js'
+const props=defineProps({ embedded:{type:Boolean,default:false} })
 const w=inject('lfWorkspace')
 const navigate=inject('lfNavigate')
+const importRequest=inject('lfBankImportRequest',ref(0))
 const { activeId, accounts, journals, nextBeforeId,
   loadMore: loadMoreJournals, money, writable } = w
 const chosenAccount=ref(0)
@@ -183,12 +185,19 @@ async function match() {
   finally{if(token===generation)busy.value=false}
 }
 watch([chosenAccount,filter],load)
+// A toolbar outside this component may request an import while the banking
+// panel is mounting. Consume exactly once, even if the user revisits the tab.
+watch(importRequest, requested => {
+  if (!requested || !props.embedded) return
+  importRequest.value=0
+  if (writable.value && banks.value.length) openImportDialog()
+}, { immediate:true })
 onMounted(load)
 onBeforeUnmount(()=>++generation)
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Bancos e caixa" eyebrow="FINANCEIRO"
+    <LfPageHeader v-if="!embedded" title="Bancos e caixa" eyebrow="FINANCEIRO"
       description="Confira extratos e concilie movimentações sem contar transferências internas duas vezes.">
       <template #actions>
         <NcButton v-if="writable && banks.length && rows.length" variant="primary" :disabled="busy"
@@ -201,6 +210,10 @@ onBeforeUnmount(()=>++generation)
         </NcButton>
       </template>
     </LfPageHeader>
+    <p v-if="embedded" class="lf-muted lf-bank-intro">
+      O extrato confirma movimentos do banco; conciliar vincula a um lançamento já contabilizado.
+      Importar não gera receita, despesa ou quitação de fatura automaticamente.
+    </p>
     <details v-if="rows.length || transfers.length" class="lf-finance-explanation">
       <summary>Como funciona a conciliação?</summary>
       <p>Movimentos importados não alteram o saldo contábil até serem conciliados.
@@ -264,7 +277,7 @@ onBeforeUnmount(()=>++generation)
         description="Importe um extrato CSV para conferir movimentos, sem alterar o saldo contábil.">
         <template #action>
           <NcButton v-if="chosenAccount || filter!=='all'" @click="chosenAccount=0;filter='all'">Limpar filtros</NcButton>
-          <NcButton v-else-if="writable" variant="primary" @click="openImportDialog">Importar extrato CSV</NcButton>
+          <NcButton v-else-if="writable && !embedded" variant="primary" @click="openImportDialog">Importar extrato CSV</NcButton>
         </template>
       </NcEmptyContent>
       <div v-else class="lf-table-scroll">

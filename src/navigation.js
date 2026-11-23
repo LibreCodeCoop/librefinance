@@ -6,17 +6,17 @@
 export const PAGE_NAMES = Object.freeze({
   dashboard: 'Visão geral',
   transactions: 'Lançamentos contábeis',
-  banking: 'Bancos e caixa',
+  banking: 'Conferir extrato',
   obligations: 'A pagar e receber', // historic bookmark
   reports: 'Relatórios',
-  invoicing: 'A pagar e receber', // legacy deep-link alias
-  sales: 'A pagar e receber', // historic commercial bookmark
+  invoicing: 'Faturas', // legacy deep-link alias
+  sales: 'Faturas', // historic commercial bookmark
   receivables: 'A pagar e receber',
-  finance: 'A pagar e receber',
+  finance: 'Financeiro',
   documents: 'Faturas',
   spaces: 'Gestões financeiras',
   payables: 'A pagar e receber',
-  purchases: 'A pagar e receber', // historic commercial bookmark
+  purchases: 'Faturas', // historic commercial bookmark
   taxes: 'Regras tributárias',
   nfse: 'NFS-e Brasil',
   contacts: 'Clientes e fornecedores',
@@ -39,12 +39,8 @@ export const PAGE_NAMES = Object.freeze({
 export const MENU_STRUCTURE = Object.freeze([
   { id: 'operations', label: 'LIBREFINANCE', items: [
     { id: 'dashboard', icon: 'home', keywords: 'inicio visao geral resumo painel home' },
-    { id: 'finance', icon: 'obligations', module: 'librefinance_obligations',
-      keywords: 'a pagar receber cliente fornecedor cobranca venda fatura receita despesa vencimentos agenda entradas saidas' },
-    { id: 'documents', icon: 'billing', module: 'librefinance_invoicing',
-      keywords: 'faturas documentos comerciais vendas compras impostos itens rascunhos' },
-    { id: 'banking', icon: 'banking', module: 'librefinance_banking',
-      keywords: 'bancos caixa extrato conciliacao entradas saidas saldo transferencia movimento' },
+    { id: 'finance', icon: 'obligations',
+      keywords: 'a pagar receber banco extrato bancario importar csv conciliacao faturas documentos comerciais vendas compras vencimentos pagamentos cobrancas movimentos conta receita despesa transferencia' },
     { id: 'reports', icon: 'reports', module: 'librefinance_reports',
       keywords: 'relatorios demonstrativos fluxo de caixa resultados dre balancete' },
     { id: 'management', label: 'Gerenciar', icon: 'settings', children: [
@@ -105,15 +101,25 @@ export function normalizeNavigationText(value) {
 }
 
 /** Only enabled, user-visible module descriptors enter the navigation. */
+const FINANCE_PANEL_MODULES = Object.freeze({
+  finance: 'librefinance_obligations',
+  documents: 'librefinance_invoicing',
+  banking: 'librefinance_banking',
+})
+
 export function availableSections({ manager = false, modules = [], modulesLoaded = false } = {}) {
   const enabled = new Set(modulesLoaded ? modules.filter(m => m.enabled).map(m => m.id) : [])
+  const financePanels = Object.entries(FINANCE_PANEL_MODULES)
+    .filter(([, module]) => enabled.has(module)).map(([panel]) => panel)
   function allowed(item) {
-    return (!item.managerOnly || manager) && (!item.module || enabled.has(item.module))
+    return (!item.managerOnly || manager)
+      && (item.id === 'finance' ? financePanels.length > 0 : (!item.module || enabled.has(item.module)))
   }
   return MENU_STRUCTURE.map(section => ({ ...section,
     items: section.items.map(item => item.children
       ? { ...item, children: item.children.filter(allowed) }
-      : item).filter(item => item.children ? item.children.length > 0 : allowed(item)),
+      : item.id === 'finance' ? { ...item, panels: financePanels } : item)
+      .filter(item => item.children ? item.children.length > 0 : allowed(item)),
   })).filter(section => section.items.length > 0)
 }
 
@@ -146,7 +152,14 @@ export function financeDirectionForView(id) {
 
 export function canOpenView(sections, id, { manager = false, migrationEnabled = false } = {}) {
   if (id === 'import') return manager && migrationEnabled
-  return menuEntries(sections).some(item => item.id === canonicalView(id))
+  const canonical = canonicalView(id)
+  // Hidden finance panels remain authorized deep-link destinations while the
+  // sidebar exposes only one Financeiro entry. Module discovery owns visibility.
+  if (canonical === 'documents' || canonical === 'banking') {
+    return menuEntries(sections).some(item => item.id === 'finance'
+      && item.panels?.includes(canonical))
+  }
+  return menuEntries(sections).some(item => item.id === canonical)
 }
 
 export function navigationSearch(sections, query,

@@ -8,12 +8,13 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 O LibreFinance possui navegacao orientada a tarefas:
 
 - **Visao geral:** indicadores calculados a partir dos lancamentos reais.
-- **A pagar e receber:** agenda unica dos titulos e compromissos previstos,
-  inclusive titulos gerados por documentos comerciais.
-- **Faturas:** tela propria para vendas e compras com itens,
-  impostos e rascunhos; a confirmacao gera titulo vinculado sem duplicidade.
-- **Bancos e caixa:** movimentos do caixa, extratos importados, transferencias
-  e conciliacao dos lancamentos bancarios efetivos.
+- **Financeiro:** uma entrada para os tres momentos da operacao.
+  - **A pagar e receber:** acompanha contas e cobrancas sem fatura e
+    compromissos que surgem automaticamente de faturas confirmadas.
+  - **Conferir extrato:** importa movimentos do banco como evidencias,
+    pesquisa lancamentos ja contabilizados e permite a conciliacao manual.
+  - **Faturas:** cadastro detalhado de vendas e compras, com itens, tributos
+    e rascunhos; confirmar gera compromisso e nao pagamento.
 - **Relatorios:** demonstrativos, com segregacao por gestao.
 - **Gestoes financeiras:** unidade de isolamento do dinheiro, contas, historico
   e permissoes; configurada em Gerenciar, nao como cadastro cotidiano.
@@ -22,8 +23,14 @@ O LibreFinance possui navegacao orientada a tarefas:
   assistente, acessos, campos personalizados, formas de pagamento e migracao,
   conforme as permissoes do usuario.
 
-Nao ha menus separados e permanentes para Contas a receber e Contas a pagar,
-nem dois grupos distintos de Cadastros e Mais ferramentas. Gerenciar apresenta
+Nao ha entradas independentes no menu lateral para Faturas ou Bancos e caixa:
+todos os paineis sao acessados dentro de Financeiro. Somente um menu
+**Novo** apresenta as escolhas Conta a pagar, Cobranca a receber, Fatura de
+venda e Fatura de compra. A acao **Importar extrato** tambem fica nesse
+cabecalho. O fluxo abre diretamente o formulario escolhido, sem passar por
+um segundo dialogo de selecao. Nao existem menus separados e permanentes
+para Contas a receber e Contas a pagar, nem dois grupos distintos de
+Cadastros e Mais ferramentas. Gerenciar apresenta
 cinco **grupos recolhiveis nativos do Nextcloud** (Gestoes e identidade,
 Cadastros, Financeiro e fiscal, Equipe e personalizacao, Recursos e dados); cada funcionalidade e
 aberta diretamente, sem outra pagina ou abas de Configuracoes. As URLs antigas de Configuracoes
@@ -40,24 +47,35 @@ juntos na barra superior da lista, ao lado da pesquisa, sem grupo solto
 acima da tabela. Cabecalhos de referencia, descricao, vencimento e
 valor previsto ordenam por consulta SQL e continuacao por cursor de ID:
 nenhum clique ordena apenas as primeiras cinquenta linhas carregadas.
-A busca textual por descricao/referencia tambem filtra antes da paginacao. Filtrar ou navegar nao transforma uma cobranca aberta em entrada
-contabilizada. O extrato de caixa efetivo pertence a Bancos e caixa.
+A busca textual por descricao/referencia tambem filtra antes da paginacao.
+Filtros relativos a "hoje" usam a data local do navegador, validada pelo
+servidor numa janela maxima de um dia em torno do dia UTC. A mesma data
+de referencia e reutilizada durante a paginacao por cursor, evitando que
+uma passagem da meia-noite altere registros durante a leitura. Este
+parametro opcional controla apenas a consulta, nao muda vencimentos nem
+a contabilizacao. Filtrar ou navegar nao transforma uma cobranca aberta
+em entrada contabilizada. O registro importado do banco aparece em **Conferir extrato**
+e permanece pendente ate ser reconciliado com lancamento contabil. Importar
+nao significa pagar ou receber automaticamente.
 
-Para registrar uma operacao, use **Novo a receber** (seta para dentro:
-valor a receber) ou **Novo a pagar** (seta para fora: valor a pagar),
-independentemente do filtro atual da agenda. A setas seguem o mesmo padrao
-do painel e dos lancamentos contabeis. As duas acoes criam compromissos
-previstos e nao transferencias bancarias. O usuario decide entre:
+Para registrar uma operacao, clique em **Novo** no topo do Financeiro:
+**Conta a pagar** ou **Cobranca a receber** criam compromissos avulsos,
+sem fatura, com valor e vencimento. **Fatura de venda** ou **Fatura de
+compra** abrem diretamente a edicao de itens, contatos e tributos. Uma
+fatura confirmada cria seu titulo vinculado. Nao cadastre novamente esse
+titulo no painel A pagar e receber. O titulo oferece Abrir fatura, e a
+fatura oferece Ver conta vinculada.
 
-1. **Simples:** descricao, valor e vencimento; cria somente um titulo avulso.
-2. **Detalhada:** itens, contato, tributos e vencimento; cria documento
-   comercial cujo titulo e criado automaticamente na confirmacao.
-
-Faturas de venda e compra sao criadas e consultadas na **tela propria
-Faturas**, separada da agenda. Os contratos de dados sao
-relacionados, mas nao existem dois CRUDs simultaneos no mesmo painel.
-Um titulo vinculado oferece Abrir documento, e o documento oferece
-Ver conta vinculada, sem registros duplicados.
+**Importar extrato** abre Conferir extrato e solicita conta de banco e CSV.
+Cada linha importada e uma evidencia externa pendente. Uma evidencia nao
+cria uma nova despesa, receita, obrigacao ou pagamento; localizar e
+vincular o lancamento contabil existente e a primeira alternativa.
+Se o usuario tiver apenas o movimento no extrato e nenhum lancamento
+interno, deve registrar e contabilizar a movimentacao correta, conforme
+a classificacao; depois realiza a conciliacao. A baixa administrativa
+sem movimentacao e distinta de uma liquidacao contabil. Transferencias
+entre contas proprias precisam ser verificadas nas duas pontas, sem
+duplicar receita ou despesa.
 
 ## Padroes nativos de interface
 
@@ -159,8 +177,9 @@ introduz** exclusao definitiva.
 
 URLs historicas view=receivables, view=payables e view=obligations
 abrem a agenda, com a direcao adequada. URLs historicas view=sales,
-view=purchases e view=invoicing abrem Faturas, preservando
-o tipo quando informado. Links
+view=purchases e view=invoicing abrem o painel Faturas dentro de Financeiro,
+preservando o tipo quando informado. view=banking abre Conferir extrato,
+sem uma entrada propria no menu lateral. Links
 view=settings&section=access|fields|payments|modules|data seguem para
 Acessos e compartilhamento, Campos personalizados, Formas de pagamento,
 Recursos instalados ou Dados e migracao, respectivamente. Quando a URL indica
@@ -249,7 +268,8 @@ integral de todas as listas ou com uma nova biblioteca de tabelas.
 ## Identidade da gestao, faturas e estados vazios (0.18.2)
 
 As rotas historicas de documentos (view=documents, invoicing, sales e
-purchases) permanecem inalteradas, mas a navegacao as chama de Faturas.
+purchases) permanecem inalteradas, mas agora apontam para o painel Faturas
+do Financeiro; o acesso a view=banking abre o painel Conferir extrato.
 Uma fatura confirmada cria o compromisso vinculado em A pagar e receber.
 Uma cobranca ou conta sem fatura tambem cria compromisso, porem sem
 documento detalhado. Conciliacao bancaria e contabilizacao real sao

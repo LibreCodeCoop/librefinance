@@ -17,15 +17,15 @@ const s = (manager = true, modules = all, modulesLoaded = true) =>
 test('one financial agenda and one management group without duplicate settings', () => {
   assert.deepEqual(s().map(g => g.label), ['LIBREFINANCE'])
   assert.deepEqual(s()[0].items.map(i => i.id),
-    ['dashboard', 'finance', 'documents', 'banking', 'reports', 'management'])
+    ['dashboard', 'finance', 'reports', 'management'])
   assert.deepEqual(s()[0].items.filter(i => i.children).map(i => i.id), ['management'])
   for (const id of ['spaces', 'contacts', 'items', 'categories', 'companies',
     'accounts', 'transactions', 'taxes', 'nfse', 'ai',
     'access', 'fields', 'paymentMethods', 'modules', 'data']) {
     assert.equal(parentOfView(s(), id), 'management', id)
   }
-  assert.equal(PAGE_NAMES.finance, 'A pagar e receber')
-  assert.equal(PAGE_NAMES.banking, 'Bancos e caixa')
+  assert.equal(PAGE_NAMES.finance, 'Financeiro')
+  assert.equal(PAGE_NAMES.banking, 'Conferir extrato')
   assert.equal(PAGE_NAMES.spaces, 'Gestões financeiras')
   assert.equal(parentOfView(s(), 'spaces'), 'management')
   assert.equal(menuEntries(s()).filter(x => x.id === 'settings').length, 0)
@@ -67,9 +67,11 @@ test('module and role checks still hide disabled or manager-only actions', () =>
   }
   assert.equal(names.includes('finance'), true)
   assert.equal(names.includes('spaces'), true) // every user may create an owned space
-  assert.equal(navigationSearch(view, 'extrato').some(x => x.id === 'banking'), false)
+  assert.equal(navigationSearch(view, 'extrato')[0]?.id, 'finance')
   assert.equal(canOpenView(view,'settings',{manager:false}),false)
-  assert.equal(menuEntries(view).some(x => x.id === 'documents'), true)
+  assert.equal(menuEntries(view).some(x => x.id === 'documents'), false)
+  assert.equal(canOpenView(view, 'documents'), true)
+  assert.equal(canOpenView(view, 'banking'), false)
   assert.equal(canOpenView(view,'import',{manager:false,migrationEnabled:true}),false)
   assert.equal(canOpenView(s(),'settings',{manager:true}),true)
   assert.equal(canOpenView(s(),'import',{manager:true,migrationEnabled:true}),true)
@@ -82,7 +84,7 @@ test('navigation search includes ordinary work and administrative capabilities',
   assert.equal(navigationSearch(s(), 'clientes')[0].id, 'contacts')
   assert.equal(navigationSearch(s(), 'cobrança')[0].id, 'finance')
   assert.equal(navigationSearch(s(), 'nota fiscal')[0].id, 'nfse')
-  assert.equal(navigationSearch(s(), 'documentos comerciais')[0].id, 'documents')
+  assert.equal(navigationSearch(s(), 'documentos comerciais')[0].id, 'finance')
   assert.equal(navigationSearch(s(), 'areas financeiras')[0].id, 'spaces')
   assert.equal(navigationSearch(s(), 'fornecedor')[0].id, 'contacts')
   assert.equal(navigationSearch(s(), 'configuracoes')[0].id, 'modules')
@@ -100,7 +102,7 @@ test('personal space uses household labels but preserves the same authorized rou
   assert.equal(pageNameForSpace('contacts', 'organization'), 'Clientes e fornecedores')
   assert.equal(pageNameForSpace('companies', 'personal'), 'Organizações (opcional)')
   assert.equal(pageNameForSpace('companies', 'organization'), 'Dados da organização')
-  assert.equal(pageNameForSpace('finance', 'personal'), 'A pagar e receber')
+  assert.equal(pageNameForSpace('finance', 'personal'), 'Financeiro')
   assert.equal(navigationSearch(s(), 'pessoas e estabelecimentos', {spaceKind:'personal'})[0].id,'contacts')
   assert.equal(navigationSearch(s(), 'clientes', {spaceKind:'organization'})[0].id,'contacts')
   assert.equal(menuEntries(s()).some(item => item.id === 'companies'), true)
@@ -112,4 +114,27 @@ test('only currently supported field entity kinds may be deep-linked', () => {
   }
   for (const invalid of ['member', 'group', '../../user', '<script>', ''])
     assert.equal(fieldEntityKind(invalid), 'company')
+})
+
+
+test('finance sidebar exposes one entry while guarded deep links retain their purpose', () => {
+  const entries = menuEntries(s())
+  assert.equal(entries.filter(item => ['finance','documents','banking'].includes(item.id)).length, 1)
+  assert.equal(entries.find(item=>item.id==='finance').panels.join(','), 'finance,documents,banking')
+  assert.equal(canOpenView(s(),'documents'),true)
+  assert.equal(canOpenView(s(),'banking'),true)
+  assert.equal(canOpenView(s(),'finance'),true)
+  assert.equal(navigationSearch(s(),'faturas')[0].id,'finance')
+  assert.equal(navigationSearch(s(),'extrato')[0].id,'finance')
+  const onlyObligations=s(false, all.filter(item=>item.id==='librefinance_obligations'), true)
+  assert.equal(canOpenView(onlyObligations,'documents'),false)
+  assert.equal(canOpenView(onlyObligations,'banking'),false)
+  assert.equal(canOpenView(onlyObligations,'finance'),true)
+  const onlyBanking=s(false, all.filter(item=>item.id==='librefinance_banking'), true)
+  assert.equal(canOpenView(onlyBanking,'finance'),true)
+  assert.equal(canOpenView(onlyBanking,'banking'),true)
+  assert.equal(canOpenView(onlyBanking,'documents'),false)
+  const none=s(false, [], true)
+  assert.equal(canOpenView(none,'finance'),false)
+  assert.equal(canOpenView(none,'banking'),false)
 })

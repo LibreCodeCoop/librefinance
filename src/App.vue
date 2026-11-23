@@ -39,7 +39,6 @@ import CategoriesView from './views/CategoriesView.vue'
 import SettingsView from './views/SettingsView.vue'
 import AiView from './views/AiView.vue'
 import ReportsView from './views/ReportsView.vue'
-import BankingView from './views/BankingView.vue'
 import ObligationsView from './views/ObligationsView.vue'
 import InvoicesView from './views/InvoicesView.vue'
 import CashflowView from './views/CashflowView.vue'
@@ -60,6 +59,11 @@ const {
 } = workspace
 const quickEntry = ref(false)
 provide('lfEntryDialog', quickEntry)
+// One-shot editor requests must outlive the finance sub-panel route remount.
+const newSimple = ref(false)
+provide('lfNewSimple', newSimple)
+const bankImportRequest = ref(0)
+provide('lfBankImportRequest', bankImportRequest)
 // The navigation follows user tasks, not the internal extension layout.
 // Server-authorized module discovery is still the only source of availability.
 const labels = computed(() => Object.fromEntries(
@@ -71,7 +75,7 @@ const screens = {
   dashboard: DashboardView,
   transactions: TransactionsView,
   accounts: AccountsView,
-  banking: BankingView,
+  banking: CashflowView,
   finance: CashflowView,
   documents: CashflowView,
   spaces: SpacesView,
@@ -248,6 +252,7 @@ provide('lfNewDetailed', newDetailed)
 const focusedObligation = ref(null)
 provide('lfFocusedObligation', focusedObligation)
 const activeLocation = computed(() => {
+  if (['finance','documents','banking'].includes(readyView.value)) return 'Financeiro'
   if (readyView.value === 'settings' || readyView.value === 'spaces' || readyView.value === 'import') return 'Gerenciar'
   const match = menuEntries(availableNav.value).find(item => item.id === readyView.value)
   return match?.parent || match?.section || 'LibreFinance'
@@ -269,8 +274,7 @@ function navigate(view, options = {}) {
   if (view === 'fields') {
     fieldStudioEntity.value = fieldEntityKind(options.entityKind || 'company')
   }
-  if (canonicalView(view) === 'finance'
-    || (canonicalView(view) === 'documents' && (view !== 'documents' || !options.preserveDirection))) {
+  if (['finance','documents'].includes(canonicalView(view)) && !options.preserveDirection) {
     financeDirectionHint.value = financeDirectionForView(view)
   }
   view = canonicalView(view)
@@ -310,9 +314,8 @@ function selectSpace(id) {
   window.history.pushState(null, '', url.pathname + url.search)
 }
 function openEntry() {
-  if (!writable.value || !activeId.value) return
-  navigate('transactions')
-  quickEntry.value = true
+  if (!writable.value || !activeId.value || !visibleView('finance')) return
+  navigate('finance')
 }
 
 function onHistoryChange() {
@@ -403,7 +406,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
             <li class="lf-nav-section"><span>RESULTADOS DA BUSCA</span></li>
             <NcAppNavigationItem v-for="entry in searchResults" :key="entry.id"
               :name="labels[entry.id]" :title="entry.parent || entry.section"
-              :href="viewHref(entry.id)" :active="readyView === entry.id"
+              :href="viewHref(entry.id)" :active="readyView === entry.id || (entry.id === 'finance' && ['documents','banking'].includes(readyView))"
               @click="onNavClick($event, entry.id)">
               <template #icon><NcIconSvgWrapper :path="icons[entry.icon]" :size="20" /></template>
             </NcAppNavigationItem>
@@ -439,7 +442,8 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
                   </NcAppNavigationItem>
                 </NcAppNavigationItem>
                 <NcAppNavigationItem v-else :name="labels[item.id]" :href="viewHref(item.id)"
-                  :active="readyView === item.id" @click="onNavClick($event, item.id)">
+                  :active="readyView === item.id || (item.id === 'finance' && ['documents','banking'].includes(readyView))"
+                  @click="onNavClick($event, item.id)">
                   <template #icon><NcIconSvgWrapper :path="icons[item.icon]" :size="20" /></template>
                 </NcAppNavigationItem>
               </template>
@@ -462,7 +466,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
             <span class="lf-context-currency">{{ space.currency }}</span>
             <NcButton v-if="writable && readyView === 'dashboard'" variant="primary" @click="openEntry">
               <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-              Registrar entrada ou saída
+              Abrir Financeiro
             </NcButton>
             <NcButton variant="tertiary" aria-label="Atualizar dados"
               :disabled="busy" @click="refreshCurrent">
@@ -498,7 +502,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         </div>
         <component :is="currentScreen" v-else
           :key="activeId + ':' + readyView + ':' + urlSearchTerm"
-          v-bind="['finance', 'documents'].includes(readyView) ? { section: readyView } : {}" />
+          v-bind="['finance', 'documents', 'banking'].includes(readyView) ? { section: readyView } : {}" />
       </div>
     </NcAppContent>
 

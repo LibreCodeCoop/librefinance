@@ -1090,3 +1090,62 @@
   margin-block: 4px 8px;
 }
 #librefinance-app .lf-area-guidance p { margin: 0; }
+
+
+/* Unified financial workbench: a single navigation entry with subordinate views.
+ * Native Nextcloud buttons own interaction; no framed tiles around empty lists. */
+#librefinance-app .lf-finance-panel-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0 12px;
+  margin: 0 0 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+#librefinance-app .lf-finance-panel-nav button[aria-selected="true"] {
+  font-weight: 600;
+}
+#librefinance-app .lf-finance-panel {
+  min-width: 0;
+  width: 100%;
+}
+#librefinance-app .lf-finance-panel > .lf-view {
+  width: 100%;
+  min-width: 0;
+}
+#librefinance-app .lf-finance-action-menu {
+  min-width: 245px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px;
+}
+#librefinance-app .lf-finance-action-menu > .lf-muted {
+  margin: 9px 8px 2px;
+  font-size: 12px;
+  font-weight: 600;
+}
+#librefinance-app .lf-finance-action-menu > .lf-muted:first-child {
+  margin-top: 0;
+}
+#librefinance-app .lf-finance-action-menu button {
+  justify-content: flex-start;
+  text-align: left;
+}
+#librefinance-app .lf-bank-intro {
+  margin: 0 0 14px;
+}
+@media (max-width: 580px) {
+  #librefinance-app .lf-finance-panel-nav {
+    gap: 2px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  #librefinance-app .lf-finance-panel-nav button {
+    flex-shrink: 0;
+  }
+  #librefinance-app .lf-finance-import {
+    max-width: 100%;
+  }
+}

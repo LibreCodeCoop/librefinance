@@ -3,137 +3,168 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { computed, inject, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue'
+import { computed, inject, onBeforeUnmount, provide, ref, watch } from 'vue'
 import NcButton from '@nextcloud/vue/components/NcButton'
-import NcDialog from '@nextcloud/vue/components/NcDialog'
-import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
+import NcPopover from '@nextcloud/vue/components/NcPopover'
+import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
-import { mdiArrowDownLeft, mdiArrowUpRight, mdiFileDocumentOutline } from '@mdi/js'
+import {
+  mdiPlus, mdiFileUploadOutline, mdiCashClock, mdiBankOutline, mdiReceiptTextOutline,
+} from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import ObligationsView from './ObligationsView.vue'
 import InvoicesView from './InvoicesView.vue'
+import BankingView from './BankingView.vue'
 
-const props = defineProps({ section: { type: String, default: 'finance' } })
+const props = defineProps({
+  // Preserve existing deep links: finance, documents and banking remain valid URLs.
+  section: { type: String, default: 'finance' },
+})
 const w = inject('lfWorkspace')
 const navigate = inject('lfNavigate', () => {})
 const routeHint = inject('lfFinanceDirectionHint', ref('all'))
 const focusedInvoice = inject('lfFocusedInvoice')
 const focusedObligation = inject('lfFocusedObligation')
 const newDetailed = inject('lfNewDetailed', ref(false))
-const isDocuments = computed(() => props.section === 'documents')
-const direction = ref(['receivable','payable'].includes(routeHint.value) ? routeHint.value : 'all')
-const chooseOperation = ref('')
-const newSimple = ref(false)
+const importRequest = inject('lfBankImportRequest', ref(0))
+const newMenuShown = ref(false)
+const newSimple = inject('lfNewSimple', ref(false))
+const direction = ref(['payable', 'receivable'].includes(routeHint.value) ? routeHint.value : 'all')
 const invoiceKind = computed(() => direction.value === 'payable' ? 'bill' : 'invoice')
 provide('lfInvoiceKind', invoiceKind)
-const canSeeInvoices = computed(() =>
-  w.modulesLoadedFor.value === Number(w.activeId.value)
-  && w.modules.value.some(m => m.id === 'librefinance_invoicing' && m.enabled))
-const canSeeObligations = computed(() =>
-  w.modulesLoadedFor.value === Number(w.activeId.value)
-  && w.modules.value.some(m => m.id === 'librefinance_obligations' && m.enabled))
-const canSeeBanking = computed(() =>
-  w.modulesLoadedFor.value === Number(w.activeId.value)
-  && w.modules.value.some(m => m.id === 'librefinance_banking' && m.enabled))
-const isReceivable = computed(() => chooseOperation.value === 'receivable')
+
+function hasModule(id) {
+  return w.modulesLoadedFor.value === Number(w.activeId.value)
+    && w.modules.value.some(module => module.id === id && module.enabled)
+}
+const canSeeObligations = computed(() => hasModule('librefinance_obligations'))
+const canSeeInvoices = computed(() => hasModule('librefinance_invoicing'))
+const canSeeBanking = computed(() => hasModule('librefinance_banking'))
+const panels = computed(() => [
+  { id: 'finance', label: 'A pagar e receber', hint: 'Compromissos', icon: mdiCashClock, enabled: canSeeObligations.value },
+  { id: 'banking', label: 'Conferir extrato', hint: 'Importação e conciliação', icon: mdiBankOutline, enabled: canSeeBanking.value },
+  { id: 'documents', label: 'Faturas', hint: 'Vendas e compras', icon: mdiReceiptTextOutline, enabled: canSeeInvoices.value },
+].filter(item => item.enabled))
+const selectedPanel = computed(() => panels.value.some(item => item.id === props.section)
+  ? props.section : (panels.value[0]?.id ?? 'finance'))
+
 const flow = {
-  newSimple, newDetailed,
+  newSimple,
+  newDetailed,
   showDocument(row) {
     routeHint.value = row?.kind === 'payable' ? 'payable' : 'receivable'
     navigate('documents', { preserveDirection: true })
   },
-  showAccounts() { navigate('finance') },
+  showAccounts() {
+    navigate('finance')
+  },
   setDocumentDirection(kind) {
-    if (['receivable','payable'].includes(kind)) direction.value = kind
+    if (['payable', 'receivable'].includes(kind)) {
+      routeHint.value = kind
+      direction.value = kind
+    }
   },
 }
 provide('lfFlowContext', flow)
-async function begin(kind) {
-  if (!['payable','receivable'].includes(kind)) return
-  if (isDocuments.value) {
-    direction.value = kind
-    // Wait for the keyed sales/purchases editor to mount before opening it.
-    await nextTick()
-    newDetailed.value = true
-  } else {
-    chooseOperation.value = kind
-  }
+
+function selectPanel(id) {
+  if (!panels.value.some(item => item.id === id)) return
+  newMenuShown.value = false
+  if (id !== props.section) navigate(id)
 }
-function newOperation(detail) {
-  const kind = chooseOperation.value
-  chooseOperation.value = ''
-  if (!['payable','receivable'].includes(kind)) return
-  if (detail === 'simple' && canSeeObligations.value) {
-    direction.value = kind
-    newSimple.value = true
-  } else if (detail === 'detailed' && canSeeInvoices.value) {
-    routeHint.value = kind
-    newDetailed.value = true
-    navigate('documents', { preserveDirection: true })
-  }
+function startSimple(kind) {
+  if (!w.writable.value || !canSeeObligations.value) return
+  newMenuShown.value = false
+  routeHint.value = kind
+  direction.value = kind
+  newSimple.value = true
+  if (props.section !== 'finance') navigate('finance', { preserveDirection: true })
 }
+function startInvoice(kind) {
+  if (!w.writable.value || !canSeeInvoices.value) return
+  newMenuShown.value = false
+  routeHint.value = kind === 'bill' ? 'payable' : 'receivable'
+  direction.value = routeHint.value
+  newDetailed.value = true
+  if (props.section !== 'documents') navigate('documents', { preserveDirection: true })
+}
+function startImport() {
+  if (!w.writable.value || !canSeeBanking.value) return
+  newMenuShown.value = false
+  // BankingView consumes this request once. The shell owns the token so it
+  // survives the route remount, and no import is attempted without an account.
+  importRequest.value += 1
+  if (props.section !== 'banking') navigate('banking')
+}
+
 watch(routeHint, kind => {
-  direction.value = ['receivable','payable'].includes(kind) ? kind : 'all'
+  direction.value = ['receivable', 'payable'].includes(kind) ? kind : 'all'
 })
 watch(w.activeId, () => {
-  chooseOperation.value = ''
+  newMenuShown.value = false
   newSimple.value = false
   newDetailed.value = false
   direction.value = 'all'
   if (focusedInvoice) focusedInvoice.value = null
   if (focusedObligation) focusedObligation.value = null
 })
-onBeforeUnmount(() => { chooseOperation.value = '' })
+onBeforeUnmount(() => { newMenuShown.value = false })
 </script>
 
 <template>
-  <div class="lf-view lf-flow-view">
-    <LfPageHeader :title="isDocuments ? 'Faturas' : 'A pagar e receber'"
-      :eyebrow="isDocuments ? 'VENDAS E COMPRAS' : 'AGENDA FINANCEIRA'"
-      :description="isDocuments
-        ? 'Registre faturas emitidas ou recebidas. Quando confirmadas, geram o valor correspondente em A pagar e receber.'
-        : 'Acompanhe compromissos a pagar e receber. Os valores são previstos até serem liquidados.'">
+  <div class="lf-view lf-unified-finance">
+    <LfPageHeader title="Financeiro" eyebrow="OPERAÇÕES"
+      description="Acompanhe compromissos, registre faturas e confira movimentações bancárias em um só lugar.">
       <template #actions>
-        <NcButton v-if="w.writable.value && (!isDocuments || canSeeInvoices)"
-          variant="primary" class="lf-new-entry" @click="begin('receivable')">
-          <template #icon><NcIconSvgWrapper :path="isDocuments ? mdiFileDocumentOutline : mdiArrowDownLeft" :size="20" /></template>
-          {{isDocuments ? 'Nova fatura de venda' : 'Novo a receber'}}
-        </NcButton>
-        <NcButton v-if="w.writable.value && (!isDocuments || canSeeInvoices)"
-          variant="secondary" class="lf-new-exit" @click="begin('payable')">
-          <template #icon><NcIconSvgWrapper :path="isDocuments ? mdiFileDocumentOutline : mdiArrowUpRight" :size="20" /></template>
-          {{isDocuments ? 'Nova fatura de compra' : 'Novo a pagar'}}
+        <NcPopover v-if="w.writable.value && (canSeeObligations || canSeeInvoices)"
+          v-model:shown="newMenuShown" popup-role="dialog">
+          <template #trigger>
+            <NcButton variant="primary" class="lf-finance-create">
+              <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
+              Novo
+            </NcButton>
+          </template>
+          <div class="lf-finance-action-menu" role="group" aria-label="Registrar no Financeiro">
+            <p v-if="canSeeObligations" class="lf-muted">Sem fatura</p>
+            <NcButton v-if="canSeeObligations" variant="tertiary" block
+              @click="startSimple('payable')">Conta a pagar</NcButton>
+            <NcButton v-if="canSeeObligations" variant="tertiary" block
+              @click="startSimple('receivable')">Cobrança a receber</NcButton>
+            <p v-if="canSeeInvoices" class="lf-muted">Com itens e tributos</p>
+            <NcButton v-if="canSeeInvoices" variant="tertiary" block
+              @click="startInvoice('invoice')">Fatura de venda</NcButton>
+            <NcButton v-if="canSeeInvoices" variant="tertiary" block
+              @click="startInvoice('bill')">Fatura de compra</NcButton>
+          </div>
+        </NcPopover>
+        <NcButton v-if="w.writable.value && canSeeBanking" variant="secondary"
+          class="lf-finance-import" @click="startImport">
+          <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
+          Importar extrato
         </NcButton>
       </template>
     </LfPageHeader>
 
-    <ObligationsView v-if="!isDocuments && canSeeObligations"
-      :kind="direction" :embedded="true" />
-    <InvoicesView v-else-if="isDocuments && canSeeInvoices"
-      :key="direction" :embedded="true" />
-    <NcNoteCard v-else type="warning">
-      O recurso necessário não está habilitado nesta área financeira.
-    </NcNoteCard>
-
-    <NcDialog :open="Boolean(chooseOperation)" size="normal"
-      content-classes="lf-finance-dialog-content"
-      :name="isReceivable ? 'Novo a receber' : 'Novo a pagar'"
-      @update:open="chooseOperation=$event?chooseOperation:''">
-      <div class="lf-dialog-form">
-        <h3>{{isReceivable ? 'Como registrar a cobrança?' : 'Como registrar a conta a pagar?'}}</h3>
-        <p>Registre um valor previsto sem fatura ou crie uma fatura de compra ou venda
-          com itens e tributos. A confirmação da fatura cria automaticamente
-          o valor a pagar ou receber, sem lançamento bancário duplicado.</p>
-        <NcButton v-if="canSeeObligations" variant="secondary" block
-          @click="newOperation('simple')">
-          {{isReceivable?'Somente cobrança (sem fatura)':'Somente conta a pagar (sem fatura)'}}
-        </NcButton>
-        <NcButton v-if="canSeeInvoices" variant="secondary" block
-          @click="newOperation('detailed')">
-          {{isReceivable?'Criar fatura de venda':'Cadastrar fatura de compra'}}
-        </NcButton>
-        <NcButton variant="tertiary" @click="chooseOperation=''">Cancelar</NcButton>
-      </div>
-    </NcDialog>
+    <div v-if="panels.length" class="lf-finance-panel-nav" role="tablist"
+      aria-label="Etapas do financeiro">
+      <NcButton v-for="panel in panels" :key="panel.id"
+        role="tab" :aria-selected="selectedPanel === panel.id"
+        :variant="selectedPanel === panel.id ? 'secondary' : 'tertiary'"
+        :aria-controls="'lf-finance-panel-' + panel.id"
+        @click="selectPanel(panel.id)">
+        <template #icon><NcIconSvgWrapper :path="panel.icon" :size="20" /></template>
+        {{ panel.label }}
+      </NcButton>
+    </div>
+    <section v-if="panels.length" :id="'lf-finance-panel-' + selectedPanel"
+      class="lf-finance-panel" role="tabpanel">
+      <ObligationsView v-if="selectedPanel === 'finance'" :key="'pending-'+direction"
+        :kind="direction" :embedded="true" />
+      <InvoicesView v-else-if="selectedPanel === 'documents'"
+        :key="'invoices-'+direction" :embedded="true" />
+      <BankingView v-else-if="selectedPanel === 'banking'" :embedded="true" />
+    </section>
+    <NcEmptyContent v-else name="Nenhuma operação financeira disponível"
+      description="Ative pelo menos um recurso financeiro em Gerenciar → Recursos instalados." />
   </div>
 </template>

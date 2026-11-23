@@ -44,6 +44,19 @@ export async function login(page) {
 export async function goToView(page, view) {
   const nav = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
   await expect(nav).toBeVisible()
+  const financePanel = ({
+    'A pagar e receber': 'A pagar e receber',
+    'Bancos e caixa': 'Conferir extrato',
+    'Faturas': 'Faturas',
+  })[view]
+  if (financePanel) {
+    await nav.getByRole('link', { name: 'Financeiro', exact: true }).click()
+    const panel = page.getByRole('tab', { name: financePanel, exact: true })
+    await expect(panel).toBeVisible({ timeout: 20_000 })
+    if ((await panel.getAttribute('aria-selected')) !== 'true') await panel.click()
+    await expect(panel).toHaveAttribute('aria-selected', 'true')
+    return
+  }
   if (view === 'Migração de dados') {
     await goToView(page, 'Dados e migração')
     return
@@ -137,4 +150,16 @@ export async function makeSpace(page, kind = 'organization') {
     await goToView(page, 'Visão geral')
   }
   return name
+}
+
+
+/** The finance workbench has one creation menu regardless of active panel. */
+export async function openFinanceAction(page, action) {
+  const create = page.getByRole('button', { name: 'Novo', exact: true })
+  await expect(create).toBeVisible()
+  await create.click()
+  const option = page.getByRole('group', { name: 'Registrar no Financeiro' })
+    .getByRole('button', { name: action, exact: true })
+  await expect(option).toBeVisible()
+  await option.click()
 }
