@@ -290,7 +290,7 @@ final class EnvironmentService {
             $q = $this->db->getQueryBuilder();
             $updated = $q->update('lf_environments')
                 ->set('status', $q->createNamedParameter('enabled_pending_admin'))
-                ->set('revision', 'revision + 1')
+                ->set('revision', $q->createFunction('revision + 1'))
                 ->set('updated_at',
                     $q->createNamedParameter($now, IQueryBuilder::PARAM_INT))
                 ->where($q->expr()->eq('id',
