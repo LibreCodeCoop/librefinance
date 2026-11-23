@@ -48,26 +48,28 @@ $claims = $prefix . 'lf_saas_space_claims';
 $now = time();
 $db->beginTransaction();
 try {
-    $addCompany = $db->prepare('INSERT INTO ' . $company
-        . ' (space_id,company_id,linked_by,linked_at) VALUES (?,?,?,?)');
-    $addCompany->execute([900001, 800001, 'synthetic-actor', $now]);
-    $addClaim = $db->prepare('INSERT INTO ' . $claims
+    $companySql = 'INSERT INTO ' . $company
+        . ' (space_id,company_id,linked_by,linked_at) VALUES (?,?,?,?)';
+    $claimSql = 'INSERT INTO ' . $claims
         . ' (environment_id,idempotency_key,request_hash,space_id,created_by,created_at)'
-        . ' VALUES (?,?,?,?,?,?)');
-    $addClaim->execute([700001, 'synthetic-key-0001', str_repeat('a', 64),
+        . ' VALUES (?,?,?,?,?,?)';
+    $db->prepare($companySql)->execute([900001, 800001, 'synthetic-actor', $now]);
+    $db->prepare($claimSql)->execute([700001, 'synthetic-key-0001', str_repeat('a', 64),
         900001, 'synthetic-actor', $now]);
 
     foreach ([
-        [$addCompany, [900001, 800002, 'synthetic-actor', $now]],
-        [$addCompany, [900002, 800001, 'synthetic-actor', $now]],
-        [$addClaim, [700001, 'synthetic-key-0001', str_repeat('a', 64),
+        [$companySql, [900001, 800002, 'synthetic-actor', $now]],
+        [$companySql, [900002, 800001, 'synthetic-actor', $now]],
+        [$claimSql, [700001, 'synthetic-key-0001', str_repeat('a', 64),
             900002, 'synthetic-actor', $now]],
-        [$addClaim, [700002, 'synthetic-key-0002', str_repeat('a', 64),
+        [$claimSql, [700002, 'synthetic-key-0002', str_repeat('a', 64),
             900001, 'synthetic-actor', $now]],
-    ] as [$statement, $values]) {
+    ] as [$statementSql, $values]) {
         $db->exec('SAVEPOINT lf_saas_unique_case');
         try {
-            $statement->execute($values);
+            // Reprepare for each constraint: after a failed execute and
+            // savepoint rollback, SQLite can invalidate the PDO statement.
+            $db->prepare($statementSql)->execute($values);
             throw new RuntimeException('Missing unique constraint on SaaS company/ledger');
         } catch (PDOException $e) {
             if (!in_array((string)$e->getCode(), ['23000', '23505'], true)) {
