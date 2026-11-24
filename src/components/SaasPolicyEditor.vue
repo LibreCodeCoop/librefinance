@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { getLocale, t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -69,20 +70,21 @@ const auditResource = computed(() => {
   return ''
 })
 const name = key => ({
-  'environments.enabled': 'Habilitar os ambientes SaaS',
-  'externalSharing.enabled': 'Compartilhamento externo',
-  'imports.enabled': 'Importação de dados',
-  'banking.allowedImportFormats': 'Formatos de extrato bancário permitidos (CSV ou OFX)',
-  'modules.reports.enabled': 'Relatórios financeiros',
-  'regional.nfseDrafts.enabled': 'Rascunhos de NFS-e (integração opcional)',
-  'workspaces.maxCount': 'Limite de gestões por ambiente',
-  'dashboard.kpis.enabled': 'Exibir indicadores resumidos no painel',
+  'environments.enabled': t('librefinance', 'Enable SaaS environments'),
+  'externalSharing.enabled': t('librefinance', 'External sharing'),
+  'imports.enabled': t('librefinance', 'Data import'),
+  'banking.allowedImportFormats': t('librefinance', 'Allowed bank statement formats (CSV or OFX)'),
+  'modules.reports.enabled': t('librefinance', 'Financial reports'),
+  'regional.nfseDrafts.enabled': t('librefinance', 'NFS-e drafts (optional integration)'),
+  'workspaces.maxCount': t('librefinance', 'Workspace limit per environment'),
+  'dashboard.kpis.enabled': t('librefinance', 'Show summary indicators on the dashboard'),
 })[key] || key
 const sourceLabel = scope => ({
-  default: 'Padrão do aplicativo', instance: 'Instância Nextcloud',
-  environment: 'Ambiente', workspace: 'Gestão', user: 'Usuário',
-})[scope] || 'Indisponível'
+  default: t('librefinance', 'Application default'), instance: t('librefinance', 'Nextcloud instance'),
+  environment: t('librefinance', 'Environment'), workspace: t('librefinance', 'Workspace'), user: t('librefinance', 'User'),
+})[scope] || t('librefinance', 'Unavailable')
 const currentContext = computed(() => resource.value)
+const inheritedLabel = value => value === null ? t('librefinance', 'Inherited') : value
 
 async function load() {
   const seq = ++requestSequence
@@ -152,7 +154,7 @@ async function fetchHistory(more = false) {
   }
 }
 function auditTime(seconds) {
-  return new Date(Number(seconds) * 1000).toLocaleString('pt-BR')
+  return new Date(Number(seconds) * 1000).toLocaleString(getLocale()?.replaceAll('_', '-'))
 }
 async function toggleHistory() {
   if (historyOpen.value) { closeHistory(); return }
@@ -190,8 +192,8 @@ async function update(row, clear = false) {
     if (!mounted || endpoint !== resource.value) return
     if (historyOpen.value) await fetchHistory(false)
     notice.value = clear
-      ? 'Restrição local removida. A política herdada permanece em vigor.'
-      : 'Restrição aplicada e auditada para este escopo.'
+      ? t('librefinance', 'Local restriction removed. The inherited policy remains in effect.')
+      : t('librefinance', 'Restriction applied and audited for this scope.')
   } catch (cause) {
     if (!mounted || endpoint !== resource.value) return
     if ([403, 404, 423].includes(cause?.response?.status)) {
@@ -201,7 +203,7 @@ async function update(row, clear = false) {
     } else if (cause?.response?.status === 409) {
       await load()
       if (mounted && endpoint === resource.value) {
-        error.value = 'A revisão mudou. Os valores atuais foram recarregados; revise antes de salvar.'
+        error.value = t('librefinance', 'The revision changed. Current values were reloaded; review them before saving.')
       }
     } else {
       error.value = financeError(cause)
@@ -214,10 +216,8 @@ async function update(row, clear = false) {
 
 <template>
   <section v-if="!unsupported" class="lf-saas-policy-editor"
-    :aria-label="'Políticas SaaS de ' + scope">
-    <p class="lf-muted">Estas políticas restringem operações, mas não concedem
-      permissões financeiras. O servidor revalida a autoridade e a revisão
-      a cada alteração.</p>
+    :aria-label="t('librefinance', 'SaaS policies for {scope}', { scope: sourceLabel(scope) }, { escape: false, sanitize: false })">
+    <p class="lf-muted">{{ t('librefinance', 'These policies restrict operations but do not grant financial permissions. The server revalidates authority and revision on every change.') }}</p>
     <NcLoadingIcon v-if="loading" :size="20" />
     <NcNoteCard v-if="error" type="error" role="alert">{{ error }}</NcNoteCard>
     <NcNoteCard v-if="notice" type="success" role="status">{{ notice }}</NcNoteCard>
@@ -226,13 +226,13 @@ async function update(row, clear = false) {
         <div>
           <strong>{{ name(policy.key) }}</strong>
           <p class="lf-muted">{{ policy.key }}</p>
-          <p>Efetivo: <strong>{{ formatPolicyValue(policy) }}</strong>
-            · Origem: {{ sourceLabel(policy.sourceScope) }}
-            · Revisão: {{ policy.revision }}</p>
+          <p>{{ t('librefinance', 'Effective: {value}', { value: formatPolicyValue(policy) }, { escape: false, sanitize: false }) }}
+            · {{ t('librefinance', 'Source: {source}', { source: sourceLabel(policy.sourceScope) }, { escape: false, sanitize: false }) }}
+            · {{ t('librefinance', 'Revision: {revision}', { revision: policy.revision }, { escape: false, sanitize: false }) }}</p>
           <p v-if="policy.blockedBy" class="lf-muted">
-            Restrição obrigatória: {{ sourceLabel(policy.blockedBy) }}</p>
+            {{ t('librefinance', 'Mandatory restriction: {scope}', { scope: sourceLabel(policy.blockedBy) }, { escape: false, sanitize: false }) }}</p>
           <p v-if="!policy.editableByCurrentActor" class="lf-muted">
-            Somente leitura neste escopo; não há delegação automática.
+            {{ t('librefinance', 'Read-only at this scope; there is no automatic delegation.') }}
           </p>
         </div>
         <div v-if="policy.editableByCurrentActor" class="lf-saas-policy-form">
@@ -240,35 +240,35 @@ async function update(row, clear = false) {
             :model-value="inputs[policy.key] === true" type="switch"
             :disabled="busy!=='' || loading"
             @update:model-value="inputs[policy.key]=Boolean($event)">
-            Permitir {{ name(policy.key).toLocaleLowerCase('pt-BR') }}
+            {{ t('librefinance', 'Allow {policy}', { policy: name(policy.key).toLocaleLowerCase(getLocale()?.replaceAll('_', '-')) }, { escape: false, sanitize: false }) }}
           </NcCheckboxRadioSwitch>
           <NcTextField v-else-if="policy.type==='ceiling'"
             :model-value="String(inputs[policy.key] ?? '')"
-            :label="'Limite de ' + name(policy.key).toLocaleLowerCase('pt-BR')"
+            :label="t('librefinance', 'Limit for {policy}', { policy: name(policy.key).toLocaleLowerCase(getLocale()?.replaceAll('_', '-')) }, { escape: false, sanitize: false })"
             inputmode="numeric" :disabled="busy!=='' || loading"
             @update:model-value="inputs[policy.key]=$event" />
           <NcTextField v-else-if="policy.type==='allowed_set'"
             :model-value="String(inputs[policy.key] ?? '')"
-            :label="'Valores permitidos para ' + name(policy.key)"
+            :label="t('librefinance', 'Allowed values for {policy}', { policy: name(policy.key) }, { escape: false, sanitize: false })"
             :disabled="busy!=='' || loading"
             @update:model-value="inputs[policy.key]=$event" />
           <div class="lf-saas-policy-buttons">
             <NcButton variant="primary" :disabled="busy!=='' || loading"
-              :aria-label="'Salvar restrição ' + name(policy.key)"
-              @click="update(policy)">Salvar restrição</NcButton>
+              :aria-label="t('librefinance', 'Save restriction {policy}', { policy: name(policy.key) }, { escape: false, sanitize: false })"
+              @click="update(policy)">{{ t('librefinance', 'Save restriction') }}</NcButton>
             <NcButton variant="tertiary" :disabled="busy!=='' || loading || policy.inherited"
-              :aria-label="'Herdar política ' + name(policy.key)"
-              @click="update(policy, true)">Herdar valor</NcButton>
+              :aria-label="t('librefinance', 'Inherit policy {policy}', { policy: name(policy.key) }, { escape: false, sanitize: false })"
+              @click="update(policy, true)">{{ t('librefinance', 'Inherit value') }}</NcButton>
           </div>
         </div>
       </article>
     </div>
-    <p v-else-if="!loading && !error" class="lf-muted">Nenhuma política disponível.</p>
+    <p v-else-if="!loading && !error" class="lf-muted">{{ t('librefinance', 'No policies available.') }}</p>
     <NcButton v-if="policies.length" variant="secondary"
       :aria-expanded="historyOpen" @click="toggleHistory">
-      {{ historyOpen ? 'Ocultar histórico de policies' : 'Ver histórico de policies' }}
+      {{ historyOpen ? t('librefinance', 'Hide policy history') : t('librefinance', 'View policy history') }}
     </NcButton>
-    <section v-if="historyOpen" aria-label="Histórico de alterações das policies SaaS">
+    <section v-if="historyOpen" :aria-label="t('librefinance', 'SaaS policy change history')">
       <NcNoteCard v-if="historyError" type="error" role="alert">{{ historyError }}</NcNoteCard>
       <NcLoadingIcon v-if="historyLoading" :size="20" />
       <ol v-if="historyEvents.length" class="lf-policy-audit-list">
@@ -276,20 +276,18 @@ async function update(row, clear = false) {
           <strong>{{ name(item.policyKey) }}</strong>
           · {{ item.action }}
           <p class="lf-muted">
-            {{ auditTime(item.occurredAt) }}
-            · Por {{ item.actorUid }} · Revisão
-            {{ item.previousRevision }} → {{ item.newRevision }}
+            {{ t('librefinance', '{time} · By {actor} · Revision {previous} → {next}', { time: auditTime(item.occurredAt), actor: item.actorUid, previous: item.previousRevision, next: item.newRevision }, { escape: false, sanitize: false }) }}
           </p>
-          <p>Antes: {{ item.oldValueJson === null ? 'Herdado' : item.oldValueJson }}
-            · Depois: {{ item.newValueJson === null ? 'Herdado' : item.newValueJson }}</p>
+          <p>{{ t('librefinance', 'Before: {value}', { value: inheritedLabel(item.oldValueJson) }, { escape: false, sanitize: false }) }}
+            · {{ t('librefinance', 'After: {value}', { value: inheritedLabel(item.newValueJson) }, { escape: false, sanitize: false }) }}</p>
         </li>
       </ol>
       <p v-else-if="!historyLoading && !historyError" class="lf-muted">
-        Nenhuma alteração registrada neste escopo.
+        {{ t('librefinance', 'No changes recorded for this scope.') }}
       </p>
       <NcButton v-if="historyBeforeId !== null" variant="tertiary"
         :disabled="historyLoading" @click="fetchHistory(true)">
-        Carregar eventos anteriores
+        {{ t('librefinance', 'Load earlier events') }}
       </NcButton>
     </section>
   </section>

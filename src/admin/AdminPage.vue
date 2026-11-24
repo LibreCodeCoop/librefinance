@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { getLocale, t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -28,18 +29,23 @@ const suspendingGroup = ref(null)
 const recoveringGroup = ref(null)
 const recoveryReason = ref('')
 const recoveryOptions = [
-  {value: 'delegation_reviewed', label: 'Delegação revisada'},
-  {value: 'group_admin_restored', label: 'Administrador do grupo restaurado'},
-  {value: 'security_incident_resolved', label: 'Incidente de segurança resolvido'},
-  {value: 'membership_corrected', label: 'Participação no grupo corrigida'},
+  {value: 'delegation_reviewed', label: t('librefinance', 'Delegation reviewed')},
+  {value: 'group_admin_restored', label: t('librefinance', 'Group administrator restored')},
+  {value: 'security_incident_resolved', label: t('librefinance', 'Security incident resolved')},
+  {value: 'membership_corrected', label: t('librefinance', 'Group membership corrected')},
 ]
 const saasGroupsPath = () => generateUrl('/apps/librefinance/api/saas/v1/admin/groups')
 const groupStatusLabel = state => ({
-  disabled: 'Não habilitado',
-  enabled_pending_admin: 'Aguardando administrador',
-  active: 'Ambiente ativo',
-  suspended: 'Suspenso',
-})[state] || 'Estado indisponível'
+  disabled: t('librefinance', 'Not enabled'),
+  enabled_pending_admin: t('librefinance', 'Awaiting administrator'),
+  active: t('librefinance', 'Active environment'),
+  suspended: t('librefinance', 'Suspended'),
+})[state] || t('librefinance', 'State unavailable')
+const contextKindLabel = kind => ({
+  organization: t('librefinance', 'Organization'),
+  collective: t('librefinance', 'Group'),
+  personal: t('librefinance', 'Personal'),
+})[kind] || kind
 let groupRequestSeq = 0
 const auditGroup = ref(null)
 const auditRows = ref([])
@@ -47,7 +53,7 @@ const auditNextBeforeId = ref(null)
 const auditLoading = ref(false)
 const auditError = ref('')
 let auditRequestSeq = 0
-const auditTimestamp = seconds => new Date(Number(seconds) * 1000).toLocaleString('pt-BR')
+const auditTimestamp = seconds => new Date(Number(seconds) * 1000).toLocaleString(getLocale()?.replaceAll('_', '-'))
 const kind = ref('organization')
 const busy = ref(false)
 const error = ref('')
@@ -60,7 +66,7 @@ const delegateUid = ref('')
 const delegates = ref([])
 const delegatesLoading = ref(false)
 const path = route => generateUrl('/apps/librefinance/api/admin/' + route)
-const message = cause => cause?.response?.data?.error || cause.message || 'Erro inesperado'
+const message = cause => cause?.response?.data?.error || cause.message || t('librefinance', 'Unexpected error')
 
 async function searchGroups(offset = 0) {
   const sequence = ++groupRequestSeq
@@ -108,7 +114,7 @@ async function loadGroupAudit(more = false) {
     })
     if (seq !== auditRequestSeq || auditGroup.value?.id !== group.id) return
     if (response.data.environmentId !== group.environmentId) {
-      throw new Error('O vínculo administrativo do grupo mudou. Reabra o histórico.')
+      throw new Error(t('librefinance', 'The group administrative association changed. Reopen the history.'))
     }
     const rows = Array.isArray(response.data.events) ? response.data.events : []
     auditRows.value = more ? [...auditRows.value, ...rows] : rows
@@ -187,7 +193,7 @@ async function run(action) {
   try {
     await action()
     await reload()
-    notice.value = 'Configuração atualizada.'
+    notice.value = t('librefinance', 'Configuration updated.')
   } catch (cause) {
     error.value = message(cause)
   } finally { busy.value = false }
@@ -231,42 +237,34 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="lf-admin-page">
-    <h2>LibreFinance — Administração da instância</h2>
-    <p>Administração global é exclusiva do administrador Nextcloud.
-      Administradores delegados de grupos gerenciam apenas seus contextos financeiros.</p>
+    <h2>{{ t('librefinance', 'LibreFinance — Instance administration') }}</h2>
+    <p>{{ t('librefinance', 'Global administration is restricted to Nextcloud administrators. Delegated group administrators manage only their own financial contexts.') }}</p>
     <NcLoadingIcon v-if="!loaded" :size="24" />
     <NcNoteCard v-if="error" type="error" role="alert">{{ error }}</NcNoteCard>
     <NcNoteCard v-if="notice" type="success" role="status">{{ notice }}</NcNoteCard>
     <NcCheckboxRadioSwitch :model-value="managed" :disabled="busy || !loaded"
       type="switch" @update:model-value="setManaged">
-      Provisionamento gerenciado pelo administrador da instância
+      {{ t('librefinance', 'Provisioning managed by the instance administrator') }}
     </NcCheckboxRadioSwitch>
-    <p>Quando ativado, usuários comuns não podem criar contextos financeiros legados.
-      Os vínculos e delegações dos contextos legados permanecem preservados.
-      Em ambientes SaaS novos, administrar um grupo ou a instância não concede,
-      por si só, acesso aos dados financeiros.</p>
+    <p>{{ t('librefinance', 'When enabled, ordinary users cannot create legacy financial contexts. Legacy context associations and delegations are preserved. In new SaaS environments, administering a group or the instance does not in itself grant access to financial data.') }}</p>
 
     <div class="lf-admin-card">
-      <h3>Políticas SaaS da instância</h3>
-      <p>Os limites e bloqueios definidos aqui são herdados pelos ambientes
-        e gestões. Nenhuma edição concede acesso a livros financeiros.</p>
+      <h3>{{ t('librefinance', 'Instance SaaS policies') }}</h3>
+      <p>{{ t('librefinance', 'The limits and restrictions defined here are inherited by environments and workspaces. Editing them does not grant access to financial ledgers.') }}</p>
       <SaasPolicyEditor scope="instance" />
     </div>
 
     <div v-if="managed" class="lf-admin-card">
-      <h3>Grupos Nextcloud disponíveis</h3>
-      <p>Habilite individualmente grupos Nextcloud para o LibreFinance SaaS.
-        Sem subadministrador do grupo ou delegado válido, o ambiente aguarda
-        autorização para ser provisionado. Nenhuma dessas ações concede
-        acesso ao livro contábil.</p>
+      <h3>{{ t('librefinance', 'Available Nextcloud groups') }}</h3>
+      <p>{{ t('librefinance', 'Enable individual Nextcloud groups for LibreFinance SaaS. Without a qualified group subadministrator or delegate, the environment awaits authorization to be provisioned. None of these actions grants access to the accounting ledger.') }}</p>
       <form @submit.prevent="searchGroups()">
-        <NcTextField v-model="groupSearch" label="Pesquisar grupos" maxlength="100" />
-        <NcButton type="submit" :disabled="busy || groupsLoading">Buscar grupos</NcButton>
+        <NcTextField v-model="groupSearch" :label="t('librefinance', 'Search groups')" maxlength="100" />
+        <NcButton type="submit" :disabled="busy || groupsLoading">{{ t('librefinance', 'Find groups') }}</NcButton>
       </form>
       <NcLoadingIcon v-if="groupsLoading" :size="20" />
       <NcNoteCard v-if="groupSearchError" type="error" role="alert">{{ groupSearchError }}</NcNoteCard>
-      <p v-if="!groupsLoading && groups.length===0">Nenhum grupo encontrado.</p>
-      <ul v-if="groups.length" aria-label="Estado SaaS dos grupos Nextcloud" class="lf-saas-groups">
+      <p v-if="!groupsLoading && groups.length===0">{{ t('librefinance', 'No groups found.') }}</p>
+      <ul v-if="groups.length" :aria-label="t('librefinance', 'SaaS status of Nextcloud groups')" class="lf-saas-groups">
         <li v-for="group in groups" :key="group.id" class="lf-saas-group-row">
           <div>
             <strong>{{ group.name }}</strong>
@@ -275,37 +273,34 @@ onBeforeUnmount(() => {
           </div>
           <NcButton v-if="group.state==='disabled'" variant="primary"
             :disabled="busy || groupsLoading"
-            :aria-label="'Habilitar LibreFinance para ' + group.name"
-            @click="setGroupEnabled(group, true)">Habilitar</NcButton>
+            :aria-label="t('librefinance', 'Enable LibreFinance for {name}', { name: group.name }, { escape: false, sanitize: false })"
+            @click="setGroupEnabled(group, true)">{{ t('librefinance', 'Enable') }}</NcButton>
           <NcButton v-else-if="group.state==='active' || group.state==='enabled_pending_admin'"
             variant="tertiary" :disabled="busy || groupsLoading"
-            :aria-label="'Suspender LibreFinance para ' + group.name"
-            @click="suspendingGroup=group">Suspender</NcButton>
+            :aria-label="t('librefinance', 'Suspend LibreFinance for {name}', { name: group.name }, { escape: false, sanitize: false })"
+            @click="suspendingGroup=group">{{ t('librefinance', 'Suspend') }}</NcButton>
           <NcButton v-else-if="group.state==='suspended'"
             variant="secondary" :disabled="busy || groupsLoading"
-            :aria-label="'Recuperar ambiente de ' + group.name"
-            @click="recoveringGroup=group">Recuperar</NcButton>
-          <span v-else class="lf-admin-hint">Estado indisponível</span>
+            :aria-label="t('librefinance', 'Recover environment for {name}', { name: group.name }, { escape: false, sanitize: false })"
+            @click="recoveringGroup=group">{{ t('librefinance', 'Recover') }}</NcButton>
+          <span v-else class="lf-admin-hint">{{ t('librefinance', 'State unavailable') }}</span>
           <NcButton v-if="group.environmentId" variant="tertiary"
             :disabled="auditLoading"
-            :aria-label="'Ver histórico de auditoria de ' + group.name"
-            @click="openGroupAudit(group)">Auditoria</NcButton>
+            :aria-label="t('librefinance', 'View audit history for {name}', { name: group.name }, { escape: false, sanitize: false })"
+            @click="openGroupAudit(group)">{{ t('librefinance', 'Audit') }}</NcButton>
         </li>
       </ul>
       <NcButton v-if="groupsNextOffset!==null" variant="tertiary"
         :disabled="busy || groupsLoading" @click="searchGroups(groupsNextOffset)">
-        Carregar mais grupos
+        {{ t('librefinance', 'Load more groups') }}
       </NcButton>
     </div>
     <div v-if="managed" class="lf-admin-card">
-      <h3>Administradores delegados do LibreFinance</h3>
-      <p>A delegação permite administrar o ambiente LibreFinance daquele grupo.
-        Nos novos ambientes SaaS, ela não concede papel financeiro nem leitura
-        dos lançamentos. A concessão só vale no LibreFinance e não muda
-        permissões em outros aplicativos Nextcloud.</p>
-      <label for="lf-delegate-group">Grupo governante</label>
+      <h3>{{ t('librefinance', 'LibreFinance delegated administrators') }}</h3>
+      <p>{{ t('librefinance', 'Delegation allows administration of the LibreFinance environment for that group. In new SaaS environments, it grants neither a financial role nor access to journal entries. The grant applies only to LibreFinance and does not change permissions in other Nextcloud apps.') }}</p>
+      <label for="lf-delegate-group">{{ t('librefinance', 'Governing group') }}</label>
       <select id="lf-delegate-group" v-model="delegateGroup" @change="loadDelegates">
-        <option value="">Selecione um grupo</option>
+        <option value="">{{ t('librefinance', 'Select a group') }}</option>
         <option v-for="group in groups" :key="group.id" :value="group.id">
           {{ group.name }} ({{ group.id }})
         </option>
@@ -315,131 +310,125 @@ onBeforeUnmount(() => {
         <li v-for="delegate in delegates" :key="delegate.uid">
           {{ delegate.uid }}
           <NcButton variant="tertiary" :disabled="busy"
-            :aria-label="'Revogar delegação de '+delegate.uid"
-            @click="revokeDelegate(delegate.uid)">Revogar</NcButton>
+            :aria-label="t('librefinance', 'Revoke delegation for {name}', { name: delegate.uid }, { escape: false, sanitize: false })"
+            @click="revokeDelegate(delegate.uid)">{{ t('librefinance', 'Revoke') }}</NcButton>
         </li>
       </ul>
-      <p v-else-if="delegateGroup && !delegatesLoading">Nenhum gestor delegado pelo LibreFinance.</p>
+      <p v-else-if="delegateGroup && !delegatesLoading">{{ t('librefinance', 'No LibreFinance delegated administrators.') }}</p>
       <form v-if="delegateGroup" @submit.prevent="grantDelegate">
-        <NcTextField v-model="delegateUid" label="Usuário Nextcloud do grupo" required />
-        <NcButton type="submit" :disabled="busy || !delegateUid.trim()">Delegar administração</NcButton>
+        <NcTextField v-model="delegateUid" :label="t('librefinance', 'Nextcloud user in the group')" required />
+        <NcButton type="submit" :disabled="busy || !delegateUid.trim()">{{ t('librefinance', 'Delegate administration') }}</NcButton>
       </form>
     </div>
     <div v-if="managed" class="lf-admin-card">
-      <h3>Novo contexto financeiro</h3>
+      <h3>{{ t('librefinance', 'New financial context') }}</h3>
       <form @submit.prevent="provision">
-        <NcTextField v-model="name" label="Nome do contexto" required maxlength="150" />
-        <label for="lf-governance-kind">Tipo</label>
+        <NcTextField v-model="name" :label="t('librefinance', 'Context name')" required maxlength="150" />
+        <label for="lf-governance-kind">{{ t('librefinance', 'Type') }}</label>
         <select id="lf-governance-kind" v-model="kind">
-          <option value="organization">Organização</option>
-          <option value="collective">Grupo</option>
-          <option value="personal">Pessoal</option>
+          <option value="organization">{{ t('librefinance', 'Organization') }}</option>
+          <option value="collective">{{ t('librefinance', 'Group') }}</option>
+          <option value="personal">{{ t('librefinance', 'Personal') }}</option>
         </select>
-        <label for="lf-governance-group">Grupo Nextcloud</label>
+        <label for="lf-governance-group">{{ t('librefinance', 'Nextcloud group') }}</label>
         <select id="lf-governance-group" v-model="gid" required>
-          <option value="" disabled>Selecione um grupo</option>
+          <option value="" disabled>{{ t('librefinance', 'Select a group') }}</option>
           <option v-for="group in groups" :key="group.id" :value="group.id">
             {{ group.name }} ({{ group.id }})
           </option>
         </select>
         <NcButton variant="primary" type="submit" :disabled="busy || !name.trim() || !gid.trim()">
-          Criar contexto
+          {{ t('librefinance', 'Create context') }}
         </NcButton>
       </form>
     </div>
     <div v-if="managed" class="lf-admin-card">
-      <h3>Contextos existentes</h3>
+      <h3>{{ t('librefinance', 'Existing contexts') }}</h3>
       <ul>
         <li v-for="context in contexts" :key="context.id">
-          {{ context.name }} ({{ context.kind }}) —
-          {{ context.governanceGroup || 'Sem grupo governante' }}
+          {{ context.name }} ({{ contextKindLabel(context.kind) }}) —
+          {{ context.governanceGroup || t('librefinance', 'No governing group') }}
           <span v-if="context.legacyReviewState === 'pending_review'">
-            · Revisão pendente: múltiplas identidades jurídicas no mesmo livro.
+            · {{ t('librefinance', 'Review pending: multiple legal identities in the same ledger.') }}
           </span>
-          <span v-if="context.archived"> · Arquivado
+          <span v-if="context.archived"> · {{ t('librefinance', 'Archived') }}
             <NcButton variant="tertiary" :disabled="busy"
-              @click="restoreContext(context)">Restaurar</NcButton>
+              @click="restoreContext(context)">{{ t('librefinance', 'Restore') }}</NcButton>
           </span>
         </li>
       </ul>
       <form @submit.prevent="bind">
-        <label for="lf-governance-existing">Vincular contexto existente</label>
+        <label for="lf-governance-existing">{{ t('librefinance', 'Associate existing context') }}</label>
         <select id="lf-governance-existing" v-model.number="bindingId" required>
-          <option :value="0" disabled>Escolha um contexto sem grupo</option>
+          <option :value="0" disabled>{{ t('librefinance', 'Choose a context without a group') }}</option>
           <option v-for="context in contexts.filter(c=>!c.governanceGroup)"
             :key="context.id" :value="context.id">{{ context.name }}</option>
         </select>
-        <label for="lf-governance-existing-group">Grupo Nextcloud</label>
+        <label for="lf-governance-existing-group">{{ t('librefinance', 'Nextcloud group') }}</label>
         <select id="lf-governance-existing-group" v-model="bindingGid" required>
-          <option value="" disabled>Selecione um grupo</option>
+          <option value="" disabled>{{ t('librefinance', 'Select a group') }}</option>
           <option v-for="group in groups" :key="group.id" :value="group.id">
             {{ group.name }} ({{ group.id }})
           </option>
         </select>
-        <NcButton type="submit" :disabled="busy || !bindingId || !bindingGid.trim()">Vincular</NcButton>
+        <NcButton type="submit" :disabled="busy || !bindingId || !bindingGid.trim()">{{ t('librefinance', 'Associate') }}</NcButton>
       </form>
     </div>
     <NcDialog :open="Boolean(auditGroup)" size="normal"
-      name="Histórico de auditoria do LibreFinance"
+      :name="t('librefinance', 'LibreFinance audit history')"
       @update:open="!$event && closeGroupAudit()">
       <div class="lf-admin-confirm">
-        <h3>Histórico do ambiente {{ auditGroup?.name }}</h3>
-        <p>Registro cronológico das ações de administração do ambiente.
-          Não contém saldos, lançamentos ou documentos financeiros.</p>
+        <h3>{{ t('librefinance', 'Environment history for {name}', { name: auditGroup?.name ?? '' }, { escape: false, sanitize: false }) }}</h3>
+        <p>{{ t('librefinance', 'Chronological record of environment administration actions. It does not contain balances, journal entries or financial documents.') }}</p>
         <NcNoteCard v-if="auditError" type="error" role="alert">{{ auditError }}</NcNoteCard>
         <NcLoadingIcon v-if="auditLoading" :size="20" />
-        <ol v-if="auditRows.length" aria-label="Eventos de auditoria administrativa">
+        <ol v-if="auditRows.length" :aria-label="t('librefinance', 'Administrative audit events')">
           <li v-for="event in auditRows" :key="event.id">
             <strong>{{ event.action }}</strong>
-            <p>{{ auditTimestamp(event.occurredAt) }} · Por {{ event.actorUid }}</p>
+            <p>{{ t('librefinance', '{time} · By {actor}', { time: auditTimestamp(event.occurredAt), actor: event.actorUid }, { escape: false, sanitize: false }) }}</p>
             <p class="lf-admin-hint">{{ event.subjectType }} · {{ event.subjectId }}</p>
           </li>
         </ol>
-        <p v-else-if="!auditLoading && !auditError">Ainda não há eventos registrados.</p>
+        <p v-else-if="!auditLoading && !auditError">{{ t('librefinance', 'No events recorded yet.') }}</p>
         <div class="lf-admin-actions">
           <NcButton v-if="auditNextBeforeId !== null" variant="secondary"
             :disabled="auditLoading" @click="loadGroupAudit(true)">
-            Carregar eventos anteriores
+            {{ t('librefinance', 'Load earlier events') }}
           </NcButton>
-          <NcButton variant="tertiary" @click="closeGroupAudit()">Fechar</NcButton>
+          <NcButton variant="tertiary" @click="closeGroupAudit()">{{ t('librefinance', 'Close') }}</NcButton>
         </div>
       </div>
     </NcDialog>
     <NcDialog :open="Boolean(suspendingGroup)" size="normal"
-      name="Suspender grupo do LibreFinance"
+      :name="t('librefinance', 'Suspend LibreFinance group')"
       @update:open="!$event && (suspendingGroup=null)">
       <div class="lf-admin-confirm">
-        <NcNoteCard type="warning">Suspender impede novos acessos ao ambiente,
-          mas preserva os lançamentos, os documentos e o vínculo histórico.
-          A reativação exige recuperação administrativa auditada.</NcNoteCard>
-        <p>Suspender <strong>{{ suspendingGroup?.name }}</strong>?</p>
+        <NcNoteCard type="warning">{{ t('librefinance', 'Suspension prevents new access to the environment, but preserves journal entries, documents and historical associations. Reactivation requires audited administrative recovery.') }}</NcNoteCard>
+        <p>{{ t('librefinance', 'Suspend {name}?', { name: suspendingGroup?.name ?? '' }, { escape: false, sanitize: false }) }}</p>
         <div class="lf-admin-actions">
-          <NcButton variant="tertiary" @click="suspendingGroup=null">Cancelar</NcButton>
+          <NcButton variant="tertiary" @click="suspendingGroup=null">{{ t('librefinance', 'Cancel') }}</NcButton>
           <NcButton variant="error" :disabled="busy"
-            @click="setGroupEnabled(suspendingGroup, false)">Suspender grupo</NcButton>
+            @click="setGroupEnabled(suspendingGroup, false)">{{ t('librefinance', 'Suspend group') }}</NcButton>
         </div>
       </div>
     </NcDialog>
     <NcDialog :open="Boolean(recoveringGroup)" size="normal"
-      name="Recuperar ambiente do LibreFinance"
+      :name="t('librefinance', 'Recover LibreFinance environment')"
       @update:open="!$event && (recoveringGroup=null)">
       <div class="lf-admin-confirm">
         <NcNoteCard type="warning">
-          A recuperação é exclusiva do administrador da instância.
-          O motivo fica registrado na auditoria. A operação mantém os dados
-          financeiros intactos e retorna o ambiente a
-          "Aguardando administrador", sem permitir acesso financeiro automático.
+          {{ t('librefinance', 'Only the instance administrator can perform recovery. The reason is recorded in the audit history. The operation keeps financial data intact and returns the environment to the awaiting administrator state, without granting automatic financial access.') }}
         </NcNoteCard>
-        <p>Recuperar <strong>{{ recoveringGroup?.name }}</strong>?</p>
+        <p>{{ t('librefinance', 'Recover {name}?', { name: recoveringGroup?.name ?? '' }, { escape: false, sanitize: false }) }}</p>
         <LfSelect id="lf-saas-recovery-reason" v-model="recoveryReason"
-          label="Motivo obrigatório da recuperação"
+          :label="t('librefinance', 'Required recovery reason')"
           :options="recoveryOptions" :disabled="busy"
-          placeholder="Escolha o motivo da recuperação" />
+          :placeholder="t('librefinance', 'Choose the recovery reason')" />
         <div class="lf-admin-actions">
           <NcButton variant="tertiary"
-            @click="recoveringGroup=null; recoveryReason=''">Cancelar</NcButton>
+            @click="recoveringGroup=null; recoveryReason=''">{{ t('librefinance', 'Cancel') }}</NcButton>
           <NcButton variant="primary" :disabled="busy || !recoveryReason"
-            @click="recoverGroup">Confirmar recuperação</NcButton>
+            @click="recoverGroup">{{ t('librefinance', 'Confirm recovery') }}</NcButton>
         </div>
       </div>
     </NcDialog>
