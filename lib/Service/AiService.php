@@ -32,7 +32,7 @@ final class AiService {
 
     /** @return array<string,mixed> */
     public function capabilities(int $spaceId): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->finance->requireModule($spaceId, 'librefinance_reports', 'manager');
         return [
             'available' => $this->available(),
             'taskType' => TextToText::ID,
@@ -112,7 +112,7 @@ final class AiService {
 
     /** @return array<string,mixed> */
     public function status(int $spaceId, int $taskId): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->finance->requireModule($spaceId, 'librefinance_reports', 'manager');
         if ($taskId < 1) {
             throw new DomainException('ai_task_not_found');
         }

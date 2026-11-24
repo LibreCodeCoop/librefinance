@@ -23,6 +23,29 @@ $password = (string)getenv('LF_TEST_ADMIN_PASSWORD');
 if ($password === '') {
     throw new RuntimeException('No synthetic instance admin password');
 }
+// Test-only access to the pinned Nextcloud task store. Seed completed
+// synthetic results, never schedule a provider or dispatch real data.
+require_once dirname(__DIR__, 4) . '/lib/base.php';
+$taskMapper = \OC::$server->get(\OC\TaskProcessing\Db\TaskMapper::class);
+$syntheticTasks = [];
+$seedTask = static function (string $uid, int $spaceId, string $appId = 'librefinance')
+    use ($taskMapper, &$syntheticTasks): int {
+    if (!in_array($uid, ['lfmaintestA', 'lfmaintestB'], true) || $spaceId < 1
+        || !in_array($appId, ['librefinance', 'synthetic_other_app'], true)) {
+        throw new RuntimeException('Refusing non-synthetic task fixture');
+    }
+    $task = new \OCP\TaskProcessing\Task(
+        \OCP\TaskProcessing\TaskTypes\TextToText::ID, ['input' => 'Synthetic fixture only'],
+        $appId, $uid, 'space:' . $spaceId);
+    $task->setStatus(\OCP\TaskProcessing\Task::STATUS_SUCCESSFUL);
+    $task->setOutput(['output' => 'Synthetic completed finance result']);
+    $task->setScheduledAt(time());
+    $task->setStartedAt(time());
+    $task->setEndedAt(time());
+    $entity = $taskMapper->insert(\OC\TaskProcessing\Db\Task::fromPublicTask($task));
+    $syntheticTasks[] = $entity;
+    return (int)$entity->getId();
+};
 $checks = 0;
 $t = new TestHarness();
 
@@ -228,6 +251,20 @@ try {
         . '/profit-loss?from=2026-01-01&through=2026-12-31';
     $t->checkModule('reports enabled by default in independent ledger A1', $a,
         'librefinance_reports', 'GET', $reportRouteA1, null, 200);
+    $taskA1 = $seedTask($a, $spaceA);
+    $taskForeign = $seedTask($a, $spaceA, 'synthetic_other_app');
+    $taskRouteA1 = '/spaces/' . $spaceA . '/ai/tasks/' . $taskA1;
+    $completed = static fn(array $r): bool =>
+        ($r['status'] ?? null) === 'successful'
+        && ($r['output'] ?? null) === 'Synthetic completed finance result';
+    $taskDenied = static fn(array $r): bool =>
+        !array_key_exists('output', $r) && !array_key_exists('taskId', $r);
+    $t->check('financial owner reads its existing completed AI result', $a,
+        'GET', $taskRouteA1, null, 200, $completed);
+    $t->check('same actor cannot read A1 task through independent book A2', $a,
+        'GET', '/spaces/' . $spaceA2 . '/ai/tasks/' . $taskA1, null, 404, $taskDenied);
+    $t->check('same actor cannot read another application task as finance', $a,
+        'GET', '/spaces/' . $spaceA . '/ai/tasks/' . $taskForeign, null, 404, $taskDenied);
     $t->check('financial owner restricts report module only in A1', $a,
         'PUT', $reportPathA1,
         ['valueJson' => 'false', 'expectedRevision' => 0], 200,
@@ -239,6 +276,12 @@ try {
     $t->checkModule('saved report API respects A1 policy denial', $a,
         'librefinance_reports', 'GET',
         '/spaces/' . $spaceA . '/saved-reports', null, 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled');
+    $t->check('existing AI result obeys workspace report denial', $a,
+        'GET', $taskRouteA1, null, 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled' && $taskDenied($r));
+    $t->check('AI capability endpoint obeys workspace report denial', $a,
+        'GET', '/spaces/' . $spaceA . '/ai/capabilities', null, 403,
         static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled');
     $t->check('A1 reports show effectively disabled in module discovery', $a,
         'GET', '/spaces/' . $spaceA . '/modules', null, 200,
@@ -258,10 +301,24 @@ try {
     $t->check('clearing A1 report restriction restores access', $a,
         'DELETE', $reportPathA1 . '?expectedRevision=1', null, 200,
         static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true);
+    $t->check('clearing workspace policy restores same completed result', $a,
+        'GET', $taskRouteA1, null, 200, $completed);
+    $t->check('owner disables local report module flag', $a,
+        'PUT', '/spaces/' . $spaceA . '/modules/librefinance_reports', ['enabled' => false], 200);
+    $t->check('existing AI result obeys local module flag denial', $a,
+        'GET', $taskRouteA1, null, 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled' && $taskDenied($r));
+    $t->check('owner restores local report module flag', $a,
+        'PUT', '/spaces/' . $spaceA . '/modules/librefinance_reports', ['enabled' => true], 200);
+    $t->check('restored local module flag permits existing result', $a,
+        'GET', $taskRouteA1, null, 200, $completed);
     $t->check('delegated manager restricts reports in environment A only', $b,
         'PUT', $reportEnvironmentA,
         ['valueJson' => 'false', 'expectedRevision' => 0], 200,
         static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false);
+    $t->check('existing AI result obeys environment report denial', $a,
+        'GET', $taskRouteA1, null, 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled' && $taskDenied($r));
     $t->checkModule('environment denial blocks A2 report API', $a,
         'librefinance_reports', 'GET', $reportRouteA2, null, 403);
     $t->check('financial owner cannot override disabled parent reporting', $a,
@@ -275,6 +332,8 @@ try {
         static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true);
     $t->checkModule('A2 report API recovers without financial record changes', $a,
         'librefinance_reports', 'GET', $reportRouteA2, null, 200);
+    $t->check('lifting environment report denial restores existing result', $a,
+        'GET', $taskRouteA1, null, 200, $completed);
 
     // Financial roles, not group administration, own workspace-level policy
     // editing. A denial in A2 must never disable imports in A1 or tenant B.
@@ -842,6 +901,9 @@ try {
     $logoRoute = $resourceRoot . '/companies/' . (int)$companyA1['id'] . '/logo';
     $t->check('owner stores scoped company image', $a, 'POST', $logoRoute,
         ['imageBase64' => trim(file_get_contents(__DIR__ . '/fixtures/logo-valid.b64'))], 200);
+    $bankLogoRoute = $resourceRoot . '/accounts/' . $ids['1000'] . '/logo';
+    $t->check('owner stores scoped bank image', $a, 'POST', $bankLogoRoute,
+        ['imageBase64' => trim(file_get_contents(__DIR__ . '/fixtures/logo-valid.b64'))], 200);
     $searchRoute = $resourceRoot . '/search?type=contacts&query=' . rawurlencode($contactName);
     $readRoutes = [
         'contact search' => $searchRoute,
@@ -854,6 +916,7 @@ try {
         'cash flow' => $resourceRoot . '/cash-flow' . $period,
         'custom fields' => $resourceRoot . '/company-fields',
         'company image' => $logoRoute,
+        'bank image' => $bankLogoRoute,
         'activity' => $resourceRoot . '/activity',
         'bank transfers' => $resourceRoot . '/transfers',
         'payment methods' => $resourceRoot . '/payment-methods',
@@ -884,6 +947,7 @@ try {
         '/invoices/' . (int)$invoice['id'],
         '/obligations/' . (int)$obligation['id'],
         '/companies/' . (int)$companyA1['id'] . '/logo',
+        '/accounts/' . $ids['1000'] . '/logo',
     ] as $route) {
         $t->check('same owner cannot resolve foreign resource through sibling book ' . $route,
             $a, 'GET', $siblingRoot . $route, null, 404);
@@ -1085,6 +1149,14 @@ try {
         $resourceRoot . '/ai/preview' . $period, null, 200,
         static fn(array $r): bool => preg_match('/^[a-f0-9]{64}$/', $r['previewHash'] ?? '') === 1);
 
+    $taskB = $seedTask($b, $spaceA);
+    $taskRouteB = $resourceRoot . '/ai/tasks/' . $taskB;
+    $t->check('explicit manager reads its own existing completed AI task', $b,
+        'GET', $taskRouteB, null, 200, $completed);
+    $t->check('manager cannot read another actor task in its authorized workspace', $b,
+        'GET', $taskRouteA1, null, 404, $taskDenied);
+    $t->check('owner cannot read another actor task in own workspace', $a,
+        'GET', $taskRouteB, null, 404, $taskDenied);
     $t->check('manager cannot reassign roles or promote itself to owner',
         $b, 'POST', '/spaces/' . $spaceA . '/members',
         ['uid' => $a, 'role' => 'manager'], 403);
@@ -1100,8 +1172,8 @@ try {
             'from' => '2026-01-01', 'through' => '2026-12-31',
             'consent' => false, 'previewHash' => $preview['previewHash'],
         ], 404);
-    $t->check('revoked manager cannot inspect AI task status', $b, 'GET',
-        $resourceRoot . '/ai/tasks/2147483647', null, 404);
+    $t->check('revoked manager cannot inspect its own existing completed AI task', $b, 'GET',
+        $taskRouteB, null, 404, $taskDenied);
     $t->check('manager revocation denies MCP again', $b, 'POST', '/mcp', $rpcSearch, 200, $mcpDenied);
     $t->check('owner still sees the original scoped contact', $a, 'GET', $searchRoute, null, 200,
         static fn(array $r): bool => ($r['results']['contacts'][0]['name'] ?? '') === $contactName);
@@ -1162,6 +1234,10 @@ try {
     $t->check('other environment B remains fully functional', $b, 'GET',
         '/spaces/' . $spaceB . '/accounts', null, 200);
 } finally {
+    // Delete only the synthetic rows created by this test, never global tasks.
+    foreach ($syntheticTasks as $entity) {
+        $taskMapper->delete($entity);
+    }
     instanceCheck('restore legacy governance mode', 'PUT',
         '/admin/governance', ['managed' => false], 200);
 }

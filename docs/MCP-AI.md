@@ -45,7 +45,7 @@ fechado no runtime do LibreFinance.
 `GET /api/spaces/{spaceId}/ai/preview?from=YYYY-MM-DD&through=YYYY-MM-DD` mostra os valores agregados que seriam enviados, **sem chamar provedor** e sem gerar tarefa. A prévia é restrita a gestores e permite conferir os números e a moeda antes da decisão. Ela devolve um `previewHash` autenticado por HMAC e vinculado à identidade Nextcloud, ao espaço e aos valores exibidos. O POST precisa devolver exatamente esse identificador; quando houver nova movimentação que altere o resultado, retorna HTTP 409 e exige nova conferência. O hash nunca é transmitido ao provedor de IA.
 
 `GET /api/spaces/{spaceId}/ai/capabilities` verifica a disponibilidade
-do provedor. `POST /api/spaces/{spaceId}/ai/analyze` recebe:
+do provedor, desde que o módulo de relatórios esteja efetivamente habilitado. `POST /api/spaces/{spaceId}/ai/analyze` recebe:
 ```json
 {"from":"2026-01-01","through":"2026-01-31","consent":true,"previewHash":"<hash de 64 caracteres retornado pela prévia>"}
 ```
@@ -60,8 +60,13 @@ de consentir.
 
 O endpoint de estado `GET /api/spaces/{spaceId}/ai/tasks/{taskId}` devolve
 somente tarefas do mesmo usuário, aplicação e espaço, nunca resultados
-globais. Sem provedor adequado, há erro explícito 503. Os testes em
-ambiente sem modelo validam essa recusa; **a execução de um modelo real,
+globais. A cada consulta, verifica novamente a função financeira e o módulo
+de relatórios, incluindo as políticas restritivas herdadas. A revogação
+impede a próxima consulta pelo LibreFinance; não recupera dados já
+transmitidos ou cancela automaticamente tarefas previamente consentidas no
+Nextcloud. Sem provedor adequado, há erro explícito 503. Os testes em
+ambiente sem modelo validam essa recusa e resultados sintéticos já
+persistidos no armazenamento de tarefas, sem invocar provedor; **a execução de um modelo real,
 custo, privacidade e qualidade das respostas ainda não foram homologados**.
 
 Não permitir que conteúdo gerado por IA vire autorização para operações
