@@ -105,6 +105,15 @@ incrementais; a NFS-e conserva suas próprias migrations. A suíte valida a
 instalação limpa em SQLite, PostgreSQL e MariaDB, os contratos de rotas
 e as tabelas de governança, importação e concessões. Os jobs históricos
 de Import verificam a preservação de registros e mapeamentos no upgrade.
+Os mesmos três jobs executam também um upgrade real da versão pré-SaaS
+0.18.5 (commit de referência 192bfb0b) para a versão atual, com dois livros,
+duas identidades jurídicas em um livro legado (uma inativa), lançamentos,
+estorno, contas, concessões individuais e de grupo e trilha de auditoria.
+O snapshot compara todas as linhas históricas desses domínios antes e
+depois, exige que nenhum ambiente/vínculo SaaS seja inferido e verifica
+pela API os saldos, isolamento, permissões e indicação administrativa
+de revisão pendente. O teste não autoriza dividir ou reclassificar livros.
+
 A contagem atual de migrations e rotas é obtida com
 `python3 tests/ci/coverage-inventory.py`.
 
@@ -134,6 +143,7 @@ quantidade de rotas como medida de maturidade.
 - Paginação por cursor das gestões administrativas SaaS: 52 livros em A (50+2), sem limite silencioso, sem duplicações e sem vazamento do ambiente B; acesso revalidado antes de cada página, teste móvel Playwright para carregar mais e trocar ambiente
 - Bootstrap SaaS de empresa jurídica: livro/contas/identidade/vínculo/auditoria na mesma transação; cadastro inválido não deixa livro órfão; replay preserva companyId, alteração da identidade com a mesma chave retorna 409; gestões sem empresa e POST de empresa legado continuam compatíveis
 - Revisão otimista das concessões internas SaaS: duas alterações simultâneas com a mesma versão (uma aceita, outra HTTP 409), falta de precondição (HTTP 428), revogação seguida de regrant obsoleto, segregação entre livros e manutenção do modo legado; migration aditiva validada com rollback em SQLite, PostgreSQL e MariaDB
+- NFS-e opcional: acesso HTTP real em ambientes A/B e livros A1/A2, vínculo de empresa, políticas restritivas de ambiente/livro, funções financeiras distintas, revogação e suspensão; somente rascunhos, sem emissão fiscal
 - Behat com cenário executado em ambos os shards, sem skips disfarçados
 - Playwright com browser real, teclado, telas móveis e troca rápida de estado
 - Lint PHP 8.3/8.5, build e testes Vue, licenças REUSE e verificação de OpenAPI

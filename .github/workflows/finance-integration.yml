@@ -68,7 +68,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: LibreCodeCoop/librefinance-nfse
-          ref: b5a20a0b611ad7f0e530cfe0dc8cae300a2a5e31
+          ref: bf277920695388a3b335dfc9190235a52ab0738a
           path: .ci-modules/librefinance_nfse
           persist-credentials: false
       - name: Set up PHP 8.5 for Nextcloud master
@@ -160,6 +160,21 @@ jobs:
           LF_UPGRADE_OLD_CORE_SOURCE: ${{ github.workspace }}/.ci-legacy-core
         run: bash tests/ci/upgrade-import.sh
 
+      - name: Checkout pinned pre-SaaS LibreFinance
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: LibreCodeCoop/librefinance
+          ref: 192bfb0b479adb62356381acc2e61e58f94d67f7
+          path: .ci-pre-saas-core
+          persist-credentials: false
+      - name: Verify legacy accounting rows and grants survive SaaS upgrade
+        env:
+          LF_TEST_DATABASE: ${{ matrix.database }}
+          LF_NEXTCLOUD_SOURCE: ${{ github.workspace }}/.ci-nextcloud-server
+          LF_UPGRADE_OLD_CORE_SOURCE: ${{ github.workspace }}/.ci-pre-saas-core
+          LF_UPGRADE_SCENARIO: saas
+        run: bash tests/ci/upgrade-import.sh
+
   # Each Chromium shard has its own disposable Nextcloud and PostgreSQL lab.
   # Do not increase workers inside one shared financial workspace/session.
   browser:
@@ -187,7 +202,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: LibreCodeCoop/librefinance-nfse
-          ref: b5a20a0b611ad7f0e530cfe0dc8cae300a2a5e31
+          ref: bf277920695388a3b335dfc9190235a52ab0738a
           path: .ci-modules/librefinance_nfse
           persist-credentials: false
       - name: Set up Node.js 22

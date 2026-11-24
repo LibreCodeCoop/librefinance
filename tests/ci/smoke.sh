@@ -354,6 +354,7 @@ compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_saas_A 
 compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_saas_B lfmaintestB
 compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_saas_B lfmaintestA
 if ! saas_access_output="$(compose exec -T -e LF_SYNTHETIC_SAAS_ACCESS=yes \
+  -e LF_WITH_EXTENSIONS="$LF_WITH_EXTENSIONS" \
   -e LF_TEST_ADMIN_PASSWORD="$LF_TEST_ADMIN_PASSWORD" \
   -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
   -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
