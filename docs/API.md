@@ -105,3 +105,15 @@ authoritative. Unrelated books do not share rates. Source references are
 not credentials or URLs. No historical balance is converted, no journal is
 created, no bank/FX provider is contacted. Ledger activation and mixed
 currency posting remain separate deliverables.
+
+### Native exchange-rate history
+
+Financial members can open Exchange rates under Manage / Finance and tax.
+Managers and owners can append rate evidence using the native Nextcloud
+dialog. The supported currency list is obtained from the scoped API; the
+form accepts a decimal string with a single decimal point or comma and
+sends a canonical decimal-point string, never a floating-point number.
+The read-only table displays the stored exact rate, date, currency pair,
+provenance and actor. A correction adds another immutable record. The
+screen does not change the ledger currency, choose a rate for a posting or
+convert balances. Workspace changes discard in-flight UI results.

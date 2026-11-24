@@ -141,3 +141,9 @@ test('English fallback and Portuguese translations preserve route and group keys
     register('librefinance', catalog.translations)
   }
 })
+
+
+test('exchange-rate history is available to financial readers without optional modules', () => {
+  assert.equal(canOpenView(getSections([], false), 'exchangeRates'), true)
+  assert.equal(PAGE_NAMES.exchangeRates, 'Taxas de câmbio')
+})
