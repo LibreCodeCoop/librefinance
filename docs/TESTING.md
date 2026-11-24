@@ -212,3 +212,49 @@ antes de servir como requisito de merge.
 Atualize o SHA do aplicativo opcional com revisão e CI antes de integrar mudanças
 entre repositórios. O app permanece em desenvolvimento: testes no laboratório
 não certificam conexão bancária, emissão fiscal ou migração de dados reais.
+
+### Medição de latência da CI
+
+Para diagnosticar a demora de um PR sem confundir um job em andamento
+com uma falha, use os metadados de um run específico:
+
+```sh
+gh run view RUN_ID -R LibreCodeCoop/librefinance \
+  --json databaseId,attempt,headSha,status,conclusion,createdAt,startedAt,updatedAt,jobs \
+  | python3 tests/ci/report-timing.py
+PYTHONDONTWRITEBYTECODE=1 python3 tests/ci/test-report-timing.py
+```
+
+O relatório preserva SHA, tentativa, estado e conclusão, distingue
+tempos ausentes de zero e mede o intervalo observado do run, o job mais
+longo e a preparação anterior a etapas de trabalho conhecidas. O tempo
+entre criação e início do run é apenas um indicador de fila; a API
+consultada não informa o instante de enfileiramento individual de cada
+job. O job mais longo não é uma reconstrução do DAG de dependências.
+Em novas tentativas, o intervalo desde a criação original pode incluir
+tentativas anteriores; compare a tentativa e os tempos dos jobs.
+O relatório não substitui os checks de integração e não lê logs ou
+credenciais.
+
+Baseline observado: [run 45451932591](https://github.com/LibreCodeCoop/librefinance/actions/runs/45451932591),
+SHA `c8c7de5629930c3acb461fa1f82ba941adafdf13`, tentativa 1,
+12 jobs concluídos com sucesso. O intervalo criação-atualização final
+foi de 427 segundos; o atraso observado até o início foi de 0 segundos.
+
+| Job | Duração | Preparação antes do trabalho | Etapa mais longa |
+| --- | ---: | ---: | ---: |
+| SQLite integrado | 419 s | 20 s | 396 s |
+| MariaDB integrado | 402 s | 22 s | 377 s |
+| PostgreSQL integrado | 350 s | 17 s | 329 s |
+| SQLite sem extensões | 375 s | 14 s | 358 s |
+| Chromium 1/3 | 279 s | 50 s | 225 s |
+| Chromium 2/3 | 296 s | 41 s | 251 s |
+| Chromium 3/3 | 255 s | 41 s | 210 s |
+| Upgrade histórico (três bancos) | 83-100 s | 13-15 s | 39-47 s |
+| Contratos | 33 s | não medida | 6 s |
+
+Neste run, o caminho dominante foi a execução do laboratório integrado,
+não o build. O próximo experimento deve medir as suítes internas do
+smoke antes de propor mudanças de cache ou paralelismo. Uma única
+amostra não demonstra melhora; compare runs com revisões e cobertura
+equivalentes, mantendo todos os bancos, checks e isolamento.
