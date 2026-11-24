@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
@@ -11,7 +12,8 @@ import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import LfDateField from './LfDateField.vue'
 import LfSelect from './LfSelect.vue'
 import { financeApi, financeError } from '../services/api.js'
-import { toMinorUnits } from '../money.js'
+import { ledgerLocale, toMinorUnits } from '../money.js'
+import { formatLedgerDate } from '../date.js'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -45,7 +47,7 @@ const journalOptions = computed(() => {
   return w.journals.value.filter(row => row.postings?.some(posting =>
     Number(posting.accountId)===id && Number(posting.amountMinor)===expected))
     .map(row=>({value:Number(row.id),
-      label:'#'+row.id+' · '+row.effective_on+' · '+(row.memo || 'Movimentação registrada')}))
+      label:'#'+row.id+' · '+formatLedgerDate(row.effective_on)+' · '+(row.memo || t('librefinance', 'Recorded financial movement'))}))
 })
 watch(journalId, () => {
   const selected=w.journals.value.find(row=>Number(row.id)===Number(journalId.value))
@@ -57,7 +59,9 @@ const outstanding = computed(() => {
   return total - Number(record.paid_minor ?? 0)
 })
 function amountInput(minor) {
-  return Math.floor(Math.max(0,minor) / 100) + ','
+  const separator = new Intl.NumberFormat(ledgerLocale(), { useGrouping: false }).formatToParts(1.1)
+    .find(part => part.type === 'decimal')?.value
+  return Math.floor(Math.max(0,minor) / 100) + (separator === ',' ? ',' : '.')
     + String(Math.max(0,minor) % 100).padStart(2, '0')
 }
 const minor = computed(() => {
@@ -132,58 +136,53 @@ async function recordPayment() {
 </script>
 <template>
   <NcDialog :open="open" content-classes="lf-finance-dialog-content" size="normal"
-    :name="existing ? 'Vincular movimentação existente'
-      : kind === 'receivable' ? 'Registrar recebimento' : 'Registrar pagamento'"
+    :name="existing ? t('librefinance', 'Link existing movement')
+      : kind === 'receivable' ? t('librefinance', 'Record receipt') : t('librefinance', 'Record payment')"
     @update:open="close">
     <form class="lf-dialog-form" @submit.prevent="recordPayment">
       <NcNoteCard type="info">
         {{ existing
-          ? 'Vincule um pagamento ou recebimento que já foi registrado. O dinheiro não será contado duas vezes.'
-          : 'Registre o pagamento ou recebimento desta conta. O saldo será atualizado automaticamente. Nenhuma transferência será enviada ao banco.' }}
+          ? t('librefinance', 'Link a payment or receipt that has already been recorded. The money will not be counted twice.')
+          : t('librefinance', 'Record the payment or receipt for this bill. The balance will be updated automatically. No transfer will be sent to the bank.') }}
       </NcNoteCard>
       <NcNoteCard v-if="taxed" type="error">
-        Esta fatura tem impostos ou retenções que exigem revisão. Não é seguro
-        registrar o valor automaticamente. Vincule uma movimentação já conferida.
+        {{ t('librefinance', 'This invoice has taxes or withholdings that require review. It is not safe to record the amount automatically. Link an already reviewed movement.') }}
       </NcNoteCard>
       <NcNoteCard v-if="source === 'invoice' && !existing" type="warning">
-        Confirmar a fatura não significa receber ou pagar. Esta ação registra
-        o dinheiro agora. Se ele já foi registrado, use a opção de vincular
-        uma movimentação existente para evitar duplicidade.
+        {{ t('librefinance', 'Confirming an invoice does not mean receiving or paying. This action records the money now. If it was already recorded, link an existing movement to avoid duplication.') }}
       </NcNoteCard>
       <NcNoteCard v-if="source !== 'invoice' && !existing && counterOptions.length>1"
         type="info">
-        Escolha o tipo de movimentação correspondente ao pagamento ou recebimento.
+        {{ t('librefinance', 'Choose the movement type corresponding to the payment or receipt.') }}
       </NcNoteCard>
       <p v-if="record"><strong>{{record.description || record.number}}</strong> ·
-        Em aberto: {{w.money(outstanding)}}</p>
+        {{ t('librefinance', 'Outstanding: {amount}', { amount: w.money(outstanding) }, { escape: false, sanitize: false }) }}</p>
       <NcNoteCard v-if="error" type="error" role="alert">{{error}}</NcNoteCard>
       <LfSelect id="lf-cash-bank" v-model="bankId"
-        label="Conta bancária ou caixa" :options="bankOptions"
+        :label="t('librefinance', 'Bank or cash account')" :options="bankOptions"
         :disabled="busy" />
       <LfSelect v-if="!existing && counterOptions.length>1"
-        id="lf-cash-counter" v-model="counterId" label="Tipo de movimentação"
+        id="lf-cash-counter" v-model="counterId" :label="t('librefinance', 'Movement type')"
         :options="counterOptions" :disabled="busy" />
-      <LfSelect v-else id="lf-existing-journal" v-model="journalId"
-        label="Movimentação já registrada" :options="journalOptions"
+      <LfSelect v-else-if="existing" id="lf-existing-journal" v-model="journalId"
+        :label="t('librefinance', 'Previously recorded movement')" :options="journalOptions"
         :disabled="busy" />
       <div v-if="existing && !journalOptions.length">
-        <NcNoteCard type="warning">Não há movimentação compatível entre os
-          lançamentos carregados. Valor, conta e direção devem coincidir.</NcNoteCard>
+        <NcNoteCard type="warning">{{ t('librefinance', 'No compatible movement among the loaded entries. Amount, account and direction must match.') }}</NcNoteCard>
         <NcButton v-if="w.nextBeforeId.value" variant="tertiary" :disabled="busy"
-          @click="w.loadMore">Carregar lançamentos anteriores</NcButton>
+          @click="w.loadMore">{{ t('librefinance', 'Load earlier entries') }}</NcButton>
       </div>
       <NcNoteCard v-if="!bankOptions.length || (!existing && !counterOptions.length)" type="warning">
-        É necessário cadastrar uma conta financeira ativa e uma conta de
-        classificação compatível em Mais ferramentas → Plano de contas.
+        {{ t('librefinance', 'An active financial account and compatible classification account must be registered in More tools → Chart of accounts.') }}
       </NcNoteCard>
-      <NcTextField v-model="amount" label="Valor recebido ou pago"
+      <NcTextField v-model="amount" :label="t('librefinance', 'Amount received or paid')"
         inputmode="decimal" required :disabled="busy" />
-      <LfDateField id="lf-cash-date" v-model="date" label="Data da movimentação" />
+      <LfDateField id="lf-cash-date" v-model="date" :label="t('librefinance', 'Movement date')" />
       <div class="lf-form-actions">
-        <NcButton variant="tertiary" :disabled="busy" @click="close">Cancelar</NcButton>
+        <NcButton variant="tertiary" :disabled="busy" @click="close">{{ t('librefinance', 'Cancel') }}</NcButton>
         <NcButton variant="primary" type="submit" :disabled="!valid">
-          {{busy ? 'Registrando…' : existing
-            ? 'Vincular sem duplicar' : 'Registrar sem duplicar'}}
+          {{busy ? t('librefinance', 'Recording…') : existing
+            ? t('librefinance', 'Link without duplication') : t('librefinance', 'Record without duplication')}}
         </NcButton>
       </div>
     </form>
