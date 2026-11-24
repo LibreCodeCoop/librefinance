@@ -1,0 +1,1 @@
+{"format":"librefinance.interchange.chunk.v1","id":"extension-a","workspaceId":"company-a","resource":"extension.custom","records":[{"id":"old-1","version":"1","kind":"source_only","state":"deleted","createdAt":"2025-01-01T00:00:00Z","updatedAt":"2025-01-02T00:00:00Z","money":[],"references":[],"artifacts":[],"fields":{"note":"Synthetic historical record"}}]}

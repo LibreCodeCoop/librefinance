@@ -86,3 +86,10 @@ extension mappings. Compare independently established source totals and
 balances with the destination inventory at the same cut-off. An incomplete
 manifest, even with zero observed rows, is not approval to proceed with a
 financial cutover. No live connector or cutover is enabled here.
+
+## Portable financial content
+
+The separate [neutral financial interchange contract](ADR-0006-neutral-financial-interchange.md)
+defines bounded, integrity-checked manifests, chunks and attachments for
+authorized financial exports. Discovery totals are not financial content or
+authorization to import.

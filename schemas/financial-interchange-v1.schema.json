@@ -1,0 +1,546 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LibreFinance financial interchange v1",
+  "description": "Structural validation. The offline PHP validator additionally checks byte integrity, scope, uniqueness, ordering, completeness and bundle budgets.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/manifest"
+    },
+    {
+      "$ref": "#/$defs/chunk"
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+      "maxLength": 128
+    },
+    "resource": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "maxLength": 20,
+      "format": "date-time"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "maxLength": 64
+    },
+    "resourceDeclaration": {
+      "type": "object",
+      "properties": {
+        "resource": {
+          "$ref": "#/$defs/resource"
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "empty",
+            "missing_capability",
+            "access_denied",
+            "truncated",
+            "timeout",
+            "unsupported",
+            "unavailable",
+            "invalid_response",
+            "snapshot_changed"
+          ]
+        },
+        "count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "resource",
+        "status",
+        "count"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "complete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10000
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "empty"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "count": {
+                "const": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "missing_capability",
+                  "access_denied",
+                  "truncated",
+                  "timeout",
+                  "unsupported",
+                  "unavailable",
+                  "invalid_response",
+                  "snapshot_changed"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "count": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "workspace": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resourceDeclaration"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "id",
+        "resources"
+      ],
+      "additionalProperties": false
+    },
+    "chunkDescriptor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "workspaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "resource": {
+          "$ref": "#/$defs/resource"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 250
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "id",
+        "workspaceId",
+        "resource",
+        "count",
+        "bytes",
+        "sha256"
+      ],
+      "additionalProperties": false
+    },
+    "artifactDescriptor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "workspaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4194304
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "mediaType": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9.+-]{0,63}/[a-z0-9][a-z0-9.+-]{0,63}$"
+        }
+      },
+      "required": [
+        "id",
+        "workspaceId",
+        "bytes",
+        "sha256",
+        "mediaType"
+      ],
+      "additionalProperties": false
+    },
+    "money": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/resource"
+        },
+        "minor": {
+          "type": "string",
+          "pattern": "^(?:0|-?[1-9][0-9]{0,37})$"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "maxLength": 3
+        },
+        "scale": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        }
+      },
+      "required": [
+        "role",
+        "minor",
+        "currency",
+        "scale"
+      ],
+      "additionalProperties": false
+    },
+    "reference": {
+      "type": "object",
+      "properties": {
+        "workspaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "resource": {
+          "$ref": "#/$defs/resource"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "role": {
+          "$ref": "#/$defs/resource"
+        },
+        "type": {
+          "enum": [
+            "parent",
+            "reference"
+          ]
+        }
+      },
+      "required": [
+        "workspaceId",
+        "resource",
+        "id",
+        "role",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "artifactReference": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "role": {
+          "$ref": "#/$defs/resource"
+        }
+      },
+      "required": [
+        "id",
+        "role"
+      ],
+      "additionalProperties": false
+    },
+    "fields": {
+      "type": "object",
+      "maxProperties": 64,
+      "propertyNames": {
+        "allOf": [
+          {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
+          },
+          {
+            "not": {
+              "pattern": "password|passphrase|secret|credential|token|private[._-]?key|api[._-]?key|authorization[._-]?header"
+            }
+          }
+        ]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/fieldValue"
+      }
+    },
+    "fieldValue": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "string",
+          "maxLength": 4096
+        },
+        {
+          "$ref": "#/$defs/fields"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fieldValue"
+          },
+          "minItems": 0,
+          "maxItems": 64
+        }
+      ]
+    },
+    "record": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "version": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "master_data",
+            "configuration",
+            "bank_evidence",
+            "accounting_entry",
+            "obligation",
+            "commercial_document",
+            "settlement",
+            "fiscal_authorization",
+            "source_only"
+          ]
+        },
+        "state": {
+          "enum": [
+            "active",
+            "archived",
+            "deleted"
+          ]
+        },
+        "createdAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "money": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/money"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/reference"
+          },
+          "minItems": 0,
+          "maxItems": 32
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactReference"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        },
+        "fields": {
+          "$ref": "#/$defs/fields"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "kind",
+        "state",
+        "createdAt",
+        "updatedAt",
+        "money",
+        "references",
+        "artifacts",
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "manifest": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "const": "librefinance.interchange.v1"
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "system": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_-]{2,23}$",
+              "maxLength": 24
+            },
+            "instanceId": {
+              "$ref": "#/$defs/id"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "system",
+            "instanceId",
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "snapshotId": {
+          "$ref": "#/$defs/id"
+        },
+        "cutoff": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "workspaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/workspace"
+          },
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "chunks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/chunkDescriptor"
+          },
+          "minItems": 0,
+          "maxItems": 256
+        },
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactDescriptor"
+          },
+          "minItems": 0,
+          "maxItems": 256
+        }
+      },
+      "required": [
+        "format",
+        "source",
+        "snapshotId",
+        "cutoff",
+        "workspaces",
+        "chunks",
+        "artifacts"
+      ],
+      "additionalProperties": false
+    },
+    "chunk": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "const": "librefinance.interchange.chunk.v1"
+        },
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "workspaceId": {
+          "$ref": "#/$defs/id"
+        },
+        "resource": {
+          "$ref": "#/$defs/resource"
+        },
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/record"
+          },
+          "minItems": 1,
+          "maxItems": 250
+        }
+      },
+      "required": [
+        "format",
+        "id",
+        "workspaceId",
+        "resource",
+        "records"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
