@@ -47,6 +47,7 @@ import MovementsView from './views/MovementsView.vue'
 import DocumentsView from './views/DocumentsView.vue'
 import SpacesView from './views/SpacesView.vue'
 import TaxRulesView from './views/TaxRulesView.vue'
+import ExchangeRatesView from './views/ExchangeRatesView.vue'
 import NfseView from './views/NfseView.vue'
 import ImportView from './views/ImportView.vue'
 
@@ -97,6 +98,7 @@ const screens = {
   purchases: DocumentsView,
   invoicing: DocumentsView,
   taxes: TaxRulesView,
+  exchangeRates: ExchangeRatesView,
   contacts: ContactsView,
   items: ItemsView,
   reports: ReportsView,
