@@ -495,10 +495,25 @@ final class SpaceService {
             $members = $this->members($spaceId);
             $after = $this->memberGrantRevision($spaceId);
             if ($before === $after) {
-                return ['members' => $members, 'grantRevision' => $after];
+                return ['members' => $members, 'grantRevision' => $after,
+                    'canManageMembers' => $this->canManageMembers($spaceId)];
             }
         }
         throw new DomainException('revision_conflict');
+    }
+
+    /** Presentation metadata only: mutations always revalidate the authority. */
+    private function canManageMembers(int $spaceId): bool {
+        try {
+            if ($this->access->isSaasWorkspace($spaceId)) {
+                $this->access->requireFinancialCapability($spaceId, 'roles.manage');
+            } else {
+                $this->access->requireRole($spaceId, 'manager');
+            }
+            return true;
+        } catch (DomainException) {
+            return false;
+        }
     }
 
     /** @return array<int, array<string, mixed>> */

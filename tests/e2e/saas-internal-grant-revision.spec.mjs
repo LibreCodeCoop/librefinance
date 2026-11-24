@@ -21,10 +21,9 @@ test('SaaS member editor sends current CAS revision for grant and revocation', a
     const request = route.request()
     const url = new URL(request.url())
     if (request.method() === 'GET' && url.pathname.endsWith('/members')) {
-      // This test verifies the frontend contract; avoid an unnecessary
-      // upstream request that can outlive the Playwright test context.
+      // Synthetic frontend contract; no dangling network request.
       return route.fulfill({ status: 200, json: {
-        grantRevision: revision,
+        grantRevision: revision, canManageMembers: true,
         members: [
           { uid: 'synthetic-list-loaded', role: 'owner' },
           ...(present ? [{ uid: 'synthetic-revision-user', role: 'viewer' }] : []),
@@ -69,4 +68,33 @@ test('SaaS member editor sends current CAS revision for grant and revocation', a
     uid: 'synthetic-revision-user', role: 'viewer', expectedRevision: 6,
   })
   expect(deletedRevision).toBe('7')
+})
+
+test('SaaS member buttons follow the server-authorized management capability', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'personal')
+  let authorized = false
+  await page.route('**/apps/librefinance/api/spaces/*/members**', async route => {
+    const request = route.request()
+    if (request.method() !== 'GET'
+      || !new URL(request.url()).pathname.endsWith('/members')) return route.continue()
+    // Synthetic API contract is enough for presentation testing. Avoid
+    // a real fetch surviving the teardown of the Playwright route.
+    return route.fulfill({ status: 200, json: {
+      grantRevision: 5,
+      canManageMembers: authorized,
+      members: [{ uid: 'synthetic-list-loaded', role: 'owner' }],
+    } })
+  })
+  await page.reload()
+  await goToView(page, 'Acessos e compartilhamento')
+  await expect(page.getByText('synthetic-list-loaded', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Usuário', exact: true })).toHaveCount(0)
+  await expect(page.getByText('Apenas quem possui permissão financeira para gerenciar papéis', { exact: false })).toBeVisible()
+
+  authorized = true
+  await page.reload()
+  await goToView(page, 'Acessos e compartilhamento')
+  await expect(page.getByText('synthetic-list-loaded', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Usuário', exact: true })).toBeVisible()
 })

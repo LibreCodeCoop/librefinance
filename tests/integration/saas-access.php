@@ -770,9 +770,10 @@ try {
         'GET', '/spaces/' . $spaceA . '/members', null, 200,
         static fn(array $r): bool =>
             !in_array('synthetictestadmin', array_column($r['members'] ?? [], 'uid'), true));
-    $t->check('A1 internal grants start with an independent revision', $a, 'GET',
+    $t->check('A1 owner can manage members with an independent revision', $a, 'GET',
         '/spaces/' . $spaceA . '/members', null, 200,
-        static fn(array $r): bool => ($r['grantRevision'] ?? null) === 0);
+        static fn(array $r): bool => ($r['grantRevision'] ?? null) === 0
+            && ($r['canManageMembers'] ?? null) === true);
     $t->check('authorized SaaS grant without revision is rejected', $a, 'POST',
         '/spaces/' . $spaceA . '/members', ['uid' => $b, 'role' => 'viewer'], 428,
         static fn(array $r): bool => ($r['error'] ?? null) === 'grant_revision_required');
@@ -853,8 +854,10 @@ try {
     $t->check('SaaS owner may explicitly grant manager below owner authority',
         $a, 'POST', '/spaces/' . $spaceA . '/members',
         ['uid' => $b, 'role' => 'manager', 'expectedRevision' => 3], 200);
-    $t->check('manager can inspect assigned workspace membership',
-        $b, 'GET', '/spaces/' . $spaceA . '/members', null, 200);
+    $t->check('SaaS financial manager may inspect but not manage members',
+        $b, 'GET', '/spaces/' . $spaceA . '/members', null, 200,
+        static fn(array $r): bool => ($r['grantRevision'] ?? null) === 4
+            && ($r['canManageMembers'] ?? null) === false);
     $t->check('manager cannot reassign roles or promote itself to owner',
         $b, 'POST', '/spaces/' . $spaceA . '/members',
         ['uid' => $a, 'role' => 'manager'], 403);
