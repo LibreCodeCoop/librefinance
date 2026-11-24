@@ -92,3 +92,14 @@ MariaDB e valide instalação nova **e** atualização de uma instalação
 anterior com dados sintéticos. Não restaurar um banco de desenvolvimento
 antigo apagando registros para que ele passe na CI. Nunca importar dumps
 proprietários nem copiar o desenho de bancos de software concorrente.
+
+### Exchange-rate evidence
+
+The additive lf_fx_rates table stores one immutable quote per workspace
+and canonical fingerprint. Both currency codes, explicit minor-unit
+precisions, metadata version, exact decimal rate string, effective date,
+non-secret provenance, recording actor and time are retained. A unique
+(space_id, fingerprint) index serializes equivalent concurrent recordings;
+(space_id, id) supports scoped cursor reads. The rate and corresponding
+audit event commit together. No existing currency or posting column is
+rewritten by this migration.

@@ -744,6 +744,16 @@
       "path": "/apps/librefinance/api/saas/v1/policy-audit/workspaces/{spaceId}/me",
       "request": "GET",
       "route": "librefinance.saaspolicyaudit.user"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/exchange-rates",
+      "request": "GET",
+      "route": "librefinance.ratehistory.index"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/exchange-rates",
+      "request": "POST",
+      "route": "librefinance.ratehistory.record"
     }
   ],
   "librefinance_nfse": [
