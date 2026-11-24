@@ -421,3 +421,23 @@ e permite carregar os anteriores. Ao trocar de livro ou ambiente, as
 respostas pendentes são descartadas para não misturar históricos.
 O histórico administrativo é diferente da auditoria financeira de cada
 livro, que segue suas próprias regras de preservação.
+
+### Restrição hierárquica de relatórios
+
+A policy booleana `modules.reports.enabled` controla o acesso ao módulo
+**Relatórios** nos escopos de instância, ambiente SaaS e livro financeiro.
+Por padrão seu valor é `true`, preservando instalações existentes. O
+administrador da instância pode proibir relatórios globalmente; o gestor do
+ambiente pode restringir seu ambiente, e o proprietário financeiro pode
+restringir seu livro. Um nível inferior não consegue reabilitar o que um
+ancestral desabilitou. A edição é feita pelo editor de policies, com revisão
+otimista e auditoria, não pela concessão de papéis.
+
+O módulo ainda exige papel financeiro apropriado e seu próprio indicador
+local de ativação. Mesmo que alguém reative esse indicador, a API só apresenta
+`enabled: true` quando **todos** os controles aplicáveis permitem acesso.
+A consulta direta ao demonstrativo de resultados, balanço, fluxo de caixa e
+aos relatórios salvos deve retornar `403 module_disabled` quando a policy
+nega o acesso. Esta configuração suspende consultas e alterações futuras; não
+apaga documentos, lançamentos ou relatórios históricos. A restrição de A1
+nunca se propaga para A2 ou para outro ambiente.

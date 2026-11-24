@@ -118,14 +118,20 @@ final class ModuleService {
             $this->write->update('lf_module_flags',
                 ['enabled' => $enabled ? 1 : 0], ['space_id' => $spaceId, 'module_id' => $id]);
         }
-        return ['id' => $id, 'enabled' => $enabled];
+        // Return the effective state, not a misleading 'enabled' response
+        // when an ancestor policy still prohibits the module.
+        return ['id' => $id, 'enabled' => $this->enabledInSpace($spaceId, $id)];
     }
 
     private function enabledInSpace(int $spaceId, string $id): bool {
         // Runtime policy and per-space module flags both restrict access.
         // Neither of them supplies a financial ACL grant.
-        if ($id === 'librefinance_import'
-            && $this->policies->workspace($spaceId, 'imports.enabled')['effectiveValue'] !== true) {
+        $policy = match ($id) {
+            'librefinance_import' => 'imports.enabled',
+            'librefinance_reports' => 'modules.reports.enabled',
+            default => null,
+        };
+        if ($policy !== null && $this->policies->workspace($spaceId, $policy)['effectiveValue'] !== true) {
             return false;
         }
         $q = $this->db->getQueryBuilder();

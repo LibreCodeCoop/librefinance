@@ -178,6 +178,65 @@ try {
     saasCheck('both ledgers in A and the ledger in B have unique IDs',
         $spaceA2 > 0 && $spaceA2 !== $spaceA && $spaceA2 !== $spaceB);
 
+    // Report module policy is a server-side denial on BOTH generated reports
+    // and persisted reports, not a visibility flag or a financial grant.
+    $reportPathA1 = '/saas/v1/workspaces/' . $spaceA . '/policies/modules.reports.enabled';
+    $reportEnvironmentA = '/saas/v1/environments/' . $envA
+        . '/policies/modules.reports.enabled';
+    $reportRouteA1 = '/spaces/' . $spaceA
+        . '/profit-loss?from=2026-01-01&through=2026-12-31';
+    $reportRouteA2 = '/spaces/' . $spaceA2
+        . '/profit-loss?from=2026-01-01&through=2026-12-31';
+    $reportRouteB = '/spaces/' . $spaceB
+        . '/profit-loss?from=2026-01-01&through=2026-12-31';
+    $t->checkModule('reports enabled by default in independent ledger A1', $a,
+        'librefinance_reports', 'GET', $reportRouteA1, null, 200);
+    $t->check('financial owner restricts report module only in A1', $a,
+        'PUT', $reportPathA1,
+        ['valueJson' => 'false', 'expectedRevision' => 0], 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false
+            && ($r['blockedBy'] ?? null) === 'workspace');
+    $t->checkModule('direct report API respects A1 policy denial', $a,
+        'librefinance_reports', 'GET', $reportRouteA1, null, 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled');
+    $t->checkModule('saved report API respects A1 policy denial', $a,
+        'librefinance_reports', 'GET',
+        '/spaces/' . $spaceA . '/saved-reports', null, 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled');
+    $t->check('A1 reports show effectively disabled in module discovery', $a,
+        'GET', '/spaces/' . $spaceA . '/modules', null, 200,
+        static fn(array $r): bool => count(array_filter($r['modules'] ?? [],
+            static fn(array $m): bool => ($m['id'] ?? null) === 'librefinance_reports'
+                && ($m['enabled'] ?? null) === false)) === 1);
+    $t->check('module flag cannot reactivate a policy-disabled report module', $a,
+        'PUT', '/spaces/' . $spaceA . '/modules/librefinance_reports',
+        ['enabled' => true], 200,
+        static fn(array $r): bool => ($r['enabled'] ?? null) === false);
+    $t->checkModule('workspace A2 reports unaffected by A1 policy', $a,
+        'librefinance_reports', 'GET', $reportRouteA2, null, 200);
+    $t->checkModule('environment B reports unaffected by A1 policy', $b,
+        'librefinance_reports', 'GET', $reportRouteB, null, 200);
+    $t->check('clearing A1 report restriction restores access', $a,
+        'DELETE', $reportPathA1 . '?expectedRevision=1', null, 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true);
+    $t->check('delegated manager restricts reports in environment A only', $b,
+        'PUT', $reportEnvironmentA,
+        ['valueJson' => 'false', 'expectedRevision' => 0], 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false);
+    $t->checkModule('environment denial blocks A2 report API', $a,
+        'librefinance_reports', 'GET', $reportRouteA2, null, 403);
+    $t->check('financial owner cannot override disabled parent reporting', $a,
+        'PUT', $reportPathA1,
+        ['valueJson' => 'true', 'expectedRevision' => 2], 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'policy_override_forbidden');
+    $t->checkModule('environment B remains allowed under A denial', $b,
+        'librefinance_reports', 'GET', $reportRouteB, null, 200);
+    $t->check('environment manager lifts report restriction with CAS', $b,
+        'DELETE', $reportEnvironmentA . '?expectedRevision=1', null, 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true);
+    $t->checkModule('A2 report API recovers without financial record changes', $a,
+        'librefinance_reports', 'GET', $reportRouteA2, null, 200);
+
     // Financial roles, not group administration, own workspace-level policy
     // editing. A denial in A2 must never disable imports in A1 or tenant B.
     $workspacePolicyA1 = '/saas/v1/workspaces/' . $spaceA . '/policies/imports.enabled';
@@ -193,8 +252,9 @@ try {
         'GET', $workspacePolicyA2, null, 404);
     $t->check('A owner can read workspace policy catalogue', $a,
         'GET', '/saas/v1/workspaces/' . $spaceA2 . '/policies/effective', null, 200,
-        static fn(array $r): bool => count($r['policies'] ?? []) === 5
-            && in_array('dashboard.kpis.enabled', array_column($r['policies'] ?? [], 'key'), true));
+        static fn(array $r): bool => count($r['policies'] ?? []) >= 6
+            && in_array('dashboard.kpis.enabled', array_column($r['policies'] ?? [], 'key'), true)
+            && in_array('modules.reports.enabled', array_column($r['policies'] ?? [], 'key'), true));
     $t->check('A owner restricts imports in A2 without changing A1', $a,
         'PUT', $workspacePolicyA2,
         ['valueJson' => 'false', 'expectedRevision' => 0], 200,

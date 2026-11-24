@@ -24,6 +24,9 @@ final class PolicyRegistry {
                 ['instance', 'environment', 'workspace'], false, true),
             new PolicyDefinition('imports.enabled', 'boolean',
                 ['instance', 'environment', 'workspace'], true, true),
+            // Core report APIs must obey policy even when their module flag is enabled.
+            new PolicyDefinition('modules.reports.enabled', 'boolean',
+                ['instance', 'environment', 'workspace'], true, true),
             new PolicyDefinition('workspaces.maxCount', 'ceiling',
                 ['instance', 'environment'], 9007199254740991, true),
             // Presentation only: hiding KPI cards is not a financial ACL.

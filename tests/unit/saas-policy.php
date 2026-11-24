@@ -133,6 +133,21 @@ denied('instance-only refuses child even if declared', fn() => $resolver->resolv
     [layer('instance', true), layer('environment', false)]
 ), 'policy_override_forbidden');
 
+$reports = $registry->get('modules.reports.enabled');
+result('report module remains enabled by default for existing ledgers',
+    $resolver->resolve($reports, [])['effectiveValue'], true);
+result('report module policy cannot be set at user scope',
+    $reports->supports('user'), false);
+$result = $resolver->resolve($reports, [
+    layer('instance', true), layer('environment', false), layer('workspace', true),
+]);
+result('workspace cannot re-enable report module blocked by environment',
+    $result['effectiveValue'], false);
+result('report module denial identifies its environment blocker',
+    $result['blockedBy'], 'environment');
+denied('report module requires a boolean value',
+    fn() => $reports->assertValue('true'), 'invalid_policy_value');
+
 $dashboard = $registry->get('dashboard.kpis.enabled');
 result('dashboard policy supports self-user scope',
     $dashboard->supports('user'), true);

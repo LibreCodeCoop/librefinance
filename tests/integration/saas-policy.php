@@ -74,8 +74,9 @@ $t = new TestHarness();
 $key = '/saas/v1/admin/policies/environments.enabled';
 policyCheck('instance admin can list typed registry', 'GET',
     '/saas/v1/admin/policies', null, 200,
-    static fn(array $r): bool => count($r['policies'] ?? []) === 5
-            && in_array('dashboard.kpis.enabled', array_column($r['policies'] ?? [], 'key'), true));
+    static fn(array $r): bool => count($r['policies'] ?? []) >= 6
+            && in_array('dashboard.kpis.enabled', array_column($r['policies'] ?? [], 'key'), true)
+            && in_array('modules.reports.enabled', array_column($r['policies'] ?? [], 'key'), true));
 policyCheck('instance policies inherit enabled SaaS feature under separately disabled managed mode', 'GET',
     $key, null, 200, static fn(array $r): bool =>
         ($r['effectiveValue'] ?? null) === true && ($r['revision'] ?? null) === 0
