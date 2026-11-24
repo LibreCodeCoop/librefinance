@@ -353,6 +353,9 @@ onBeforeUnmount(() => {
         <li v-for="context in contexts" :key="context.id">
           {{ context.name }} ({{ context.kind }}) —
           {{ context.governanceGroup || 'Sem grupo governante' }}
+          <span v-if="context.legacyReviewState === 'pending_review'">
+            · Revisão pendente: múltiplas identidades jurídicas no mesmo livro.
+          </span>
           <span v-if="context.archived"> · Arquivado
             <NcButton variant="tertiary" :disabled="busy"
               @click="restoreContext(context)">Restaurar</NcButton>

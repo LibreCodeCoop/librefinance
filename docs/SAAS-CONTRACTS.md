@@ -112,7 +112,7 @@ The table is the required verification matrix, **not a claim that every row is h
 | N10 | Unrecognized policy scope or malformed key | Rejected with no stored mutation |
 | N11 | Two admins provision same group simultaneously | Exactly one environment, stable ID |
 | N12 | Two grant writes share stale revision | At most one accepted |
-| N13 | Existing mixed-company legacy ledger | Mark pending review; leave postings unchanged |
+| N13 | Existing mixed-company legacy ledger | Instance-admin legacy contexts report a derived pending-review hint including inactive identities; leave postings and bindings unchanged; no automatic migration |
 | N14 | Group removed/deleted then recreated | No identity hijack or automatic data reassignment |
 | P01 | Authorized owner in active workspace | Read and permitted post accepted |
 | P02 | Explicit allowed external invitation | Only authorized workspace and operation |

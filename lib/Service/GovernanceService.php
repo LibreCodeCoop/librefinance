@@ -96,15 +96,21 @@ final class GovernanceService {
         // Instance admins may enumerate legacy governance contexts, not
         // newly isolated SaaS books. SaaS workspace metadata is managed by
         // the qualified environment admin through a separate authorization.
+        // Count historical legal identities, including inactive ones. A
+        // mixed ledger needs explicit review, not automatic tenant assignment.
         $q->select('s.id', 's.name', 's.kind', 's.governance_gid', 's.archived')
+            ->selectAlias($q->createFunction('COUNT(c.id)'), 'company_count')
             ->from('lf_spaces', 's')
             ->leftJoin('s', 'lf_environment_spaces', 'es', 'es.space_id = s.id')
+            ->leftJoin('s', 'lf_companies', 'c', 'c.space_id = s.id')
             ->where($q->expr()->isNull('es.space_id'))
+            ->groupBy('s.id', 's.name', 's.kind', 's.governance_gid', 's.archived')
             ->orderBy('s.id', 'ASC');
         $rows = $q->executeQuery()->fetchAllAssociative();
         return array_map(static fn(array $r): array => [
             'id' => (int)$r['id'], 'name' => $r['name'], 'kind' => $r['kind'],
             'governanceGroup' => $r['governance_gid'], 'archived' => (bool)$r['archived'],
+            'legacyReviewState' => (int)$r['company_count'] > 1 ? 'pending_review' : 'not_required',
         ], $rows);
     }
 
