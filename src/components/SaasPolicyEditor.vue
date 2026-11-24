@@ -72,6 +72,7 @@ const name = key => ({
   'environments.enabled': 'Habilitar os ambientes SaaS',
   'externalSharing.enabled': 'Compartilhamento externo',
   'imports.enabled': 'Importação de dados',
+  'banking.allowedImportFormats': 'Formatos de extrato bancário permitidos (CSV ou OFX)',
   'workspaces.maxCount': 'Limite de gestões por ambiente',
   'dashboard.kpis.enabled': 'Exibir indicadores resumidos no painel',
 })[key] || key

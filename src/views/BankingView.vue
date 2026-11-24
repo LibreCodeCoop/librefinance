@@ -4,7 +4,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcFilePicker from '@nextcloud/vue/components/NcFilePicker'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcPopover from '@nextcloud/vue/components/NcPopover'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
@@ -50,8 +53,14 @@ const success=ref('')
 const importDialog=ref(false)
 const importError=ref('')
 const importAccount=ref(0)
-const csvFile=ref(null)
-const csvInput=ref(null)
+const statementFile=ref(null)
+const importFormat=ref('csv')
+const csvExample='data:text/csv;charset=utf-8,'+encodeURIComponent(
+  'id,date,amount,description\nexemplo-001,2026-11-22,-25.90,Pagamento de exemplo\n'
+  + 'exemplo-002,2026-11-22,150.00,Recebimento de exemplo\n')
+const allowedFormats=ref([])
+const formatPolicyLoading=ref(true)
+let formatPolicySequence=0
 const reconcile=ref(null)
 const journalId=ref(0)
 const reconciliationError=ref('')
@@ -69,6 +78,9 @@ const journalCandidates=computed(()=>{
 const bankChoices=computed(()=>[{value:0,label:'Todas as contas'},
   ...banks.value.map(a=>({value:a.id,label:a.name}))])
 const importChoices=computed(()=>banks.value.map(a=>({value:a.id,label:a.name})))
+const formatChoices=computed(()=>allowedFormats.value.map(value=>({
+  value, label:value === 'ofx' ? 'OFX (Open Financial Exchange)' : 'CSV (valores separados por vírgula)',
+})))
 const statuses=[
   {value:'all',label:'Todas as situações'},
   {value:'pending',label:'Pendentes'},
@@ -84,6 +96,41 @@ function closeReconciliation() {
   reconcile.value = null
   journalId.value = 0
   reconciliationError.value = ''
+}
+
+async function loadFormatPolicy() {
+  const token = ++formatPolicySequence
+  const id = Number(activeId.value)
+  const currentSpace = w.space.value
+  formatPolicyLoading.value = true
+  allowedFormats.value = []
+  if (!id || !currentSpace || Number(currentSpace.id) !== id) {
+    formatPolicyLoading.value = false
+    return
+  }
+  if (currentSpace.saasManaged !== true) {
+    allowedFormats.value = ['csv', 'ofx']
+    formatPolicyLoading.value = false
+    return
+  }
+  try {
+    const url = generateUrl('/apps/librefinance/api/saas/v1/workspaces/'
+      + id + '/policies/banking.allowedImportFormats')
+    const response = await axios.get(url)
+    if (token !== formatPolicySequence || Number(activeId.value) !== id) return
+    const values = response.data.effectiveValue
+    allowedFormats.value = Array.isArray(values)
+      ? ['csv', 'ofx'].filter(format => values.includes(format)) : []
+    if (!allowedFormats.value.includes(importFormat.value)) {
+      importFormat.value = allowedFormats.value[0] || 'csv'
+    }
+  } catch {
+    // Fail closed in the UI until the server can resolve effective policy;
+    // server-side banking import authorization always remains authoritative.
+    if (token === formatPolicySequence) allowedFormats.value = []
+  } finally {
+    if (token === formatPolicySequence) formatPolicyLoading.value = false
+  }
 }
 
 async function load() {
@@ -137,8 +184,10 @@ async function moreTransfers() {
   finally{if(token===generation)busy.value=false}
 }
 function openImportDialog() {
+  if (!allowedFormats.value.length || formatPolicyLoading.value) return
   importError.value = ''
-  csvFile.value = null
+  statementFile.value = null
+  importFormat.value = allowedFormats.value[0]
   // Never silently import into the first account when several are present.
   // Use the explicitly selected account or require a choice.
   importAccount.value = chosenAccount.value > 0
@@ -148,29 +197,69 @@ function openImportDialog() {
 }
 function closeImportDialog() {
   importDialog.value = false
-  csvFile.value = null
+  statementFile.value = null
   importError.value = ''
 }
-function pickFile(event) {
-  csvFile.value=event.target.files?.[0]||null
+function pickFile(files) {
   importError.value = ''
-  if(event.target) event.target.value=''
+  if (!Array.isArray(files) || files.length !== 1) {
+    statementFile.value = null
+    importError.value = 'Selecione apenas um arquivo.'
+    return
+  }
+  const file = files[0]
+  if (!file.name.toLowerCase().endsWith('.' + importFormat.value)) {
+    statementFile.value = null
+    importError.value = 'Selecione um arquivo ' + importFormat.value.toUpperCase() + '.'
+    return
+  }
+  if (!file.size || file.size > 262144) {
+    statementFile.value = null
+    importError.value = 'O arquivo deve ter até 256 KiB e não pode estar vazio.'
+    return
+  }
+  statementFile.value = file
 }
-async function importCsv() {
-  if(!csvFile.value||!importAccount.value||busy.value)return
-  const token=++generation
-  busy.value=true;error.value='';success.value='';importError.value=''
-  try{
-    if(csvFile.value.size>262144)throw new Error('Arquivo acima de 256 KiB')
-    const csv=await csvFile.value.text()
-    const out=await financeApi('librefinance_banking',activeId.value,
-      '/imports','POST',{bankAccountId:Number(importAccount.value),csv})
-    if(token!==generation)return
-    success.value=out.imported+' movimentações importadas; '+out.skipped+' já existentes.'
+async function importStatement() {
+  if (!statementFile.value || !importAccount.value || busy.value
+    || !allowedFormats.value.includes(importFormat.value)) return
+  const token = ++generation
+  const target = Number(activeId.value)
+  busy.value = true; error.value = ''; success.value = ''; importError.value = ''
+  try {
+    if (statementFile.value.size > 262144) {
+      throw new Error('Arquivo acima de 256 KiB')
+    }
+    // A UTF-8 File.text() decode would corrupt OFX using legacy Windows-1252.
+    const bytes = new Uint8Array(await statementFile.value.arrayBuffer())
+    let charset = 'utf-8'
+    if (importFormat.value === 'ofx') {
+      const header = new TextDecoder('windows-1252').decode(bytes.slice(0, 512))
+      const numeric = header.match(/^CHARSET:\s*(\d+)\s*$/mi)?.[1]
+      const xml = header.match(/<\?xml[^>]*encoding=['"]([^'"]+)['"]/i)?.[1]?.toLowerCase()
+      if (numeric === '1252' || ['windows-1252', 'cp1252'].includes(xml)) charset = 'windows-1252'
+      else if (numeric === '8859' || ['iso-8859-1', 'latin1'].includes(xml)) charset = 'iso-8859-1'
+      else if (numeric && numeric !== '65001') throw new Error('Codificação OFX desconhecida: ' + numeric)
+      else if (xml && !['utf-8', 'utf8'].includes(xml)) throw new Error('Codificação OFX desconhecida: ' + xml)
+    }
+    const content = new TextDecoder(charset, { fatal: true }).decode(bytes)
+    if (token !== generation || Number(activeId.value) !== target) return
+    const params = {
+      bankAccountId: Number(importAccount.value),
+      format: importFormat.value,
+    }
+    if (importFormat.value === 'ofx') params.ofx = content
+    else params.csv = content
+    const out = await financeApi('librefinance_banking', target, '/imports', 'POST', params)
+    if (token !== generation || Number(activeId.value) !== target) return
+    success.value = out.imported + ' movimentações importadas; ' + out.skipped + ' já existentes.'
     closeImportDialog()
     await load()
-  }catch(e){if(token===generation)importError.value=financeError(e)}
-  finally{if(token===generation)busy.value=false}
+  } catch (e) {
+    if (token === generation) importError.value = financeError(e)
+  } finally {
+    if (token === generation) busy.value = false
+  }
 }
 async function match() {
   if(!reconcile.value||busy.value)return
@@ -201,6 +290,9 @@ watch(chosenAccount, id => {
   }
 })
 watch([chosenAccount,filter],load)
+watch(() => [Number(activeId.value), w.space.value?.saasManaged],
+  loadFormatPolicy, { immediate: true })
+watch(importFormat, () => { statementFile.value = null; importError.value = '' })
 // Opening from a pending evidence row lands on that exact authorized
 // statement transaction; no payment or ledger entry is created here.
 watch(focusedBank, focus => {
@@ -223,17 +315,18 @@ watch(importRequest, requested => {
   if (writable.value && banks.value.length) openImportDialog()
 }, { immediate:true })
 onMounted(load)
-onBeforeUnmount(()=>++generation)
+onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
 </script>
 <template>
   <div class="lf-view">
     <LfPageHeader v-if="!embedded" title="Bancos e caixa" eyebrow="FINANCEIRO"
       description="Confira extratos e concilie movimentações sem contar transferências internas duas vezes.">
       <template #actions>
-        <NcButton v-if="writable && banks.length && rows.length" variant="primary" :disabled="busy"
+        <NcButton v-if="writable && banks.length && rows.length && allowedFormats.length"
+          variant="primary" :disabled="busy || formatPolicyLoading"
           @click="openImportDialog">
           <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
-          Importar extrato CSV
+          Importar extrato
         </NcButton>
         <NcButton variant="tertiary" aria-label="Atualizar extratos" :disabled="busy" @click="load">
           <template #icon><NcIconSvgWrapper :path="mdiRefresh" :size="20" /></template>
@@ -247,7 +340,7 @@ onBeforeUnmount(()=>++generation)
     <details v-if="rows.length || transfers.length" class="lf-finance-explanation">
       <summary>Como funciona a conciliação?</summary>
       <p>Movimentos importados não alteram o saldo contábil até serem conciliados.
-        1. Importe um extrato CSV para revisão. 2. Localize uma movimentação pendente.
+        1. Importe um extrato CSV ou OFX para revisão. 2. Localize uma movimentação pendente.
         3. Vincule-a a um lançamento contábil da mesma conta e valor.
         Transferências históricas exigem a conferência das duas pontas.
         Não existe sincronização bancária em tempo real homologada aqui.</p>
@@ -304,10 +397,11 @@ onBeforeUnmount(()=>++generation)
       </NcEmptyContent>
       <NcEmptyContent v-else-if="!rows.length"
         :name="chosenAccount || filter!=='all' ? 'Nenhuma movimentação neste filtro' : 'Nenhuma movimentação importada'"
-        description="Importe um extrato CSV para conferir movimentos, sem alterar o saldo contábil.">
+        description="Importe um extrato CSV ou OFX para conferir movimentos, sem alterar o saldo contábil.">
         <template #action>
           <NcButton v-if="chosenAccount || filter!=='all'" @click="chosenAccount=0;filter='all'">Limpar filtros</NcButton>
-          <NcButton v-else-if="writable && !embedded" variant="primary" @click="openImportDialog">Importar extrato CSV</NcButton>
+          <NcButton v-else-if="writable && !embedded && allowedFormats.length"
+            variant="primary" @click="openImportDialog">Importar extrato</NcButton>
         </template>
       </NcEmptyContent>
       <div v-else class="lf-table-scroll">
@@ -373,31 +467,37 @@ onBeforeUnmount(()=>++generation)
         <NcButton :disabled="busy" @click="more">Carregar mais movimentações</NcButton>
       </div>
     </section>
-    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="importDialog" name="Importar extrato CSV"
+    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="importDialog" name="Importar extrato bancário"
       @update:open="!$event && closeImportDialog()">
-      <form class="lf-dialog-form" @submit.prevent="importCsv">
+      <form class="lf-dialog-form" @submit.prevent="importStatement">
         <p>Importe os movimentos para revisão. O arquivo será analisado e
           nenhum lançamento contábil será criado automaticamente.</p>
         <NcNoteCard v-if="importError" type="error" role="alert">{{ importError }}</NcNoteCard>
         <LfSelect id="lf-import-bank" v-model="importAccount" label="Conta de destino"
           :options="importChoices" />
-        <input ref="csvInput" class="lf-visually-hidden" type="file"
-          accept=".csv,text/csv" @change="pickFile" />
-        <NcButton variant="secondary" @click="csvInput?.click()">
-          <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
-          Selecionar CSV
-        </NcButton>
-        <p class="lf-muted">{{csvFile?.name||'Nenhum arquivo selecionado'}}</p>
-        <details class="lf-finance-explanation">
+        <LfSelect id="lf-import-format" v-model="importFormat" label="Formato do extrato"
+          :options="formatChoices" :disabled="busy || formatPolicyLoading" />
+        <NcFilePicker :key="importFormat" :disabled="busy || !allowedFormats.includes(importFormat)"
+          :label="'Selecionar arquivo ' + importFormat.toUpperCase()" variant="secondary"
+          :accept="importFormat === 'ofx' ? ['.ofx','application/x-ofx'] : ['.csv','text/csv']"
+          @pick="pickFile" />
+        <p class="lf-muted">{{statementFile?.name || 'Nenhum arquivo selecionado'}}</p>
+        <details v-if="importFormat === 'csv'" class="lf-finance-explanation">
           <summary>Formato esperado do CSV</summary>
           <p>Use as colunas <code>id,date,amount,description</code>, nesta ordem.
             Exemplo: <code>mov-001,2026-11-20,-25.90,Pagamento de teste</code>.
             Utilize ponto como separador decimal e sinal negativo para saídas.
             O limite é 256 KiB por arquivo.</p>
+          <NcButton variant="tertiary" :href="csvExample" download="exemplo-extrato.csv">
+            Baixar exemplo de CSV
+          </NcButton>
         </details>
+        <p v-else class="lf-muted">Utilize um extrato bancário OFX com identificadores
+          FITID, datas e valores de movimentação. Limite de 256 KiB.</p>
         <div class="lf-form-actions">
-          <NcButton variant="tertiary" @click="closeImportDialog">Cancelar</NcButton>
-          <NcButton variant="primary" type="submit" :disabled="busy||!csvFile||!importAccount">
+          <NcButton variant="tertiary" type="button" @click="closeImportDialog">Cancelar</NcButton>
+          <NcButton variant="primary" type="submit"
+            :disabled="busy || !statementFile || !importAccount || !allowedFormats.includes(importFormat)">
             Importar para revisão
           </NcButton>
         </div>
