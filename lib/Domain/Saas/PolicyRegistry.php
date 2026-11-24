@@ -29,6 +29,13 @@ final class PolicyRegistry {
             new PolicyDefinition('banking.allowedImportFormats', 'allowed_set',
                 ['instance', 'environment', 'workspace'], ['csv', 'ofx'], true,
                 allowedSetValues: ['csv', 'ofx']),
+            // Core report APIs must obey policy even when their module flag is enabled.
+            new PolicyDefinition('modules.reports.enabled', 'boolean',
+                ['instance', 'environment', 'workspace'], true, true),
+            // Optional NFS-e integration only prepares fiscal drafts. Policy
+            // never grants finance access or authorizes fiscal issuance.
+            new PolicyDefinition('regional.nfseDrafts.enabled', 'boolean',
+                ['instance', 'environment', 'workspace'], true, true),
             new PolicyDefinition('workspaces.maxCount', 'ceiling',
                 ['instance', 'environment'], 9007199254740991, true),
             // Presentation only: hiding KPI cards is not a financial ACL.

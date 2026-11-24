@@ -165,10 +165,14 @@ async function confirmRemoval() {
         <div class="lf-module-descriptor">
           <NcIconSvgWrapper :path="mdiPuzzleOutline" :size="22" />
           <div><strong>{{ module.name }}</strong><small>{{module.description}}</small>
-            <small>{{module.enabled?'Disponível neste espaço':'Desativado neste espaço'}}</small></div>
+            <small v-if="module.blockedByPolicy">
+              Bloqueado por política administrativa. A ativação local não remove a restrição.
+            </small>
+            <small v-else>{{module.enabled?'Disponível neste espaço':'Desativado neste espaço'}}</small></div>
         </div>
-        <NcButton :disabled="busy" :variant="module.enabled?'tertiary':'primary'"
-          @click="toggleModule(module)">{{ module.enabled ? 'Desativar' : 'Ativar' }}</NcButton>
+        <NcButton :disabled="busy || !manager || module.blockedByPolicy"
+          :variant="module.enabled?'tertiary':'primary'"
+          @click="toggleModule(module)">{{ module.blockedByPolicy ? 'Bloqueado por política' : (module.enabled ? 'Desativar' : 'Ativar') }}</NcButton>
       </div>
       <NcEmptyContent v-if="!modules.length" name="Nenhum recurso adicional disponível" />
     </section>
