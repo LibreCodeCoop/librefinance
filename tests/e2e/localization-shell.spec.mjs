@@ -417,3 +417,62 @@ test('purchase payment stays payable after language change and reopening the inv
   await expect(cells.nth(4)).toHaveText(/125[,.]75/)
   await expect(cells.nth(5)).toHaveText(/25[,.]75/)
 })
+
+
+test('migration previews preserve source identifiers, counts and explicit consent across languages', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'organization')
+  const spaceId = new URL(page.url()).searchParams.get('spaceId')
+  const url = '/index.php/apps/librefinance/?spaceId=' + spaceId + '&view=data&forceLanguage='
+  const company = 'locale-migration-' + Date.now().toString(36)
+  const fixture = {
+    format: 'librefinance.normalized.v1',
+    source: { system: 'generic', companyId: company },
+    company: { sourceId: company, legalName: 'Organização sintética', country: 'BR',
+      taxId: null, tradeName: null, municipalRegistration: null, stateRegistration: null },
+    contacts: [], categories: [],
+    accounts: [{
+      sourceId: 'bank-locale-1', code: 'BANK_LOCALE', name: 'Banco sintético',
+      kind: 'bank', currency: 'BRL', openingBalanceMinor: 12345,
+      currentBalanceMinor: 23456, balanceAsOf: '2026-11-20',
+      bankName: 'Banco sintético', number: null, enabled: true,
+    }],
+  }
+  const preview = async (lang, input, button) => {
+    await page.goto(url + lang)
+    await page.getByRole('textbox', { name: input }).fill(JSON.stringify(fixture))
+    const reply = page.waitForResponse(response => response.url().includes('/api/spaces/' + spaceId + '/preview')
+      && response.request().method() === 'POST' && response.ok())
+    await page.getByRole('button', { name: button, exact: true }).click()
+    return (await reply).json()
+  }
+  const en = await preview('en', 'Or paste the normalized JSON', 'Validate and preview')
+  await expect(page.getByRole('heading', { name: 'Preview result' })).toBeVisible()
+  await expect(page.getByText('Ready to confirm', { exact: true })).toBeVisible()
+  const row = page.getByRole('row', { name: /bank-locale-1/ })
+  await expect(row.locator('[data-status]')).toHaveAttribute('data-status', 'new')
+  await expect(row).toContainText('New record')
+  await expect(page.getByRole('checkbox')).not.toBeChecked()
+  await expect(page.getByRole('button', { name: 'Import validated batch' })).toBeDisabled()
+  const pt = await preview('pt_BR', 'Ou cole o JSON normalizado', 'Validar e pré-visualizar')
+  await expect(page.getByRole('heading', { name: 'Resultado da prévia' })).toBeVisible()
+  await expect(row).toContainText('Novo')
+  expect(pt.source).toEqual(en.source)
+  expect(pt.counts).toEqual(en.counts)
+  expect(pt.records).toEqual(en.records)
+  await expect(page.getByRole('checkbox')).not.toBeChecked()
+  await expect(page.getByRole('button', { name: 'Importar lote validado' })).toBeDisabled()
+  await page.getByText('Confirmo a empresa de destino e autorizo somente os registros', { exact: false }).click()
+  const apply = page.waitForResponse(response => response.url().includes('/api/spaces/' + spaceId + '/import')
+    && response.request().method() === 'POST' && response.ok())
+  await page.getByRole('button', { name: 'Importar lote validado' }).click()
+  const applied = await (await apply).json()
+  expect(applied.created).toBe(2)
+  await expect(page.getByRole('heading', { name: 'Importação concluída' })).toBeVisible()
+  const repeated = await preview('en', 'Or paste the normalized JSON', 'Validate and preview')
+  expect(repeated.counts.new).toBe(0)
+  expect(repeated.counts.unchanged).toBe(2)
+  await expect(row.locator('[data-status]')).toHaveAttribute('data-status', 'unchanged')
+  await expect(row).toContainText('Already present')
+  await expect(page.getByRole('button', { name: 'Import validated batch' })).toBeDisabled()
+})

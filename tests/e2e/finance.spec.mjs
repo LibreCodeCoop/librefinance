@@ -573,7 +573,32 @@ test('@extensions fiscal staging stays a draft and cannot be mistaken for a nati
   await draftDialog.getByRole('textbox', { name: 'Valor (BRL)' }).fill('80,00')
   await draftDialog.getByRole('button', { name: 'Salvar rascunho' }).click()
   await expect(page.getByText('Nenhuma DPS foi enviada', { exact: false })).toBeVisible()
-  await expect(page.getByRole('row', { name: /Synthetic fiscal service/ })).toContainText('Rascunho')
+  const staged = page.getByRole('row', { name: /Synthetic fiscal service/ })
+  await expect(staged).toContainText('Rascunho')
+  const storedDate = await staged.locator('time').getAttribute('datetime')
+  const storedAmount = await staged.locator('.lf-numeric').innerText()
+  const spaceId = new URL(page.url()).searchParams.get('spaceId')
+  const en = '/index.php/apps/librefinance/?spaceId=' + spaceId + '&view=nfse&forceLanguage=en'
+  let writes = 0
+  await page.route('**/apps/librefinance_nfse/api/**', async route => {
+    if (route.request().method() !== 'GET') {
+      writes++
+      return route.abort()
+    }
+    return route.continue()
+  })
+  await page.goto(en)
+  await expect(page.getByRole('heading', { name: 'Brazilian NFS-e', exact: true })).toBeVisible()
+  await expect(page.getByText('does NOT yet sign XML', { exact: false })).toBeVisible()
+  await expect(staged).toContainText('Draft')
+  await expect(staged.locator('time')).toHaveAttribute('datetime', storedDate)
+  await expect(staged.locator('.lf-numeric')).toHaveText(storedAmount)
+  await expect(staged).toHaveCount(1)
+  await page.getByRole('button', { name: 'New draft' }).click()
+  const englishDraft = page.getByRole('dialog', { name: 'Prepare service for NFS-e' })
+  await expect(englishDraft).toContainText('This action saves a draft without submission.')
+  await englishDraft.getByRole('button', { name: 'Cancel' }).click()
+  expect(writes).toBe(0)
 })
 
 test('native Nextcloud dialog supports keyboard dismissal without creating a record', async ({ page }) => {
@@ -688,8 +713,10 @@ test('core normalized import stages registrations, bank movements and transfers 
     .fill(JSON.stringify(inventory))
   await page.getByRole('button', { name: 'Validar e pré-visualizar' }).click()
   await expect(page.getByRole('heading', { name: 'Resultado da prévia' })).toBeVisible()
-  await expect(page.getByRole('row', { name: /documents/ })).toContainText('not_implemented')
-  await expect(page.getByRole('row', { name: /transfers/ })).toContainText('counts_match')
+  await expect(page.getByRole('row', { name: /documents/ }).locator('[data-status]')).toHaveAttribute('data-status', 'not_implemented')
+  await expect(page.getByRole('row', { name: /documents/ })).toContainText('Não implementado')
+  await expect(page.getByRole('row', { name: /transfers/ }).locator('[data-status]')).toHaveAttribute('data-status', 'counts_match')
+  await expect(page.getByRole('row', { name: /transfers/ })).toContainText('Contagens coincidentes')
   await expect(page.getByText('Contagens coincidentes não demonstram igualdade', { exact: false }))
     .toBeVisible()
   await expect(page.getByRole('button', { name: 'Importar lote validado' })).toHaveCount(0)
