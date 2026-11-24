@@ -810,6 +810,85 @@ try {
             && ($r['companies'][0]['legal_name'] ?? '') === 'Synthetic Example A2'
             && ($r['companies'][0]['country'] ?? '') === 'PT');
 
+    // Seed real scoped resources, then exercise direct HTTP and MCP access
+    // as the environment administrator before, during and after financial grants.
+    $resourceRoot = '/spaces/' . $spaceA;
+    $period = '?from=2026-01-01&through=2026-12-31';
+    $contactName = 'Synthetic scoped SaaS contact ' . $spaceA;
+    $contact = $t->check('owner creates a scoped contact', $a, 'POST',
+        $resourceRoot . '/contacts', ['name' => $contactName, 'kind' => 'both'], 201);
+    $obligation = $t->checkModule('owner creates a scoped obligation', $a, 'librefinance_obligations',
+        'POST', $resourceRoot . '/obligations', [
+            'kind' => 'payable', 'description' => 'Synthetic scoped obligation',
+            'amountMinor' => 1234, 'issuedOn' => '2026-11-20', 'dueOn' => '2026-12-05',
+            'reference' => 'SYN-SAAS-' . $spaceA, 'contactId' => (int)$contact['id'],
+        ], 201);
+    $invoice = $t->checkModule('owner creates a scoped invoice', $a, 'librefinance_invoicing',
+        'POST', $resourceRoot . '/invoices', [
+            'number' => 'SYN-SAAS-' . $spaceA, 'kind' => 'invoice',
+            'contactId' => (int)$contact['id'], 'issueOn' => '2026-11-20',
+            'dueOn' => '2026-12-05', 'country' => 'BR',
+            'lines' => [['description' => 'Synthetic scoped line', 'quantity' => 1,
+                'unitPriceMinor' => 2500, 'taxRuleId' => null]],
+        ], 201);
+    $saved = $t->checkModule('owner saves a scoped report', $a, 'librefinance_reports',
+        'POST', $resourceRoot . '/saved-reports', [
+            'name' => 'Synthetic scoped report', 'kind' => 'profit_loss',
+            'from' => '2026-01-01', 'through' => '2026-12-31',
+        ], 201);
+    $field = $t->check('owner defines a scoped company field', $a, 'POST',
+        $resourceRoot . '/company-fields',
+        ['key' => 'saas_scope', 'label' => 'Synthetic scope', 'type' => 'text'], 201);
+    $logoRoute = $resourceRoot . '/companies/' . (int)$companyA1['id'] . '/logo';
+    $t->check('owner stores scoped company image', $a, 'POST', $logoRoute,
+        ['imageBase64' => trim(file_get_contents(__DIR__ . '/fixtures/logo-valid.b64'))], 200);
+    $searchRoute = $resourceRoot . '/search?type=contacts&query=' . rawurlencode($contactName);
+    $readRoutes = [
+        'contact search' => $searchRoute,
+        'invoice' => $resourceRoot . '/invoices/' . (int)$invoice['id'],
+        'obligation' => $resourceRoot . '/obligations/' . (int)$obligation['id'],
+        'obligation settlements' => $resourceRoot . '/obligations/' . (int)$obligation['id'] . '/settlements',
+        'saved reports' => $resourceRoot . '/saved-reports',
+        'profit and loss' => $resourceRoot . '/profit-loss' . $period,
+        'trial balance' => $resourceRoot . '/trial-balance?through=2026-12-31',
+        'cash flow' => $resourceRoot . '/cash-flow' . $period,
+        'custom fields' => $resourceRoot . '/company-fields',
+        'company image' => $logoRoute,
+        'activity' => $resourceRoot . '/activity',
+        'bank transfers' => $resourceRoot . '/transfers',
+        'payment methods' => $resourceRoot . '/payment-methods',
+    ];
+    $managerRoutes = [
+        'import inventory' => $resourceRoot . '/coverage?sourceCompanyId=synthetic',
+        'AI capabilities' => $resourceRoot . '/ai/capabilities',
+        'AI preview' => $resourceRoot . '/ai/preview' . $period,
+    ];
+    $rpcSearch = ['jsonrpc' => '2.0', 'id' => 71, 'method' => 'tools/call', 'params' => [
+        'name' => 'librefinance_search', 'arguments' => [
+            'spaceId' => $spaceA, 'type' => 'contacts', 'query' => $contactName],
+    ]];
+    $mcpDenied = static fn(array $r): bool => ($r['result']['isError'] ?? false) === true
+        && ($r['result']['content'][0]['text'] ?? null) === 'access_denied'
+        && !isset($r['result']['structuredContent']);
+    foreach ($readRoutes + $managerRoutes as $label => $route) {
+        $t->check('owner can read ' . $label, $a, 'GET', $route, null, 200);
+        $t->check('environment admin cannot read ' . $label, $b, 'GET', $route, null, 404);
+    }
+    $t->check('MCP denies environment admin without financial grant', $b, 'POST',
+        '/mcp', $rpcSearch, 200, $mcpDenied);
+    $t->check('MCP owner sees only the seeded contact', $a, 'POST', '/mcp', $rpcSearch, 200,
+        static fn(array $r): bool => ($r['result']['isError'] ?? true) === false
+            && ($r['result']['structuredContent']['results']['contacts'][0]['name'] ?? '') === $contactName);
+    $siblingRoot = '/spaces/' . $spaceA2;
+    foreach ([
+        '/invoices/' . (int)$invoice['id'],
+        '/obligations/' . (int)$obligation['id'],
+        '/companies/' . (int)$companyA1['id'] . '/logo',
+    ] as $route) {
+        $t->check('same owner cannot resolve foreign resource through sibling book ' . $route,
+            $a, 'GET', $siblingRoot . $route, null, 404);
+    }
+
     // Test the actual optional app through its own authenticated HTTP routes,
     // not just a core-side module flag. Core-only installation remains valid.
     $withNfse = getenv('LF_WITH_EXTENSIONS') === '1';
@@ -915,6 +994,16 @@ try {
         static fn(array $r): bool => ($r['error'] ?? null) === 'revision_conflict');
     $t->check('B may now read A ledger through direct grant', $b, 'GET',
         '/spaces/' . $spaceA . '/journals', null, 200);
+    foreach ($readRoutes as $label => $route) {
+        $t->check('explicit viewer may read ' . $label, $b, 'GET', $route, null, 200);
+    }
+    foreach ($managerRoutes as $label => $route) {
+        $t->check('viewer cannot access manager-only ' . $label, $b, 'GET', $route, null, 403);
+    }
+    $t->check('MCP viewer sees explicitly granted contact', $b, 'POST', '/mcp', $rpcSearch, 200,
+        static fn(array $r): bool => ($r['result']['isError'] ?? true) === false
+            && ($r['result']['structuredContent']['results']['contacts'][0]['name'] ?? '') === $contactName);
+
     $t->check('B remains unable to post to A as viewer', $b, 'POST',
         '/spaces/' . $spaceA . '/journals',
         ['debitId' => $ids['1000'], 'creditId' => $ids['4000'],
@@ -976,6 +1065,11 @@ try {
     if ($withNfse) {
         $t->checkModule('revoked A1 viewer denied direct fiscal route',$b,$nfse,'GET',$draftA1,null,404);
     }
+    foreach ($readRoutes + $managerRoutes as $label => $route) {
+        $t->check('viewer revocation denies next ' . $label . ' request', $b, 'GET', $route, null, 404);
+    }
+    $t->check('viewer revocation denies next MCP request', $b, 'POST', '/mcp', $rpcSearch, 200, $mcpDenied);
+
     $t->check('SaaS owner may explicitly grant manager below owner authority',
         $a, 'POST', '/spaces/' . $spaceA . '/members',
         ['uid' => $b, 'role' => 'manager', 'expectedRevision' => 3], 200);
@@ -983,6 +1077,14 @@ try {
         $b, 'GET', '/spaces/' . $spaceA . '/members', null, 200,
         static fn(array $r): bool => ($r['grantRevision'] ?? null) === 4
             && ($r['canManageMembers'] ?? null) === false);
+    foreach ($managerRoutes as $label => $route) {
+        $t->check('explicit manager can read ' . $label, $b, 'GET', $route, null, 200);
+    }
+    // Preview does not schedule AI or send any data to an external provider.
+    $preview = $t->check('manager can obtain consent-bound aggregate preview', $b, 'GET',
+        $resourceRoot . '/ai/preview' . $period, null, 200,
+        static fn(array $r): bool => preg_match('/^[a-f0-9]{64}$/', $r['previewHash'] ?? '') === 1);
+
     $t->check('manager cannot reassign roles or promote itself to owner',
         $b, 'POST', '/spaces/' . $spaceA . '/members',
         ['uid' => $a, 'role' => 'manager'], 403);
@@ -990,6 +1092,20 @@ try {
         '/spaces/' . $spaceA . '/members/' . $b . '?expectedRevision=4', null, 200);
     $t->check('manager revocation immediately revokes ledger read',
         $b, 'GET', '/spaces/' . $spaceA . '/journals', null, 404);
+    foreach ($readRoutes + $managerRoutes as $label => $route) {
+        $t->check('manager revocation denies next ' . $label . ' request', $b, 'GET', $route, null, 404);
+    }
+    $t->check('revoked manager cannot replay a previously obtained AI preview', $b, 'POST',
+        $resourceRoot . '/ai/analyze', [
+            'from' => '2026-01-01', 'through' => '2026-12-31',
+            'consent' => false, 'previewHash' => $preview['previewHash'],
+        ], 404);
+    $t->check('revoked manager cannot inspect AI task status', $b, 'GET',
+        $resourceRoot . '/ai/tasks/2147483647', null, 404);
+    $t->check('manager revocation denies MCP again', $b, 'POST', '/mcp', $rpcSearch, 200, $mcpDenied);
+    $t->check('owner still sees the original scoped contact', $a, 'GET', $searchRoute, null, 200,
+        static fn(array $r): bool => ($r['results']['contacts'][0]['name'] ?? '') === $contactName);
+
     // 52 workspace rows prove the server does not silently cap at 50 and
     // applies the tenant predicate BEFORE page sizing and cursor selection.
     $t->check('tenant A list starts with two independently provisioned books',
