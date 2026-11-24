@@ -24,6 +24,10 @@ final class PolicyRegistry {
                 ['instance', 'environment', 'workspace'], false, true),
             new PolicyDefinition('imports.enabled', 'boolean',
                 ['instance', 'environment', 'workspace'], true, true),
+            // Restrict the actual banking CSV/OFX importer without changing
+            // existing default behavior or authorizing imports by itself.
+            new PolicyDefinition('banking.allowedImportFormats', 'allowed_set',
+                ['instance', 'environment', 'workspace'], ['csv', 'ofx'], true),
             new PolicyDefinition('workspaces.maxCount', 'ceiling',
                 ['instance', 'environment'], 9007199254740991, true),
             // Presentation only: hiding KPI cards is not a financial ACL.

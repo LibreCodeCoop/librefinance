@@ -53,9 +53,11 @@ final readonly class PolicyDefinition {
             'allowed_set' => is_array($value)
                 && array_is_list($value)
                 && count($value) <= 256
-                && count($value) === count(array_unique($value, SORT_STRING))
+                // Validate scalar types before uniqueness to avoid PHP
+                // array-to-string coercion on malformed nested JSON.
                 && array_reduce($value, static fn(bool $ok, mixed $v): bool =>
-                    $ok && is_string($v) && $v !== '' && strlen($v) <= 64, true),
+                    $ok && is_string($v) && $v !== '' && strlen($v) <= 64, true)
+                && count($value) === count(array_unique($value, SORT_STRING)),
             default => false,
         };
         if (!$valid) {
