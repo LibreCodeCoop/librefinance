@@ -88,6 +88,58 @@ function syntheticCheck(string $name, bool $ok): void {
 $gid = 'lf_synth_finance_group';
 $a = 'lfmaintestA';
 $b = 'lfmaintestB';
+// Classification is a read-only administrative hint, never a new
+// environment association or financial grant. Include an inactive legal
+// identity: historical records cannot be made unambiguous by deactivation.
+$legacy = $t->check('create legacy multi-company workspace', $a, 'POST', '/spaces',
+    ['name' => 'Synthetic legacy review', 'kind' => 'organization', 'currency' => 'BRL'], 201);
+$legacyId = (int)$legacy['id'];
+$legacyPath = '/spaces/' . $legacyId;
+$firstCompany = ['legalName' => 'Synthetic legacy first', 'country' => 'PT', 'taxId' => 'SYNTHETIC1'];
+$t->check('register first historical legal identity', $a, 'POST',
+    $legacyPath . '/companies', $firstCompany, 201);
+$reviewState = static function (array $r, int $id): ?array {
+    foreach ($r['contexts'] ?? [] as $context) {
+        if ((int)$context['id'] === $id) {
+            return $context;
+        }
+    }
+    return null;
+};
+adminCheck('single-company legacy workspace is not marked mixed', 'GET', '/admin/contexts',
+    null, 200, static fn(array $r): bool =>
+        ($reviewState($r, $legacyId)['legacyReviewState'] ?? null) === 'not_required');
+$secondCompany = ['legalName' => 'Synthetic legacy second', 'country' => 'PT', 'taxId' => 'SYNTHETIC2'];
+$second = $t->check('register second historical legal identity', $a, 'POST',
+    $legacyPath . '/companies', $secondCompany, 201);
+$t->check('deactivate second identity without deleting it', $a, 'PUT',
+    $legacyPath . '/companies/' . $second['id'], [...$secondCompany, 'active' => false], 200);
+$accountsBefore = $t->check('read original chart', $a, 'GET', $legacyPath . '/accounts', null, 200);
+$accountIds = array_column($accountsBefore['accounts'], 'id', 'code');
+$t->check('post original synthetic ledger entry', $a, 'POST', $legacyPath . '/journals',
+    ['debitId' => (int)$accountIds['1000'], 'creditId' => (int)$accountIds['4000'],
+        'amountMinor' => 12345, 'date' => date('Y-m-d'), 'memo' => 'Synthetic legacy history',
+        'externalKey' => 'legacy-review-' . $legacyId], 201);
+$balances = $t->check('read posted legacy balances', $a, 'GET', $legacyPath . '/accounts', null, 200);
+$journals = $t->check('read posted legacy journals', $a, 'GET', $legacyPath . '/journals', null, 200);
+$companies = $t->check('read original legal identities', $a, 'GET', $legacyPath . '/companies', null, 200);
+adminCheck('multiple historical legal identities require explicit review', 'GET', '/admin/contexts',
+    null, 200, static function (array $r) use ($reviewState, $legacyId): bool {
+        $row = $reviewState($r, $legacyId);
+        return ($row['legacyReviewState'] ?? null) === 'pending_review'
+            && ($row['governanceGroup'] ?? null) === null
+            && !array_key_exists('companies', $row)
+            && !array_key_exists('companyCount', $row);
+    });
+$t->check('ordinary user cannot inspect administrative legacy classification', $b,
+    'GET', '/admin/contexts', null, 403);
+$t->check('classification leaves exact legacy balances unchanged', $a, 'GET',
+    $legacyPath . '/accounts', null, 200, static fn(array $r): bool => $r === $balances);
+$t->check('classification leaves exact legacy postings unchanged', $a, 'GET',
+    $legacyPath . '/journals', null, 200, static fn(array $r): bool => $r === $journals);
+$t->check('classification leaves original legal identities unchanged', $a, 'GET',
+    $legacyPath . '/companies', null, 200, static fn(array $r): bool => $r === $companies);
+
 adminCheck('admin can enable managed governance only in disposable lab',
     'PUT', '/admin/governance', ['managed' => true], 200);
 try {

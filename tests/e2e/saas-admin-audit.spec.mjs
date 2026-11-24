@@ -33,7 +33,10 @@ test('Nextcloud admin reads isolated SaaS lifecycle audit with cursor pagination
   })
   await page.route('**/apps/librefinance/api/admin/contexts', route => {
     if (route.request().method() !== 'GET') return route.continue()
-    return route.fulfill({ status: 200, json: { contexts: [] } })
+    return route.fulfill({ status: 200, json: { contexts: [
+      { id: 1, name: 'Livro legado misto', kind: 'organization', governanceGroup: null, archived: false, legacyReviewState: 'pending_review' },
+      { id: 2, name: 'Livro legado simples', kind: 'organization', governanceGroup: null, archived: false, legacyReviewState: 'not_required' },
+    ] } })
   })
   await page.route('**/apps/librefinance/api/saas/v1/admin/groups?**', route => {
     return route.fulfill({ status: 200, json: { groups: [group], nextOffset: null } })
@@ -55,6 +58,8 @@ test('Nextcloud admin reads isolated SaaS lifecycle audit with cursor pagination
   await expect(page.getByRole('heading', {
     name: 'LibreFinance — Administração da instância',
   })).toBeVisible()
+  await expect(page.getByRole('listitem').filter({ hasText: 'Livro legado misto' })).toContainText('Revisão pendente')
+  await expect(page.getByRole('listitem').filter({ hasText: 'Livro legado simples' })).not.toContainText('Revisão pendente')
   await page.getByRole('button', { name: 'Ver histórico de auditoria de Grupo Auditoria' }).click()
   const dialog = page.getByRole('dialog', { name: 'Histórico de auditoria do LibreFinance' })
   await expect(dialog).toBeVisible()

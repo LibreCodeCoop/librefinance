@@ -10,7 +10,12 @@ contexts. The naming is generic; financial contexts can belong to businesses,
 households, organizations or collectives. A Nextcloud group is an access
 boundary, not automatically a legal company.
 
-## Default and managed modes
+## Legacy default and managed modes
+
+This section describes legacy contexts only, not independently governed SaaS
+workspaces. The latter use the environment and financial-role contracts in
+[SAAS-CONTRACTS.md](SAAS-CONTRACTS.md); instance and environment admins do
+not acquire a financial role merely by administering an environment.
 
 Default mode remains compatible with existing personal deployments:
 authenticated users can create financial spaces and owners manage access.
@@ -540,3 +545,16 @@ o servidor continua sendo a autoridade final. O seletor nativo
 Amostra de CSV pode ser baixada na tela. OFX com codificações legadas
 suportadas é convertido corretamente para Unicode antes de enviar o
 conteúdo ao servidor para validação. O limite permanece em 256 KiB.
+
+### Legacy accounting review
+
+The instance-admin-only `GET /api/admin/contexts` response includes
+`legacyReviewState` for each legacy context. `pending_review` means more than
+one registered legal identity (including inactive identities) shares that
+ledger. `not_required` means this particular ambiguity was not detected; it
+does not approve a migration, establish financial ownership or certify other
+migration prerequisites. The hint is computed from current records, exposes
+neither identity details nor counts, and does not change ledger data,
+membership, bindings or legacy permissions. Review and any subsequent
+migration are explicit administrative decisions. Existing SaaS workspaces
+remain excluded from the instance-admin legacy context list.
