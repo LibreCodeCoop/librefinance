@@ -39,6 +39,8 @@ jobs:
       - run: python3 tests/ci/coverage-inventory.py
       - name: Verify synthetic restricted-funding acceptance fixtures (not runtime)
         run: python3 tests/acceptance/restricted-funding/verify-fixtures.py
+      - name: Verify exact currency arithmetic (no ledger mutation)
+        run: php tests/unit/currency-conversion.php
       - run: php tests/openapi/generate.php --check
       - run: npm run test:openapi
       - run: npm run build
