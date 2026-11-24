@@ -325,7 +325,7 @@ async function saveCompany() {
     else await call('POST', path, payload)
     resetCompanyForm()
     await refreshCurrent()
-  }, 'Cadastro jurídico salvo.')
+  }, t('librefinance', 'Legal registration saved.'))
 }
 async function loadMoreCompanies() {
   const current = Number(activeId.value)
@@ -347,7 +347,7 @@ async function createSpace() {
     // The activeId watcher owns loading; a second call caused duplicate
     // simultaneous requests when the newly created space was selected.
     activeId.value = created.id
-  }, 'Gestão financeira criada.')
+  }, t('librefinance', 'Financial workspace created.'))
 }
 async function createAccount() {
   await doAction(async () => {
@@ -386,7 +386,7 @@ async function createItem() {
     itemPrice.value = ''
     itemDescription.value = ''
     await refreshCurrent()
-  }, 'Produto ou serviço cadastrado.')
+  }, t('librefinance', 'Product or service registered.'))
 }
 async function loadMoreCatalog(which) {
   const selected = Number(activeId.value)
@@ -423,7 +423,7 @@ async function createCategory() {
     categoryParentId.value = 0
     categoryAccountId.value = 0
     await refreshCurrent()
-  }, 'Categoria hierárquica cadastrada.')
+  }, t('librefinance', 'Hierarchical category registered.'))
 }
 async function loadMoreCategories() {
   const current = Number(activeId.value)
@@ -550,7 +550,7 @@ async function toggleModule(module) {
   await doAction(async () => {
     await call('PUT', '/api/spaces/' + activeId.value + '/modules/' + encodeURIComponent(module.id), { enabled: !module.enabled })
     await refreshCurrent()
-  }, 'Configuração do módulo atualizada.')
+  }, t('librefinance', 'Module configuration updated.'))
 }
 async function shareUser() {
   await doAction(async () => {

@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
@@ -16,22 +17,22 @@ import { financeApi, financeError } from '../services/api.js'
 
 const w = inject('lfWorkspace')
 const types = [
-  {value:'text',label:'Texto curto'}, {value:'textarea',label:'Texto longo'},
-  {value:'email',label:'E-mail'}, {value:'url',label:'Endereço web'},
-  {value:'integer',label:'Número inteiro'}, {value:'number',label:'Decimal exato'},
-  {value:'date',label:'Data'}, {value:'boolean',label:'Sim / Não'},
-  {value:'select',label:'Lista de opções'},
+  {value:'text',label:t('librefinance', 'Short text')}, {value:'textarea',label:t('librefinance', 'Long text')},
+  {value:'email',label:t('librefinance', 'Email')}, {value:'url',label:t('librefinance', 'Web address')},
+  {value:'integer',label:t('librefinance', 'Integer')}, {value:'number',label:t('librefinance', 'Exact decimal')},
+  {value:'date',label:t('librefinance', 'Date')}, {value:'boolean',label:t('librefinance', 'Yes / No')},
+  {value:'select',label:t('librefinance', 'List of options')},
 ]
 const entities = computed(() => [
-  {value:'company',label:w.space.value?.kind==='personal'?'Organização (opcional)':'Empresa / organização',
-    description:'Dados da organização, endereço e informações administrativas'},
-  {value:'contact',label:w.space.value?.kind==='personal'?'Pessoas e estabelecimentos':'Clientes e fornecedores',
-    description:'Informações adicionais dos contatos cadastrados'},
-  {value:'item',label:'Produtos e serviços',description:'Dados do catálogo de itens'},
-  {value:'invoice',label:'Faturas de venda',description:'Informações associadas a cada venda detalhada'},
-  {value:'bill',label:'Faturas de compra',description:'Informações associadas a cada compra detalhada'},
-  {value:'journal',label:'Movimentações realizadas',
-    description:'Entradas e saídas já registradas no livro financeiro'},
+  {value:'company',label:w.space.value?.kind==='personal'?t('librefinance', 'Organization (optional)'):t('librefinance', 'Business / organization'),
+    description:t('librefinance', 'Organization details, address and administrative information')},
+  {value:'contact',label:w.space.value?.kind==='personal'?t('librefinance', 'People and establishments'):t('librefinance', 'Customers and suppliers'),
+    description:t('librefinance', 'Additional information about registered contacts')},
+  {value:'item',label:t('librefinance', 'Products and services'),description:t('librefinance', 'Item catalog information')},
+  {value:'invoice',label:t('librefinance', 'Sales invoices'),description:t('librefinance', 'Information associated with each detailed sale')},
+  {value:'bill',label:t('librefinance', 'Purchase invoices'),description:t('librefinance', 'Information associated with each detailed purchase')},
+  {value:'journal',label:t('librefinance', 'Recorded movements'),
+    description:t('librefinance', 'Inflows and outflows already recorded in the financial ledger')},
 ])
 const fields = ref([])
 const loading = ref(false)
@@ -146,13 +147,13 @@ async function save() {
   <div class="lf-field-studio">
     <div class="lf-section-heading">
       <div>
-        <p>Informações adicionais da gestão atual, sem alterar valores, saldos ou cálculos.</p>
+        <p>{{ t('librefinance', 'Additional information for the current workspace, without changing amounts, balances or calculations.') }}</p>
       </div>
       <NcButton variant="primary" :disabled="loading||saving||totals.every(group=>group.fields.length>=30)"
-        @click="begin()">Novo campo</NcButton>
+        @click="begin()">{{ t('librefinance', 'New field') }}</NcButton>
     </div>
     <NcNoteCard v-if="problem&&!dialog" type="error" role="alert">{{problem}}</NcNoteCard>
-    <p v-if="loading" role="status" class="lf-muted">Carregando campos…</p>
+    <p v-if="loading" role="status" class="lf-muted">{{ t('librefinance', 'Loading fields…') }}</p>
     <template v-else-if="fields.length">
       <section v-for="group in totals.filter(group=>group.fields.length)" :key="group.value"
         class="lf-custom-field-group">
@@ -161,96 +162,90 @@ async function save() {
           <div>
             <strong>{{field.label}}</strong>
             <small>{{types.find(type=>type.value===field.type)?.label}}
-              · {{field.visible?'No formulário':'Interno'}}
-              · {{field.apiVisible?'API comum':'API restrita a gestores'}}
-              · {{field.active?'Ativo':'Inativo'}}</small>
+              · {{field.visible?t('librefinance', 'On the form'):t('librefinance', 'Internal')}}
+              · {{field.apiVisible?t('librefinance', 'Common API'):t('librefinance', 'API restricted to managers')}}
+              · {{field.active?t('librefinance', 'Active'):t('librefinance', 'Inactive')}}</small>
             <small v-if="field.help">{{field.help}}</small>
           </div>
-          <NcButton variant="tertiary" :aria-label="'Editar '+field.label"
-            @click="begin(field)">Editar</NcButton>
+          <NcButton variant="tertiary" :aria-label="t('librefinance', 'Edit {name}', { name: field.label }, { escape: false, sanitize: false })"
+            @click="begin(field)">{{ t('librefinance', 'Edit') }}</NcButton>
         </div>
       </section>
     </template>
-    <NcEmptyContent v-else-if="!problem" name="Nenhum campo personalizado"
-      description="Ao criar um campo, escolha primeiro onde ele será utilizado." />
+    <NcEmptyContent v-else-if="!problem" :name="t('librefinance', 'No custom fields')"
+      :description="t('librefinance', 'When creating a field, first choose where it will be used.')" />
     <NcDialog :open="dialog" size="normal" content-classes="lf-finance-dialog-content"
-      :name="draft.id?'Editar campo personalizado':'Novo campo personalizado'"
+      :name="draft.id?t('librefinance', 'Edit custom field'):t('librefinance', 'New custom field')"
       @update:open="!$event&&!saving&&(dialog=false)">
       <div v-if="step==='choose'" class="lf-dialog-form">
-        <h3>Onde este campo será utilizado?</h3>
-        <div class="lf-field-targets" role="group" aria-label="Escolher local do campo">
+        <h3>{{ t('librefinance', 'Where will this field be used?') }}</h3>
+        <div class="lf-field-targets" role="group" :aria-label="t('librefinance', 'Choose field target')">
           <NcButton v-for="group in totals" :key="group.value" variant="secondary"
             :disabled="group.fields.length>=30" @click="chooseEntity(group.value)">
             {{group.label}}
           </NcButton>
         </div>
-        <p class="lf-muted">Cada campo pertence à área escolhida, dentro desta gestão financeira.
-          Cadastre os valores ao criar ou editar os registros dessa área.</p>
+        <p class="lf-muted">{{ t('librefinance', 'Each field belongs to the selected area within this financial workspace. Register its values when creating or editing records in that area.') }}</p>
         <div class="lf-form-actions">
-          <NcButton variant="tertiary" @click="dialog=false">Cancelar</NcButton>
+          <NcButton variant="tertiary" @click="dialog=false">{{ t('librefinance', 'Cancel') }}</NcButton>
         </div>
       </div>
       <form v-else class="lf-dialog-form" @submit.prevent="save">
         <NcButton v-if="!draft.id" variant="tertiary" @click="step='choose'">
-          {{currentEntity?.label}} · Alterar local
+          {{ t('librefinance', '{name} · Change target', { name: currentEntity?.label }, { escape: false, sanitize: false }) }}
         </NcButton>
-        <p v-else class="lf-muted">Utilizado em: <strong>{{currentEntity?.label}}</strong></p>
+        <p v-else class="lf-muted">{{ t('librefinance', 'Used in: {name}', { name: currentEntity?.label }, { escape: false, sanitize: false }) }}</p>
         <NcNoteCard v-if="problem" type="error" role="alert">{{problem}}</NcNoteCard>
-        <NcTextField v-model="draft.label" label="Nome do campo" maxlength="100" required />
+        <NcTextField v-model="draft.label" :label="t('librefinance', 'Field name')" maxlength="100" required />
         <details class="lf-finance-explanation">
-          <summary>Identificador técnico</summary>
-          <NcTextField v-model="draft.key" label="Chave para integrações"
-            :disabled="Boolean(draft.id)" placeholder="Gerado automaticamente pelo nome"
+          <summary>{{ t('librefinance', 'Technical identifier') }}</summary>
+          <NcTextField v-model="draft.key" :label="t('librefinance', 'Integration key')"
+            :disabled="Boolean(draft.id)" :placeholder="t('librefinance', 'Automatically generated from the name')"
             maxlength="40" />
         </details>
-        <LfSelect id="lf-field-studio-type" v-model="draft.type" label="Tipo de informação"
+        <LfSelect id="lf-field-studio-type" v-model="draft.type" :label="t('librefinance', 'Information type')"
           :disabled="Boolean(draft.id)" :options="types" />
         <NcTextArea v-if="draft.type==='select'" v-model="draft.options"
-          label="Opções (uma por linha)" :disabled="Boolean(draft.id)" />
-        <NcTextField v-model="draft.help" label="Ajuda para quem preencher (opcional)"
+          :label="t('librefinance', 'Options (one per line)')" :disabled="Boolean(draft.id)" />
+        <NcTextField v-model="draft.help" :label="t('librefinance', 'Help for the person filling in the field (optional)')"
           maxlength="255" />
         <div class="lf-form-grid">
           <LfSelect id="lf-field-studio-width" v-model="draft.columnSpan"
-            label="Largura no formulário"
-            :options="[{value:12,label:'Linha inteira'},{value:6,label:'Meia linha'}]" />
-          <NcTextField v-model="draft.sortOrder" label="Posição na tela" inputmode="numeric" />
+            :label="t('librefinance', 'Width on the form')"
+            :options="[{value:12,label:t('librefinance', 'Full row')},{value:6,label:t('librefinance', 'Half row')}]" />
+          <NcTextField v-model="draft.sortOrder" :label="t('librefinance', 'Position on the screen')" inputmode="numeric" />
         </div>
         <NcCheckboxRadioSwitch v-model="draft.visible" type="checkbox"
           @update:model-value="formVisibilityChanged">
-          Mostrar no formulário
+          {{ t('librefinance', 'Show on the form') }}
         </NcCheckboxRadioSwitch>
         <NcCheckboxRadioSwitch v-model="draft.apiVisible" type="checkbox"
           @update:model-value="!$event&&(draft.required=false)">
-          Disponível na API comum
+          {{ t('librefinance', 'Available in the common API') }}
         </NcCheckboxRadioSwitch>
         <NcNoteCard v-if="!draft.visible && !draft.apiVisible" type="info">
-          Este campo será um dado interno. Apenas gestores poderão consultá-lo e
-          preenchê-lo nos formulários de {{currentEntity?.label}}. Não é necessário
-          importar uma planilha para cadastrar seu valor.
+          {{ t('librefinance', 'This field will be internal data. Only managers can view and fill it in the {name} forms. No spreadsheet import is needed to register its value.', { name: currentEntity?.label }, { escape: false, sanitize: false }) }}
         </NcNoteCard>
         <NcNoteCard v-else-if="!draft.visible && draft.apiVisible" type="warning">
-          Oculto no formulário, mas disponível pela API para usuários autorizados
-          desta gestão. Desative a opção de API caso o dado deva ser interno.
+          {{ t('librefinance', 'Hidden on the form, but available through the API to authorized users of this workspace. Disable API availability if the data should be internal.') }}
         </NcNoteCard>
         <NcNoteCard v-if="!draft.apiVisible" type="info">
-          O valor não será entregue a visualizadores e operadores pela API comum.
-          Gestores continuam tendo acesso administrativo para consultar e editar o dado.
+          {{ t('librefinance', 'The value will not be returned to viewers or operators through the common API. Managers retain administrative access to view and edit the data.') }}
         </NcNoteCard>
         <NcCheckboxRadioSwitch v-model="draft.required" type="checkbox"
           :disabled="!draft.visible||!draft.apiVisible">
-          Obrigatório ao salvar
+          {{ t('librefinance', 'Required when saving') }}
         </NcCheckboxRadioSwitch>
         <NcCheckboxRadioSwitch v-if="draft.id" v-model="draft.active" type="checkbox">
-          Campo ativo (desativar preserva valores existentes)
+          {{ t('librefinance', 'Active field (deactivation preserves existing values)') }}
         </NcCheckboxRadioSwitch>
-        <p v-if="draft.id" class="lf-muted">Tipo e opções são preservados para que os
-          valores existentes não mudem de significado.</p>
+        <p v-if="draft.id" class="lf-muted">{{ t('librefinance', 'Type and options are preserved so existing values retain their meaning.') }}</p>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" :disabled="saving" @click="dialog=false">
-            Cancelar
+            {{ t('librefinance', 'Cancel') }}
           </NcButton>
           <NcButton variant="primary" type="submit" :disabled="saving">
-            {{saving?'Salvando…':'Salvar campo'}}
+            {{saving?t('librefinance', 'Saving…'):t('librefinance', 'Save field')}}
           </NcButton>
         </div>
       </form>

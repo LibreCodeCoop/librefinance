@@ -514,3 +514,62 @@ test('localized settings preserve role codes and payment method identity', async
   await expect(row.getByRole('button', { name: 'Ações da forma ' + methodName })).toBeVisible()
   await expect(row).toHaveCount(1)
 })
+
+test('field studio, legal identity and workspace labels localize without changing stored identifiers', async ({ page }) => {
+  await login(page)
+  const name = await makeSpace(page)
+  const id = new URL(page.url()).searchParams.get('spaceId')
+  const url = '/index.php/apps/librefinance/?spaceId=' + id
+  await page.goto(url + '&view=fields&forceLanguage=en')
+  await page.getByRole('button', { name: 'New field', exact: true }).click()
+  const editor = page.getByRole('dialog', { name: 'New custom field' })
+  await editor.getByRole('group', { name: 'Choose field target' })
+    .getByRole('button', { name: 'Customers and suppliers', exact: true }).click()
+  const label = 'Referência privada locale'
+  await editor.getByRole('textbox', { name: 'Field name' }).fill(label)
+  await editor.getByText('Technical identifier', { exact: true }).click()
+  await editor.getByRole('textbox', { name: 'Integration key' }).fill('locale_reference')
+  await editor.getByText('Show on the form', { exact: true }).click()
+  await expect(editor.getByRole('checkbox', { name: 'Available in the common API' })).not.toBeChecked()
+  const fieldCreated = page.waitForResponse(response =>
+    response.url().includes('/custom-fields/contact') && response.request().method() === 'POST')
+  await editor.getByRole('button', { name: 'Save field' }).click()
+  const fieldResponse = await fieldCreated
+  expect(fieldResponse.ok()).toBe(true)
+  expect(fieldResponse.request().postDataJSON()).toMatchObject({
+    key: 'locale_reference', label, type: 'text', visible: false, apiVisible: false, required: false,
+  })
+  const field = page.locator('.lf-custom-field-row').filter({ hasText: label })
+  await expect(field).toContainText('API restricted to managers')
+  await page.goto(url + '&view=fields&forceLanguage=pt_BR')
+  await expect(field).toContainText('API restrita a gestores')
+  await expect(field).toContainText('Interno')
+  await expect(field).toHaveCount(1)
+
+  await page.goto(url + '&view=companies&forceLanguage=en')
+  await page.getByRole('button', { name: 'Register company', exact: true }).click()
+  const company = page.getByRole('dialog', { name: 'Register company' })
+  const legalName = 'Organização Sintética Locale'
+  await company.getByRole('textbox', { name: 'Legal entity name' }).fill(legalName)
+  await company.locator('#lf-company-country').click()
+  await page.getByRole('option').filter({ hasText: /(?:Brazil|Brasil)\s*\(BR\)/ }).click()
+  const companyCreated = page.waitForResponse(response =>
+    response.url().includes('/companies') && response.request().method() === 'POST')
+  await company.getByRole('button', { name: 'Save company' }).click()
+  const companyResponse = await companyCreated
+  expect(companyResponse.ok()).toBe(true)
+  expect(companyResponse.request().postDataJSON()).toMatchObject({ legalName, country: 'BR' })
+  const row = page.getByRole('row').filter({ hasText: legalName })
+  await expect(row).toContainText('BR')
+  await page.goto(url + '&view=companies&forceLanguage=pt_BR')
+  await expect(row).toContainText('BR')
+  await expect(row).toHaveCount(1)
+
+  await page.goto(url + '&view=spaces&forceLanguage=en')
+  await expect(page.getByRole('heading', { name: 'Financial workspaces', exact: true })).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Workspaces I own' })).toContainText(name)
+  await page.goto(url + '&view=spaces&forceLanguage=pt_BR')
+  await expect(page.getByRole('heading', { name: 'Gestões financeiras', exact: true })).toBeVisible()
+  await expect(page.locator('.lf-context-identity')).toContainText(name)
+  expect(new URL(page.url()).searchParams.get('spaceId')).toBe(id)
+})
