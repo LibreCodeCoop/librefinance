@@ -22,11 +22,11 @@ export function workQueueItems(drafts = [], bankMovements = []) {
       type: draft ? 'draft' : 'unlinked',
       date: row.issue_on,
       label: draft
-        ? row.kind === 'bill' ? 'Documento de compra' : 'Documento de venda'
-        : 'Documento histórico sem vínculo',
+        ? row.kind === 'bill' ? 'purchase_document' : 'sales_document'
+        : 'historic_unlinked',
       description: row.number,
       amountMinor: row.kind === 'bill' ? -amount : amount,
-      status: draft ? 'A confirmar' : 'Revisar vínculo',
+      status: draft ? 'confirm' : 'link_review',
     })
   }
   for (const row of bankMovements) {
@@ -38,10 +38,10 @@ export function workQueueItems(drafts = [], bankMovements = []) {
       key: 'bank:' + id, id, type: 'bank',
       transaction: row,
       date: row.booking_date,
-      label: amount >= 0 ? 'Entrada no extrato' : 'Saída no extrato',
+      label: amount >= 0 ? 'bank_inflow' : 'bank_outflow',
       description: row.description,
       amountMinor: amount,
-      status: 'A conciliar',
+      status: 'reconcile',
     })
   }
   return items

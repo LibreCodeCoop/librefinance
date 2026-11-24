@@ -272,3 +272,42 @@ test('financial assistant localizes consent while previews remain read-only', as
   await expect(page.getByRole('button', { name: 'Solicitar análise', exact: true })).toBeDisabled()
   expect(submissions).toBe(0)
 })
+
+
+test('dashboard localization preserves persisted widget layout and financial amounts', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'personal')
+  const id = new URL(page.url()).searchParams.get('spaceId')
+  const url = '/index.php/apps/librefinance/?spaceId=' + id + '&view=dashboard&forceLanguage='
+  await page.goto(url + 'en')
+  await expect(page.getByRole('heading', { name: 'Overview', exact: true })).toBeVisible()
+  await expect(page.getByText('Your household workspace is ready', { exact: true })).toBeVisible()
+  const amounts = page.locator('.lf-kpi-amount')
+  await expect(amounts).toHaveCount(4)
+  await expect(amounts.first()).not.toHaveText('—')
+  const initialAmounts = await amounts.allTextContents()
+  await page.getByRole('button', { name: 'Customize dashboard', exact: true }).click()
+  const slots = page.locator('.lf-widget-slot')
+  await expect(slots.first()).toContainText('Financial summary')
+  const move = page.getByRole('button', { name: 'Move Financial summary down', exact: true })
+  await move.focus()
+  await page.keyboard.press('Enter')
+  await expect(slots.first()).toContainText('Cash movement')
+  await slots.first().getByRole('button', { name: 'Double width', exact: true }).click()
+  const saved = page.waitForResponse(response =>
+    response.url().includes('/api/spaces/' + id + '/dashboard-layout')
+    && response.request().method() === 'PUT' && response.ok())
+  await page.getByRole('button', { name: 'Finish editing', exact: true }).click()
+  const payload = (await saved).request().postDataJSON()
+  expect(payload.widgets.slice(0, 2)).toEqual([
+    { id: 'cashflow', width: 2, visible: true },
+    { id: 'summary', width: 2, visible: true },
+  ])
+  await expect(slots.first()).toContainText('Cash movement')
+  await page.goto(url + 'pt_BR')
+  await expect(page.getByRole('heading', { name: 'Visão geral', exact: true })).toBeVisible()
+  await expect(slots.first()).toContainText('Movimento do caixa')
+  await expect(slots.first()).toHaveClass(/lf-widget-slot--wide/)
+  await expect(slots.nth(1)).toContainText('Saldo de caixa')
+  await expect(amounts).toHaveText(initialAmounts)
+})

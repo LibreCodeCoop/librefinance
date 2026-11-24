@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, onBeforeUnmount, provide, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcEmptyContent from '@nextcloud/vue/components/NcEmptyContent'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
@@ -16,6 +17,7 @@ import InvoicesView from './InvoicesView.vue'
 import BankingView from './BankingView.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { workQueueItems } from '../financeWorklist.js'
+import { formatLedgerDate } from '../date.js'
 
 const props = defineProps({
   // Old URLs remain valid, but these are contextual detail views, not tabs.
@@ -54,14 +56,14 @@ const isPurchase = computed(() => props.section === 'purchases')
 const isBanking = computed(() => props.section === 'banking')
 const isDocument = computed(() => isSales.value || isPurchase.value)
 const pageTitle = computed(() => ({
-  finance:'A pagar e receber', sales:'Vendas', purchases:'Compras',
-  banking:'Extrato da conta',
-})[props.section] || 'Financeiro')
+  finance:t('librefinance', 'Payables and receivables'), sales:t('librefinance', 'Sales'), purchases:t('librefinance', 'Purchases'),
+  banking:t('librefinance', 'Account statement'),
+})[props.section] || t('librefinance', 'Finance'))
 const pageDescription = computed(() => ({
-  finance:'Uma lista de contas e cobranças, com entradas, saídas, vencimentos e situação. Use o filtro para ver apenas a pagar ou a receber.',
-  sales:'Registre suas vendas com itens e valores. Ao confirmar, a cobrança aparece em A pagar e receber automaticamente.',
-  purchases:'Registre suas compras com itens e valores. Ao confirmar, a conta aparece em A pagar e receber automaticamente.',
-  banking:'Confira os movimentos informados pelo banco. Registros que já existem não precisam ser cadastrados novamente.',
+  finance:t('librefinance', 'A list of bills and collections, with inflows, outflows, due dates and status. Filter to show only payables or receivables.'),
+  sales:t('librefinance', 'Record sales with items and amounts. On confirmation, the receivable appears automatically in Payables and receivables.'),
+  purchases:t('librefinance', 'Record purchases with items and amounts. On confirmation, the payable appears automatically in Payables and receivables.'),
+  banking:t('librefinance', 'Review the movements reported by the bank. Existing entries do not need to be registered again.'),
 })[props.section] || '')
 
 const drafts = ref([])
@@ -72,6 +74,18 @@ const queueLoading = ref(false)
 const queueError = ref('')
 let generation = 0
 const pending = computed(() => workQueueItems(drafts.value, movements.value))
+const queueLabels = {
+  purchase_document: t('librefinance', 'Purchase document'),
+  sales_document: t('librefinance', 'Sales document'),
+  historic_unlinked: t('librefinance', 'Unlinked historical document'),
+  bank_inflow: t('librefinance', 'Statement inflow'),
+  bank_outflow: t('librefinance', 'Statement outflow'),
+}
+const queueStatuses = {
+  confirm: t('librefinance', 'To confirm'),
+  link_review: t('librefinance', 'Review link'),
+  reconcile: t('librefinance', 'To reconcile'),
+}
 async function loadQueue() {
   const token = ++generation
   drafts.value = []
@@ -101,13 +115,13 @@ async function loadQueue() {
     drafts.value = docs.value.invoices
     draftNext.value = docs.value.nextAfterId
   } else if (docs.status === 'rejected') {
-    queueError.value = 'Não foi possível consultar documentos em elaboração.'
+    queueError.value = t('librefinance', 'Draft documents could not be retrieved.')
   }
   if (bank.status === 'fulfilled' && bank.value) {
     movements.value = bank.value.transactions
     movementNext.value = bank.value.nextAfterId
   } else if (bank.status === 'rejected') {
-    queueError.value += ' Não foi possível consultar movimentos pendentes.'
+    queueError.value = [queueError.value, t('librefinance', 'Pending movements could not be retrieved.')].filter(Boolean).join(' ')
   }
   queueLoading.value = false
 }
@@ -202,35 +216,35 @@ onBeforeUnmount(() => { ++generation })
 
 <template>
   <div class="lf-view lf-unified-finance">
-    <LfPageHeader :title="pageTitle" eyebrow="FINANCEIRO" :description="pageDescription">
+    <LfPageHeader :title="pageTitle" :eyebrow="t('librefinance', 'FINANCE')" :description="pageDescription">
       <template #actions>
         <NcButton v-if="w.writable.value && isOverview" variant="tertiary"
           @click="startPosted">
-          Dinheiro já entrou ou saiu
+          {{ t('librefinance', 'Money already came in or went out') }}
         </NcButton>
         <NcButton v-if="w.writable.value && isOverview && hasTitles" variant="primary"
           @click="startSimple('all')">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-          Nova conta ou cobrança
+          {{ t('librefinance', 'New bill or collection') }}
         </NcButton>
         <NcButton v-if="w.writable.value && isSales && hasDocuments" variant="primary"
           @click="startInvoice('invoice')">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-          Nova venda
+          {{ t('librefinance', 'New sale') }}
         </NcButton>
         <NcButton v-if="w.writable.value && isPurchase && hasDocuments" variant="primary"
           @click="startInvoice('bill')">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-          Nova compra
+          {{ t('librefinance', 'New purchase') }}
         </NcButton>
         <NcButton v-if="isBanking" variant="tertiary" @click="navigate('finance')">
-          Voltar às movimentações
+          {{ t('librefinance', 'Back to transactions') }}
         </NcButton>
         <NcButton v-if="w.writable.value && isBanking && hasBank
           && w.accounts.value.some(account => account.is_bank && account.active)"
           variant="primary" @click="startImport">
           <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
-          Importar extrato
+          {{ t('librefinance', 'Import statement') }}
         </NcButton>
       </template>
     </LfPageHeader>
@@ -238,35 +252,40 @@ onBeforeUnmount(() => { ++generation })
     <template v-if="isOverview">
       <ObligationsView v-if="hasTitles" :kind="direction" :embedded="true" />
       <section v-if="(hasDocuments || hasBank) && (pending.length || queueError)"
-        class="lf-finance-work-queue" aria-label="Pendências para revisar">
+        class="lf-finance-work-queue" :aria-label="t('librefinance', 'Pending items to review')">
         <div class="lf-section-heading">
           <div>
-            <h2>Pendências para revisar</h2>
-            <p class="lf-muted">Rascunhos ainda não são cobranças; movimentos importados ainda não são pagamentos.</p>
+            <h2>{{ t('librefinance', 'Pending items to review') }}</h2>
+            <p class="lf-muted">{{ t('librefinance', 'Drafts are not yet receivables; imported movements are not yet payments.') }}</p>
           </div>
-          <NcButton variant="tertiary" aria-label="Atualizar tarefas pendentes"
+          <NcButton variant="tertiary" :aria-label="t('librefinance', 'Refresh pending tasks')"
             :disabled="queueLoading" @click="loadQueue">
             <template #icon><NcIconSvgWrapper :path="mdiRefresh" :size="20" /></template>
           </NcButton>
         </div>
         <NcNoteCard v-if="queueError" type="warning" role="alert">{{ queueError }}</NcNoteCard>
         <div v-if="queueLoading && !pending.length" role="status" class="lf-loading">
-          <NcLoadingIcon :size="28" /> Buscando pendências…
+          <NcLoadingIcon :size="28" /> {{ t('librefinance', 'Loading pending items…') }}
         </div>
         <div v-else-if="pending.length" class="lf-table-scroll">
           <table class="lf-data-table">
-            <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th class="lf-numeric">Valor</th><th>Situação</th><th>Ação</th></tr></thead>
+            <thead><tr><th>{{ t('librefinance', 'Date') }}</th>
+              <th>{{ t('librefinance', 'Type') }}</th>
+              <th>{{ t('librefinance', 'Description') }}</th>
+              <th class="lf-numeric">{{ t('librefinance', 'Amount') }}</th>
+              <th>{{ t('librefinance', 'Status') }}</th>
+              <th>{{ t('librefinance', 'Action') }}</th></tr></thead>
             <tbody>
               <tr v-for="item in pending" :key="item.key">
-                <td>{{item.date}}</td>
-                <td>{{item.label}}</td>
+                <td><time :datetime="item.date">{{ formatLedgerDate(item.date) }}</time></td>
+                <td>{{ queueLabels[item.label] }}</td>
                 <td><strong>{{item.description}}</strong></td>
                 <td class="lf-numeric">{{ w.money(item.amountMinor) }}</td>
-                <td><span class="lf-state lf-state-warning">{{item.status}}</span></td>
+                <td><span class="lf-state lf-state-warning">{{ queueStatuses[item.status] }}</span></td>
                 <td>
                   <NcButton variant="tertiary" size="small" @click="review(item)">
-                    {{ item.type === 'bank' ? 'Conciliar'
-                      : item.type === 'unlinked' ? 'Revisar documento' : 'Continuar documento' }}
+                    {{ item.type === 'bank' ? t('librefinance', 'Reconcile')
+                      : item.type === 'unlinked' ? t('librefinance', 'Review document') : t('librefinance', 'Continue document') }}
                   </NcButton>
                 </td>
               </tr>
@@ -274,18 +293,18 @@ onBeforeUnmount(() => { ++generation })
           </table>
         </div>
         <p v-else-if="!queueError && !queueLoading" class="lf-muted">
-          Nenhum documento em elaboração nem movimento bancário pendente de conciliação.
+          {{ t('librefinance', 'No draft documents or bank movements awaiting reconciliation.') }}
         </p>
         <div v-if="draftNext || movementNext" class="lf-table-footer">
-          <NcButton v-if="draftNext" :disabled="queueLoading" @click="moreQueue('draft')">Carregar mais rascunhos</NcButton>
-          <NcButton v-if="movementNext" :disabled="queueLoading" @click="moreQueue('bank')">Carregar mais movimentos bancários</NcButton>
+          <NcButton v-if="draftNext" :disabled="queueLoading" @click="moreQueue('draft')">{{ t('librefinance', 'Load more drafts') }}</NcButton>
+          <NcButton v-if="movementNext" :disabled="queueLoading" @click="moreQueue('bank')">{{ t('librefinance', 'Load more bank movements') }}</NcButton>
         </div>
       </section>
     </template>
     <InvoicesView v-else-if="isDocument && hasDocuments"
       :key="'document-' + direction" :embedded="true" />
     <BankingView v-else-if="isBanking && hasBank" :embedded="true" />
-    <NcEmptyContent v-else name="Recurso indisponível nesta gestão"
-      description="Esta função não está habilitada para a gestão selecionada." />
+    <NcEmptyContent v-else :name="t('librefinance', 'Feature unavailable in this workspace')"
+      :description="t('librefinance', 'This feature is not enabled for the selected workspace.')" />
   </div>
 </template>
