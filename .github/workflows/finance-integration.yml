@@ -42,6 +42,16 @@ jobs:
       - run: npm run build
       - name: Assert production assets are synchronized
         run: git diff --exit-code -- js/main.js css/main.css js/main.js.license openapi.json
+      - name: Check optional Nextcloud Files and WebDAV compatibility
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --include=dev
+      - run: npm test
+      - run: npm run build
+      - name: Assert production assets are synchronized on Node 24
+        run: git diff --exit-code -- js/main.js css/main.css js/admin.js css/admin.css js/main.js.license js/admin.js.license openapi.json
 
   integrated:
     name: Installed Nextcloud + NFS-e draft app / ${{ matrix.database }}
