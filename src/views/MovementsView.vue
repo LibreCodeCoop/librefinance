@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -24,8 +25,10 @@ import LfSelect from '../components/LfSelect.vue'
 import CashPaymentDialog from '../components/CashPaymentDialog.vue'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import { financeApi, financeError } from '../services/api.js'
-import { toMinorUnits } from '../money.js'
+import { ledgerLocale, toMinorUnits } from '../money.js'
+import { formatLedgerDate } from '../date.js'
 
+const amountPlaceholder = new Intl.NumberFormat(ledgerLocale(), { minimumFractionDigits: 2 }).format(0)
 const w = inject('lfWorkspace')
 const navigate = inject('lfNavigate', () => {})
 const focusedInvoice = inject('lfFocusedInvoice', ref(null))
@@ -52,12 +55,12 @@ const showFilters = computed(() => everHadRows.value || rows.value.length > 0
   || !!search.value || directionFilter.value !== 'all'
   || statusFilter.value !== 'all' || !!accountFilter.value)
 const filterOptions = [
-  { value:'all', label:'Todas' }, {value:'in',label:'Entradas'},
-  {value:'out',label:'Saídas'},
+  { value:'all', label:t('librefinance', 'All') }, {value:'in',label:t('librefinance', 'Inflows')},
+  {value:'out',label:t('librefinance', 'Outflows')},
 ]
 const stateOptions = [
-  {value:'all',label:'Todas'}, {value:'posted',label:'Realizadas'},
-  {value:'planned',label:'Previstas'}, {value:'pending',label:'A conferir'},
+  {value:'all',label:t('librefinance', 'All')}, {value:'posted',label:t('librefinance', 'Posted movements')},
+  {value:'planned',label:t('librefinance', 'Planned movements')}, {value:'pending',label:t('librefinance', 'Pending review')},
 ]
 function enabled(moduleId) {
   return w.modulesLoadedFor.value === Number(w.activeId.value)
@@ -152,7 +155,7 @@ const journalCandidates = computed(() => {
     Number(post.accountId)===Number(evidence.accountId)
     && Number(post.amountMinor)===Number(evidence.amountMinor)))
     .map(item => ({value:Number(item.id),
-      label:(item.effective_on || '')+' · '+(item.memo || 'Movimentação')
+      label:formatLedgerDate(item.effective_on)+' · '+(item.memo || t('librefinance', 'Movement'))
         +' (#'+item.id+')'}))
 })
 async function loadAllowedBankFormats() {
@@ -204,18 +207,18 @@ function chooseImportFile(files) {
   importError.value=''
   if (!Array.isArray(files) || files.length !== 1) {
     importFile.value=null
-    importError.value='Selecione apenas um arquivo.'
+    importError.value=t('librefinance', 'Select only one file.')
     return
   }
   const file=files[0]
   if (!file.name.toLowerCase().endsWith('.'+importFormat.value)) {
     importFile.value=null
-    importError.value='Selecione um arquivo '+importFormat.value.toUpperCase()+'.'
+    importError.value=t('librefinance', 'Select a {format} file.', { format: importFormat.value.toUpperCase() }, { escape: false, sanitize: false })
     return
   }
   if(file.size>262144 || file.size===0) {
     importFile.value=null
-    importError.value='O arquivo deve ter até 256 KiB e não pode estar vazio.'
+    importError.value=t('librefinance', 'The file must not be empty or exceed 256 KiB.')
     return
   }
   importFile.value=file
@@ -230,7 +233,7 @@ async function importStatement() {
   const bankId=Number(importAccount.value)
   importing.value=true
   try {
-    if(importFile.value.size>262144)throw new Error('Arquivo acima do limite de 256 KiB.')
+    if(importFile.value.size>262144)throw new Error(t('librefinance', 'File exceeds the 256 KiB limit.'))
     // File.text() assumes UTF-8; bank OFX frequently declares Windows-1252.
     // Decode locally by the documented header, using fatal mode for UTF-8
     // rather than silently replacing accented descriptions.
@@ -243,9 +246,9 @@ async function importStatement() {
       if(numeric==='1252' || ['windows-1252','cp1252'].includes(xml))charset='windows-1252'
       else if(numeric==='8859' || ['iso-8859-1','latin1'].includes(xml))charset='iso-8859-1'
       else if(numeric && !['65001'].includes(numeric))
-        throw new Error('Codificação OFX desconhecida: '+numeric)
+        throw new Error(t('librefinance', 'Unknown OFX encoding: {encoding}', { encoding: numeric }, { escape: false, sanitize: false }))
       else if(xml && !['utf-8','utf8'].includes(xml))
-        throw new Error('Codificação OFX desconhecida: '+xml)
+        throw new Error(t('librefinance', 'Unknown OFX encoding: {encoding}', { encoding: xml }, { escape: false, sanitize: false }))
     }
     const csv=new TextDecoder(charset,{fatal:true}).decode(bytes)
     if(token!==bankActionVersion || spaceId!==Number(w.activeId.value))return
@@ -256,8 +259,7 @@ async function importStatement() {
     if(token!==bankActionVersion || spaceId!==Number(w.activeId.value))return
     importOpen.value=false
     importFile.value=null
-    success.value = result.imported+' movimentações importadas; '
-      +result.skipped+' já existentes. Confira as pendências na lista.'
+    success.value = t('librefinance', 'Imported movements: {imported}; already present: {skipped}. Review pending items in the list.', { imported: result.imported, skipped: result.skipped }, { escape: false, sanitize: false })
     if(accountFilter.value!==bankId)setAccount(bankId)
     else await load()
   } catch (cause) {
@@ -286,7 +288,7 @@ async function matchStatement() {
   const selected=Number(journalId.value)
   if(!Number.isSafeInteger(selected)
     || !journalCandidates.value.some(candidate=>candidate.value===selected)){
-    reconciliationError.value='Escolha a movimentação correspondente para conferir.'
+    reconciliationError.value=t('librefinance', 'Select the matching movement to review.')
     return
   }
   const token=++bankActionVersion
@@ -300,7 +302,7 @@ async function matchStatement() {
     if(token!==bankActionVersion || spaceId!==Number(w.activeId.value))return
     reconcileRow.value=null
     journalId.value=0
-    success.value='Movimentação conferida. Nenhum novo pagamento foi registrado.'
+    success.value=t('librefinance', 'Movement reviewed. No new payment was recorded.')
     await w.refreshCurrent({preserveView:true})
     await load()
   } catch (cause) {
@@ -342,7 +344,7 @@ async function pay(row) {
   }
 }
 async function onPaid() {
-  success.value = 'Movimentação registrada.'
+  success.value = t('librefinance', 'Movement recorded.')
   await w.refreshCurrent({ preserveView:true })
   load()
 }
@@ -386,15 +388,15 @@ async function save() {
     amountMinor = toMinorUnits(form.value.amount)
   } catch (cause) { formError.value = cause.message; return }
   if (!form.value.description.trim() || !amountMinor || amountMinor <= 0) {
-    formError.value = 'Informe a descrição e um valor maior que zero.'
+    formError.value = t('librefinance', 'Enter a description and an amount greater than zero.')
     return
   }
   if (timing.value === 'posted' && (!form.value.accountId || !form.value.categoryId)) {
-    formError.value = 'Selecione onde o dinheiro entrou ou saiu e a categoria.'
+    formError.value = t('librefinance', 'Select where the money was received or paid and the category.')
     return
   }
   if (timing.value === 'planned' && !canPlan.value) {
-    formError.value = 'O agendamento não está disponível nesta gestão.'
+    formError.value = t('librefinance', 'Scheduling is not available in this workspace.')
     return
   }
   formSaving.value = true
@@ -416,7 +418,7 @@ async function save() {
     }
     if (spaceId !== Number(w.activeId.value)) return
     formOpen.value = false
-    success.value = 'Movimentação registrada.'
+    success.value = t('librefinance', 'Movement recorded.')
     await w.refreshCurrent({ preserveView:true })
     load()
   } catch (cause) {
@@ -435,7 +437,7 @@ function startTransfer() {
   const fromId = Number(accountFilter.value) || Number(banks.value[0].id)
   const other = banks.value.find(account => Number(account.id) !== fromId)
   transferForm.value = { fromId, toId:Number(other?.id || 0), amount:'',
-    date:today(), note:'Transferência entre minhas contas' }
+    date:today(), note:t('librefinance', 'Transfer between my accounts') }
   transferError.value = ''
   transferKey.value = 'transfer:' + crypto.randomUUID()
   transferOpen.value = true
@@ -452,19 +454,19 @@ async function saveTransfer() {
     || Number(fromId) === Number(toId)
     || !banks.value.some(a => Number(a.id) === Number(fromId))
     || !banks.value.some(a => Number(a.id) === Number(toId))) {
-    transferError.value = 'Escolha duas contas diferentes e informe o valor.'
+    transferError.value = t('librefinance', 'Choose two different accounts and enter the amount.')
     return
   }
   transferSaving.value = true
   try {
     await financeApi('librefinance',current,'/journals','POST',{
       debitId:Number(toId),creditId:Number(fromId),
-      amountMinor,date,memo:note.trim()||'Transferência entre minhas contas',
+      amountMinor,date,memo:note.trim()||t('librefinance', 'Transfer between my accounts'),
       externalKey:transferKey.value,
     })
     if (current !== Number(w.activeId.value)) return
     transferOpen.value = false
-    success.value = 'Transferência registrada entre suas contas. Nenhuma operação foi enviada ao banco.'
+    success.value = t('librefinance', 'Transfer recorded between your accounts. No operation was sent to the bank.')
     await w.refreshCurrent({preserveView:true})
     load()
   } catch (cause) {
@@ -505,46 +507,46 @@ onBeforeUnmount(() => {
   if (searchTimer.value) clearTimeout(searchTimer.value)
 })
 const stateLabel = row => ({
-  planned:'Prevista',posted:row.reversal?'Estorno':'Realizada',
-  pending:'A conferir',
+  planned:t('librefinance', 'Planned movement'),posted:row.reversal?t('librefinance', 'Reversal'):t('librefinance', 'Posted movement'),
+  pending:t('librefinance', 'Pending review'),
 })[row.state] || row.state
-const directionLabel = row => row.kind==='transfer'?'Transferência':
-  row.kind==='in'?'Entrada':'Saída'
+const directionLabel = row => row.kind==='transfer'?t('librefinance', 'Transfer'):
+  row.kind==='in'?t('librefinance', 'Inflow'):t('librefinance', 'Outflow')
 const currency = row => w.money(row.amountMinor)
 </script>
 
 <template>
   <div class="lf-view lf-activity-view">
-    <LfPageHeader title="Movimentações" eyebrow="FINANCEIRO"
-      description="Tudo que vai entrar ou sair e o que já aconteceu, em uma lista. Os lançamentos do banco que precisam de conferência ficam identificados.">
+    <LfPageHeader :title="t('librefinance', 'Financial movements')" :eyebrow="t('librefinance', 'FINANCE')"
+      :description="t('librefinance', 'All expected and completed inflows and outflows in one list. Bank entries requiring review are identified.')">
       <template #actions>
         <NcActions v-if="w.writable.value && canReviewBank && banks.length && allowedBankFormats.length && !bankFormatsLoading"
-          id="lf-import-menu" menu-name="Importar extrato"
-          aria-label="Importar extrato bancário" :default-icon="mdiFileUploadOutline"
+          id="lf-import-menu" :menu-name="t('librefinance', 'Import statement')"
+          :aria-label="t('librefinance', 'Import bank statement')" :default-icon="mdiFileUploadOutline"
           variant="secondary" force-menu>
           <NcActionButton v-if="allowedBankFormats.includes('csv')" close-after-click @click="openImport('csv')">
             <template #icon><NcIconSvgWrapper :path="mdiFileDelimitedOutline" :size="20" /></template>
-            Arquivo CSV
+            {{ t('librefinance', 'CSV file') }}
           </NcActionButton>
           <NcActionButton v-if="allowedBankFormats.includes('ofx')" close-after-click @click="openImport('ofx')">
             <template #icon><NcIconSvgWrapper :path="mdiFileCodeOutline" :size="20" /></template>
-            Arquivo OFX
+            {{ t('librefinance', 'OFX file') }}
           </NcActionButton>
         </NcActions>
         <NcPopover v-if="w.writable.value && banks.length>1"
           v-model:shown="moreActionsOpen" popup-role="dialog">
           <template #trigger>
-            <NcButton variant="tertiary">Mais ações</NcButton>
+            <NcButton variant="tertiary">{{ t('librefinance', 'More actions') }}</NcButton>
           </template>
-          <div class="lf-agenda-filter-content" role="group" aria-label="Outras ações financeiras">
+          <div class="lf-agenda-filter-content" role="group" :aria-label="t('librefinance', 'Other financial actions')">
             <NcButton variant="tertiary" @click="moreActionsOpen=false;startTransfer()">
-              Transferir entre contas
+              {{ t('librefinance', 'Transfer between accounts') }}
             </NcButton>
           </div>
         </NcPopover>
         <NcButton v-if="w.writable.value" variant="primary" @click="start">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-          Registrar
+          {{ t('librefinance', 'Record') }}
         </NcButton>
       </template>
     </LfPageHeader>
@@ -555,13 +557,13 @@ const currency = row => w.money(row.amountMinor)
     <div v-if="!banks.length" class="lf-activity-first-account">
       <NcButton variant="secondary" @click="navigate('bankAccounts')">
         <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="18" /></template>
-        Adicionar conta ou caixa
+        {{ t('librefinance', 'Add bank or cash account') }}
       </NcButton>
     </div>
 
     <div v-if="showFilters" class="lf-section-heading lf-activity-toolbar">
       <NcTextField v-model="searchDraft" type="search" class="lf-native-finance-search"
-        label="Pesquisar movimentações" placeholder="Pesquisar pela descrição"
+        :label="t('librefinance', 'Search movements')" :placeholder="t('librefinance', 'Search by description')"
         maxlength="120" @update:model-value="debounceSearch" @keyup.enter="setSearch" />
       <div class="lf-native-agenda-filters">
         <NcPopover v-if="banks.length" v-model:shown="accountFilterOpen" popup-role="dialog">
@@ -569,17 +571,17 @@ const currency = row => w.money(row.amountMinor)
             <NcButton variant="tertiary" id="lf-activity-bank"
               :aria-pressed="accountFilter!==0">
               <template #icon><NcIconSvgWrapper :path="mdiBankOutline" :size="18" /></template>
-              {{selectedBank?.name || 'Todas as contas'}}
+              {{selectedBank?.name || t('librefinance', 'All accounts')}}
             </NcButton>
           </template>
-          <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar por conta">
+          <div class="lf-agenda-filter-content" role="group" :aria-label="t('librefinance', 'Filter by account')">
             <NcButton variant="tertiary" :aria-pressed="accountFilter===0"
-              @click="setAccount(0)">Todas as contas</NcButton>
+              @click="setAccount(0)">{{ t('librefinance', 'All accounts') }}</NcButton>
             <NcButton v-for="bank in banks" :key="bank.id" variant="tertiary"
               :aria-pressed="Number(accountFilter)===Number(bank.id)"
               @click="setAccount(bank.id)">{{bank.name}}</NcButton>
             <NcButton variant="tertiary" @click="accountFilterOpen=false;navigate('bankAccounts')">
-              Gerenciar contas
+              {{ t('librefinance', 'Manage accounts') }}
             </NcButton>
           </div>
         </NcPopover>
@@ -591,7 +593,7 @@ const currency = row => w.money(row.amountMinor)
               {{filterOptions.find(o=>o.value===directionFilter)?.label}}
             </NcButton>
           </template>
-          <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar entradas e saídas">
+          <div class="lf-agenda-filter-content" role="group" :aria-label="t('librefinance', 'Filter inflows and outflows')">
             <NcButton v-for="option in filterOptions" :key="option.value" variant="tertiary"
               :aria-pressed="directionFilter===option.value"
               @click="directionFilter=option.value">{{option.label}}</NcButton>
@@ -605,45 +607,50 @@ const currency = row => w.money(row.amountMinor)
               {{stateOptions.find(o=>o.value===statusFilter)?.label}}
             </NcButton>
           </template>
-          <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar situação financeira">
+          <div class="lf-agenda-filter-content" role="group" :aria-label="t('librefinance', 'Filter financial status')">
             <NcButton v-for="option in stateOptions" :key="option.value" variant="tertiary"
               :aria-pressed="statusFilter===option.value"
               @click="statusFilter=option.value">{{option.label}}</NcButton>
           </div>
         </NcPopover>
         <NcButton v-if="accountFilter||statusFilter!=='all'||directionFilter!=='all'||search"
-          variant="tertiary" @click="clearFilters">Limpar filtros</NcButton>
+          variant="tertiary" @click="clearFilters">{{ t('librefinance', 'Clear filters') }}</NcButton>
       </div>
     </div>
     <p v-if="showFilters && selectedBank" class="lf-muted lf-activity-balance">
-      Saldo registrado em {{selectedBank.name}}:
+      {{ t('librefinance', 'Recorded balance in {account}:', { account: selectedBank.name }, { escape: false, sanitize: false }) }}
       <strong>{{w.money(selectedBank.balance_minor)}}</strong>
     </p>
 
     <div v-if="loading && !rows.length" role="status" class="lf-loading">
-      <NcLoadingIcon :size="32" /> Carregando movimentações…
+      <NcLoadingIcon :size="32" /> {{ t('librefinance', 'Loading movements…') }}
     </div>
     <NcEmptyContent v-else-if="!error && !rows.length"
-      :name="showFilters ? 'Nenhuma movimentação com estes filtros' : 'Nenhuma movimentação registrada'"
+      :name="showFilters ? t('librefinance', 'No movements match these filters') : t('librefinance', 'No movements recorded')"
       :description="showFilters
-        ? 'Altere os filtros para consultar outras movimentações.'
-        : 'Registre o primeiro valor que entrou, saiu ou está previsto.'"/>
+        ? t('librefinance', 'Change the filters to view other movements.')
+        : t('librefinance', 'Record your first actual or planned movement.')"/>
     <div v-else-if="rows.length" class="lf-table-scroll">
       <table class="lf-data-table lf-activity-table">
         <thead><tr>
-          <th>Data</th><th>Descrição</th><th>Tipo</th><th>Conta</th>
-          <th>Situação</th><th class="lf-numeric">Valor</th><th>Ações</th>
+          <th>{{ t('librefinance', 'Date') }}</th>
+          <th>{{ t('librefinance', 'Description') }}</th>
+          <th>{{ t('librefinance', 'Type') }}</th>
+          <th>{{ t('librefinance', 'Account') }}</th>
+          <th>{{ t('librefinance', 'Status') }}</th>
+          <th class="lf-numeric">{{ t('librefinance', 'Amount') }}</th>
+          <th>{{ t('librefinance', 'Actions') }}</th>
         </tr></thead>
         <tbody>
           <tr v-for="row in rows" :key="row.source+':'+row.sourceId">
-            <td>{{row.date}}</td>
+            <td><time :datetime="row.date">{{ formatLedgerDate(row.date) }}</time></td>
             <td><strong>{{row.description}}</strong>
               <span v-if="row.source==='statement'" class="lf-muted lf-activity-sub">
-                Extrato ainda não conferido; não altera o saldo.
+                {{ t('librefinance', 'Statement not yet reviewed; does not change the balance.') }}
               </span>
-              <span v-if="row.invoiceId" class="lf-muted lf-activity-sub">Vinculada a fatura</span>
+              <span v-if="row.invoiceId" class="lf-muted lf-activity-sub">{{ t('librefinance', 'Linked to invoice') }}</span>
               <span v-if="row.kind==='transfer'" class="lf-muted lf-activity-sub">
-                Entre contas próprias · não é receita nem despesa
+                {{ t('librefinance', 'Between own accounts · neither income nor expense') }}
               </span>
             </td>
             <td>{{directionLabel(row)}}</td>
@@ -657,194 +664,193 @@ const currency = row => w.money(row.amountMinor)
             <td class="lf-row-actions">
               <NcButton v-if="row.state==='planned' && w.writable.value"
                 variant="tertiary" size="small" @click="pay(row)">
-                {{row.kind==='in'?'Receber':'Pagar'}}
+                {{row.kind==='in'?t('librefinance', 'Receive'):t('librefinance', 'Pay')}}
               </NcButton>
               <NcButton v-if="row.invoiceId && canInvoice" variant="tertiary"
-                size="small" @click="viewInvoice(row)">Fatura</NcButton>
+                size="small" @click="viewInvoice(row)">{{ t('librefinance', 'Invoice') }}</NcButton>
               <NcButton v-if="row.state==='pending' && canReviewBank && w.writable.value"
                 variant="tertiary" size="small"
-                @click="reviewStatement(row)">Conferir</NcButton>
-              <span v-if="row.state==='posted'" class="lf-muted">Registrada</span>
+                @click="reviewStatement(row)">{{ t('librefinance', 'Review') }}</NcButton>
+              <span v-if="row.state==='posted'" class="lf-muted">{{ t('librefinance', 'Recorded movement') }}</span>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
     <div v-if="nextCursor" class="lf-table-footer">
-      <NcButton variant="tertiary" :disabled="loading" @click="more">Carregar mais movimentações</NcButton>
+      <NcButton variant="tertiary" :disabled="loading" @click="more">{{ t('librefinance', 'Load more movements') }}</NcButton>
     </div>
     <NcButton v-if="rows.length" variant="tertiary" size="small" @click="load">
       <template #icon><NcIconSvgWrapper :path="mdiRefresh" :size="18" /></template>
-      Atualizar
+      {{ t('librefinance', 'Refresh') }}
     </NcButton>
 
     <NcDialog :open="importOpen" size="normal"
-      content-classes="lf-finance-dialog-content" :name="'Importar extrato '+importFormat.toUpperCase()"
+      content-classes="lf-finance-dialog-content" :name="t('librefinance', 'Import {format} statement', { format: importFormat.toUpperCase() }, { escape: false, sanitize: false })"
       @update:open="!$event && closeImport()">
       <form class="lf-dialog-form" @submit.prevent="importStatement">
-        <p>Importe o extrato {{importFormat.toUpperCase()}} do banco. Os movimentos
-          aparecerão aqui como <strong>A conferir</strong>, sem duplicar pagamentos.</p>
+        <p>{{ t('librefinance', 'Import the {format} bank statement. Movements will appear here as Pending review, without duplicating payments.', { format: importFormat.toUpperCase() }, { escape: false, sanitize: false }) }}</p>
         <NcNoteCard v-if="importError" type="error" role="alert">{{importError}}</NcNoteCard>
         <LfSelect v-if="banks.length>1" id="lf-import-bank"
-          v-model="importAccount" label="Conta do extrato"
+          v-model="importAccount" :label="t('librefinance', 'Statement account')"
           :options="bankOptions" :disabled="importing" />
         <p v-else-if="banks.length===1" class="lf-muted">
-          Conta: <strong>{{banks[0].name}}</strong>
+          {{ t('librefinance', 'Account: {account}', { account: banks[0].name }, { escape: false, sanitize: false }) }}
         </p>
         <NcFilePicker :key="importFormat" :disabled="importing"
-          :label="'Selecionar arquivo '+importFormat.toUpperCase()" variant="secondary"
+          :label="t('librefinance', 'Select {format} file', { format: importFormat.toUpperCase() }, { escape: false, sanitize: false })" variant="secondary"
           :accept="importFormat==='csv'?['.csv','text/csv']:['.ofx','application/x-ofx']"
           @pick="chooseImportFile" />
-        <p class="lf-muted" role="status">{{importFile?.name||'Nenhum arquivo selecionado'}}</p>
+        <p class="lf-muted" role="status">{{importFile?.name||t('librefinance', 'No file selected')}}</p>
         <template v-if="importFormat==='csv'">
-          <p class="lf-muted">CSV: colunas <code>id,date,amount,description</code>,
-            com valores decimais separados por ponto e negativos para saídas.</p>
+          <p class="lf-muted">{{ t('librefinance', 'CSV: columns {columns}, with a decimal point and negative amounts for outflows.', { columns: 'id,date,amount,description' }, { escape: false, sanitize: false }) }}</p>
           <NcButton variant="tertiary" :href="csvExample" download="exemplo-extrato.csv">
-            Baixar exemplo de CSV
+            {{ t('librefinance', 'Download CSV example') }}
           </NcButton>
         </template>
-        <p v-else class="lf-muted">OFX: extrato fornecido pelo banco com identificadores
-          FITID, data e valor. Aceitamos OFX 1.x e 2.x, um único extrato por arquivo.</p>
-        <p class="lf-muted">O arquivo é lido apenas para importação; não é gravado no Files.
-          Limite de 256 KiB e 500 movimentos.</p>
+        <p v-else class="lf-muted">{{ t('librefinance', 'OFX: bank statement with FITID identifiers, date and amount. OFX 1.x and 2.x are accepted, one statement per file.') }}</p>
+        <p class="lf-muted">{{ t('librefinance', 'The file is read only for import; it is not stored in Files. Limit: 256 KiB and 500 movements.') }}</p>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" :disabled="importing"
-            @click="closeImport">Cancelar</NcButton>
+            @click="closeImport">{{ t('librefinance', 'Cancel') }}</NcButton>
           <NcButton variant="primary" type="submit"
             :disabled="importing||!importAccount||!importFile||!allowedBankFormats.includes(importFormat)">
-            {{importing?'Importando…':'Importar '+importFormat.toUpperCase()+' para conferir'}}
+            {{importing?t('librefinance', 'Importing…'):t('librefinance', 'Import {format} for review', { format: importFormat.toUpperCase() }, { escape: false, sanitize: false })}}
           </NcButton>
         </div>
       </form>
     </NcDialog>
 
     <NcDialog :open="Boolean(reconcileRow)" size="normal"
-      content-classes="lf-finance-dialog-content" name="Conferir movimentação"
+      content-classes="lf-finance-dialog-content" :name="t('librefinance', 'Review movement')"
       @update:open="!$event && closeReconciliation()">
       <form class="lf-dialog-form" @submit.prevent="matchStatement">
-        <p>Este valor veio do extrato. Relacione-o ao dinheiro que já
-          foi registrado, sem criar outro pagamento ou recebimento.</p>
+        <p>{{ t('librefinance', 'This amount came from the statement. Match it with money already recorded, without creating another payment or receipt.') }}</p>
         <NcNoteCard v-if="reconciliationError" type="error" role="alert">
           {{reconciliationError}}
         </NcNoteCard>
         <div v-if="reconcileRow" class="lf-dialog-summary">
           <strong>{{reconcileRow.description}}</strong>
           <div class="lf-reconciliation-details">
-            <span>Data</span><strong>{{reconcileRow.date}}</strong>
-            <span>Conta</span><strong>{{w.accountNameById(reconcileRow.accountId)}}</strong>
-            <span>Valor</span><strong>{{currency(reconcileRow)}}</strong>
+            <span>{{ t('librefinance', 'Date') }}</span>
+            <strong>{{ formatLedgerDate(reconcileRow.date) }}</strong>
+            <span>{{ t('librefinance', 'Account') }}</span>
+            <strong>{{w.accountNameById(reconcileRow.accountId)}}</strong>
+            <span>{{ t('librefinance', 'Amount') }}</span>
+            <strong>{{currency(reconcileRow)}}</strong>
           </div>
         </div>
         <LfSelect id="lf-bank-journal" v-model="journalId"
-          label="Movimentação correspondente" :options="journalCandidates"
-          placeholder="Selecione pela data e descrição" :disabled="bankBusy" />
+          :label="t('librefinance', 'Matching movement')" :options="journalCandidates"
+          :placeholder="t('librefinance', 'Select by date and description')" :disabled="bankBusy" />
         <NcNoteCard v-if="!journalCandidates.length" type="info">
-          Nenhuma movimentação correspondente foi encontrada entre os registros carregados.
-          Confira se já registrou este dinheiro; não cadastre outra operação só para conferir.
+          {{ t('librefinance', 'No matching movement was found among the loaded records. Check whether you already recorded this money; do not create another operation just to review it.') }}
         </NcNoteCard>
         <NcButton v-if="w.nextBeforeId.value" variant="tertiary" :disabled="bankBusy"
-          @click="w.loadMore()">Procurar movimentações mais antigas</NcButton>
+          @click="w.loadMore()">{{ t('librefinance', 'Search older movements') }}</NcButton>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" :disabled="bankBusy"
-            @click="closeReconciliation">Cancelar</NcButton>
+            @click="closeReconciliation">{{ t('librefinance', 'Cancel') }}</NcButton>
           <NcButton variant="primary" type="submit"
             :disabled="bankBusy||!journalCandidates.some(row=>row.value===Number(journalId))">
-            {{bankBusy?'Conferindo…':'Confirmar conferência'}}
+            {{bankBusy?t('librefinance', 'Reviewing…'):t('librefinance', 'Confirm review')}}
           </NcButton>
         </div>
       </form>
     </NcDialog>
 
     <NcDialog :open="formOpen" size="normal" content-classes="lf-finance-dialog-content"
-      name="Registrar movimentação" @update:open="!$event && (formOpen=false)">
+      :name="t('librefinance', 'Record movement')" @update:open="!$event && (formOpen=false)">
       <form class="lf-dialog-form lf-activity-entry" @submit.prevent="save">
         <NcNoteCard v-if="formError" type="error" role="alert">{{formError}}</NcNoteCard>
         <fieldset class="lf-entry-direction">
-          <legend>O dinheiro vai entrar ou sair?</legend>
+          <legend>{{ t('librefinance', 'Will money come in or go out?') }}</legend>
           <div class="lf-entry-direction-options">
             <button type="button" :class="{selected:kind==='in'}" :aria-pressed="kind==='in'"
               @click="kind='in'">
-              <span><strong>Entrada</strong><small>Dinheiro que recebo</small></span>
+              <span><strong>{{ t('librefinance', 'Inflow') }}</strong>
+                <small>{{ t('librefinance', 'Money I receive') }}</small></span>
             </button>
             <button type="button" :class="{selected:kind==='out'}" :aria-pressed="kind==='out'"
               @click="kind='out'">
-              <span><strong>Saída</strong><small>Dinheiro que pago</small></span>
+              <span><strong>{{ t('librefinance', 'Outflow') }}</strong>
+                <small>{{ t('librefinance', 'Money I pay') }}</small></span>
             </button>
           </div>
         </fieldset>
         <fieldset class="lf-entry-direction">
-          <legend>Quando?</legend>
+          <legend>{{ t('librefinance', 'When?') }}</legend>
           <div class="lf-entry-direction-options">
             <button type="button" :class="{selected:timing==='posted'}"
               :aria-pressed="timing==='posted'" @click="timing='posted'">
-              <span><strong>Já aconteceu</strong><small>Registrei o dinheiro</small></span>
+              <span><strong>{{ t('librefinance', 'Already happened') }}</strong>
+                <small>{{ t('librefinance', 'I recorded the money') }}</small></span>
             </button>
             <button v-if="canPlan" type="button" :class="{selected:timing==='planned'}"
               :aria-pressed="timing==='planned'" @click="timing='planned'">
-              <span><strong>Vai acontecer</strong><small>Vou pagar ou receber</small></span>
+              <span><strong>{{ t('librefinance', 'Will happen') }}</strong>
+                <small>{{ t('librefinance', 'I will pay or receive') }}</small></span>
             </button>
           </div>
         </fieldset>
-        <NcTextField v-model="form.description" label="Descrição" maxlength="255"
-          required placeholder="Ex.: Conta de luz ou pagamento de cliente"/>
-        <NcTextField v-model="form.amount" label="Valor" inputmode="decimal"
-          placeholder="0,00" required />
+        <NcTextField v-model="form.description" :label="t('librefinance', 'Description')" maxlength="255"
+          required :placeholder="t('librefinance', 'E.g. electricity bill or customer payment')"/>
+        <NcTextField v-model="form.amount" :label="t('librefinance', 'Amount')" inputmode="decimal"
+          :placeholder="amountPlaceholder" required />
         <LfDateField v-if="timing==='planned'" id="lf-activity-due"
-          v-model="form.dueOn" label="Quando deve acontecer?" />
+          v-model="form.dueOn" :label="t('librefinance', 'When is it due?')" />
         <template v-else>
-          <LfDateField id="lf-activity-date" v-model="form.date" label="Quando aconteceu?" />
+          <LfDateField id="lf-activity-date" v-model="form.date" :label="t('librefinance', 'When did it happen?')" />
           <LfSelect v-if="bankOptions.length" id="lf-activity-payment-account"
-            v-model="form.accountId" :options="bankOptions" label="Em qual conta?" />
+            v-model="form.accountId" :options="bankOptions" :label="t('librefinance', 'Which account?')" />
           <NcNoteCard v-else type="info">
-            Cadastre primeiro a conta bancária ou o caixa onde o dinheiro entrou ou saiu.
+            {{ t('librefinance', 'First register the bank or cash account where the money was received or paid.') }}
             <NcButton variant="tertiary" @click="formOpen=false;navigate('bankAccounts')">
-              Adicionar conta
+              {{ t('librefinance', 'Add account') }}
             </NcButton>
           </NcNoteCard>
           <LfSelect v-if="counterpartOptions.length>1" id="lf-activity-category"
-            v-model="form.categoryId" :options="counterpartOptions" label="Categoria" />
+            v-model="form.categoryId" :options="counterpartOptions" :label="t('librefinance', 'Category')" />
           <NcNoteCard v-if="!counterpartOptions.length" type="warning">
-            Ainda não há uma categoria de {{kind==='in'?'receita':'despesa'}} configurada.
-            Configure-a em Gerenciar para registrar esse movimento.
+            {{ kind === 'in' ? t('librefinance', 'No income category is configured yet. Configure one in Manage to record this movement.') : t('librefinance', 'No expense category is configured yet. Configure one in Manage to record this movement.') }}
           </NcNoteCard>
           <CustomFieldsPanel :key="w.activeId.value+':'+formOpen" v-model="form.customFields"
             entity-kind="journal" />
         </template>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" :disabled="formSaving" @click="formOpen=false">
-            Cancelar
+            {{ t('librefinance', 'Cancel') }}
           </NcButton>
           <NcButton variant="primary" type="submit" :disabled="formSaving
             || (timing==='posted'&&(!form.accountId||!form.categoryId))">
-            {{formSaving?'Salvando…':'Salvar'}}
+            {{formSaving?t('librefinance', 'Saving…'):t('librefinance', 'Save')}}
           </NcButton>
         </div>
       </form>
     </NcDialog>
     <NcDialog :open="transferOpen" size="normal"
-      content-classes="lf-finance-dialog-content" name="Transferir entre contas"
+      content-classes="lf-finance-dialog-content" :name="t('librefinance', 'Transfer between accounts')"
       @update:open="!$event && !transferSaving && (transferOpen=false)">
       <form class="lf-dialog-form" @submit.prevent="saveTransfer">
         <NcNoteCard v-if="transferError" type="error" role="alert">{{transferError}}</NcNoteCard>
-        <p class="lf-muted">Registre uma transferência que você realizou entre suas contas.
-          Nenhum dinheiro será enviado pelo aplicativo.</p>
+        <p class="lf-muted">{{ t('librefinance', 'Record a transfer you made between your accounts. No money will be sent by the application.') }}</p>
         <LfSelect id="lf-transfer-from" v-model="transferForm.fromId"
-          label="Saiu de" :options="bankOptions" :disabled="transferSaving" />
+          :label="t('librefinance', 'From account')" :options="bankOptions" :disabled="transferSaving" />
         <LfSelect id="lf-transfer-to" v-model="transferForm.toId"
-          label="Entrou em" :options="bankOptions" :disabled="transferSaving" />
-        <NcTextField v-model="transferForm.amount" label="Valor" inputmode="decimal"
+          :label="t('librefinance', 'To account')" :options="bankOptions" :disabled="transferSaving" />
+        <NcTextField v-model="transferForm.amount" :label="t('librefinance', 'Amount')" inputmode="decimal"
           :disabled="transferSaving" required/>
         <LfDateField id="lf-transfer-date" v-model="transferForm.date"
-          label="Quando?" />
-        <NcTextField v-model="transferForm.note" label="Descrição"
+          :label="t('librefinance', 'When?')" />
+        <NcTextField v-model="transferForm.note" :label="t('librefinance', 'Description')"
           :disabled="transferSaving" maxlength="255"/>
         <div class="lf-form-actions">
           <NcButton variant="tertiary" :disabled="transferSaving"
-            @click="transferOpen=false">Cancelar</NcButton>
+            @click="transferOpen=false">{{ t('librefinance', 'Cancel') }}</NcButton>
           <NcButton variant="primary" type="submit"
             :disabled="transferSaving||!transferForm.fromId||!transferForm.toId
               ||transferForm.fromId===transferForm.toId">
-            {{transferSaving?'Salvando…':'Registrar transferência'}}
+            {{transferSaving?t('librefinance', 'Saving…'):t('librefinance', 'Record transfer')}}
           </NcButton>
         </div>
       </form>

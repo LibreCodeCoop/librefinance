@@ -72,7 +72,7 @@ test('OFX 1.x bank file imports inline without posting a second journal', async 
   await repeated.getByRole('button',{name:'Importar OFX para conferir'}).click()
   await expect(repeated).toHaveCount(0)
   await expect(pending).toHaveCount(1)
-  await expect(page.getByRole('status')).toContainText('0 movimentações importadas')
+  await expect(page.getByRole('status')).toContainText('Movimentações importadas: 0;')
 })
 
 test('field creation first chooses its area; internal fields remain editable to managers', async ({page})=>{
