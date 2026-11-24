@@ -2,11 +2,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {
+import { readFileSync } from 'node:fs'
+import { register, unregister, setLanguage } from '@nextcloud/l10n'
+
+const catalog = JSON.parse(readFileSync(new URL('../../l10n/pt_BR.json', import.meta.url)))
+setLanguage('pt-BR')
+register('librefinance', catalog.translations)
+const {
   PAGE_NAMES, MENU_STRUCTURE, availableSections, menuEntries, canOpenView, defaultGroupOpen,
   canonicalView, financeDirectionForView, navigationSearch, parentOfView,
   normalizeNavigationText, pageNameForSpace, fieldEntityKind,
-} from '../../src/navigation.js'
+} = await import('../../src/navigation.js')
 
 const enabled=['librefinance_obligations','librefinance_invoicing','librefinance_banking',
   'librefinance_reports','librefinance_import','librefinance_nfse']
@@ -110,8 +116,28 @@ test('organization profiles are cadastros, while finance spaces manage independe
   const spaces=manage.children.find(item=>item.id==='spaces')
   const companies=manage.children.find(item=>item.id==='companies')
   const banks=manage.children.find(item=>item.id==='bankAccounts')
-  assert.equal(spaces.group,'Gestões financeiras')
-  assert.equal(companies.group,'Cadastros')
-  assert.equal(banks.group,'Cadastros')
+  assert.equal(spaces.group,'workspaces')
+  assert.equal(spaces.groupLabel,'Gestões financeiras')
+  assert.equal(companies.group,'records')
+  assert.equal(companies.groupLabel,'Cadastros')
+  assert.equal(banks.group,'records')
   assert.notEqual(spaces.group,companies.group)
+})
+
+test('English fallback and Portuguese translations preserve route and group keys', async () => {
+  unregister('librefinance')
+  setLanguage('en')
+  try {
+    const en = await import('../../src/navigation.js?locale=en')
+    const sections = en.availableSections({ modules: enabled, manager: true, modulesLoaded: true })
+    assert.equal(en.PAGE_NAMES.finance, 'Financial movements')
+    assert.equal(en.pageNameForSpace('contacts', 'personal'), 'People and businesses')
+    assert.equal(en.navigationSearch(sections, 'accounts and banks')[0]?.id, 'bankAccounts')
+    assert.equal(en.navigationSearch(sections, 'invoices')[0]?.id, 'documents')
+    assert.equal(en.canonicalView('receivables'), 'finance')
+    assert.equal(en.menuEntries(sections).find(item => item.id === 'bankAccounts').group, 'records')
+  } finally {
+    setLanguage('pt-BR')
+    register('librefinance', catalog.translations)
+  }
 })

@@ -1,0 +1,7 @@
+js/
+css/
+docs/
+tests/
+vendor/
+node_modules/
+translationfiles/

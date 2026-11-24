@@ -257,7 +257,9 @@ test('an unused account is deletable while referenced accounts show an explicit 
   await expect(confirm).toBeVisible()
   // Default caixa may be unused; this case only checks preview is rendered, not the accounting state.
   await expect(confirm.getByText(/Esta conta não possui|Esta conta não pode ser excluída/)).toBeVisible()
-  await confirm.getByRole('button', { name: 'Fechar' }).click()
+  // The native close icon has the same accessible label in pt_BR.
+  await confirm.getByRole('button', { name: 'Fechar', exact: true }).filter({ hasText: 'Fechar' }).click()
+  await expect(confirm).toHaveCount(0)
 })
 
 test('category colors use the official Nextcloud color picker, not a custom input', async ({ page }) => {
@@ -269,10 +271,10 @@ test('category colors use the official Nextcloud color picker, not a custom inpu
   await expect(dialog.getByRole('button', { name: 'Escolher cor da categoria' })).toBeVisible()
   await expect(dialog.locator('input[type="color"]')).toHaveCount(0)
   await dialog.getByRole('button', { name: 'Escolher cor da categoria' }).click()
-  const colorDialog = page.getByRole('dialog', { name: 'Color picker' })
+  const colorDialog = page.getByRole('dialog', { name: 'Seletor de cores', exact: true })
   await expect(colorDialog).toBeVisible()
-  await colorDialog.locator('label.color-picker__simple-color-circle:has(input[aria-label="Nextcloud blue"])').click()
-  await colorDialog.getByRole('button', { name: 'Choose' }).click()
+  await colorDialog.locator('label.color-picker__simple-color-circle:has(input[aria-label="Azul Nextcloud"])').click()
+  await colorDialog.getByRole('button', { name: 'Escolher', exact: true }).click()
   await dialog.getByRole('textbox', { name: 'Código' }).fill('COLOR_UX')
   await dialog.getByRole('textbox', { name: 'Nome da categoria' }).fill('Categoria Azul')
   await dialog.getByRole('button', { name: 'Salvar categoria' }).click()
@@ -351,7 +353,7 @@ test('empty contacts and companies show native empty state instead of header-onl
   await makeSpace(page)
   await goToView(page, 'Clientes e fornecedores')
   await page.getByRole('searchbox',{name:'Buscar contatos'}).fill('zz-no-finance-contact-found-999')
-  await expect(page.getByText('Nenhum contato encontrado')).toBeVisible()
+  await expect(page.getByTestId('librefinance-workspace').getByText('Nenhum contato encontrado', { exact: true })).toBeVisible()
   await expect(page.locator('.lf-data-table thead')).toHaveCount(0)
   await goToView(page, 'Dados da organização')
   await expect(page.getByText('Nenhuma empresa cadastrada')).toBeVisible()
