@@ -47,6 +47,10 @@ Keep a verified archive for rollback. Tests cover historical table preservation
 on SQLite, MariaDB and PostgreSQL in disposable fixtures. Third-party data
 completeness and financial equivalence remain unverified.
 
+The bounded, read-only source discovery contract is described in
+[SOURCE-DISCOVERY.md](SOURCE-DISCOVERY.md). It is not a live source connector
+or a replacement for the destination inventory comparison.
+
 ## Server-side module contract
 
 Only NFS-e registers an independent `ModuleDescriptor` instance
