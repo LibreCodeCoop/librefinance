@@ -83,3 +83,25 @@ are rejected, and bank movements are not posted to the ledger automatically.
 Akaunting API client, remote connection setup, credentials, direct
 extraction and full migration are not part of this PR. Source mapping
 and historical reconciliation will be implemented separately.
+
+## Immutable exchange-rate evidence (contract v1)
+
+GET /spaces/{spaceId}/exchange-rates?afterId=0 returns the supported currency
+metadata version, its deliberately bounded currency/precision map, up to
+50 authorized rate snapshots in ID order and a nextAfterId cursor.
+
+POST /spaces/{spaceId}/exchange-rates records a quote using sourceCurrency,
+targetCurrency, rate (a positive exact decimal string), effectiveOn (a real
+calendar date), sourceType (manual or imported) and sourceRef (a bounded
+non-secret provenance identifier). Rate means target major units per source
+major unit. The server resolves and stores both precisions. A successful
+recording returns HTTP 200 with rate and replayed; a canonical equivalent
+quote in the same book returns the original record. Corrections append
+new snapshots; there is no update/delete endpoint or automatic rate choice.
+
+Read requires currency.rates.read; recording requires currency.rates.manage
+(manager or owner). Financial membership and SaaS restrictions remain
+authoritative. Unrelated books do not share rates. Source references are
+not credentials or URLs. No historical balance is converted, no journal is
+created, no bank/FX provider is contacted. Ledger activation and mixed
+currency posting remain separate deliverables.

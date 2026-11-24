@@ -239,7 +239,7 @@ else
     }
   ' | tr -d '\r')"
 fi
-test "$count" -eq 28
+test "$count" -eq 29
 
 # Imported provenance tables use the lfm_ physical prefix, not lf_.
 # Verify the three durable origin tables independently in every engine.
@@ -264,7 +264,7 @@ echo "PASS: Three core-owned source identity/audit/balance-snapshot import table
 
 http_status="$(compose exec -T nextcloud curl -sS --max-time 12 -o /dev/null -w '%{http_code}' http://127.0.0.1/status.php)"
 test "$http_status" = 200
-echo "PASS: Nextcloud Server master install, LibreFinance activation, twenty-eight core tables and HTTP 200."
+echo "PASS: Nextcloud Server master install, LibreFinance activation, twenty-nine core tables and HTTP 200."
 
 # Real two-user authorization, accounting and concurrency checks on this exact master checkout.
 for test_user in lfmaintestA lfmaintestB; do
@@ -294,7 +294,7 @@ assert_integration_complete() {
 
 if [ "$(printenv LF_BROWSER_DEBUG_ONLY || echo 0)" != 1 ]; then
 # Run native PHP integration suites inside the same Nextcloud PHP runtime.
-for script in basic personal-finance agenda-search-sort spaces advanced governance catalog categories companies custom-fields field-studio-v3 ux-enhancements company-logo bank-identity payment-methods; do
+for script in basic personal-finance agenda-search-sort spaces advanced governance catalog categories companies custom-fields field-studio-v3 ux-enhancements company-logo bank-identity payment-methods currency-rate-history; do
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/$script.php"
 done
 echo "PASS: Native PHP authorization, ledger, group access and concurrency tests on Nextcloud Server master."

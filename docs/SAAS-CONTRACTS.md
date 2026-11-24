@@ -153,10 +153,10 @@ does not elevate any stored grant.
 
 | Financial role | Current operation scope |
 | --- | --- |
-| Viewer | Scoped ledger, accounts, bank, invoices, obligations, reports, catalog and custom-field reads; own internal dashboard layout |
+| Viewer | Scoped ledger, accounts, bank, invoices, obligations, reports, catalog, custom-field and exchange-rate evidence reads; own internal dashboard layout |
 | Auditor (accountant) | Same financial read-only access; no posting, reconciliation, grant management, migration or report configuration |
 | Operator | Viewer operations plus journal posting, bank reconciliation and statement import, invoice/obligation operations, permitted use of catalog references and custom-field values |
-| Manager | Operator operations plus reversal, account and catalog configuration, issuance, cancellation, migration, saved report management, analysis, module and workspace configuration |
+| Manager | Operator operations plus reversal, account and catalog configuration, issuance, cancellation, migration, saved report management, analysis, exchange-rate evidence recording, module and workspace configuration |
 | Owner | Manager operations plus financial membership and invitation management |
 
 `audit.read` and `reports.export` are reserved capability identifiers, not

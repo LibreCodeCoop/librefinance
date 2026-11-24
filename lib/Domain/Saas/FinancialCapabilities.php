@@ -24,6 +24,8 @@ final class FinancialCapabilities {
         'ledger.reverse' => ['manager', 'owner'],
         'accounts.read' => ['viewer', 'auditor', 'operator', 'manager', 'owner'],
         'accounts.manage' => ['manager', 'owner'],
+        'currency.rates.read' => ['viewer', 'auditor', 'operator', 'manager', 'owner'],
+        'currency.rates.manage' => ['manager', 'owner'],
         'bank.read' => ['viewer', 'auditor', 'operator', 'manager', 'owner'],
         'bank.reconcile' => ['operator', 'manager', 'owner'],
         'bank.manage' => ['manager', 'owner'],

@@ -8,7 +8,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
   <name>LibreFinance</name>
   <summary>Free and collaborative financial management for Nextcloud.</summary>
   <description>Independent modular finance app for individuals, groups and organizations, with workspace isolation, an accounting ledger and APIs. Development preview; not certified for financial production use.</description>
-  <version>0.18.10</version>
+  <version>0.18.11</version>
   <licence>AGPL-3.0-or-later</licence>
   <author mail="dev@librecodecoop.org.br">LibreCode Coop</author>
   <namespace>LibreFinance</namespace>

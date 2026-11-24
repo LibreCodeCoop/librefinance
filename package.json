@@ -1,7 +1,7 @@
 {
   "name": "librefinance",
   "private": true,
-  "version": "0.18.10",
+  "version": "0.18.11",
   "type": "module",
   "scripts": {
     "build": "vite build && mkdir -p css && mv js/style.css css/main.css && vite build --config vite.admin.config.js && mv js/admin-style.css css/admin.css && cp docs/BUNDLE-ATTRIBUTION.txt js/main.js.license && cp docs/BUNDLE-ATTRIBUTION.txt js/admin.js.license",

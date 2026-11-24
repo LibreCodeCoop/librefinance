@@ -45,7 +45,7 @@ foreach ([
 $reader = [
     'workspace.read', 'ledger.read', 'accounts.read', 'bank.read', 'invoice.read',
     'obligations.read', 'reports.read', 'contacts.read', 'companies.read', 'items.read',
-    'categories.read', 'payment_methods.read', 'custom_fields.read', 'dashboard.configure',
+    'categories.read', 'payment_methods.read', 'custom_fields.read', 'dashboard.configure', 'currency.rates.read',
 ];
 $operator = [
     'ledger.post', 'bank.reconcile', 'invoice.manage', 'obligations.manage',
@@ -57,7 +57,7 @@ $manager = [
     'invoice.issue', 'imports.read', 'imports.apply', 'contacts.manage',
     'companies.manage', 'invoices.tax.manage', 'obligations.cancel', 'reports.manage',
     'reports.analyze', 'items.manage', 'categories.manage', 'payment_methods.manage',
-    'custom_fields.manage', 'modules.configure', 'roles.read',
+    'custom_fields.manage', 'modules.configure', 'roles.read', 'currency.rates.manage',
 ];
 $matrix = [
     'viewer' => $reader,
