@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcIconSvgWrapper from '@nextcloud/vue/components/NcIconSvgWrapper'
 import { mdiTuneVariant } from '@mdi/js'
@@ -17,12 +18,14 @@ const props = defineProps({
 })
 const workspace = inject('lfWorkspace')
 const navigate = inject('lfNavigate', () => {})
-const entityNames = {
-  company: 'empresas', contact: 'contatos',
-  item: 'produtos e serviços', journal: 'lançamentos',
+const accessibleLabels = {
+  company: t('librefinance', 'Customize company fields'),
+  contact: t('librefinance', 'Customize contact fields'),
+  item: t('librefinance', 'Customize product and service fields'),
+  journal: t('librefinance', 'Customize journal entry fields'),
 }
 const accessibleLabel = computed(() =>
-  'Personalizar campos de ' + (entityNames[props.entityKind] || 'cadastros'))
+  accessibleLabels[props.entityKind] || t('librefinance', 'Customize record fields'))
 function open() {
   if (!workspace.manager.value || !workspace.activeId.value) return
   navigate('fields', { entityKind: props.entityKind })
@@ -36,6 +39,6 @@ function open() {
     <template #icon>
       <NcIconSvgWrapper :path="mdiTuneVariant" :size="18" aria-hidden="true" />
     </template>
-    Personalizar campos
+    {{ t('librefinance', 'Customize fields') }}
   </NcButton>
 </template>
