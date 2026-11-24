@@ -5,7 +5,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 # LibreFinance API e OpenAPI 3.1
 
 A API nativa usa atributos `#[FrontpageRoute]` nos métodos dos controllers
-PHP do núcleo e dos seis aplicativos opcionais. Não existe arquivo
+PHP do núcleo e do aplicativo opcional NFS-e. Não existe arquivo
 `appinfo/routes.php`: o controller define a rota. A especificação
 [openapi.json](../openapi.json) é gerada a partir dos atributos reais e dos
 contratos JSON declarados; o gerador falha diante de um formato não

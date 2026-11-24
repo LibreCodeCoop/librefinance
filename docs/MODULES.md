@@ -12,7 +12,7 @@ by who owns financial data and by independent compliance/release requirements.
 | Runtime owner | Functions | Physical data |
 | --- | --- | --- |
 | LibreFinance core | Ledger, workspaces, catalog, accounts and permissions | `lf_*` |
-| LibreFinance core | Bank CSV import, pending statements, transfers, reconciliation | `lfb_*` |
+| LibreFinance core | Bank CSV/OFX import, pending statements, transfers, reconciliation | `lfb_*` |
 | LibreFinance core | Payables, receivables, partial settlements | `lfob_*` |
 | LibreFinance core | Commercial invoices, generic tax rules and allocations | `lfi_*` |
 | LibreFinance core | Accounting reports and saved report templates | `lfr_saved_reports` |
@@ -35,10 +35,9 @@ and read-only inventory reconciliation. Existing source IDs, hashes, bank
 references and audit history are retained. Source balances are snapshots,
 not posted ledger transactions.
 
-Direct Akaunting connector and live Akaunting-to-LibreFinance migration are
-OUT OF SCOPE for incorporation. No remote credentials or API endpoints are
-accepted by this feature. Provider discovery, pagination and mapping will
-be reviewed in a separate change.
+This normalized import engine does not accept remote credentials or API
+endpoints. Direct source connectors, provider discovery, pagination and
+complete financial mapping are not supported by this engine.
 
 Before upgrading an installation with the independent Import app, make and
 verify a complete database backup. Disable but NEVER UNINSTALL the old app:
@@ -59,11 +58,10 @@ claim a built-in feature ID, inject HTML/JavaScript into the main app, or
 bypass authorization by hiding navigation links.
 
 The banking provider contract `Domain/Banking/Providers/BankProviderInterface`
-is experimental and independent of importing CSV statements. It receives only
+is experimental and independent of importing CSV/OFX statements. It receives only
 a credential *reference*. Automatic bank synchronization, secure bank tokens
-and live institution transports are NOT implemented. Sicoob-specific sample
-code stays in the historical banking repo pending explicit extraction and
-review; it is not loaded as a production integration.
+and live institution transports are NOT implemented. Historical institution-specific sample code is not loaded as a production
+integration.
 
 ## Atomic financial model
 
@@ -84,7 +82,7 @@ a government-issued fiscal document.
 ## Upgrade from the former four separate finance modules
 
 Before upgrading an existing development installation, record the exact
-seven-app SHAs and take a **verified, restorable** database snapshot.
+revisions of every installed finance app and take a **verified, restorable** database snapshot.
 Temporarily stop financial writes. Disable, **do not uninstall**, the former
 Banking, Invoicing, Obligations and Reports apps; uninstall handlers may remove
 historic financial tables. Upgrade core while keeping the former Import app disabled, run

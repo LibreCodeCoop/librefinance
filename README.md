@@ -7,21 +7,21 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 LibreFinance is an independent, free-software financial management application for **Nextcloud**. It is designed for individuals, shared groups, cooperatives and organizations worldwide. The software does not require an account or subscription with its maintainer, LibreCode Coop, or with any incumbent accounting vendor.
 
-> **Development preview — v0.18.0.** Not certified for production accounting, tax reporting, banking or financial migration. Its current UI is mainly Brazilian Portuguese; this is **not** yet a translated international release. The current ledger supports **BRL only**, although legal company country codes are configurable. The optional Brazilian NFS-e integration is drafts-only.
+> **Development preview.** See `appinfo/info.xml` for the current version. Not certified for production accounting, tax reporting, banking or financial migration. Its current UI is mainly Brazilian Portuguese; this is **not** yet a translated international release. The current ledger supports **BRL only**, although legal company country codes are configurable. The optional Brazilian NFS-e integration is drafts-only.
 
 ## Capabilities implemented in the preview
 
-- Separate personal, collective and organizational financial workspaces, with membership and group grants using Nextcloud identities.
+- Separate personal, collective and organizational financial workspaces, including SaaS environments with delegated administration, restrictive policies and independent financial membership. Legacy group grants remain a separate compatibility mode.
 - Double-entry ledger, immutable postings, audited reversals, account balances, categories and manual payment methods.
 - Contacts, products/services and configurable legal company profiles, including company logos.
-- Custom fields for companies, contacts, items and journals.
+- Custom fields for companies, contacts, items, posted journals and sales/purchase invoices.
 - Configurable dashboard layout, with a fixed set of built-in widgets.
 - Private HTTP APIs, OpenAPI 3.1, read-only MCP features and an opt-in Nextcloud TaskProcessing assistant.
 - Banking, reconciliation, bills, commercial invoicing, taxation and saved reporting **inside the main LibreFinance application**.
-- Native import/migration engine for normalized JSON, source-ID mapping, conflict previews, bank staging and audit snapshots (no external Akaunting API client).
+- Native import/migration engine for normalized JSON, source-ID mapping, conflict previews, bank staging and audit snapshots (no external source API client).
 - Brazilian NFS-e **drafts only**, provided by one optional Nextcloud app.
 
-Banking, obligations, invoicing and reports are now built-in feature areas with server-enforced per-space controls, not separately installed Nextcloud apps. Import belongs to the core. Only NFS-e remains a separately installed optional app; direct Akaunting-to-LibreFinance migration and provider connectors are a separate future effort.
+Banking, obligations, invoicing and reports are now built-in feature areas with server-enforced per-space controls, not separately installed Nextcloud apps. Import belongs to the core. Only NFS-e remains a separately installed optional app; direct external-source migration and provider connectors are a separate future effort.
 
 ## What it does **not** yet do
 
@@ -31,7 +31,7 @@ See the [guide to sales, payables and accounting entries](docs/FINANCIAL-WORKFLO
 
 ## Requirements and installation
 
-This preview targets **Nextcloud 36 development** and PHP **8.3+**; compatible stable Nextcloud releases have not yet been certified. It uses the database configured in Nextcloud and does not require any extra database, JavaScript runtime or container in production.
+This preview targets **Nextcloud 36 development** and PHP **8.3–8.5**; compatible stable Nextcloud releases have not yet been certified. It uses the database configured in Nextcloud and does not require any extra database, JavaScript runtime or container in production.
 
 Install the core as `custom_apps/librefinance`. An administrator can enable it with:
 
@@ -41,7 +41,7 @@ php occ app:enable librefinance
 
 The full financial product is installed with just `librefinance`. Import (`librefinance_import` logical feature) is built into the core. Brazil-specific NFS-e (`librefinance_nfse`) remains a separate app. Former Import schema and data remain compatible; disable, do not uninstall, the old app before a verified upgrade. Workspace managers can switch built-in features on/off without installing arbitrary PHP.
 
-For an existing development instance that has the four former module apps, first back up the full Nextcloud database, stop financial writes, **disable but do not uninstall** those four apps, then upgrade the core and compatible Import/NFS-e integrations. The core preserves old physical table names and never fabricates historical payment matches. See [module architecture and safe upgrade requirements](docs/MODULES.md).
+For an existing development instance that has the four former module apps, first back up the full Nextcloud database, stop financial writes, **disable but do not uninstall** those four apps, then upgrade the core with the former Import app disabled and the compatible optional NFS-e app. The core preserves old physical table names and never fabricates historical payment matches. See [module architecture and safe upgrade requirements](docs/MODULES.md).
 
 To build the frontend in a development checkout:
 
