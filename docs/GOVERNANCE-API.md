@@ -422,6 +422,45 @@ respostas pendentes são descartadas para não misturar históricos.
 O histórico administrativo é diferente da auditoria financeira de cada
 livro, que segue suas próprias regras de preservação.
 
+### Restrição hierárquica de relatórios
+
+A policy booleana `modules.reports.enabled` controla o acesso ao módulo
+**Relatórios** nos escopos de instância, ambiente SaaS e livro financeiro.
+Por padrão seu valor é `true`, preservando instalações existentes. O
+administrador da instância pode proibir relatórios globalmente; o gestor do
+ambiente pode restringir seu ambiente, e o proprietário financeiro pode
+restringir seu livro. Um nível inferior não consegue reabilitar o que um
+ancestral desabilitou. A edição é feita pelo editor de policies, com revisão
+otimista e auditoria, não pela concessão de papéis.
+
+O módulo ainda exige papel financeiro apropriado e seu próprio indicador
+local de ativação. Mesmo que alguém reative esse indicador, a API só apresenta
+`enabled: true` quando **todos** os controles aplicáveis permitem acesso.
+O endpoint de descoberta e a resposta de alteração do módulo oferecem o
+indicador de apresentação `blockedByPolicy`, sem revelar valores internos do
+ancestral. A interface informa o motivo do bloqueio e não oferece ação de
+ativação local enquanto a policy superior proíbe o recurso; visualizadores
+também não recebem uma ação de configuração que não podem executar.
+A consulta direta ao demonstrativo de resultados, balanço, fluxo de caixa e
+aos relatórios salvos deve retornar `403 module_disabled` quando a policy
+nega o acesso. Esta configuração suspende consultas e alterações futuras; não
+apaga documentos, lançamentos ou relatórios históricos. A restrição de A1
+nunca se propaga para A2 ou para outro ambiente.
+
+### Rascunhos fiscais opcionais
+
+A policy `regional.nfseDrafts.enabled` restringe a integração opcional
+`librefinance_nfse` nos mesmos três escopos. O valor padrão `true` apenas
+preserva instalações que já possuem o aplicativo opcional; **não o instala,
+não concede acesso financeiro e não autoriza a emissão de NFS-e**. A restrição
+é verificada no backend por `FinanceApi::requireModule` em todas as chamadas
+protegidas do aplicativo de rascunhos, além do indicador local de módulo.
+Uma proibição na instância não pode ser revogada por configuração de ambiente
+ou livro. Desabilitar a política impede a leitura/criação seguinte de
+rascunhos (`403 module_disabled`), sem apagar os registros históricos.
+A reativação deve restaurar o acesso somente aos usuários que ainda possuam
+papel financeiro válido e o aplicativo instalado.
+
 ### Formatos bancários permitidos por policy
 
 A definição `banking.allowedImportFormats` usa o tipo `allowed_set`,
