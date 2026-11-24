@@ -138,6 +138,13 @@ result('bank formats default preserves CSV and OFX',
     $resolver->resolve($formatPolicy, [])['effectiveValue'], ['csv', 'ofx']);
 result('bank format policy is not a personal access grant',
     $formatPolicy->supports('user'), false);
+denied('instance cannot invent a bank format outside its declared universe',
+    fn() => $formatPolicy->assertValue(['xml']), 'invalid_policy_value');
+denied('workspace cannot inject invalid bank format among accepted values',
+    fn() => $resolver->resolve($formatPolicy, [
+        layer('instance', ['csv', 'ofx']),
+        layer('workspace', ['csv', 'xml']),
+    ]), 'invalid_policy_value');
 $result = $resolver->resolve($formatPolicy, [
     layer('instance', ['csv', 'ofx']),
     layer('environment', ['ofx']),
