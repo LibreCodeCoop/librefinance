@@ -9,6 +9,7 @@ namespace OCA\LibreFinance\Service;
 
 use DomainException;
 use OCA\LibreFinance\Domain\Currency\CurrencyMetadata;
+use OCA\LibreFinance\Domain\Currency\ExactConversion;
 use OCA\LibreFinance\Domain\Currency\RateQuote;
 use OCP\DB\Exception as DatabaseException;
 use OCP\DB\QueryBuilder\IQueryBuilder;
@@ -111,6 +112,41 @@ final class RateHistoryService {
             $this->db->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Read-only conversion using one explicit, immutable rate snapshot.
+     * Do not recompute historical scale from the current metadata registry.
+     * This operation never chooses a rate, writes a posting or changes balances.
+     */
+    public function preview(int $spaceId, int $rateId, mixed $sourceMinor): array {
+        $this->access->requireFinancialCapability($spaceId, 'currency.rates.read');
+        $q = $this->db->getQueryBuilder();
+        $q->select('*')->from('lf_fx_rates')
+            ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('id', $q->createNamedParameter($rateId, IQueryBuilder::PARAM_INT)));
+        $row = $q->executeQuery()->fetchAssociative();
+        if ($row === false) {
+            throw new DomainException('exchange_rate_not_found');
+        }
+        // HTTP query values are strings; reject exponent, fractional, leading-zero
+        // and signed-zero representations before converting to an integer.
+        if ((!is_int($sourceMinor) && !is_string($sourceMinor))
+            || preg_match('/^(?:0|-?[1-9][0-9]{0,12})$/D', (string)$sourceMinor) !== 1) {
+            throw new DomainException('invalid_currency_amount');
+        }
+        $amount = (int)$sourceMinor;
+        $target = ExactConversion::convert($amount, (int)$row['source_precision'],
+            (int)$row['target_precision'], (string)$row['rate']);
+        $this->access->requireFinancialCapability($spaceId, 'currency.rates.read');
+        return [
+            'contractVersion' => 1,
+            'rate' => self::cast($row),
+            'sourceMinor' => $amount,
+            'targetMinor' => $target,
+            'rounding' => 'half_away_from_zero',
+            'postingCreated' => false,
+        ];
     }
 
     private function find(int $spaceId, string $fingerprint): ?array {
