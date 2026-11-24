@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
@@ -22,6 +23,7 @@ import FieldStudioShortcut from '../components/FieldStudioShortcut.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { generateUrl } from '@nextcloud/router'
 import { countryOptions } from '../countries.js'
+import { ledgerLocale } from '../money.js'
 const w = inject('lfWorkspace')
 const { companies, companyNextAfterId, manager, busy, companyEditId,
   companyName, companyTradeName, companyCountry, companyTaxId,
@@ -79,6 +81,7 @@ function scheduleSearch() {
 watch([searchTerm, () => w.activeId.value], () => loadSearch())
 onMounted(() => { if (searchTerm.value) loadSearch() })
 onBeforeUnmount(() => { ++searchSequence; if (searchTimer) clearTimeout(searchTimer) })
+const invalidImageMessage = () => t('librefinance', 'Invalid image.')
 const logoBusy = ref(false)
 const logoError = ref('')
 const logoVersion = ref(null)
@@ -92,19 +95,19 @@ async function updateLogo(event) {
   if (!file || !companyEditId.value || logoBusy.value) return
   logoError.value = ''
   if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 524288) {
-    logoError.value = 'Escolha uma imagem PNG, JPG ou WebP de até 512 KB.'
+    logoError.value = t('librefinance', 'Choose a PNG, JPG or WebP image up to 512 KB.')
     return
   }
   logoBusy.value = true
   try {
     const contents = await new Promise((resolve, reject) => {
       const reader = new FileReader()
-      reader.onerror = () => reject(new Error('Falha ao ler imagem.'))
+      reader.onerror = () => reject(new Error(t('librefinance', 'Failed to read image.')))
       reader.onload = () => resolve(reader.result)
       reader.readAsDataURL(file)
     })
     const match = /^data:image\/(?:png|jpeg|webp);base64,([a-zA-Z0-9+/=]+)$/.exec(String(contents))
-    if (!match) throw new Error('Imagem inválida.')
+    if (!match) throw new Error(invalidImageMessage())
     const response = await financeApi('librefinance', Number(w.activeId.value),
       '/companies/' + companyEditId.value + '/logo', 'POST', { imageBase64: match[1] })
     logoVersion.value = response.logoVersion
@@ -127,7 +130,7 @@ async function removeLogo() {
   finally { logoBusy.value = false }
 }
 const personal = computed(() => w.space.value?.kind === 'personal')
-const countryChoices = countryOptions()
+const countryChoices = countryOptions(ledgerLocale())
 const countryValid = computed(() => /^[A-Za-z]{2}$/.test(companyCountry.value.trim()))
 function beginCreate() { resetCompanyForm(); logoVersion.value = null; logoError.value = ''; saveError.value = ''; dialog.value = true }
 onMounted(() => {
@@ -141,7 +144,7 @@ function closeCompany() { saveError.value = ''; dialog.value = false }
 async function save() {
   saveError.value = ''
   if (!companyName.value.trim() || !countryValid.value) {
-    saveError.value = 'Informe o nome legal e o país em duas letras (ISO 3166-1).'
+    saveError.value = t('librefinance', 'Enter the legal name and two-letter country code (ISO 3166-1).')
     return
   }
   await saveCompany()
@@ -154,45 +157,43 @@ async function save() {
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Dados da organização" eyebrow="IDENTIDADE E CADASTRO"
+    <LfPageHeader :title="t('librefinance', 'Organization details')" :eyebrow="t('librefinance', 'IDENTITY AND REGISTRATION')"
       :description="personal
-        ? 'Opcional: seu dinheiro e suas contas da casa funcionam sem empresa ou CNPJ.'
-        : 'Cadastre as empresas ou emissores fiscais vinculados à área financeira atual. Um cadastro fiscal não cria outra área nem mistura os saldos.'">
+        ? t('librefinance', 'Optional: your money and household accounts work without a company or tax ID.')
+        : t('librefinance', 'Register companies or fiscal issuers linked to the current financial area. A fiscal registration does not create another area or mix balances.')">
       <template #actions>
         <FieldStudioShortcut entity-kind="company" />
         <NcButton v-if="manager" variant="primary" @click="beginCreate">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-          Cadastrar empresa
+          {{ t('librefinance', 'Register company') }}
         </NcButton>
       </template>
     </LfPageHeader>
     <NcNoteCard v-if="!personal && companies.length===0" type="warning">
-      Esta gestão ainda não possui empresa cadastrada. É possível organizar
-      lançamentos internos, mas dados jurídicos e emissão fiscal dependem da
-      identificação de uma organização.
+      {{ t('librefinance', 'This workspace has no registered company yet. Internal entries can be organized, but legal details and fiscal issuance depend on identifying an organization.') }}
     </NcNoteCard>
     <section class="lf-surface">
       <div class="lf-section-heading">
-        <div><h2>Empresas desta gestão</h2>
-          <p>Cadastro jurídico e identidade visual (inclusive cor e logotipo). Empresas nesta gestão compartilham o mesmo livro, caixa e acessos; não há segregação contábil por CNPJ. Para saldos independentes, crie outra gestão financeira.</p></div>
-        <NcTextField v-if="companies.length || searchTerm" v-model="search" label="Pesquisar empresas" type="search"
-          placeholder="Buscar em todas as empresas" maxlength="120"
+        <div><h2>{{ t('librefinance', 'Companies in this workspace') }}</h2>
+          <p>{{ t('librefinance', 'Legal registration and visual identity (including color and logo). Companies in this workspace share the ledger, cash and access rights; there is no accounting segregation by tax ID. For independent balances, create another financial workspace.') }}</p></div>
+        <NcTextField v-if="companies.length || searchTerm" v-model="search" :label="t('librefinance', 'Search companies')" type="search"
+          :placeholder="t('librefinance', 'Search all companies')" maxlength="120"
           class="lf-search-field" @update:model-value="scheduleSearch" />
       </div>
       <NcNoteCard v-if="searchProblem" type="error">{{searchProblem}}</NcNoteCard>
-      <p v-if="searchLoading" role="status" class="lf-muted">Buscando empresas…</p>
+      <p v-if="searchLoading" role="status" class="lf-muted">{{ t('librefinance', 'Searching companies…') }}</p>
       <div v-if="listedCompanies.length" class="lf-table-scroll">
         <table class="lf-data-table">
           <thead><tr>
             <th v-for="col in [
-              {key:'legal_name',label:'Nome legal'}, {key:'country',label:'País'},
-              {key:'tax_id',label:'Identificador fiscal'}, {key:'active',label:'Situação'}]"
+              {key:'legal_name',label:t('librefinance', 'Legal entity name')}, {key:'country',label:t('librefinance', 'Country')},
+              {key:'tax_id',label:t('librefinance', 'Tax identifier')}, {key:'active',label:t('librefinance', 'Status')}]"
               :key="col.key" :aria-sort="localSort.ariaSort(col.key)">
               <LfSortableHeader :label="col.label" :column="col.key"
                 :active-column="localSort.column.value" :direction="localSort.direction.value"
                 scope="loaded" @sort="localSort.sort" />
             </th>
-            <th v-if="manager">Ações</th></tr></thead>
+            <th v-if="manager">{{ t('librefinance', 'Actions') }}</th></tr></thead>
           <tbody><tr v-for="company in listedCompanies" :key="company.id">
             <td><span class="lf-company-list-identity">
               <span class="lf-category-dot" :style="{backgroundColor: company.brand_color || '#64748B'}"
@@ -200,137 +201,132 @@ async function save() {
               <img v-if="company.logo_version" class="lf-company-mini-logo"
                 :src="generateUrl('/apps/librefinance/api/spaces/' + Number(w.activeId.value)
                   + '/companies/' + company.id + '/logo?v=' + company.logo_version)"
-                :alt="'Logotipo de ' + company.legal_name" />
+                :alt="t('librefinance', 'Logo of {name}', { name: company.legal_name }, { escape: false, sanitize: false })" />
               <strong>{{ company.legal_name }}</strong>
               </span>
               <small v-if="company.trade_name" class="lf-muted">{{ company.trade_name }}</small></td>
             <td>{{ company.country }}</td>
-            <td>{{ company.tax_id || 'Não informado' }}</td>
+            <td>{{ company.tax_id || t('librefinance', 'Not provided') }}</td>
             <td><span :class="company.active?'lf-state lf-state-good':'lf-state'">
-              {{ company.active?'Ativa':'Inativa' }}</span></td>
+              {{ company.active?t('librefinance', 'Active company'):t('librefinance', 'Inactive company') }}</span></td>
             <td v-if="manager"><NcButton variant="tertiary"
-              :aria-label="'Editar ' + company.legal_name" @click="beginEdit(company)">
+              :aria-label="t('librefinance', 'Edit {name}', { name: company.legal_name }, { escape: false, sanitize: false })" @click="beginEdit(company)">
               <template #icon><NcIconSvgWrapper :path="mdiPencilOutline" :size="20" /></template>
             </NcButton></td>
           </tr></tbody>
         </table>
       </div>
       <NcEmptyContent v-else-if="!searchLoading"
-        :name="searchTerm ? 'Nenhuma empresa encontrada' : 'Nenhuma empresa cadastrada'"
-        :description="searchTerm ? 'Altere a pesquisa para localizar outras empresas.'
-          : 'Use Cadastrar empresa para registrar a identidade jurídica, endereço, contatos e dados fiscais, sem criar outro caixa.'" />
+        :name="searchTerm ? t('librefinance', 'No company found') : t('librefinance', 'No companies registered')"
+        :description="searchTerm ? t('librefinance', 'Change the search to find other companies.')
+          : t('librefinance', 'Use Register company to record the legal identity, address, contacts and fiscal details without creating another cash account.')" />
       <p v-if="localSort.column.value && (companyNextAfterId || searchNext)"
-        class="lf-muted">A ordenação considera somente os registros já carregados.</p>
+        class="lf-muted">{{ t('librefinance', 'Sorting applies only to the records already loaded.') }}</p>
       <div v-if="companyNextAfterId || searchNext" class="lf-table-footer">
-        <NcButton v-if="!searchTerm" variant="secondary" @click="loadMoreCompanies">Carregar mais empresas</NcButton>
+        <NcButton v-if="!searchTerm" variant="secondary" @click="loadMoreCompanies">{{ t('librefinance', 'Load more companies') }}</NcButton>
         <NcButton v-else-if="searchNext" variant="secondary"
-          :disabled="searchLoading" @click="loadSearch(true)">Mais resultados</NcButton>
+          :disabled="searchLoading" @click="loadSearch(true)">{{ t('librefinance', 'More results') }}</NcButton>
       </div>
     </section>
     <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="dialog"
-      :name="companyEditId ? 'Editar empresa' : 'Cadastrar empresa'"
+      :name="companyEditId ? t('librefinance', 'Edit company') : t('librefinance', 'Register company')"
       @update:open="!$event && closeCompany()">
       <form class="lf-dialog-form" @submit.prevent="save">
-        <p class="lf-company-ledger-scope">Este cadastro identifica a empresa nos documentos.
-          Contas, saldos, histórico e acessos permanecem na gestão financeira atual.
-          Para separar caixa e contabilidade entre empresas, crie outra gestão financeira.</p>
+        <p class="lf-company-ledger-scope">{{ t('librefinance', 'This registration identifies the company in documents. Accounts, balances, history and access rights remain in the current financial workspace. To separate cash and accounting between companies, create another financial workspace.') }}</p>
         <NcNoteCard v-if="saveError" type="error" role="alert">{{ saveError }}</NcNoteCard>
 
         <fieldset class="lf-company-form-section">
-          <legend>Identificação</legend>
+          <legend>{{ t('librefinance', 'Identification') }}</legend>
           <div class="lf-form-grid">
-            <NcTextField v-model="companyName" label="Nome legal" maxlength="180" required />
-            <NcTextField v-model="companyTradeName" label="Nome comercial" maxlength="180" />
+            <NcTextField v-model="companyName" :label="t('librefinance', 'Legal entity name')" maxlength="180" required />
+            <NcTextField v-model="companyTradeName" :label="t('librefinance', 'Trade name')" maxlength="180" />
           </div>
           <div class="lf-form-grid">
-            <LfSelect id="lf-company-country" v-model="companyCountry" label="País de registro"
-              :options="countryChoices" placeholder="Selecione o país" />
-            <NcTextField v-model="companyTaxId" label="Identificador fiscal local"
+            <LfSelect id="lf-company-country" v-model="companyCountry" :label="t('librefinance', 'Country of registration')"
+              :options="countryChoices" :placeholder="t('librefinance', 'Select the country')" />
+            <NcTextField v-model="companyTaxId" :label="t('librefinance', 'Local tax identifier')"
               maxlength="40" />
           </div>
         </fieldset>
 
         <fieldset class="lf-company-form-section">
-          <legend>Outras informações (opcionais)</legend>
-          <p class="lf-muted">Inscrições e registros fiscais complementares.
-            A validação tributária específica de cada país pertence ao recurso fiscal correspondente.</p>
+          <legend>{{ t('librefinance', 'Other information (optional)') }}</legend>
+          <p class="lf-muted">{{ t('librefinance', 'Additional fiscal registrations and records. Country-specific tax validation belongs to the corresponding fiscal feature.') }}</p>
           <div class="lf-form-grid">
             <NcTextField v-model="companyState"
-              label="Inscrição estadual ou regional" maxlength="40" />
+              :label="t('librefinance', 'State or regional registration')" maxlength="40" />
             <NcTextField v-model="companyMunicipal"
-              label="Inscrição municipal ou local" maxlength="40" />
+              :label="t('librefinance', 'Municipal or local registration')" maxlength="40" />
           </div>
         </fieldset>
 
         <fieldset class="lf-company-form-section">
-          <legend>Contato e presença digital</legend>
+          <legend>{{ t('librefinance', 'Contact and online presence') }}</legend>
           <div class="lf-form-grid">
-            <NcTextField v-model="companyProfile.contactEmail" label="E-mail da empresa"
+            <NcTextField v-model="companyProfile.contactEmail" :label="t('librefinance', 'Company email')"
               type="email" maxlength="190" />
-            <NcTextField v-model="companyProfile.contactPhone" label="Telefone da empresa"
+            <NcTextField v-model="companyProfile.contactPhone" :label="t('librefinance', 'Company telephone')"
               type="tel" maxlength="60" />
           </div>
-          <NcTextField v-model="companyProfile.website" label="Site da empresa (URL)"
-            type="url" placeholder="https://exemplo.org" maxlength="255" />
+          <NcTextField v-model="companyProfile.website" :label="t('librefinance', 'Company website (URL)')"
+            type="url" :placeholder="t('librefinance', 'https://example.org')" maxlength="255" />
         </fieldset>
 
         <fieldset class="lf-company-form-section">
-          <legend>Endereço da empresa</legend>
+          <legend>{{ t('librefinance', 'Company address') }}</legend>
           <NcTextField v-model="companyProfile.addressLine1"
-            label="Endereço (logradouro e número)" maxlength="255" />
+            :label="t('librefinance', 'Address (street and number)')" maxlength="255" />
           <NcTextField v-model="companyProfile.addressLine2"
-            label="Complemento do endereço" maxlength="255" />
+            :label="t('librefinance', 'Address complement')" maxlength="255" />
           <div class="lf-form-grid">
-            <NcTextField v-model="companyProfile.city" label="Cidade" maxlength="120" />
-            <NcTextField v-model="companyProfile.region" label="Estado, província ou região"
+            <NcTextField v-model="companyProfile.city" :label="t('librefinance', 'City')" maxlength="120" />
+            <NcTextField v-model="companyProfile.region" :label="t('librefinance', 'State, province or region')"
               maxlength="120" />
           </div>
           <NcTextField v-model="companyProfile.postalCode"
-            label="Código postal (CEP)" maxlength="32" />
+            :label="t('librefinance', 'Postal code')" maxlength="32" />
         </fieldset>
 
         <fieldset class="lf-company-form-section">
-          <legend>Identidade visual</legend>
+          <legend>{{ t('librefinance', 'Visual identity') }}</legend>
           <div class="lf-field">
-            <span class="lf-field-label">Cor de identificação</span>
+            <span class="lf-field-label">{{ t('librefinance', 'Identification color') }}</span>
             <NcColorPicker v-model="companyProfile.brandColor">
-              <NcButton variant="secondary" aria-label="Escolher cor da organização">
+              <NcButton variant="secondary" :aria-label="t('librefinance', 'Choose organization color')">
                 <span class="lf-category-color-swatch" :style="{backgroundColor: companyProfile.brandColor}" aria-hidden="true" />
-                Escolher cor
+                {{ t('librefinance', 'Choose color') }}
               </NcButton>
             </NcColorPicker>
           </div>
           <div class="lf-company-logo-settings">
-            <label class="lf-field-label" for="lf-company-logo-file">Logotipo da empresa</label>
+            <label class="lf-field-label" for="lf-company-logo-file">{{ t('librefinance', 'Company logo') }}</label>
             <template v-if="companyEditId">
               <img v-if="logoVersion" class="lf-company-preview-logo"
-                :src="logoUrl" alt="Logotipo atual da empresa" />
+                :src="logoUrl" :alt="t('librefinance', 'Current company logo')" />
               <input id="lf-company-logo-file" type="file" accept="image/png,image/jpeg,image/webp"
-                :disabled="logoBusy" aria-label="Selecionar logotipo da empresa"
+                :disabled="logoBusy" :aria-label="t('librefinance', 'Select company logo')"
                 @change="updateLogo" />
-              <small class="lf-muted">PNG, JPG ou WebP, até 512 KB.
-                Armazenado de forma privada, sem publicação automática.</small>
+              <small class="lf-muted">{{ t('librefinance', 'PNG, JPG or WebP, up to 512 KB. Stored privately, without automatic publication.') }}</small>
               <NcButton v-if="logoVersion" variant="tertiary" :disabled="logoBusy"
-                @click.prevent="removeLogo">Remover logotipo</NcButton>
+                @click.prevent="removeLogo">{{ t('librefinance', 'Remove logo') }}</NcButton>
             </template>
-            <p v-else class="lf-muted">Salve a empresa para adicionar seu logotipo.</p>
+            <p v-else class="lf-muted">{{ t('librefinance', 'Save the company to add its logo.') }}</p>
             <NcNoteCard v-if="logoError" type="error" role="alert">{{ logoError }}</NcNoteCard>
           </div>
         </fieldset>
 
         <fieldset class="lf-company-form-section">
-          <legend>Dados adicionais específicos</legend>
-          <p class="lf-muted">Campos personalizados definidos em Gerenciar → Campos personalizados
-            para a entidade Empresa aparecem abaixo. Cada empresa tem seus próprios valores.</p>
+          <legend>{{ t('librefinance', 'Specific additional data') }}</legend>
+          <p class="lf-muted">{{ t('librefinance', 'Custom fields defined in Manage → Custom fields for the Company entity appear below. Each company has its own values.') }}</p>
           <CustomFieldsPanel :key="companyEditId || 'new'" v-model="companyCustomValues"
             entity-kind="company" />
         </fieldset>
         <NcCheckboxRadioSwitch v-if="companyEditId" v-model="companyActive" type="checkbox">
-          Cadastro ativo
+          {{ t('librefinance', 'Active registration') }}
         </NcCheckboxRadioSwitch>
         <div class="lf-form-actions">
-          <NcButton variant="tertiary" @click="closeCompany">Cancelar</NcButton>
-          <NcButton type="submit" variant="primary" :disabled="busy">Salvar empresa</NcButton>
+          <NcButton variant="tertiary" @click="closeCompany">{{ t('librefinance', 'Cancel') }}</NcButton>
+          <NcButton type="submit" variant="primary" :disabled="busy">{{ t('librefinance', 'Save company') }}</NcButton>
         </div>
       </form>
     </NcDialog>
