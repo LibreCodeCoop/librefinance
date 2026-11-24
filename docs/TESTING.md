@@ -227,14 +227,35 @@ PYTHONDONTWRITEBYTECODE=1 python3 tests/ci/test-report-timing.py
 
 O relatório preserva SHA, tentativa, estado e conclusão, distingue
 tempos ausentes de zero e mede o intervalo observado do run, o job mais
-longo e a preparação anterior a etapas de trabalho conhecidas. O tempo
-entre criação e início do run é apenas um indicador de fila; a API
-consultada não informa o instante de enfileiramento individual de cada
-job. O job mais longo não é uma reconstrução do DAG de dependências.
-Em novas tentativas, o intervalo desde a criação original pode incluir
-tentativas anteriores; compare a tentativa e os tempos dos jobs.
-O relatório não substitui os checks de integração e não lê logs ou
-credenciais.
+longo e a preparação anterior à primeira etapa de trabalho conhecida
+(`setup_before_work_seconds`). Quando o último passo de trabalho conhecido
+foi executado e seu intervalo está contido no do job, `post_work_tail_seconds`
+mede do fim desse passo até a conclusão do job.
+
+Em runs concluídos, `job_parallelism` mede do primeiro início à última
+conclusão dos jobs observados (`job_span_seconds`) e soma suas durações
+(`sum_job_runtime_seconds`). `busy_seconds` conta o tempo com pelo menos um
+job ativo e `overlap_seconds` conta o tempo com dois ou mais. O pico
+(`peak_parallel_jobs`) considera simultaneidade durante um intervalo de
+tempo. A média (`average_parallel_jobs`) divide a soma das durações pelo
+intervalo observado, incluindo eventuais lacunas. Esses valores descrevem
+os jobs observados, sem estimar ocupação da capacidade total dos runners.
+
+As contagens indicam quantos jobs foram medidos, ignorados (`skipped`) ou
+ficaram sem medição por estado ou timestamps. `measured` cobre todos os
+jobs fornecidos que não foram ignorados. `partial` cobre apenas os que
+têm intervalos válidos. Runs em andamento (`run_incomplete`) e runs sem
+intervalos válidos (`no_measurable_jobs`) retornam `null` nas métricas.
+Um job com início e fim iguais é medido com duração zero e não aumenta o
+pico. A média é `null` quando o intervalo total é zero.
+
+O intervalo entre criação e início do run usa os timestamps do próprio
+run. Os metadados disponíveis são insuficientes para medir a espera de cada
+job ou reconstruir o caminho crítico do DAG. Em novas tentativas, o tempo
+desde a criação original pode incluir tentativas anteriores. Compare a
+tentativa e os tempos dos jobs. O script lê somente o JSON fornecido e
+serve como diagnóstico inicial. A qualificação de release segue os checks
+de integração e o processo do épico #70.
 
 Baseline observado: [run 45451932591](https://github.com/LibreCodeCoop/librefinance/actions/runs/45451932591),
 SHA `c8c7de5629930c3acb461fa1f82ba941adafdf13`, tentativa 1,
@@ -253,8 +274,8 @@ foi de 427 segundos; o atraso observado até o início foi de 0 segundos.
 | Upgrade histórico (três bancos) | 83-100 s | 13-15 s | 39-47 s |
 | Contratos | 33 s | não medida | 6 s |
 
-Neste run, o caminho dominante foi a execução do laboratório integrado,
-não o build. O próximo experimento deve medir as suítes internas do
-smoke antes de propor mudanças de cache ou paralelismo. Uma única
-amostra não demonstra melhora; compare runs com revisões e cobertura
-equivalentes, mantendo todos os bancos, checks e isolamento.
+Neste run, o job mais longo foi o laboratório integrado com SQLite.
+O próximo experimento deve medir as suítes internas do smoke antes de
+propor mudanças de cache ou paralelismo. Para avaliar uma melhora, compare
+runs com revisões e cobertura equivalentes, mantendo todos os bancos,
+checks e isolamento.
