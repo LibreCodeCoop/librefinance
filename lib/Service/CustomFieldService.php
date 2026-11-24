@@ -24,7 +24,7 @@ final class CustomFieldService {
 
     public function list(int $spaceId, string $entityKind = 'company'): array {
         self::entity($entityKind);
-        $role = $this->access->requireRole($spaceId, 'viewer');
+        $role = $this->access->requireFinancialCapability($spaceId, 'custom_fields.read');
         $fields = $this->definitions($spaceId, $entityKind);
         if (AccessService::rank($role) < AccessService::rank('manager')) {
             $fields = array_values(array_filter($fields, static fn(array $f): bool => $f['apiVisible'] && $f['active']));
@@ -58,7 +58,7 @@ final class CustomFieldService {
         bool $required = false, array $options = [], string $entityKind = 'company',
         bool $visible = true, ?string $help = null, int $sortOrder = 0,
         int $columnSpan = 12, ?bool $apiVisible = null): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'custom_fields.manage');
         // Preserve the pre-v3 contract: hidden fields were also withheld from
         // non-manager API readers. API-only disclosure requires explicit opt-in.
         $apiVisible ??= $visible;
@@ -107,7 +107,7 @@ final class CustomFieldService {
         bool $required = false, bool $active = true, string $entityKind = 'company',
         ?bool $visible = null, ?string $help = null, ?int $sortOrder = null,
         ?int $columnSpan = null, ?bool $apiVisible = null): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'custom_fields.manage');
         self::entity($entityKind);
         $old = $this->byId($spaceId, $entityKind, $fieldId);
         if ($old === null) { throw new DomainException('custom_field_not_found'); }
@@ -144,7 +144,7 @@ final class CustomFieldService {
     public function validateValues(int $spaceId, array $submitted, bool $isNew,
         int $entityId = 0, string $entityKind = 'company'): array {
         self::entity($entityKind);
-        $role = $this->access->requireRole($spaceId, 'operator');
+        $role = $this->access->requireFinancialCapability($spaceId, 'custom_fields.submit');
         if (count($submitted) > 30) { throw new DomainException('custom_field_limit'); }
         $fields = $this->definitions($spaceId, $entityKind);
         $mapped = [];
@@ -204,7 +204,7 @@ final class CustomFieldService {
     public function valuesForEntities(int $spaceId, string $entityKind,
         array $entityIds, bool $all = false): array {
         self::entity($entityKind);
-        $role = $this->access->requireRole($spaceId, 'viewer');
+        $role = $this->access->requireFinancialCapability($spaceId, 'custom_fields.read');
         if ($entityIds === []) { return []; }
         $fields = $this->definitions($spaceId, $entityKind);
         $allowed = [];

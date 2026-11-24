@@ -14,7 +14,7 @@ final class BankProviderRegistry {
         private IUserSession $session) {}
 
     public function list(int $spaceId):array {
-        $this->finance->requireModule($spaceId,'librefinance_banking');
+        $this->finance->requireModuleCapability($spaceId, 'librefinance_banking', 'bank.read');
         $event=new RegisterBankProvidersEvent();
         $this->events->dispatchTyped($event);
         $user=$this->session->getUser();

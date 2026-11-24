@@ -43,7 +43,7 @@ final class JournalClaimService {
      * modules may refer to the same journal (e.g. bank feed and invoice).
      */
     public function claim(int $spaceId, int $journalId, string $moduleId, string $reference): void {
-        $this->access->requireRole($spaceId, 'operator');
+        $this->access->requireFinancialCapability($spaceId, 'ledger.post');
         if (!preg_match('/^librefinance_[a-z][a-z0-9_]{2,40}$/', $moduleId)
             || !preg_match('/^[A-Za-z0-9_.:-]{4,64}$/', $reference)) {
             throw new DomainException('invalid_journal_claim');
@@ -79,7 +79,7 @@ final class JournalClaimService {
     }
 
     public function assertReversible(int $spaceId, int $journalId): void {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'ledger.reverse');
         $this->journal($spaceId, $journalId);
         $q = $this->db->getQueryBuilder();
         $q->select('id')->from('lf_journal_claims')

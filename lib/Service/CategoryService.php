@@ -21,7 +21,7 @@ final class CategoryService {
         private AccountReferenceGuard $accountGuard) {}
 
     public function list(int $spaceId, int $afterId = 0): array {
-        $this->access->requireRole($spaceId);
+        $this->access->requireFinancialCapability($spaceId, 'categories.read');
         if ($afterId < 0) { throw new DomainException('invalid_cursor'); }
         $q = $this->db->getQueryBuilder();
         $q->select('id','code','name','kind','parent_id','account_id','active','color')
@@ -84,7 +84,7 @@ final class CategoryService {
      * Historical journals retain the category ID; no mutable reparenting.
      */
     public function resolveForPosting(int $spaceId, int $categoryId): int {
-        $this->access->requireRole($spaceId, 'operator');
+        $this->access->requireFinancialCapability($spaceId, 'categories.use');
         $category=$this->find($spaceId,$categoryId);
         if($category===null || !(bool)$category['active']){
             throw new DomainException('category_not_found');
@@ -97,7 +97,7 @@ final class CategoryService {
 
     public function create(int $spaceId, string $code, string $name, string $kind,
         ?int $parentId = null, ?int $accountId = null, string $color = '#64748B'): array {
-        $this->access->requireRole($spaceId,'manager');
+        $this->access->requireFinancialCapability($spaceId, 'categories.manage');
         $code=strtoupper(trim($code));
         $name=trim($name);
         if (!preg_match('/^[A-Z0-9_-]{2,40}$/',$code)) { throw new DomainException('invalid_category_code'); }
@@ -148,7 +148,7 @@ final class CategoryService {
 
     public function update(int $spaceId, int $categoryId, string $name,
         string $color, bool $active = true): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'categories.manage');
         $name = trim($name);
         $color = self::validColor($color);
         if ($name === '' || mb_strlen($name) > 150) {

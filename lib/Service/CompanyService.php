@@ -25,7 +25,7 @@ final class CompanyService {
 
     /** @return array<string,mixed> */
     public function list(int $spaceId, int $afterId = 0, string $search = ''): array {
-        $this->access->requireRole($spaceId, 'viewer');
+        $this->access->requireFinancialCapability($spaceId, 'companies.read');
         if ($afterId < 0) { throw new DomainException('invalid_cursor'); }
         $q = $this->db->getQueryBuilder();
         $q->select('id','legal_name','trade_name','country','tax_id',
@@ -56,7 +56,7 @@ final class CompanyService {
     public function create(int $spaceId, string $legalName, string $country,
         ?string $taxId, ?string $tradeName = null, ?string $municipalRegistration = null,
         ?string $stateRegistration = null, array $customFields = [], array $profile = []): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'companies.manage');
         $fields = self::fields($legalName, $country, $taxId, $tradeName,
             $municipalRegistration, $stateRegistration);
         $fields = [...$fields, ...self::profileFields($profile)];
@@ -118,7 +118,7 @@ final class CompanyService {
     public function update(int $spaceId, int $companyId, string $legalName, string $country,
         ?string $taxId, ?string $tradeName = null, ?string $municipalRegistration = null,
         ?string $stateRegistration = null, bool $active = true, array $customFields = [], array $profile = []): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'companies.manage');
         $fields = self::fields($legalName, $country, $taxId, $tradeName,
             $municipalRegistration, $stateRegistration);
         $fields = [...$fields, ...self::profileFields($profile)];

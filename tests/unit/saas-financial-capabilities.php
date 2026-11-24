@@ -40,6 +40,49 @@ foreach ([
 ] as [$role, $capability, $allowed]) {
     expect(Access::allows($role, $capability), $allowed, "$role:$capability");
 }
+// Exhaustive independently specified role matrix, including non-hierarchical
+// auditor capabilities. Adding a registry operation requires an explicit test.
+$reader = [
+    'workspace.read', 'ledger.read', 'accounts.read', 'bank.read', 'invoice.read',
+    'obligations.read', 'reports.read', 'contacts.read', 'companies.read', 'items.read',
+    'categories.read', 'payment_methods.read', 'custom_fields.read', 'dashboard.configure',
+];
+$operator = [
+    'ledger.post', 'bank.reconcile', 'invoice.manage', 'obligations.manage',
+    'bank.import_statement', 'bank.use', 'companies.resolve', 'categories.use',
+    'payment_methods.use', 'custom_fields.submit',
+];
+$manager = [
+    'workspace.configure', 'ledger.reverse', 'accounts.manage', 'bank.manage',
+    'invoice.issue', 'imports.read', 'imports.apply', 'contacts.manage',
+    'companies.manage', 'invoices.tax.manage', 'obligations.cancel', 'reports.manage',
+    'reports.analyze', 'items.manage', 'categories.manage', 'payment_methods.manage',
+    'custom_fields.manage', 'modules.configure', 'roles.read',
+];
+$matrix = [
+    'viewer' => $reader,
+    'auditor' => [...$reader, 'audit.read', 'reports.export'],
+    'operator' => [...$reader, ...$operator, 'reports.export'],
+    'manager' => [...$reader, ...$operator, ...$manager, 'audit.read', 'reports.export'],
+    'owner' => [...$reader, ...$operator, ...$manager, 'audit.read', 'reports.export', 'roles.manage'],
+    'instance_admin' => [], 'group_subadmin' => [], 'unknown' => [],
+];
+$all = Access::all();
+$expected = $matrix['owner'];
+sort($all);
+sort($expected);
+expect($all === $expected, true, 'all registry capabilities explicitly covered');
+foreach ($matrix as $role => $allowed) {
+    foreach ($all as $capability) {
+        expect(Access::allows($role, $capability), in_array($capability, $allowed, true),
+            "$role:$capability exhaustive");
+    }
+    $actual = Access::forRole($role);
+    sort($actual);
+    sort($allowed);
+    expect($actual === $allowed, true, "$role exact capability list");
+}
+
 try {
     Access::requireAllowed('viewer', 'ledger.post');
     throw new RuntimeException('Viewer was able to post');

@@ -24,7 +24,7 @@ final class CompanyLogoService {
         private IAppData $appData) {}
 
     public function upload(int $spaceId, int $companyId, string $imageBase64): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'companies.manage');
         $this->requireCompany($spaceId, $companyId);
         if ($imageBase64 === '' || strlen($imageBase64) > (int)ceil(self::MAX_BYTES * 4 / 3) + 8
             || preg_match('~[^A-Za-z0-9+/=]~', $imageBase64)) {
@@ -50,7 +50,7 @@ final class CompanyLogoService {
 
     /** @return array{content:string,mime:string} */
     public function read(int $spaceId, int $companyId): array {
-        $this->access->requireRole($spaceId, 'viewer');
+        $this->access->requireFinancialCapability($spaceId, 'companies.read');
         $company = $this->requireCompany($spaceId, $companyId);
         if ($company['logo_version'] === null) throw new DomainException('company_logo_not_found');
         try {
@@ -66,7 +66,7 @@ final class CompanyLogoService {
     }
 
     public function remove(int $spaceId, int $companyId): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'companies.manage');
         $this->requireCompany($spaceId, $companyId);
         $this->writer->update('lf_companies', ['logo_version' => null, 'updated_at' => time()],
             ['id' => $companyId, 'space_id' => $spaceId]);

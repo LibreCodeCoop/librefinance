@@ -67,7 +67,7 @@ final class PaymentWorkflowService {
         if (!$date || $date->format('Y-m-d') !== $paidOn) {
             throw new DomainException('invalid_date');
         }
-        $this->finance->requireModule($spaceId, 'librefinance_obligations', 'operator');
+        $this->finance->requireModuleCapability($spaceId, 'librefinance_obligations', 'obligations.manage');
         $this->db->beginTransaction();
         try {
             $detail = $this->obligations->show($spaceId, $obligationId);
@@ -118,7 +118,8 @@ final class PaymentWorkflowService {
         }
 
         $module = $source === 'invoice' ? 'librefinance_invoicing' : 'librefinance_obligations';
-        $this->finance->requireModule($spaceId, $module, 'operator');
+        $this->finance->requireModuleCapability($spaceId, $module,
+            $source === 'invoice' ? 'invoice.manage' : 'obligations.manage');
         $this->db->beginTransaction();
         try {
             $detail = $source === 'invoice'

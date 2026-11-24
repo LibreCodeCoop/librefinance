@@ -388,8 +388,8 @@ final class MovementImportService {
     }
 
     private function requireModules(int $spaceId): void {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
-        $this->finance->requireModule($spaceId, self::BANKING, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'imports.apply');
+        $this->finance->requireModuleCapability($spaceId, self::BANKING, 'bank.manage');
     }
 
     private static function identifier(mixed $value, int $max): bool {

@@ -42,7 +42,7 @@ final class ImportService {
      */
     public function coverage(int $spaceId, string $sourceCompanyId,
         string $sourceSystem = 'generic'): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'imports.read');
         if (!SourceSystem::valid($sourceSystem)
             || !self::identifier($sourceCompanyId, 64)) {
             throw new DomainException('invalid_import_source');
@@ -110,7 +110,7 @@ final class ImportService {
      */
     public function accountSnapshots(int $spaceId, string $sourceCompanyId,
         string $sourceSystem = 'generic', int $afterId = 0): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'imports.read');
         if (!SourceSystem::valid($sourceSystem)
             || !self::identifier($sourceCompanyId, 64)
             || $afterId < 0) {
@@ -194,7 +194,7 @@ final class ImportService {
 
     /** @return array<string,mixed> */
     public function preview(int $spaceId, string $exportJson): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'imports.read');
         $batch = $this->parse($exportJson);
         $existing = $this->existing($spaceId, $batch);
         return $this->inspect($spaceId, $batch, $existing);
@@ -202,7 +202,7 @@ final class ImportService {
 
     /** @return array<string,mixed> */
     public function apply(int $spaceId, string $exportJson, string $previewHash, bool $confirmed): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'imports.apply');
         if (!$confirmed) {
             throw new DomainException('import_confirmation_required');
         }

@@ -27,7 +27,7 @@ final class InvoiceService {
     ) {}
 
     public function list(int $spaceId,int $afterId=0,string $kind='',string $status=''):array {
-        $this->finance->requireModule($spaceId,self::MODULE);
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'invoice.read');
         if($afterId<0){throw new DomainException('invalid_cursor');}
         if($kind!=='' && !in_array($kind,['invoice','bill'],true)){
             throw new DomainException('invalid_invoice_kind');
@@ -85,7 +85,7 @@ final class InvoiceService {
     }
 
     public function show(int $spaceId,int $invoiceId):array {
-        $this->finance->requireModule($spaceId,self::MODULE);
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'invoice.read');
         $invoice=$this->find($spaceId,$invoiceId);
         if(!$invoice){throw new DomainException('invoice_not_found');}
         $q=$this->db->getQueryBuilder();
@@ -131,7 +131,7 @@ final class InvoiceService {
     public function create(int $spaceId,string $number,string $kind,int $contactId,
         string $issueOn,string $dueOn,array $lines,string $country,?string $region=null,
         array $customFields=[]):array {
-        $this->finance->requireModule($spaceId,self::MODULE,'operator');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'invoice.manage');
         $number=strtoupper(trim($number));
         if(!preg_match('~^[A-Z0-9_./:-]{2,80}$~',$number)){throw new DomainException('invalid_invoice_number');}
         if(!in_array($kind,['invoice','bill'],true)){throw new DomainException('invalid_invoice_kind');}
@@ -209,7 +209,7 @@ final class InvoiceService {
     }
 
     public function issue(int $spaceId,int $invoiceId):array {
-        $this->finance->requireModule($spaceId,self::MODULE,'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'invoice.issue');
         $this->db->beginTransaction();
         try{
             $inv=$this->find($spaceId,$invoiceId);
@@ -228,7 +228,7 @@ final class InvoiceService {
 
     public function allocate(int $spaceId,int $invoiceId,int $bankAccountId,
         int $journalId,int $amountMinor):array {
-        $this->finance->requireModule($spaceId,self::MODULE,'operator');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'invoice.manage');
         if($bankAccountId<=0||$journalId<=0||$amountMinor<=0
             ||$amountMinor>TaxCalculator::MAX_MINOR){throw new DomainException('invalid_allocation');}
         $this->db->beginTransaction();

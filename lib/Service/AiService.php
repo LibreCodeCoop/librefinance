@@ -32,7 +32,7 @@ final class AiService {
 
     /** @return array<string,mixed> */
     public function capabilities(int $spaceId): array {
-        $this->finance->requireModule($spaceId, 'librefinance_reports', 'manager');
+        $this->finance->requireModuleCapability($spaceId, 'librefinance_reports', 'reports.analyze');
         return [
             'available' => $this->available(),
             'taskType' => TextToText::ID,
@@ -50,7 +50,7 @@ final class AiService {
      * Auditors/viewers cannot request an AI task under another role.
      */
     public function preview(int $spaceId, string $from, string $through): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'reports.analyze');
         self::date($from);
         self::date($through);
         $start = new DateTimeImmutable($from);
@@ -76,7 +76,7 @@ final class AiService {
     /** @return array<string,mixed> */
     public function analyze(int $spaceId, string $from, string $through,
         bool $consent, string $previewHash = ''): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'reports.analyze');
         if (!$consent) {
             throw new DomainException('ai_consent_required');
         }
@@ -112,7 +112,7 @@ final class AiService {
 
     /** @return array<string,mixed> */
     public function status(int $spaceId, int $taskId): array {
-        $this->finance->requireModule($spaceId, 'librefinance_reports', 'manager');
+        $this->finance->requireModuleCapability($spaceId, 'librefinance_reports', 'reports.analyze');
         if ($taskId < 1) {
             throw new DomainException('ai_task_not_found');
         }

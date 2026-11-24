@@ -788,6 +788,105 @@ try {
             ($r['effectiveValue'] ?? null) === false
             && ($r['inherited'] ?? null) === true);
 
+    // Exercise the actual accountant/auditor role, not only a pending invitation.
+    instanceCheck('explicitly re-enable external sharing for auditor fixture',
+        'PUT', '/saas/v1/admin/policies/externalSharing.enabled',
+        ['valueJson' => 'true', 'expectedRevision' => 3], 200);
+    $t->check('owner re-invites external auditor with current revision', $a,
+        'POST', $invitationPath,
+        ['recipientUid' => $recipientUid, 'role' => 'auditor',
+            'expiresAt' => time() + 3600, 'expectedRevision' => 5], 201,
+        static fn(array $r): bool => ($r['revision'] ?? null) === 6);
+    instanceCheck('auditor accepts current invitation explicitly',
+        'POST', $recipientAcceptPath, ['expectedRevision' => 6], 200,
+        static fn(array $r): bool => ($r['status'] ?? null) === 'accepted'
+            && ($r['role'] ?? null) === 'auditor' && ($r['revision'] ?? null) === 7);
+    instanceCheck('external auditor reads invited ledger',
+        'GET', '/spaces/' . $spaceA . '/journals', null, 200);
+    instanceCheck('external auditor reads invited trial balance',
+        'GET', '/spaces/' . $spaceA . '/trial-balance?through=2026-12-31', null, 200);
+    instanceCheck('external auditor is not granted the second book',
+        'GET', '/spaces/' . $spaceA2 . '/journals', null, 404);
+    instanceCheck('external auditor is not granted another tenant',
+        'GET', '/spaces/' . $spaceB . '/journals', null, 404);
+    instanceCheck('external auditor sees its precise non-elevated workspace role',
+        'GET', '/spaces', null, 200,
+        static fn(array $r): bool =>
+            count(array_filter($r['spaces'] ?? [],
+                static fn(array $s): bool => (int)$s['id'] === $spaceA
+                    && ($s['externalInvitation'] ?? false) === true
+                    && ($s['role'] ?? null) === 'auditor')) === 1
+            && !in_array($spaceA2, array_column($r['spaces'] ?? [], 'id'), true)
+            && !in_array($spaceB, array_column($r['spaces'] ?? [], 'id'), true));
+    instanceCheck('external auditor cannot post journals',
+        'POST', '/spaces/' . $spaceA . '/journals',
+        ['debitId' => 1, 'creditId' => 2, 'amountMinor' => 200,
+            'date' => '2026-11-23', 'memo' => 'Forbidden auditor posting',
+            'externalKey' => 'external-auditor-denied'], 403);
+    instanceCheck('external auditor cannot manage invitations',
+        'GET', $invitationPath, null, 403);
+    instanceCheck('external auditor cannot edit dashboard preferences',
+        'PUT', '/spaces/' . $spaceA . '/dashboard-layout', ['widgets' => []], 403);
+    instanceCheck('parent policy disables already accepted external auditor',
+        'PUT', '/saas/v1/admin/policies/externalSharing.enabled',
+        ['valueJson' => 'false', 'expectedRevision' => 4], 200);
+    instanceCheck('accepted auditor loses read access on next request',
+        'GET', '/spaces/' . $spaceA . '/journals', null, 404);
+    instanceCheck('disabled external grant is removed from workspace selector',
+        'GET', '/spaces', null, 200,
+        static fn(array $r): bool =>
+            !in_array($spaceA, array_column($r['spaces'] ?? [], 'id'), true));
+    instanceCheck('explicitly restore external policy for expiry test',
+        'PUT', '/saas/v1/admin/policies/externalSharing.enabled',
+        ['valueJson' => 'true', 'expectedRevision' => 5], 200);
+    instanceCheck('unexpired accepted grant restores the same scoped role',
+        'GET', '/spaces/' . $spaceA . '/journals', null, 200);
+
+    // Do not sleep or manipulate a shared system clock. Expire precisely
+    // this already accepted, synthetic grant in the disposable test database.
+    $q = \OC::$server->get(\OCP\IDBConnection::class)->getQueryBuilder();
+    $changed = $q->update('lf_saas_external_grants')
+        ->set('expires_at', $q->createNamedParameter(time() - 1, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT))
+        ->where($q->expr()->eq('id', $q->createNamedParameter($inviteId, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)))
+        ->andWhere($q->expr()->eq('space_id', $q->createNamedParameter($spaceA, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)))
+        ->andWhere($q->expr()->eq('recipient_uid', $q->createNamedParameter($recipientUid)))
+        ->andWhere($q->expr()->eq('role', $q->createNamedParameter('auditor')))
+        ->andWhere($q->expr()->eq('status', $q->createNamedParameter('accepted')))
+        ->andWhere($q->expr()->eq('revision', $q->createNamedParameter(7, \OCP\DB\QueryBuilder\IQueryBuilder::PARAM_INT)))
+        ->executeStatement();
+    saasCheck('exactly one synthetic accepted auditor grant expired', $changed === 1);
+    instanceCheck('expired accepted auditor is denied without cleanup job',
+        'GET', '/spaces/' . $spaceA . '/journals', null, 404);
+    instanceCheck('expired grant removed from workspace selector',
+        'GET', '/spaces', null, 200,
+        static fn(array $r): bool =>
+            !in_array($spaceA, array_column($r['spaces'] ?? [], 'id'), true));
+    instanceCheck('expired grant omitted from recipient invitations',
+        'GET', '/saas/v1/invitations', null, 200,
+        static fn(array $r): bool => ($r['invitations'] ?? null) === []);
+    instanceCheck('disable external policy before final owner revocation',
+        'PUT', '/saas/v1/admin/policies/externalSharing.enabled',
+        ['valueJson' => 'false', 'expectedRevision' => 6], 200);
+    $t->check('owner may revoke expired accepted grant under disabled policy',
+        $a, 'DELETE', $invitationPath . '/' . $inviteId . '?expectedRevision=7',
+        null, 200, static fn(array $r): bool =>
+            ($r['status'] ?? null) === 'revoked' && ($r['revision'] ?? null) === 8);
+    $t->check('external audit preserves original history and auditor acceptance',
+        $a, 'GET', $invitationPath . '/history', null, 200,
+        static fn(array $r): bool =>
+            count($r['events'] ?? []) === 8
+            && ($r['events'][6]['action'] ?? null) === 'accepted'
+            && ($r['events'][6]['actorUid'] ?? null) === $recipientUid
+            && ($r['events'][7]['action'] ?? null) === 'revoked'
+            && ($r['events'][7]['actorUid'] ?? null) === $a
+            && count(array_filter($r['events'], static fn(array $e): bool =>
+                ($e['grantId'] ?? null) === $inviteId)) === 8);
+    instanceCheck('restore default-deny after auditor expiry fixture',
+        'DELETE', '/saas/v1/admin/policies/externalSharing.enabled?expectedRevision=7',
+        null, 200, static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === false
+            && ($r['inherited'] ?? null) === true);
+
     $accounts = $t->check('A can list its ledger accounts', $a, 'GET',
         '/spaces/' . $spaceA . '/accounts', null, 200,
         static fn(array $r): bool => count($r['accounts'] ?? []) === 4);

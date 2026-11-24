@@ -137,6 +137,9 @@ final class AccessService {
 
     public function requireRole(int $spaceId, string $minRole = 'viewer'): string {
         $uid = $this->uid();
+        if (!isset(self::LEVELS[$minRole])) {
+            throw new DomainException('invalid_role');
+        }
         $qb = $this->db->getQueryBuilder();
         $qb->select('owner_uid', 'archived')->from('lf_spaces')
             ->where($qb->expr()->eq('id', $qb->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));

@@ -32,10 +32,15 @@ final class FinanceApi {
         $this->modules->requireEnabled($spaceId, $moduleId, $role);
     }
 
+    /** Check an explicit financial operation as well as module availability and policy. */
+    public function requireModuleCapability(int $spaceId, string $moduleId, string $capability): void {
+        $this->modules->requireEnabledForCapability($spaceId, $moduleId, $capability);
+    }
+
     /** A durable core-owned reference to a posted journal, inside the caller's transaction. */
     public function claimJournal(int $spaceId, string $moduleId, int $journalId,
         string $reference): void {
-        $this->requireModule($spaceId, $moduleId, 'operator');
+        $this->requireModuleCapability($spaceId, $moduleId, 'ledger.post');
         $this->claims->claim($spaceId, $journalId, $moduleId, $reference);
     }
 
@@ -43,7 +48,7 @@ final class FinanceApi {
     /** Check a legal-identity collision in ONE authorized finance space. */
     public function importCompanyTaxIdInUse(int $spaceId, string $moduleId,
         string $country, string $taxId): bool {
-        $this->requireModule($spaceId, $moduleId, 'manager');
+        $this->requireModuleCapability($spaceId, $moduleId, 'imports.read');
         $q = $this->db->getQueryBuilder();
         $q->select('id')->from('lf_companies')
             ->where($q->expr()->eq('space_id',
@@ -59,7 +64,7 @@ final class FinanceApi {
     public function importCompany(int $spaceId, string $moduleId, string $legalName,
         string $country, ?string $taxId, ?string $tradeName,
         ?string $municipalRegistration, ?string $stateRegistration): array {
-        $this->requireModule($spaceId, $moduleId, 'manager');
+        $this->requireModuleCapability($spaceId, $moduleId, 'imports.apply');
         return $this->companies->create($spaceId, $legalName, $country,
             $taxId, $tradeName, $municipalRegistration, $stateRegistration);
     }
@@ -71,7 +76,7 @@ final class FinanceApi {
      */
     public function importLiquidAccount(int $spaceId, string $moduleId,
         string $code, string $name, string $currency, bool $active): array {
-        $this->requireModule($spaceId, $moduleId, 'manager');
+        $this->requireModuleCapability($spaceId, $moduleId, 'imports.apply');
         if ($currency !== $this->currency($spaceId, $moduleId)) {
             throw new DomainException('import_currency_mismatch');
         }
@@ -81,7 +86,7 @@ final class FinanceApi {
     /** Existing account codes include disabled accounts: never claim availability. */
     public function importLiquidAccountCodes(int $spaceId, string $moduleId,
         array $codes): array {
-        $this->requireModule($spaceId, $moduleId, 'manager');
+        $this->requireModuleCapability($spaceId, $moduleId, 'imports.read');
         $codes = array_values(array_unique($codes));
         if ($codes === []) { return []; }
         if (count($codes) > 100) { throw new DomainException('invalid_import_batch'); }
@@ -100,18 +105,18 @@ final class FinanceApi {
 
     public function importContact(int $spaceId, string $moduleId, string $name,
         string $kind, ?string $email, ?string $taxId): array {
-        $this->requireModule($spaceId, $moduleId, 'manager');
+        $this->requireModuleCapability($spaceId, $moduleId, 'imports.apply');
         return $this->catalog->createContact($spaceId, $name, $kind, $email, $taxId);
     }
 
     public function importCategory(int $spaceId, string $moduleId, string $code,
         string $name, string $kind, ?int $parentId, ?int $accountId): array {
-        $this->requireModule($spaceId, $moduleId, 'manager');
+        $this->requireModuleCapability($spaceId, $moduleId, 'imports.apply');
         return $this->categories->create($spaceId, $code, $name, $kind, $parentId, $accountId);
     }
 
     public function accountIdByCode(int $spaceId, string $moduleId, string $code): int {
-        $this->requireModule($spaceId, $moduleId, 'manager');
+        $this->requireModuleCapability($spaceId, $moduleId, 'imports.read');
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'active')->from('lf_accounts')
             ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
@@ -129,7 +134,7 @@ final class FinanceApi {
      * @return array<string,array{id:int,class:string}>
      */
     public function importAccountCodes(int $spaceId, string $moduleId, array $codes): array {
-        $this->requireModule($spaceId, $moduleId, 'manager');
+        $this->requireModuleCapability($spaceId, $moduleId, 'imports.read');
         $codes = array_values(array_unique($codes));
         if ($codes === []) {
             return [];
@@ -162,7 +167,7 @@ final class FinanceApi {
      * @return array<string,int>
      */
     public function importCategoryCodes(int $spaceId, string $moduleId, array $codes): array {
-        $this->requireModule($spaceId, $moduleId, 'manager');
+        $this->requireModuleCapability($spaceId, $moduleId, 'imports.read');
         $codes = array_values(array_unique($codes));
         if ($codes === []) {
             return [];
@@ -184,7 +189,7 @@ final class FinanceApi {
     }
 
     public function currency(int $spaceId, string $moduleId): string {
-        $this->requireModule($spaceId, $moduleId);
+        $this->requireModuleCapability($spaceId, $moduleId, 'workspace.read');
         $q = $this->db->getQueryBuilder();
         $q->select('currency')->from('lf_spaces')
             ->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
@@ -201,7 +206,7 @@ final class FinanceApi {
      */
     public function requireCompanyCnpj(int $spaceId, string $moduleId,
         int $companyId, string $issuerCnpj): void {
-        $this->requireModule($spaceId, $moduleId, 'operator');
+        $this->requireModuleCapability($spaceId, $moduleId, 'companies.resolve');
         if ($companyId < 1 || !preg_match('/^[0-9]{14}$/D', $issuerCnpj)) {
             throw new DomainException('invalid_company_issuer');
         }
@@ -219,7 +224,7 @@ final class FinanceApi {
     }
 
     public function requireActiveContact(int $spaceId, string $moduleId, int $contactId): void {
-        $this->requireModule($spaceId, $moduleId);
+        $this->requireModuleCapability($spaceId, $moduleId, 'contacts.read');
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'active')->from('lf_contacts')
             ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
@@ -238,7 +243,7 @@ final class FinanceApi {
      * @return array<int,string> account ID => currency
      */
     public function requireBankImportAccounts(int $spaceId, string $moduleId, array $ids): array {
-        $this->requireModule($spaceId, $moduleId, 'manager');
+        $this->requireModuleCapability($spaceId, $moduleId, 'bank.manage');
         $ids = array_values(array_unique($ids));
         if ($ids === [] || count($ids) > 100) {
             throw new DomainException('invalid_import_batch');
@@ -268,7 +273,7 @@ final class FinanceApi {
     }
 
     public function requireBankAccount(int $spaceId, string $moduleId, int $accountId): string {
-        $this->requireModule($spaceId, $moduleId, 'operator');
+        $this->requireModuleCapability($spaceId, $moduleId, 'bank.use');
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'currency', 'active', 'is_bank')->from('lf_accounts')
             ->where($q->expr()->eq('id', $q->createNamedParameter($accountId, IQueryBuilder::PARAM_INT)))
@@ -290,7 +295,7 @@ final class FinanceApi {
      */
     public function reserveBankAccountsForWrite(int $spaceId, string $moduleId,
         array $accountIds): array {
-        $this->requireModule($spaceId, $moduleId, 'operator');
+        $this->requireModuleCapability($spaceId, $moduleId, 'bank.use');
         if (!$this->db->inTransaction()) {
             throw new \LogicException('bank_reference_guard_requires_transaction');
         }
@@ -327,7 +332,7 @@ final class FinanceApi {
 
     /** Returns net revenue and expenses for a period. Amounts use integer minor units. */
     public function profitLoss(int $spaceId, string $moduleId, string $from, string $through): array {
-        $this->requireModule($spaceId, $moduleId);
+        $this->requireModuleCapability($spaceId, $moduleId, 'reports.read');
         self::date($from);
         self::date($through);
         if ($through < $from) {
@@ -365,7 +370,7 @@ final class FinanceApi {
      */
     public function cashFlow(int $spaceId, string $moduleId,
         string $from, string $through): array {
-        $this->requireModule($spaceId, $moduleId);
+        $this->requireModuleCapability($spaceId, $moduleId, 'reports.read');
         self::date($from);
         self::date($through);
         if ($through < $from) {
@@ -437,7 +442,7 @@ final class FinanceApi {
     /** Paginated chart of account balances as of a date. Empty accounts are included. */
     public function trialBalance(int $spaceId, string $moduleId, string $through,
         int $afterId = 0, ?string $accountClass = null): array {
-        $this->requireModule($spaceId, $moduleId);
+        $this->requireModuleCapability($spaceId, $moduleId, 'reports.read');
         self::date($through);
         if ($accountClass !== null && !in_array($accountClass,
             ['asset', 'liability', 'equity', 'revenue', 'expense'], true)) {

@@ -113,3 +113,14 @@ The UI still uses a fixed map of approved screens. Versioned safe third-party
 UI extension points, l10n (including English), multi-currency conversion,
 live banking, fiscal homologation and accounting certification are **future
 work**, not delivered by the consolidation.
+
+
+### Named operation authorization
+
+Existing optional apps may continue to call `FinanceApi::requireModule()`
+with a valid minimum role. New core operations use
+`requireModuleCapability(spaceId, moduleId, capability)`, which checks
+financial authority, installed module minimum, per-space enablement and
+effective policy. Report and import operations additionally require their
+own canonical domain to be enabled, independently of the caller module.
+No unknown role or capability is implicitly a viewer.

@@ -18,7 +18,7 @@ final class TaxService {
         private IUserSession $session) {}
 
     public function list(int $spaceId,int $afterId=0):array {
-        $this->finance->requireModule($spaceId,self::MODULE);
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'invoice.read');
         if ($afterId<0) {throw new DomainException('invalid_cursor');}
         $q=$this->db->getQueryBuilder();
         $q->select('id','code','label','country','region','kind','rate_bps','inclusive',
@@ -37,7 +37,7 @@ final class TaxService {
     public function create(int $spaceId,string $code,string $label,string $country,
         string $kind,int $rateBps,bool $inclusive,string $validFrom,
         ?string $validThrough=null,?string $region=null,string $sourceRef=''):array {
-        $this->finance->requireModule($spaceId,self::MODULE,'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'invoices.tax.manage');
         $code=strtoupper(trim($code));
         $label=trim($label);
         $country=strtoupper(trim($country));
@@ -150,7 +150,7 @@ final class TaxService {
 
     public function ruleForDate(int $spaceId,int $ruleId,string $date,
         string $country,?string $region):array {
-        $this->finance->requireModule($spaceId,self::MODULE);
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'invoice.read');
         self::date($date);
         $q=$this->db->getQueryBuilder();
         $q->select('id','code','label','country','region','kind','rate_bps','inclusive',
