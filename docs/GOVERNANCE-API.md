@@ -265,6 +265,36 @@ Convites **externos** ainda exigem um fluxo próprio com política
 revogação efetiva. A API de membros internos não substitui esse fluxo e
 não deve ser usada para criar concessões antecipadas ou dormentes.
 
+### Revisão atômica das concessões internas SaaS
+
+Para livros vinculados a ambientes SaaS, a leitura autenticada
+`GET /api/spaces/{spaceId}/members` fornece `members` e
+`grantRevision` (inteiro, inicialmente 0). As rotas existentes continuam
+sendo usadas, mas **escritas SaaS exigem uma precondição de revisão**:
+
+- `POST /api/spaces/{spaceId}/members` recebe `uid`, `role` e
+  `expectedRevision` no corpo da requisição.
+- `DELETE /api/spaces/{spaceId}/members/{uid}?expectedRevision=N`
+  recebe a revisão na query string.
+
+Uma concessão ou revogação válida avança a revisão exatamente uma vez.
+A precondição ausente retorna HTTP 428 (`grant_revision_required`), e
+uma revisão já consumida retorna HTTP 409 (`revision_conflict`) sem
+modificar o membro nem o registro de auditoria. Duas alterações simultâneas
+com a mesma revisão não podem ambas ser aceitas. A revisão pertence ao
+**livro financeiro**, não à identidade Nextcloud, e permanece válida mesmo
+depois da revogação do último participante para impedir reativações obsoletas.
+
+Os papéis e as permissões do autor e do destinatário são revalidados
+servidor-side; informar uma revisão correta **não autoriza a operação**.
+A interface recarrega a lista para obter a nova revisão. O esquema usa
+`lf_environment_spaces.grants_revision`, acrescentado por migration
+imutável, sem transferir livros ou reclassificar companhias legadas.
+Gestões pessoais e antigas rotas fora do SaaS preservam o contrato de
+membros sem revisão obrigatória. A proteção não equivale a um convite
+externo: este possui política, ciclo de aceitação, expiração e auditoria
+separados.
+
 ### Auditoria administrativa de ambientes SaaS
 
 O administrador da instância pode consultar o histórico dos ambientes sem

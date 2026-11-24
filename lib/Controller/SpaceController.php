@@ -68,7 +68,7 @@ final class SpaceController extends ApiController {
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/members')]
     public function members(int $spaceId): JSONResponse {
-        return $this->respond(fn() => ['members' => $this->spaces->members($spaceId)]);
+        return $this->respond(fn() => $this->spaces->membersWithRevision($spaceId));
     }
 
     /**
@@ -76,9 +76,10 @@ final class SpaceController extends ApiController {
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/members')]
-    public function share(int $spaceId, string $uid, string $role = 'viewer'): JSONResponse {
-        return $this->respond(function () use ($spaceId, $uid, $role): array {
-            $this->spaces->shareUser($spaceId, $uid, $role);
+    public function share(int $spaceId, string $uid, string $role = 'viewer',
+        int $expectedRevision = -1): JSONResponse {
+        return $this->respond(function () use ($spaceId, $uid, $role, $expectedRevision): array {
+            $this->spaces->shareUser($spaceId, $uid, $role, $expectedRevision);
             return ['ok' => true];
         });
     }
@@ -109,9 +110,9 @@ final class SpaceController extends ApiController {
      */
     #[\OCP\AppFramework\Http\Attribute\NoAdminRequired]
     #[FrontpageRoute(verb: 'DELETE', url: '/api/spaces/{spaceId}/members/{uid}')]
-    public function unshare(int $spaceId, string $uid): JSONResponse {
-        return $this->respond(function () use ($spaceId, $uid): array {
-            $this->spaces->revokeUser($spaceId, $uid);
+    public function unshare(int $spaceId, string $uid, int $expectedRevision = -1): JSONResponse {
+        return $this->respond(function () use ($spaceId, $uid, $expectedRevision): array {
+            $this->spaces->revokeUser($spaceId, $uid, $expectedRevision);
             return ['ok' => true];
         });
     }

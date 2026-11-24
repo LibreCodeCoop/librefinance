@@ -26,6 +26,7 @@ abstract class ApiController extends Controller {
             $code = $e->getMessage();
             $status = match ($code) {
                 'authentication_required' => 401,
+                'grant_revision_required' => 428,
                 'permission_denied', 'self_promotion_forbidden' => 403,
                 'invitation_not_found', 'unknown_policy_key', 'environment_not_found', 'space_not_found', 'account_not_found', 'bank_account_not_found', 'payment_account_not_found', 'journal_not_found', 'group_not_found', 'user_not_found', 'membership_not_found', 'contact_not_found', 'item_not_found', 'company_not_found', 'company_logo_not_found', 'account_logo_not_found', 'payment_method_not_found', 'custom_field_not_found', 'module_not_found', 'category_parent_not_found', 'category_not_found' => 404,
                 'invitation_conflict', 'invitation_expired', 'revision_conflict', 'provision_conflict', 'workspace_limit_exceeded', 'governance_group_conflict', 'category_code_conflict', 'company_workspace_occupied', 'company_tax_id_conflict', 'custom_field_key_conflict', 'ai_preview_changed' => 409,

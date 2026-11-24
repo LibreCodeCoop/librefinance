@@ -24,8 +24,9 @@ Tabelas no banco do Nextcloud, com prefixo da instalação (por exemplo `oc_`); 
 | Tabela lógica | Chaves / propriedades importantes | Invariante |
 | --- | --- | --- |
 | lf_spaces | id, kind, currency, owner_uid, archived | Unidade de isolamento financeiro |
-| lf_members | space_id, uid, role | Único por espaço/usuário |
+| lf_members | space_id, uid, role | Único por espaço/usuário; somente papéis financeiros explícitos no SaaS |
 | lf_group_grants | space_id, group_gid, role | Único por espaço/grupo, grupo real do Nextcloud |
+| lf_environment_spaces | environment_id, space_id, review_state, grants_revision | Vínculo SaaS com ID único por livro; revisão monótona para CAS de concessões internas, default 0 |
 | lf_accounts | space_id, code, class, currency, is_bank | Código único por espaço |
 | lf_journals | space_id, external_key, request_hash, effective_on, reversed_journal_id, category_id | Chave de idempotência única por espaço, referência opcional à categoria hierárquica persistida |
 | lf_postings | journal_id, account_id, space_id, amount_minor, currency | Lançamentos por partidas dobradas |

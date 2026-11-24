@@ -49,7 +49,7 @@ $writeForms = [
     'librefinance:governance#provision' => 'name:s!,kind:s!,gid:s!,currency:s',
     'librefinance:governance#bind' => 'gid:s!',
     'librefinance:governance#grantDelegate' => 'uid:s!',
-    'librefinance:space#share' => 'uid:s!,role:s!',
+    'librefinance:space#share' => 'uid:s!,role:s!,expectedRevision:i',
     'librefinance:space#shareGroup' => 'gid:s!,role:s!',
     'librefinance:account#create' => 'code:s!,name:s!,class:s!,isBank:b,bankDetails:object',
     'librefinance:companyLogo#upload' => 'imageBase64:s!',
@@ -122,6 +122,7 @@ $noBody = [
     'librefinance:invoice#issue',
 ];
 $query = [
+    'librefinance:space#unshare' => 'expectedRevision:i',
     'librefinance:saasPolicy#clear' => 'expectedRevision:i!',
     'librefinance:saasPolicy#clearEnvironment' => 'expectedRevision:i!',
     'librefinance:saasPolicy#clearWorkspace' => 'expectedRevision:i!',
@@ -496,6 +497,11 @@ foreach ($apps as $app) {
                         'required' => $fields['required'],
                         'additionalProperties' => false],
                 ]],
+            ];
+        }
+        if (in_array($key, ['librefinance:space#share', 'librefinance:space#unshare'], true)) {
+            $operation['responses']['428'] = [
+                'description' => 'A SaaS internal grant mutation requires the current grant revision',
             ];
         }
         if ($key === 'librefinance:mcp#handle') {
