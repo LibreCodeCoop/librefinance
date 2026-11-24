@@ -8,7 +8,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 LibreFinance uses the Nextcloud language preference. English source messages
 are the fallback; the Brazilian Portuguese catalog is in `l10n/pt_BR.json`
 and `l10n/pt_BR.js`. The application shell, navigation/search labels, amount-validation messages,
-instance administration, SaaS policy editor, environment provisioning, external invitation panels, bank and chart-of-accounts screens, categories, contacts, item catalog, reusable custom-field panels and shortcuts, and shared sortable headers use this mechanism. Ledger amount presentation respects the Nextcloud locale while retaining the stored base-100 BRL semantics. Other existing screens still
+instance administration, SaaS policy editor, environment provisioning, external invitation panels, bank and chart-of-accounts screens, categories, contacts, item catalog, report templates and saved-report configuration, reusable custom-field panels and shortcuts, and shared sortable headers use this mechanism. Ledger amount presentation respects the Nextcloud locale while retaining the stored base-100 BRL semantics. Other existing screens still
 need migration from literal messages; these catalogs do not imply full
 translation of the application.
 
