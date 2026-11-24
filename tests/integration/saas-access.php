@@ -279,7 +279,12 @@ try {
         ['valueJson' => '["ofx"]', 'expectedRevision' => 0], 409);
     $t->check('workspace cannot invent a new bank import format', $a,
         'PUT', $bankFormatPathA1,
-        ['valueJson' => '["csv","xml"]', 'expectedRevision' => 1], 403);
+        ['valueJson' => '["csv","xml"]', 'expectedRevision' => 1], 422,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'invalid_policy_value');
+    $t->check('invalid bank format leaves the workspace restriction unchanged', $a,
+        'GET', $bankFormatPathA1, null, 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === ['csv']
+            && ($r['revision'] ?? null) === 1);
     $bankAccountsA1 = $t->check('A1 banking policy test reads its chart', $a,
         'GET', '/spaces/' . $spaceA . '/accounts', null, 200);
     $bankByCodeA1 = array_column($bankAccountsA1['accounts'] ?? [], 'id', 'code');
