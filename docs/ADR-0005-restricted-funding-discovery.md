@@ -7,7 +7,9 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 **Status:** proposed at the discovery gate for #74; requirements and acceptance
 examples, not a deployed domain or a frozen API. The evidence base is the
-core implementation at revision `25096a5e570d5a65d763ad3d0e1b4dc3799e4b1d`.
+core implementation at revision `25096a5e570d5a65d763ad3d0e1b4dc3799e4b1d`,
+rechecked at `c8c7de5629930c3acb461fa1f82ba941adafdf13` after the named
+financial capability and independent company-ledger changes.
 The decisions below must be revalidated against the completed core currency,
 accounting, budget, treasury and extension contracts before implementation.
 
@@ -41,9 +43,16 @@ eligibility and review steps must not encode one jurisdiction's law.
 | `LedgerService::createJournal`, `reverse`, journal/account queries | Ledger remains the sole authoritative posted record. Reference identifiers, do not write core tables or change a posted fact to correct a report. |
 | `PaymentWorkflowService::forInvoice`, `forObligation`, `linkExistingObligation`; existing obligations and movement reconciliation | Partial payments and reconciliation supply actual evidence. Atomic allocation/reservation release still depends on the planned core budget/treasury contract; cannot wrap an existing payment call and reserve later. |
 | `ActivityFeedService::list`, existing account/obligation/document views and filters | Reuse navigation and authorized drill-down; the feed's planned/pending rows do not count as posted cash. It is not a budget availability engine. |
-| `ModuleService::requireEnabled` and workspace enablement | Optional capability visibility; cannot substitute for operation-level authority or establish a stable external extension ABI. |
+| `ModuleService::requireEnabled` and `requireEnabledForCapability` | Optional capability visibility; cannot substitute for operation-level authority or establish a stable external extension ABI. |
 | Existing integer money and workspace currency | Reuse exact monetary values. Multi-currency rate policy, reporting consolidation, period locking, budget dimensions, immutable report snapshots and extension contracts still need #44, #45, #47, #48, #49. |
 | Nextcloud Files, authentication and optional signature integration | Candidate evidence references and permission revalidation; exact storage and snapshot/signature lifecycle must be qualified. A combined PDF is a derivative, not the original signature. |
+
+The recheck confirms the named capabilities, module descriptor minimum,
+policy gate and transaction-bound payment service exist. The core still
+restricts new ledgers to BRL and does not supply a budget reservation or
+period-closing runtime contract. External extension capabilities and
+versioned fiscal/report snapshots remain future contracts; do not treat
+reserved capability names as callable APIs.
 
 Core work must provide exact amounts, versioned budgets, atomic reservation,
 release and settlement allocation, periods and report snapshots. No parallel
@@ -83,7 +92,14 @@ For each approved source/line/currency at a declared version and basis:
 
 Use the hand-calculated fixtures under `tests/acceptance/restricted-funding`.
 All parties, amounts and evidence are synthetic. The fixture assertions
-check the expected arithmetic, not a runtime implementation.
+check expected arithmetic and internal fixture consistency, not a runtime implementation.
+The machine-readable `workflow-cases.json` adds 15 explicit actor/workspace/
+action/condition/expected-outcome records, two configuration examples,
+immutable review versions, content digests and a public field allowlist.
+Future runtime tests must instantiate these cases and observe actual
+permissions, persistence, revocation and publication behavior.
+Run `python3 tests/acceptance/restricted-funding/verify-fixtures.py` to verify
+fixture consistency; the core contract CI executes this check.
 
 1. Source A budget USD 1,000.00; B USD 400.00; own contribution EUR 300.00.
    Reserve USD 600.00 (A 450/B 150); settle USD 240.00 (A 180/B 60).

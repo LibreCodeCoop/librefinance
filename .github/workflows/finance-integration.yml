@@ -37,6 +37,8 @@ jobs:
       - run: npm ci --include=dev
       - run: npm test
       - run: python3 tests/ci/coverage-inventory.py
+      - name: Verify synthetic restricted-funding acceptance fixtures (not runtime)
+        run: python3 tests/acceptance/restricted-funding/verify-fixtures.py
       - run: php tests/openapi/generate.php --check
       - run: npm run test:openapi
       - run: npm run build
