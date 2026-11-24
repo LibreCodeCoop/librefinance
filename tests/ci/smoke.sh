@@ -462,6 +462,14 @@ if [ "${LF_RUN_PLAYWRIGHT:-0}" = 1 ]; then
   # group after the finance and authorization suites have finished.
   # Group eligibility is not a financial grant or workspace membership.
   compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_finance_group lfmaintestA
+  # Independent real SaaS browser fixtures. The test enables governance only
+  # during its own scenario and restores it in finally. These groups exist
+  # only inside the fresh disposable installation, never a live instance.
+  for browser_group in lf_synth_browser_A lf_synth_browser_B; do
+    compose exec -T --user www-data nextcloud php occ group:add "$browser_group"
+    compose exec -T --user www-data nextcloud php occ group:adduser "$browser_group" lfmaintestA
+    compose exec -T --user www-data nextcloud php occ group:adduser "$browser_group" lfmaintestB
+  done
   test -x node_modules/.bin/playwright || {
     echo "Missing Playwright dependency: run npm ci --include=dev" >&2
     exit 2
@@ -490,7 +498,7 @@ if [ "${LF_RUN_PLAYWRIGHT:-0}" = 1 ]; then
   for shard in $shards; do
     echo "Running real Chromium Playwright shard $shard (synthetic test users)"
     LF_E2E_URL="http://127.0.0.1:$port" LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
-      LF_E2E_SHARD="${shard/\//-}" npx playwright test --shard="$shard" "${extra_args[@]}"
+      LF_SYNTHETIC_SAAS_BROWSER=yes LF_E2E_SHARD="${shard/\//-}" npx playwright test --shard="$shard" "${extra_args[@]}"
   done
   echo "PASS: Both Chromium Playwright shards completed."
 fi

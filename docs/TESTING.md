@@ -82,6 +82,36 @@ instalação padrão `npx playwright install --with-deps chromium`.
 automáticos por padrão; relatórios JSON e diretório de testes ficam
 ignorados no Git para não expor capturas ou dados fictícios em PRs.
 
+### Matriz de autorização SaaS no navegador
+
+Além dos testes de apresentação Vue que isolam o contrato visual com
+respostas simuladas, `tests/e2e/saas-real-authority.spec.mjs` usa três
+sessões Nextcloud independentes, cookies e token CSRF reais, dois ambientes
+e três livros jurídicos independentes. O laboratório cria grupos exclusivos
+para esse caso e fornece a credencial temporária da instância apenas ao
+processo de teste. O cenário exige opt-in explícito, restringe a URL ao
+loopback e restaura a configuração de governança em `finally`.
+
+| Ator | Ambiente/livro | Operação real | Resultado exigido |
+| --- | --- | --- | --- |
+| Delegado B, sem papel financeiro | A/A1 | Consultar contas | 404, apenas código de erro |
+| Administrador da instância, sem concessão | A/A1 | Consultar lançamentos | 404, apenas código de erro |
+| Delegado A, sem papel financeiro | B/B1 | Consultar lançamentos | 404, apenas código de erro |
+| B, operador | A/A1 | Lançar e consultar | 201/200; ação disponível na tela |
+| B, visualizador | A/A2 | Lançar | 403; ação ausente inclusive em tela móvel/escura |
+| B, operador de A1 | A/A1 com contas de A2 | Lançar com IDs forjados | 404, sem dados de A2 |
+| B, visualizador | A/A2 | Elevar a própria função | 403, sem alteração |
+| B, revogado de A1 e visualizador de A2 | A/A1 e A/A2 | Próxima consulta e URL direta | 404/200; A1 e seus lançamentos não aparecem |
+| A, proprietário | A/A1 | Consultar após revogar B | 200; lançamento original preservado |
+
+O teste compara os códigos HTTP e a apresentação dos registros na sessão
+real, sem interceptar respostas. Os testes PHP de integração continuam
+responsáveis pela cobertura mais ampla de todos os domínios instalados,
+corridas de concessões, políticas restritivas, convites, exclusão de
+grupo, arquivos, MCP, resultados assíncronos de IA e NFS-e de rascunho.
+A matriz acima é o critério executável, não uma certificação de produção
+ou de acessibilidade integral.
+
 ## Contrato das rotas declaradas nos controllers
 
 As rotas do núcleo (incluindo importação) e as rotas do aplicativo
