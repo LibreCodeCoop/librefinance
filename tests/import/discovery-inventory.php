@@ -21,7 +21,8 @@ final class FixtureDiscoverySource implements DiscoverySource {
         $resources = ['companies', 'currencies', 'taxes', 'accounts', 'bank_accounts', 'categories', 'items', 'contacts',
             'invoices', 'invoice_lines', 'bills', 'bill_lines', 'settlements', 'transactions',
             'transfers', 'reconciliations', 'payments', 'journal_entries', 'journal_lines',
-            'employees', 'departments', 'reports',
+            'employees', 'departments', 'funding_sources', 'budget_lines', 'budget_revisions',
+        'dimensions', 'commitments', 'funding_allocations', 'reports',
             'dashboard_settings', 'custom_fields', 'attachments', 'fiscal_artifacts', 'extension.example'];
         $this->metadata = ['sourceSystem' => 'synthetic', 'sourceVersion' => '1.2.3',
             'cutoff' => '2026-11-24T00:00:00Z', 'snapshotId' => 'private-snapshot-token',
@@ -134,6 +135,18 @@ foreach ([
 check('partial reference target remains unverified, not missing',
     result($m, 'A', 'invoice_lines')['unverifiedReferences'] === 3
     && result($m, 'A', 'invoice_lines')['unresolvedReferences'] === 0);
+$excluded = new FixtureDiscoverySource();
+$excluded->metadata['resources']['employees'] = 'excluded';
+foreach (['A','B','C'] as $workspace) {
+    $excluded->overrides[$workspace . '/employees'] = static fn() =>
+        throw new RuntimeException('Excluded collection must not be enumerated');
+}
+$excludedManifest = inventory($excluded);
+check('scope exclusion is neither an empty nor a retrieved collection',
+    !$excludedManifest['complete'] && result($excludedManifest, 'A', 'employees')['status'] === 'excluded'
+    && result($excludedManifest, 'A', 'employees')['count'] === null
+    && result($excludedManifest, 'A', 'employees')['sha256'] === null
+    && $excluded->requests === $source->requests - 3);
 $loop = new FixtureDiscoverySource();
 $loop->overrides['A/accounts'] = static fn($snapshot, $cursor) =>
     new DiscoveryPage('ok', $snapshot, [['id' => $cursor === null ? 'one' : 'two']], 'same');

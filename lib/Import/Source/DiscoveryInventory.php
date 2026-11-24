@@ -21,7 +21,8 @@ final class DiscoveryInventory {
         'companies', 'currencies', 'taxes', 'accounts', 'bank_accounts', 'categories', 'items', 'contacts',
         'invoices', 'invoice_lines', 'bills', 'bill_lines', 'settlements',
         'transactions', 'transfers', 'reconciliations', 'payments', 'journal_entries', 'journal_lines',
-        'employees', 'departments',
+        'employees', 'departments', 'funding_sources', 'budget_lines', 'budget_revisions',
+        'dimensions', 'commitments', 'funding_allocations',
         'reports', 'dashboard_settings', 'custom_fields', 'attachments', 'fiscal_artifacts',
     ];
     private const FAILURES = [
@@ -146,7 +147,7 @@ final class DiscoveryInventory {
         }
         foreach ($meta['resources'] as $resource => $status) {
             if (!$this->validResource($resource) || !in_array($status,
-                ['supported', 'unsupported', 'missing_capability'], true)) {
+                ['supported', 'unsupported', 'missing_capability', 'excluded'], true)) {
                 throw new RuntimeException('Invalid source discovery capability');
             }
         }

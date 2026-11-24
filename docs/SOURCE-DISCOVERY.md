@@ -50,6 +50,7 @@ financial values or source content.
 | empty | Explicit terminal page with zero observed records |
 | missing_capability | Adapter did not expose the resource capability |
 | unsupported | Adapter or source explicitly does not support the resource |
+| excluded | Operator-approved adapter scope explicitly omits the collection; collector does not enumerate it, and cannot claim complete source coverage |
 | access_denied | Current source authorization cannot enumerate the collection |
 | timeout / unavailable | Transport did not complete; exceptions are sanitized |
 | truncated | Nonterminating cursor, count mismatch, partial page or collection budget exhaustion |

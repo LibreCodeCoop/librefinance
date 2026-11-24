@@ -48,7 +48,8 @@
             "unsupported",
             "unavailable",
             "invalid_response",
-            "snapshot_changed"
+            "snapshot_changed",
+            "excluded"
           ]
         },
         "count": {
@@ -117,7 +118,8 @@
                   "unsupported",
                   "unavailable",
                   "invalid_response",
-                  "snapshot_changed"
+                  "snapshot_changed",
+                  "excluded"
                 ]
               }
             }
