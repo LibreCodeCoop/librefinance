@@ -26,12 +26,16 @@ if ($password === '') {
 $checks = 0;
 $t = new TestHarness();
 
-function instanceRequest(string $verb, string $path, ?array $data = null): array {
+function instanceRequest(string $verb, string $path, ?array $data = null, ?string $app = null): array {
     global $base, $password;
     if (!str_starts_with($path, '/') || str_contains($path, '..')) {
         throw new InvalidArgumentException('Unsafe synthetic path');
     }
-    $handle = curl_init($base . $path);
+    if ($app !== null && $app !== 'librefinance_nfse') {
+        throw new InvalidArgumentException('Unexpected synthetic optional app');
+    }
+    $api = $app === null ? $base : str_replace('/apps/librefinance/api', '/apps/librefinance_nfse/api', $base);
+    $handle = curl_init($api . $path);
     if (!$handle instanceof CurlHandle) {
         throw new RuntimeException('Cannot create local Nextcloud HTTP client');
     }
@@ -61,9 +65,9 @@ function instanceRequest(string $verb, string $path, ?array $data = null): array
 }
 
 function instanceCheck(string $name, string $verb, string $path, ?array $data,
-    int $expected, ?callable $validate = null): array {
+    int $expected, ?callable $validate = null, ?string $app = null): array {
     global $checks;
-    $result = instanceRequest($verb, $path, $data);
+    $result = instanceRequest($verb, $path, $data, $app);
     $valid = $result['code'] === $expected
         && ($validate === null || $validate($result['body']));
     echo $valid ? 'PASS: ' : 'FAIL: ', $name, ' (HTTP ', $result['code'], ')', PHP_EOL;
@@ -776,9 +780,16 @@ try {
         'POST', '/spaces/' . $spaceB . '/groups',
         ['gid' => $groupA, 'role' => 'viewer'], 403);
 
-    $t->check('A creates legal company linked to A1', $a, 'POST',
+    $syntheticCnpj = '999999990001';
+    foreach ([[5,4,3,2,9,8,7,6,5,4,3,2],[6,5,4,3,2,9,8,7,6,5,4,3,2]] as $weights) {
+        $sum = 0;
+        foreach ($weights as $i => $weight) $sum += (int)$syntheticCnpj[$i] * $weight;
+        $remainder = $sum % 11;
+        $syntheticCnpj .= (string)($remainder < 2 ? 0 : 11 - $remainder);
+    }
+    $companyA1 = $t->check('A creates legal company linked to A1', $a, 'POST',
         '/spaces/' . $spaceA . '/companies',
-        ['legalName' => 'Synthetic Example A', 'country' => 'BR'], 201);
+        ['legalName' => 'Synthetic Example A', 'country' => 'BR', 'taxId' => $syntheticCnpj], 201);
     $t->check('A1 cannot house a second unrelated legal company', $a, 'POST',
         '/spaces/' . $spaceA . '/companies',
         ['legalName' => 'Synthetic Example B', 'country' => 'BR'], 409);
@@ -798,6 +809,62 @@ try {
         static fn(array $r): bool => count($r['companies'] ?? []) === 1
             && ($r['companies'][0]['legal_name'] ?? '') === 'Synthetic Example A2'
             && ($r['companies'][0]['country'] ?? '') === 'PT');
+
+    // Test the actual optional app through its own authenticated HTTP routes,
+    // not just a core-side module flag. Core-only installation remains valid.
+    $withNfse = getenv('LF_WITH_EXTENSIONS') === '1';
+    if ($withNfse) {
+        $nfse = 'librefinance_nfse';
+        $draftA1 = '/spaces/' . $spaceA . '/drafts';
+        $draftA2 = '/spaces/' . $spaceA2 . '/drafts';
+        $draftB = '/spaces/' . $spaceB . '/drafts';
+        $nfsePayload = ['operationKey' => 'nfse:saas:A1', 'issuerCnpj' => $syntheticCnpj,
+            'municipalityCode' => '3304557', 'competence' => '2026-11-20', 'serviceCode' => '01.01',
+            'description' => 'Synthetic SaaS fiscal staging only', 'amountMinor' => 1234,
+            'companyId' => (int)$companyA1['id']];
+        $t->checkModule('SaaS financial owner stages a non-fiscal draft linked to A1', $a, $nfse,
+            'POST', $draftA1, $nfsePayload, 201,
+            static fn(array $r): bool => ($r['status'] ?? null) === 'draft'
+                && ($r['fiscalDocument'] ?? null) === false
+                && ($r['companyId'] ?? null) === (int)$companyA1['id']);
+        $t->checkModule('draft staging replay does not duplicate the record', $a, $nfse,
+            'POST', $draftA1, $nfsePayload, 200,
+            static fn(array $r): bool => ($r['replayed'] ?? null) === true);
+        $t->checkModule('environment administrator has no implicit fiscal draft read', $b, $nfse,
+            'GET', $draftA1, null, 404);
+        $t->checkModule('environment administrator has no implicit fiscal draft write', $b, $nfse,
+            'POST', $draftA1, [...$nfsePayload, 'operationKey'=>'nfse:saas:admin-denied'],404);
+        instanceCheck('instance administrator has no implicit fiscal draft read',
+            'GET', $draftA1, null, 404, null, $nfse);
+        $t->checkModule('same owner cannot link a foreign legal company in A2', $a, $nfse,
+            'POST', $draftA2, $nfsePayload, 404,
+            static fn(array $r): bool => ($r['error'] ?? null) === 'company_not_found');
+        $t->checkModule('other environment B cannot link A1 legal company', $b, $nfse,
+            'POST', $draftB, $nfsePayload, 404);
+        $t->checkModule('independent A2 draft list remains empty', $a, $nfse, 'GET', $draftA2,
+            null, 200, static fn(array $r): bool => ($r['drafts'] ?? null) === []);
+        $t->checkModule('independent B draft list remains empty', $b, $nfse, 'GET', $draftB,
+            null, 200, static fn(array $r): bool => ($r['drafts'] ?? null) === []);
+        $nfsePolicyA1 = '/saas/v1/workspaces/' . $spaceA . '/policies/regional.nfseDrafts.enabled';
+        $nfsePolicyEnvA = '/saas/v1/environments/' . $envA . '/policies/regional.nfseDrafts.enabled';
+        $t->check('financial owner disables fiscal drafts in A1 only', $a, 'PUT', $nfsePolicyA1,
+            ['valueJson'=>'false','expectedRevision'=>0], 200);
+        $t->checkModule('workspace restriction denies even own fiscal draft read', $a, $nfse,
+            'GET', $draftA1, null, 403);
+        $t->checkModule('workspace restriction denies draft creation', $a, $nfse,
+            'POST', $draftA1,[...$nfsePayload,'operationKey'=>'nfse:saas:policy-denied'],403);
+        $t->checkModule('sibling remains allowed under A1 restriction', $a, $nfse, 'GET', $draftA2,null,200);
+        $t->check('clear workspace fiscal draft restriction', $a,'DELETE',$nfsePolicyA1 . '?expectedRevision=1',null,200);
+        $t->check('environment manager disables fiscal staging throughout A', $b,'PUT',$nfsePolicyEnvA,
+            ['valueJson'=>'false','expectedRevision'=>0],200);
+        $t->checkModule('parent restriction denies sibling A2', $a,$nfse,'GET',$draftA2,null,403);
+        $t->checkModule('parent restriction does not affect environment B', $b,$nfse,'GET',$draftB,null,200);
+        $t->check('workspace cannot override environment fiscal restriction',$a,'PUT',$nfsePolicyA1,
+            ['valueJson'=>'true','expectedRevision'=>2],403);
+        $t->check('clear environment fiscal draft restriction',$b,'DELETE',$nfsePolicyEnvA . '?expectedRevision=1',null,200);
+        $t->checkModule('only original draft survives denied writes and policy restoration',$a,$nfse,'GET',$draftA1,null,200,
+            static fn(array $r): bool => count($r['drafts'] ?? []) === 1 && ($r['emissionAvailable'] ?? true) === false);
+    }
 
     $t->check('A cannot pre-grant an outsider a dormant SaaS finance role', $a,
         'POST', '/spaces/' . $spaceA . '/members',
@@ -855,6 +922,12 @@ try {
             'memo' => 'Forbidden viewer', 'externalKey' => 'saas-B-forged'], 403);
     $t->check('B cannot elevate itself to finance manager', $b, 'POST',
         '/spaces/' . $spaceA . '/members', ['uid' => $b, 'role' => 'manager'], 403);
+    if ($withNfse) {
+        $t->checkModule('explicit viewer can read staged draft but not write',$b,$nfse,'GET',$draftA1,null,200,
+            static fn(array $r): bool => count($r['drafts'] ?? []) === 1);
+        $t->checkModule('viewer cannot stage a new fiscal draft',$b,$nfse,'POST',$draftA1,
+            [...$nfsePayload,'operationKey'=>'nfse:saas:viewer-denied'],403);
+    }
     $t->check('A grants B operator in A2 while B remains viewer in A1', $a,
         'POST', '/spaces/' . $spaceA2 . '/members',
         ['uid' => $b, 'role' => 'operator', 'expectedRevision' => 0], 200);
@@ -871,10 +944,22 @@ try {
     $t->check('B operator cannot manage A2 role assignments', $b,
         'POST', '/spaces/' . $spaceA2 . '/members',
         ['uid' => $a, 'role' => 'viewer'], 403);
+    if ($withNfse) {
+        $a2Draft = [...$nfsePayload,'operationKey'=>'nfse:saas:A2'];
+        unset($a2Draft['companyId']);
+        $t->checkModule('operator in A2 can stage its own independent draft',$b,$nfse,'POST',$draftA2,$a2Draft,201,
+            static fn(array $r): bool => ($r['fiscalDocument'] ?? null) === false);
+        $t->checkModule('A2 operator role does not grant A1 draft write',$b,$nfse,'POST',$draftA1,
+            [...$nfsePayload,'operationKey'=>'nfse:saas:operator-other-denied'],403);
+    }
     $t->check('A revokes B operator membership in A2', $a,
         'DELETE', '/spaces/' . $spaceA2 . '/members/' . $b . '?expectedRevision=1', null, 200);
     $t->check('B loses A2 access after operator revocation', $b,
         'GET', '/spaces/' . $spaceA2 . '/journals', null, 404);
+    if ($withNfse) {
+        $t->checkModule('revocation immediately denies optional app access',$b,$nfse,'GET',$draftA2,null,404);
+        $t->checkModule('revoked operator cannot replay its prior draft operation',$b,$nfse,'POST',$draftA2,$a2Draft,404);
+    }
     $t->check('A2 revocation preserves B viewer access in A1', $b,
         'GET', '/spaces/' . $spaceA . '/journals', null, 200);
 
@@ -888,6 +973,9 @@ try {
         ['uid' => $b, 'role' => 'viewer', 'expectedRevision' => 2], 409);
     $t->check('B is denied on very next finance request', $b, 'GET',
         '/spaces/' . $spaceA . '/journals', null, 404);
+    if ($withNfse) {
+        $t->checkModule('revoked A1 viewer denied direct fiscal route',$b,$nfse,'GET',$draftA1,null,404);
+    }
     $t->check('SaaS owner may explicitly grant manager below owner authority',
         $a, 'POST', '/spaces/' . $spaceA . '/members',
         ['uid' => $b, 'role' => 'manager', 'expectedRevision' => 3], 200);
@@ -951,6 +1039,10 @@ try {
         ['enabled' => false], 200);
     $t->check('suspended environment denies direct owner access', $a, 'GET',
         '/spaces/' . $spaceA . '/journals', null, 404);
+    if ($withNfse) {
+        $t->checkModule('suspended environment denies fiscal owner on next request',$a,$nfse,'GET',$draftA1,null,404);
+        $t->checkModule('separate environment B retains fiscal staging capability',$b,$nfse,'GET',$draftB,null,200);
+    }
     $t->check('other environment B remains fully functional', $b, 'GET',
         '/spaces/' . $spaceB . '/accounts', null, 200);
 } finally {

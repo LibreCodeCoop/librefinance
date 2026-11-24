@@ -27,10 +27,20 @@ export LF_TEST_DB_ROOT_PASSWORD="$(openssl rand -hex 20)"
 export LF_TEST_ADMIN_PASSWORD="$(openssl rand -hex 20)"
 export LF_TEST_USER_PASS="$(openssl rand -hex 20)"
 export LF_UPGRADE_CONFIG_DIR="$(mktemp -d /tmp/lf-import-upgrade-config.XXXXXX)"
-export COMPOSE_PROJECT_NAME="lf-import-upgrade-$$"
+export LF_UPGRADE_SCENARIO="${LF_UPGRADE_SCENARIO:-import}"
+case "$LF_UPGRADE_SCENARIO" in
+  import|saas) ;;
+  *) echo 'Unsupported upgrade fixture' >&2; exit 2 ;;
+esac
+export COMPOSE_PROJECT_NAME="lf-${LF_UPGRADE_SCENARIO}-upgrade-$$"
 export LF_UPGRADE_CORE_SOURCE="$LF_UPGRADE_OLD_CORE_SOURCE"
-export LF_UPGRADE_SEED_SOURCE="$root/tests/ci/upgrade-seed.php"
-export LF_UPGRADE_SNAPSHOT_SOURCE="$root/tests/ci/upgrade-snapshot.php"
+if [ "$LF_UPGRADE_SCENARIO" = saas ]; then
+  export LF_UPGRADE_SEED_SOURCE="$root/tests/ci/upgrade-saas-seed.php"
+  export LF_UPGRADE_SNAPSHOT_SOURCE="$root/tests/ci/upgrade-saas-snapshot.php"
+else
+  export LF_UPGRADE_SEED_SOURCE="$root/tests/ci/upgrade-seed.php"
+  export LF_UPGRADE_SNAPSHOT_SOURCE="$root/tests/ci/upgrade-snapshot.php"
+fi
 export LF_UPGRADE_SCHEMA_SOURCE="$root/tests/ci/legacy-import-schema.php"
 
 compose() {
@@ -44,7 +54,7 @@ cleanup() {
   rc=$?
   trap - EXIT INT TERM
   if [ "$rc" -ne 0 ]; then
-    echo "FAIL: synthetic Import upgrade; inspect the preceding first error." >&2
+    echo "FAIL: synthetic $LF_UPGRADE_SCENARIO upgrade; inspect the preceding first error." >&2
     compose ps || true
   fi
   compose exec -T --user root nextcloud chown -R "$(id -u):$(id -g)" /var/www/html/config >/dev/null 2>&1 || true
@@ -99,6 +109,51 @@ compose exec -T --user www-data nextcloud php occ app:enable librefinance
 compose exec -T --user www-data nextcloud php occ upgrade
 compose exec -T -e OC_PASS="$LF_TEST_USER_PASS" --user www-data nextcloud \
   php occ user:add --password-from-env lfmaintestA
+
+if [ "$LF_UPGRADE_SCENARIO" = saas ]; then
+  compose exec -T -e OC_PASS="$LF_TEST_USER_PASS" --user www-data nextcloud php occ user:add --password-from-env lfmaintestB
+  compose exec -T --user www-data nextcloud php occ group:add lf_synth_legacy_upgrade
+  compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_legacy_upgrade lfmaintestB
+  fixture_out="$(compose exec -T -e LF_UPGRADE_ACTION=seed -e LF_SYNTHETIC_SAAS_UPGRADE=yes \
+    -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
+    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud php /tmp/upgrade-import-seed.php)"
+  printf '%s\n' "$fixture_out"
+  printf '%s\n' "$fixture_out" | grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$'
+  space_id="$(printf '%s\n' "$fixture_out" | sed -n 's/^SPACE_ID=\([1-9][0-9]*\)$/\1/p')"
+  control_id="$(printf '%s\n' "$fixture_out" | sed -n 's/^CONTROL_SPACE_ID=\([1-9][0-9]*\)$/\1/p')"
+  test -n "$space_id" && test -n "$control_id" && test "$space_id" != "$control_id"
+  snapshot_saas() {
+    compose exec -T -e LF_SYNTHETIC_SAAS_UPGRADE=yes -e LF_UPGRADE_PHASE="$1" nextcloud php /tmp/upgrade-import-snapshot.php
+  }
+  before="$(snapshot_saas before)"
+  test "$(printf '%s\n' "$before" | grep -c '^lf_spaces|')" -eq 2
+  test "$(printf '%s\n' "$before" | grep -c '^lf_companies|')" -eq 2
+  test "$(printf '%s\n' "$before" | grep -c '^lf_journals|')" -eq 4
+  test "$(printf '%s\n' "$before" | grep -c '^lf_postings|')" -eq 8
+  test "$(printf '%s\n' "$before" | grep -c '^lf_group_grants|')" -eq 1
+  printf '%s\n' "$before" | grep -q '^lf_members|'
+  printf '%s\n' "$before" | grep -q '^lf_audit|'
+  export LF_UPGRADE_CORE_SOURCE="$root"
+  compose up -d --no-deps --force-recreate nextcloud
+  compose exec -T --user www-data nextcloud php occ upgrade
+  after="$(snapshot_saas after)"
+  if [ "$before" != "$after" ]; then
+    echo 'FAIL: original accounting rows or permissions changed across the SaaS upgrade' >&2
+    diff -u <(printf '%s\n' "$before") <(printf '%s\n' "$after") || true
+    exit 1
+  fi
+  echo 'PASS: byte-equivalent historical rows and no inferred SaaS ownership'
+  verify_out="$(compose exec -T -e LF_SYNTHETIC_SAAS_UPGRADE=yes -e LF_UPGRADE_ACTION=verify \
+    -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" -e LF_TEST_ADMIN_PASSWORD="$LF_TEST_ADMIN_PASSWORD" \
+    -e LF_UPGRADE_SPACE_ID="$space_id" -e LF_UPGRADE_CONTROL_SPACE_ID="$control_id" \
+    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud php /tmp/upgrade-import-seed.php)"
+  printf '%s\n' "$verify_out"
+  printf '%s\n' "$verify_out" | grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$'
+  printf '%s\n' "$verify_out" | grep -Fxq 'PASS: administrator sees review requirement, not inferred SaaS ownership'
+  test "$after" = "$(snapshot_saas after)"
+  echo 'ALL CHECKS PASSED: SaaS legacy upgrade, exact rows, classification and unchanged permissions'
+  exit
+fi
 
 if fixture_out="$(compose exec -T -e LF_UPGRADE_ACTION=seed \
   -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
