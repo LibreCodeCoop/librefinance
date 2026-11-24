@@ -5,11 +5,11 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # ADR 0004: Durable SaaS environments and financial authority
 
-- Status: proposed contract for issue #12; **not implemented**
+- Status: **adopted architectural contract, progressively implemented in the LibreFinance core**; final integrated acceptance and any production rollout remain separate decisions under #11.
 - Date: 2026-11-23
-- Supersedes: only the managed-SaaS assumptions in `docs/GOVERNANCE-API.md`; current APIs remain as documented until implementation
+- Supersedes: the former model that equated managed Nextcloud groups with a financial ledger grant. Existing legacy governance APIs retain explicitly limited backward-compatible semantics; see the current `docs/GOVERNANCE-API.md`.
 - Target: Nextcloud 36 dev, PHP >=8.3, one native LibreFinance app
-- Implementation gates: #13 persistence, #14 policies, #15 administration, #16 financial permissions
+- Implementation gates: #13 persistence, #14 restrictive policies, #15 delegated environment administration, #16 per-workspace financial authorization. Final integrated acceptance is tracked by #11.
 
 ## Decisions and invariants
 
@@ -56,7 +56,7 @@ User *--* Workspace (financial grants, separate from administration)
 | Revoked, disabled-group, or foreign-workspace actor | Deny | Deny | Deny | Deny | Deny | Deny |
 | External invitation | Deny | Deny | Deny | Limited to invitation | Explicit grant only | Deny |
 
-These are design requirements, **not assertions about current `AccessService` behavior**. The existing rank-based `auditor` role must not gain write access by compatibility mapping. The future capability registry must enumerate per-domain actions (accounts, journal, reconcile, import, invoices, obligations, contacts, custom fields, reports, jobs and files) rather than reuse rank comparison for all writes.
+This table states the agreed default authority model. The implementation has `FinancialCapabilities` for named operations, a SaaS-specific gate in `AccessService` and service-owned access checks. The legacy `auditor` role is restricted to read-only operations unless a specific capability explicitly permits an action. These design rules and their negative tests must be revalidated when a domain gains a new API, background job, file export or optional integration; this table by itself is not runtime proof.
 
 ## Policy precedence
 
@@ -75,16 +75,17 @@ These are design requirements, **not assertions about current `AccessService` be
 - Both new install and pre-existing managed/unmanaged installations require explicit compatibility tests. During rollout, legacy APIs may use an adapter; new SaaS behavior must fail closed if environment ownership is unresolved.
 - Rollback involves a verified database/files snapshot and previously deployed app revisions; it is not an unsafe automatic schema downgrade.
 
-## Known implementation contradictions to fix later
+## Reconciliation against implemented code
 
-- `AccessService::accessibleSpaces()` assigns every managed space to the instance admin as `owner`.
-- `AccessService::requireRole()` returns `owner` to instance admins in managed mode.
-- `GovernanceService::bind()` creates a `viewer` group grant on binding.
-- `SpaceService::create()` depends on admin-only `requireCreationAllowed()`.
-- `lf_companies` within a shared `lf_spaces` do not constitute independent accounting.
+The following points were architectural defects at the time of the original ADR. Their current treatment is deliberately distinguished from legacy compatibility:
 
-The existing behavior is **not** changed by this ADR. Each contradiction needs a failing negative test and a migration-compatible implementation.
+- `AccessService::accessibleSpaces()` still contains legacy managed-mode listing logic, including instance-administrator convenience access, **but `filterSaasListing()` removes financial workspaces without explicit SaaS grants**. `requireRole()` also applies SaaS admission and workspace-specific authorization, rather than treating Nextcloud administration as a financial role. Direct API forgery and cross-environment tests live in `tests/integration/saas-access.php`.
+- `GovernanceService::bind()` still writes a legacy `viewer` group grant **for non-SaaS spaces only**. It refuses to bind a workspace already registered to a SaaS environment. New environments never use group membership as a financial ACL.
+- The historical `SpaceService::create()` endpoint retains managed-mode checks for backward compatibility. Delegated SaaS administration instead provisions workspaces through `SaasWorkspaceController` and `SaasWorkspaceService` with environment, idempotency and owner checks.
+- Multiple legal companies within **one legacy** `lf_spaces` remain in one ledger, awaiting explicit administrative classification. Newly created independently-accounted SaaS companies have dedicated workspaces. Existing posted journals are not automatically split or reassigned.
 
-## Reassessment gate
+Policy definitions, group lifecycle, revocation and financial operations are implemented incrementally. The evidence for each slice is its verified source, negative integration tests and current CI at the combined SHA, not the ADR's status. No statement here authorizes a production deployment.
 
-Before #13–#16 are integrated, verify the actual Nextcloud interfaces, schema constraints, all integrated domain callers, optional NFS-e drafts, background jobs, per-space files, and the API fixtures in `docs/SAAS-CONTRACTS.md`. After contracts are implemented, re-audit the downstream issues against the observed runtime rather than treating this document as an excuse to skip integration evidence.
+## Reassessment and remaining release gates
+
+Review the source and test contracts after every change to #14–#16, especially optional NFS-e, banking, import, reports, MCP, AI, background work and file ownership. The CI synthetic lab covers installation, authorization and selected upgrade matrices; it is **not** proof of manual usability, complete legacy classification, performance at scale or independent human review. Those are separate acceptance decisions for the SaaS epic #11. Refer to `docs/SAAS-CONTRACTS.md`, `docs/GOVERNANCE-API.md` and `docs/TESTING.md` for the present runtime and test boundaries.

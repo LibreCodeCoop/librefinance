@@ -3,31 +3,32 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 
-# SaaS contract v1 — proposed, not deployed
+# SaaS contract v1 — implemented foundation, not deployed
 
-This is the source-of-truth **design contract** for #12, pending runtime implementation in #13–#16. Current legacy endpoints remain documented in `docs/GOVERNANCE-API.md`. Paths below are **proposed** and must not be presented as existing routes.
+This is the versioned architectural contract adopted in #12 and implemented incrementally in #13–#16. **API availability is established by current controller attributes, OpenAPI and integration tests**, not by an illustrative proposal. Both implemented endpoints and unimplemented alternatives are identified below. The supported runtime reference is `docs/GOVERNANCE-API.md`; the final SaaS homologation and any production rollout remain outside this document and under #11.
 
-## Proposed authenticated API
+## Authenticated API — verified routes versus original proposals
 
 All requests must use Nextcloud's authenticated app API with CSRF protections and backend policy/ACL checks. All identifiers are validated and authorization filtered server-side; `environmentId` selection is never a grant.
 
-| Method | Proposed route | Audience and result |
-| --- | --- | --- |
-| GET | `/api/saas/v1/environments` | Authenticated: only eligible environments and state, no financial records |
-| POST | `/api/saas/v1/environments/{environmentId}/provision` | Qualified current group admin only; idempotent |
-| GET | `/api/saas/v1/environments/{environmentId}` | Environment participant; no ledger disclosure |
-| GET | `/api/saas/v1/environments/{environmentId}/workspaces` | Authorized: workspace list filtered before count/page |
-| POST | `/api/saas/v1/environments/{environmentId}/workspaces` | Qualified environment admin and effective creation policy |
-| GET | `/api/saas/v1/environments/{environmentId}/policies/effective` | Scoped actor; effective values only |
-| PUT | `/api/saas/v1/environments/{environmentId}/policies/{key}` | Delegated policy admin with version precondition |
-| GET | `/api/saas/v1/workspaces/{spaceId}/grants` | Authorized role manager, scoped to exact workspace |
-| PUT | `/api/saas/v1/workspaces/{spaceId}/grants/{uid}` | Grant authority check and version precondition |
-| DELETE | `/api/saas/v1/workspaces/{spaceId}/grants/{uid}` | Revocation with current authorization |
-| GET | `/api/saas/v1/admin/groups` | Instance admin, pagination, enablement and pending state |
-| PUT | `/api/saas/v1/admin/groups/{gid}/enablement` | Instance admin only, auditable |
-| POST | `/api/saas/v1/admin/environments/{environmentId}/recover` | Exceptional recovery requiring explicit reason and audit |
+| Method | Route | Runtime status | Audience and result |
+| --- | --- | --- | --- |
+| GET | `/api/saas/v1/environments` | **Implemented** | Eligible environment discovery; no financial records |
+| POST | `/api/saas/v1/environments/{environmentId}/provision` | **Implemented** | Qualified current group administrator; idempotent |
+| GET | `/api/saas/v1/environments/{environmentId}` | **Not implemented** | Original proposed detail route; do not call |
+| GET | `/api/saas/v1/environments/{environmentId}/workspaces` | **Implemented** | Manager-scoped list; no implicit financial role |
+| POST | `/api/saas/v1/environments/{environmentId}/workspaces` | **Implemented** | Authorized workspace provisioning with idempotency |
+| GET | `/api/saas/v1/environments/{environmentId}/policies/effective` | **Implemented** | Authorized effective policy metadata |
+| PUT | `/api/saas/v1/environments/{environmentId}/policies/{policyKey}` | **Implemented** | Delegated policy admin, `valueJson` and `expectedRevision` |
+| GET | `/api/saas/v1/workspaces/{spaceId}/grants` | **Not implemented** | Original proposal; use the existing member APIs instead |
+| PUT | `/api/saas/v1/workspaces/{spaceId}/grants/{uid}` | **Not implemented** | Original proposal; not an alias for existing member API |
+| DELETE | `/api/saas/v1/workspaces/{spaceId}/grants/{uid}` | **Not implemented** | Original proposal; not an alias for existing member API |
+| GET | `/api/saas/v1/admin/groups` | **Implemented** | Instance-admin group readiness and enablement |
+| PUT | `/api/saas/v1/admin/groups/{gid}/enablement` | **Implemented** | Instance-admin restriction with audit |
+| POST | `/api/saas/v1/admin/environments/{environmentId}/recover` | **Not implemented** | Original proposal; do not call |
+| POST | `/api/saas/v1/admin/groups/{gid}/recover` | **Implemented** | Audited recovery with `reasonCode`, without data reassignment |
 
-Exact method names and request validation may change only with documented versioned contract review. Do not implement all of these in #12.
+Financial membership is managed by the existing `GET /api/spaces/{spaceId}/members`, `POST /api/spaces/{spaceId}/members` and `DELETE /api/spaces/{spaceId}/members/{uid}` routes, which enforce current workspace authority server-side. They **do not** implement the proposed grant-revision protocol. External invitations are separate, revisioned and audited APIs. The authoritative endpoint inventory is generated by `#[FrontpageRoute]` and verified against OpenAPI/Nextcloud route contracts; a planned route in an ADR is not an API guarantee.
 
 ## Example: environment discovery (eligible but not financially authorized)
 
@@ -48,47 +49,54 @@ This response intentionally contains no account balances, company identifiers, m
 
 ## Example: effective policy
 
+This is a selection of the live environment-policy response fields; the API also returns `type`, `supportedScopes`, `allowChildOverride` and `inherited`.
+
 ```json
 {
   "contractVersion": 1,
-  "environmentId": "ad0d4e8b-78f9-49e5-bf58-d34b0cbb4d33",
   "key": "externalSharing.enabled",
   "effectiveValue": false,
   "sourceScope": "instance",
   "blockedBy": "instance",
   "allowedValues": [false],
-  "editableByCurrentActor": false,
+  "editableByCurrentActor": true,
   "revision": 7
 }
 ```
 
 If an instance forbids external sharing, an environment cannot enable it regardless of role.
 
-## Example: stale grant mutation
+## Example: stale policy mutation (implemented)
 
-Request: `PUT /api/saas/v1/workspaces/42/grants/example-user` with `If-Match: "7"`.
+Request: `PUT /api/saas/v1/workspaces/42/policies/imports.enabled` with an authenticated, authorized workspace policy editor and JSON body:
 
 ```json
 {
-  "contractVersion": 1,
-  "error": "revision_conflict",
-  "status": 409,
-  "message": "The authorization revision changed; reload the current permissions."
+  "valueJson": "false",
+  "expectedRevision": 7
 }
 ```
 
-Do not return the current grant when the requester lacks access.
+If revision 7 is no longer current, the API returns HTTP 409:
+
+```json
+{"error":"revision_conflict"}
+```
+
+A stale policy write must not override newer restrictions. Do not confuse this implemented optimistic-concurrency contract with the **unimplemented** `/grants/{uid}` + `If-Match` proposal; financial member assignments currently use the `/api/spaces/{spaceId}/members` endpoints and independent authorization rules.
 
 ## Error and status semantics
 
 - 401 `authentication_required`: missing Nextcloud session.
 - 403 `permission_denied`: authenticated but forbidden operation, when even the resource type is permitted to be disclosed.
-- 404 `resource_not_found`: unknown or foreign environment/workspace; identical response prevents enumeration.
+- 404 `environment_not_found`, `space_not_found` or `unknown_policy_key`: unknown or foreign environment/workspace/policy, without data disclosure.
 - 409 `revision_conflict` or `provision_conflict`: stale write or conflicting identity, with no additional grant.
-- 422 `invalid_policy_value`, `unsupported_scope` or `invalid_state_transition`: validated request but invalid input.
+- 422 `invalid_policy_value`, `unsupported_scope` or other invalid input: server-side validation rejected the request.
 - 423 `environment_suspended`: only when the requester is already authorized to know the environment exists.
 
-## Negative contract cases to implement
+## Negative contract cases and verification targets
+
+The table is the required verification matrix, **not a claim that every row is homologated**. Synthetic Nextcloud integration tests cover the major server authority, revocation, policy and provisioning cases. Manual classification of genuinely ambiguous legacy multi-company accounting remains an administrative release gate rather than an automatic test-driven split.
 
 | Case | Actor | Expectation |
 | --- | --- | --- |
@@ -110,6 +118,8 @@ Do not return the current grant when the requester lacks access.
 | P02 | Explicit allowed external invitation | Only authorized workspace and operation |
 | P03 | Authorized current group subadmin | Can provision existing enabled group idempotently |
 
+**Unimplemented proposal:** N12 refers to a versioned internal member-grant API that is not present. Existing `SpaceService::shareUser()` and `revokeUser()` authorize membership changes but do not expose that proposed `expectedRevision` precondition. Do not use N12 as evidence of completed optimistic concurrency for internal grants. A current-code race test and an explicit compatibility decision are required before claiming this acceptance criterion.
+
 ## Primeiro acesso e estados vazios
 
 Mesmo sem nenhum livro contábil, a primeira tela oferece **Gerenciar ou criar
@@ -124,4 +134,4 @@ foi ativado antes da confirmação do servidor.
 
 ## Compatibility and validation boundary
 
-Existing `/api/spaces` identifiers, audit history, posted balances, URLs and optional module entry points must remain backward-compatible. Adoption is phased; no silent permission elevation to restore prior behavior. Before implementation completion, test SQLite, PostgreSQL and MariaDB fresh installs and seeded upgrades, actual Nextcloud session/CSRF behavior, permission-denial responses and concurrency. CI passing on the previous main SHA does not certify this proposed contract.
+Existing `/api/spaces` identifiers, audit history, posted balances, URLs and optional module entry points remain compatibility requirements. Adoption is phased; there is no silent permission elevation or automatic legacy ledger splitting. The synthetic lab installs and tests SQLite, PostgreSQL and MariaDB, including dedicated historical Import preservation, while SaaS policies, group lifecycle and financial isolation are covered by real Nextcloud negative suites. **A green job validates only its exact tested SHA and scenarios**; it does not certify full historic SaaS migration, manual usability/accessibility, production operations or independent human review. See `docs/TESTING.md` and the final acceptance gate in #11. No production deployment is authorized by this contract.
