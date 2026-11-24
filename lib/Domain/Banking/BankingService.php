@@ -65,6 +65,14 @@ final class BankingService {
         string $format = 'csv', string $ofx = ''): array {
         $this->finance->requireModule($spaceId, self::MODULE, 'operator');
         $this->policies->requireWorkspaceEnabled($spaceId, 'imports.enabled');
+        // This check precedes all parsing, bank lookup and financial writes.
+        // Unknown formats still use the existing explicit 422 contract.
+        if (in_array($format, ['csv', 'ofx'], true)
+            && !in_array($format,
+                $this->policies->workspace($spaceId, 'banking.allowedImportFormats')['effectiveValue'],
+                true)) {
+            throw new DomainException('module_disabled');
+        }
         $currency = $this->finance->requireBankAccount($spaceId, self::MODULE, $bankAccountId);
         if ($format === 'csv') {
             if (strlen($csv) < 1 || strlen($csv) > 262144 || !mb_check_encoding($csv, 'UTF-8')

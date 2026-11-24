@@ -74,14 +74,23 @@ $t = new TestHarness();
 $key = '/saas/v1/admin/policies/environments.enabled';
 policyCheck('instance admin can list typed registry', 'GET',
     '/saas/v1/admin/policies', null, 200,
-    static fn(array $r): bool => count($r['policies'] ?? []) === 5
-            && in_array('dashboard.kpis.enabled', array_column($r['policies'] ?? [], 'key'), true));
+    static fn(array $r): bool => count($r['policies'] ?? []) === 6
+            && in_array('dashboard.kpis.enabled', array_column($r['policies'] ?? [], 'key'), true)
+            && in_array('banking.allowedImportFormats', array_column($r['policies'] ?? [], 'key'), true));
 policyCheck('instance policies inherit enabled SaaS feature under separately disabled managed mode', 'GET',
     $key, null, 200, static fn(array $r): bool =>
         ($r['effectiveValue'] ?? null) === true && ($r['revision'] ?? null) === 0
         && ($r['inherited'] ?? null) === true);
 policyCheck('unknown policy does not fall back to permissive default', 'GET',
     '/saas/v1/admin/policies/unknown.key', null, 404);
+policyCheck('instance cannot configure unsupported statement format', 'PUT',
+    '/saas/v1/admin/policies/banking.allowedImportFormats',
+    ['valueJson' => '["csv","xml"]', 'expectedRevision' => 0], 422,
+    static fn(array $r): bool => ($r['error'] ?? null) === 'invalid_policy_value');
+policyCheck('unsupported format write leaves instance policy revision unchanged', 'GET',
+    '/saas/v1/admin/policies/banking.allowedImportFormats', null, 200,
+    static fn(array $r): bool => ($r['revision'] ?? null) === 0
+        && ($r['effectiveValue'] ?? null) === ['csv', 'ofx']);
 $t->check('ordinary finance operator cannot enumerate instance policies',
     'lfmaintestA', 'GET', '/saas/v1/admin/policies', null, 403);
 $t->check('ordinary finance operator cannot set privileged instance policy',

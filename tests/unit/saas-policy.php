@@ -133,6 +133,35 @@ denied('instance-only refuses child even if declared', fn() => $resolver->resolv
     [layer('instance', true), layer('environment', false)]
 ), 'policy_override_forbidden');
 
+$formatPolicy = $registry->get('banking.allowedImportFormats');
+result('bank formats default preserves CSV and OFX',
+    $resolver->resolve($formatPolicy, [])['effectiveValue'], ['csv', 'ofx']);
+result('bank format policy is not a personal access grant',
+    $formatPolicy->supports('user'), false);
+denied('instance cannot invent a bank format outside its declared universe',
+    fn() => $formatPolicy->assertValue(['xml']), 'invalid_policy_value');
+denied('workspace cannot inject invalid bank format among accepted values',
+    fn() => $resolver->resolve($formatPolicy, [
+        layer('instance', ['csv', 'ofx']),
+        layer('workspace', ['csv', 'xml']),
+    ]), 'invalid_policy_value');
+$result = $resolver->resolve($formatPolicy, [
+    layer('instance', ['csv', 'ofx']),
+    layer('environment', ['ofx']),
+    layer('workspace', ['csv', 'ofx']),
+]);
+result('bank format intersection never widens environment',
+    $result['effectiveValue'], ['ofx']);
+result('bank format intersection records narrowing source',
+    $result['sourceScope'], 'environment');
+$result = $resolver->resolve($formatPolicy, [
+    layer('instance', ['ofx']), layer('environment', ['csv']),
+]);
+result('bank formats deny all on empty ancestor intersection',
+    $result['effectiveValue'], []);
+denied('bank format typo is not an automatically enabled format',
+    fn() => $formatPolicy->assertValue(['csv', ['ofx']]), 'invalid_policy_value');
+
 $dashboard = $registry->get('dashboard.kpis.enabled');
 result('dashboard policy supports self-user scope',
     $dashboard->supports('user'), true);
