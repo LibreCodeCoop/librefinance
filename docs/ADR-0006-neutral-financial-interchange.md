@@ -46,7 +46,7 @@ validation alone nor a self-consistent bundle attests source provenance.
 - The manifest declares each accessible workspace and its resource
   collections. `complete` has an exact positive count, `empty` has zero,
   and all unavailable, denied, unsupported, invalid, changed or truncated
-  states have a null count. A missing declaration is not an empty resource.
+  states have a null count. An explicitly excluded collection has null count and no chunks. A missing declaration is not an empty resource.
   Compare the declaration with independently approved inventory scope.
   A complete result means complete **relative to the declared scope**, not
   proof of complete source financial history.
@@ -157,3 +157,7 @@ an installed Nextcloud and continues to run the pre-existing normalized
 import regression suite. A Draft 2020-12 JSON Schema validator can check
 each JSON document independently; the PHP suite checks cross-document and
 negative cases that cannot be expressed by the structural schema.
+
+The [versioned mapping vocabulary](MIGRATION-MAPPING-V1.md) adds explicit
+source resource and relation semantics, a lossless transport repartition
+operation and mixed-source fixtures. It does not authorize destination writes.

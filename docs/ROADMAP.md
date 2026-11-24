@@ -25,7 +25,7 @@ This document records user-visible gaps without claiming that an unimplemented f
 
 - Versioned third-party extension descriptor, navigation and safe user interface integration with backend-enforced permissions.
 - Bank institution/account identity, connection consent, secure credentials and audited reconciliation before automated synchronization. Historical institution-specific scaffolding is not a supported runtime connector.
-- Source-independent, paginated historical extractors and independently verified data migration, including accounts, statements, documents and reconciliation totals.
+- Source-independent historical extraction and independently verified destination data migration, including accounts, statements, documents and reconciliation totals. The offline inventory, neutral transport and [mapping vocabulary](MIGRATION-MAPPING-V1.md) distinguish complete source records from unavailable scope, conflicts and missing destination capabilities; they do not authorize applying a bundle.
 - Complete audited reconciliation of legacy issued invoice obligations, recurring commitments, credit notes and fully tested financial statements. New commercial invoices now have a linked payable/receivable payment path in one transaction.
 - Formal balance sheet, financial statements and extensible saved reports with verified period/dimension semantics.
 - Audited cooperative member production, period closure and allocation as an optional module, not a mandatory national specialization.

@@ -30,7 +30,7 @@ final class BundleValidator {
     private const MAX_CHUNKS = 256;
     private const MAX_ARTIFACTS = 256;
     private const RESOURCE_STATES = ['complete', 'empty', 'missing_capability',
-        'access_denied', 'truncated', 'timeout', 'unsupported', 'unavailable', 'invalid_response', 'snapshot_changed'];
+        'access_denied', 'truncated', 'timeout', 'unsupported', 'unavailable', 'invalid_response', 'snapshot_changed', 'excluded'];
     private const KINDS = ['master_data', 'configuration', 'bank_evidence',
         'accounting_entry', 'obligation', 'commercial_document', 'settlement',
         'fiscal_authorization', 'source_only'];
@@ -112,6 +112,9 @@ final class BundleValidator {
         }
         foreach ($resources as $byResource) {
             foreach ($byResource as $r) {
+                if ($r['status'] === 'excluded' && $r['described'] !== 0) {
+                    $this->fail('interchange_excluded_resource_content');
+                }
                 if ($r['count'] !== null && $r['count'] !== $r['described']) {
                     $this->fail('interchange_resource_count_mismatch');
                 }

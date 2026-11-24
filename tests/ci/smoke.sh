@@ -182,6 +182,12 @@ grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$interchange_output" || {
   echo 'FAIL: neutral interchange assertions did not complete' >&2
   exit 1
 }
+roundtrip_output="$(compose exec -T nextcloud php /var/www/html/custom_apps/librefinance/tests/import/interchange-roundtrip.php)"
+printf '%s\n' "$roundtrip_output"
+grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$roundtrip_output" || {
+  echo 'FAIL: historical interchange round-trip assertions did not complete' >&2
+  exit 1
+}
 if [ "$LF_WITH_EXTENSIONS" = 1 ]; then
   compose exec -T --user www-data nextcloud php occ app:enable librefinance_nfse
   # Source-backed OpenAPI gate across core + all separately installed apps.

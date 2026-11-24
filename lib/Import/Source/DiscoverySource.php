@@ -17,7 +17,7 @@ interface DiscoverySource {
     /**
      * @return array{sourceSystem:string,sourceVersion:string,cutoff:string,snapshotId:string,
      *     resources:array<string,string>,features:array<string,bool>}
-     * Resource capabilities: supported, unsupported, missing_capability.
+     * Resource capabilities: supported, unsupported, missing_capability, excluded.
      */
     public function describe(): array;
 
