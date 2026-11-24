@@ -268,8 +268,10 @@ não deve ser usada para criar concessões antecipadas ou dormentes.
 ### Revisão atômica das concessões internas SaaS
 
 Para livros vinculados a ambientes SaaS, a leitura autenticada
-`GET /api/spaces/{spaceId}/members` fornece `members` e
-`grantRevision` (inteiro, inicialmente 0). As rotas existentes continuam
+`GET /api/spaces/{spaceId}/members` fornece `members`, `grantRevision` (inteiro, inicialmente 0) e
+`canManageMembers` (booleano calculado no backend para a identidade atual).
+O campo de apresentação não é uma concessão de autoridade e nunca substitui
+a verificação de permissões em cada mutação. As rotas existentes continuam
 sendo usadas, mas **escritas SaaS exigem uma precondição de revisão**:
 
 - `POST /api/spaces/{spaceId}/members` recebe `uid`, `role` e
