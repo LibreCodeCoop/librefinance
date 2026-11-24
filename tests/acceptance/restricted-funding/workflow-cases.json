@@ -1,0 +1,83 @@
+{
+  "schema": "librefinance.restricted-funding.acceptance.v1",
+  "qualification": "synthetic_expected_outcomes_only",
+  "configurations": [
+    {
+      "id": "annual-grant",
+      "workspace": "book-a",
+      "locale": "en_US",
+      "functionalCurrency": "USD",
+      "fundingCurrencies": ["USD", "EUR"],
+      "instrumentLabel": "Grant",
+      "reportCycle": "monthly",
+      "reviewStages": ["financial-review", "approval"]
+    },
+    {
+      "id": "milestone-sponsorship",
+      "workspace": "book-b",
+      "locale": "pt_BR",
+      "functionalCurrency": "EUR",
+      "fundingCurrencies": ["EUR", "USD"],
+      "instrumentLabel": "Patrocínio",
+      "reportCycle": "milestone",
+      "reviewStages": ["evidence-review", "financial-review", "approval"]
+    }
+  ],
+  "payment": {
+    "workspace": "book-a",
+    "agreement": "agreement-a",
+    "journal": "synthetic-journal-1",
+    "currency": "USD",
+    "amountMinor": 24000,
+    "allocations": {"source-a": 18000, "source-b": 6000},
+    "lineA": {"approvedMinor": 100000, "outstandingMinor": 22000, "executedMinor": 18000, "availableMinor": 60000}
+  },
+  "evidence": {
+    "fileId": "synthetic-file-1",
+    "approvedVersion": "v1",
+    "versions": {
+      "v1": {"content": "synthetic evidence v1\n", "sha256": "e4216101dc8f8074b593258a8be86fd9dc68b190f3c425db13a2c5c0338064e9"},
+      "v2": {"content": "synthetic evidence v2\n", "sha256": "ea4f8a999f955574bada897190f0250bb781ec4a0d6dad70a3a92a314875e404"}
+    }
+  },
+  "reviewVersions": [
+    {"id": 1, "acceptedMinor": 15000, "disallowedMinor": 3000, "reason": "synthetic eligibility decision", "actor": "reviewer-a"},
+    {"id": 2, "acceptedMinor": 17000, "disallowedMinor": 1000, "reason": "synthetic appeal decision", "actor": "reviewer-b", "supersedes": 1}
+  ],
+  "publication": {
+    "approved": {
+      "agreementTitle": "Synthetic grant",
+      "currency": "USD",
+      "reportedMinor": 24000,
+      "publicDerivative": "synthetic-redacted-derivative-1",
+      "recipientUid": "synthetic-private-recipient",
+      "originalFileId": "synthetic-file-1",
+      "evidenceSha256": "e4216101dc8f8074b593258a8be86fd9dc68b190f3c425db13a2c5c0338064e9",
+      "reviewNotes": "synthetic private notes"
+    },
+    "allowedFields": ["agreementTitle", "currency", "reportedMinor", "publicDerivative"],
+    "expectedPublicFields": {
+      "agreementTitle": "Synthetic grant",
+      "currency": "USD",
+      "reportedMinor": 24000,
+      "publicDerivative": "synthetic-redacted-derivative-1"
+    }
+  },
+  "cases": [
+    {"id": "operator-own-agreement", "actor": "operator-a", "workspace": "book-a", "action": "reserve", "condition": "active scoped grant and available budget", "expected": "allowed", "ledgerDeltaMinor": 0},
+    {"id": "operator-own-review", "actor": "operator-a", "workspace": "book-a", "action": "approve-review", "condition": "same actor prepared the plan", "expected": "denied", "ledgerDeltaMinor": 0},
+    {"id": "reviewer-no-post", "actor": "reviewer-a", "workspace": "book-a", "action": "post-payment", "condition": "review grant only", "expected": "denied", "ledgerDeltaMinor": 0},
+    {"id": "closed-accounting-open-report", "actor": "operator-a", "workspace": "book-a", "action": "post-adjustment", "condition": "accounting period closed, report period open, agreement-validity exception approved", "expected": "denied", "ledgerDeltaMinor": 0},
+    {"id": "open-accounting-locked-report", "actor": "reviewer-a", "workspace": "book-a", "action": "change-approved-evidence", "condition": "accounting period open, report period locked", "expected": "denied", "ledgerDeltaMinor": 0},
+    {"id": "evidence-overallocation", "actor": "operator-a", "workspace": "book-a", "action": "allocate-evidence", "condition": "24000 allocated of 24000; request 100 more", "expected": "denied", "ledgerDeltaMinor": 0},
+    {"id": "evidence-replacement", "actor": "operator-a", "workspace": "book-a", "action": "replace-current-file", "condition": "approved v1 retained; current v2 changes", "expected": "allowed", "ledgerDeltaMinor": 0},
+    {"id": "appeal-new-version", "actor": "reviewer-b", "workspace": "book-a", "action": "decide-appeal", "condition": "active authorized reassignment, reason, previous version retained", "expected": "allowed", "ledgerDeltaMinor": 0},
+    {"id": "revoked-reviewer", "actor": "reviewer-a", "workspace": "book-a", "action": "read-or-approve", "condition": "grant revoked after prior read", "expected": "denied", "ledgerDeltaMinor": 0},
+    {"id": "expired-handover", "actor": "reviewer-b", "workspace": "book-a", "action": "approve-review", "condition": "handover expired", "expected": "denied", "ledgerDeltaMinor": 0},
+    {"id": "foreign-agreement", "actor": "operator-a", "workspace": "book-b", "action": "read-agreement-or-evidence", "condition": "forged agreement or file identifier", "expected": "denied", "ledgerDeltaMinor": 0},
+    {"id": "environment-admin-no-finance", "actor": "admin-a", "workspace": "book-a", "action": "read-private-report", "condition": "environment authority without financial grant", "expected": "denied", "ledgerDeltaMinor": 0},
+    {"id": "public-approved-projection", "actor": "anonymous", "workspace": "book-a", "action": "read-public-projection", "condition": "explicit approved publication, active version", "expected": "redacted", "ledgerDeltaMinor": 0},
+    {"id": "public-private-original", "actor": "anonymous", "workspace": "book-a", "action": "download-original", "condition": "guessed original file ID or private export URL", "expected": "denied", "ledgerDeltaMinor": 0},
+    {"id": "public-revoked-projection", "actor": "anonymous", "workspace": "book-a", "action": "read-public-projection", "condition": "publication revoked, old link or cached derivative", "expected": "denied", "ledgerDeltaMinor": 0}
+  ]
+}
