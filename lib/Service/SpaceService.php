@@ -451,13 +451,28 @@ final class SpaceService {
             throw new DomainException('grant_revision_required');
         }
         $q = $this->db->getQueryBuilder();
-        $updated = $q->update('lf_environment_spaces')
-            ->set('grants_revision', $q->createFunction('grants_revision + 1'))
-            ->where($q->expr()->eq('space_id',
-                $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
-            ->andWhere($q->expr()->eq('grants_revision',
-                $q->createNamedParameter($expectedRevision, IQueryBuilder::PARAM_INT)))
-            ->executeStatement();
+        try {
+            $updated = $q->update('lf_environment_spaces')
+                ->set('grants_revision', $q->createFunction('grants_revision + 1'))
+                ->where($q->expr()->eq('space_id',
+                    $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('grants_revision',
+                    $q->createNamedParameter($expectedRevision, IQueryBuilder::PARAM_INT)))
+                ->executeStatement();
+        } catch (\OCP\DB\Exception $e) {
+            // SQLite cannot always promote a concurrent read transaction to
+            // a writer. The losing same-revision CAS may raise SQLITE_BUSY
+            // instead of returning zero updated rows. Abort this transaction
+            // and ask the caller to reload; do not retry stale writes or
+            // convert unrelated DB failures into an apparent conflict.
+            if ($this->db->getDatabaseProvider() === IDBConnection::PLATFORM_SQLITE
+                && $e->getReason() === \OCP\DB\Exception::REASON_DRIVER
+                && str_contains(strtolower($e->getMessage()), 'database is locked')
+                && str_contains(strtoupper($e->getMessage()), 'SQLSTATE[HY000]')) {
+                throw new DomainException('revision_conflict', previous: $e);
+            }
+            throw $e;
+        }
         if ($updated !== 1) {
             throw new DomainException('revision_conflict');
         }
