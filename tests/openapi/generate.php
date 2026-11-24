@@ -122,6 +122,7 @@ $noBody = [
     'librefinance:invoice#issue',
 ];
 $query = [
+    'librefinance:saasWorkspace#index' => 'afterId:i',
     'librefinance:space#unshare' => 'expectedRevision:i',
     'librefinance:saasPolicy#clear' => 'expectedRevision:i!',
     'librefinance:saasPolicy#clearEnvironment' => 'expectedRevision:i!',

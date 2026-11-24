@@ -22,10 +22,9 @@ final class SaasWorkspaceController extends ApiController {
 
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/saas/v1/environments/{environmentId}/workspaces')]
-    public function index(string $environmentId): JSONResponse {
-        return $this->respond(fn(): array => [
-            'workspaces' => $this->workspaces->listForManager($environmentId),
-        ]);
+    public function index(string $environmentId, int $afterId = 0): JSONResponse {
+        return $this->respond(fn(): array =>
+            $this->workspaces->listForManager($environmentId, $afterId));
     }
 
     #[NoAdminRequired]

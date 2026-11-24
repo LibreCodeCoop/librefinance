@@ -27,6 +27,7 @@ const problem = ref('')
 const notice = ref('')
 const selectedId = ref('')
 const workspaces = ref([])
+const workspacesNextAfterId = ref(null)
 const workspacesLoading = ref(false)
 const workspacesError = ref('')
 const name = ref('')
@@ -62,10 +63,15 @@ const stateText = state => ({
 })[state] || 'Indisponível'
 const kindText = value => kindOptions.find(item => item.value === value)?.label || value
 
-async function loadWorkspaces() {
+async function loadWorkspaces(more = false) {
+  if (more && (workspacesLoading.value || workspacesNextAfterId.value === null)) return
   const id = selectedId.value
   const seq = ++workspacesSeq
-  workspaces.value = []
+  const afterId = more ? workspacesNextAfterId.value : null
+  if (!more) {
+    workspaces.value = []
+    workspacesNextAfterId.value = null
+  }
   workspacesError.value = ''
   if (!id) {
     workspacesLoading.value = false
@@ -73,15 +79,22 @@ async function loadWorkspaces() {
   }
   workspacesLoading.value = true
   try {
-    const response = await axios.get(workspacesEndpoint(id))
+    const response = await axios.get(workspacesEndpoint(id), {
+      params: afterId === null ? {} : { afterId },
+    })
     if (seq !== workspacesSeq || selectedId.value !== id || !mounted) return
-    workspaces.value = Array.isArray(response.data.workspaces)
+    const rows = Array.isArray(response.data.workspaces)
       ? response.data.workspaces : []
+    workspaces.value = more ? [...workspaces.value, ...rows] : rows
+    workspacesNextAfterId.value = Number.isSafeInteger(response.data.nextAfterId)
+      && response.data.nextAfterId > 0 ? response.data.nextAfterId : null
   } catch (error) {
     if (seq !== workspacesSeq || selectedId.value !== id || !mounted) return
     if ([403, 404, 423].includes(error?.response?.status)) {
       // A revoked or suspended context must not retain stale UI data.
       selectedId.value = ''
+      workspaces.value = []
+      workspacesNextAfterId.value = null
       problem.value = financeError(error)
     } else {
       workspacesError.value = financeError(error)
@@ -93,6 +106,7 @@ async function loadWorkspaces() {
 
 watch(selectedId, () => {
   workspaces.value = []
+  workspacesNextAfterId.value = null
   workspacesError.value = ''
   pending.value = null
   notice.value = ''
@@ -128,6 +142,7 @@ async function reload() {
       environments.value = []
       selectedId.value = ''
       workspaces.value = []
+      workspacesNextAfterId.value = null
       problem.value = financeError(error)
     }
   } finally {
@@ -311,7 +326,10 @@ onBeforeUnmount(() => {
             <span class="lf-muted">{{ kindText(workspace.kind) }} · Proprietário: {{ workspace.ownerUid }}</span>
           </li>
         </ul>
-        <p v-else-if="!workspacesLoading" class="lf-muted">
+        <NcButton v-if="workspacesNextAfterId !== null"
+          variant="secondary" :disabled="workspacesLoading"
+          @click="loadWorkspaces(true)">Carregar mais gestões</NcButton>
+        <p v-else-if="!workspaces.length && !workspacesLoading" class="lf-muted">
           Nenhuma gestão financeira independente foi criada neste ambiente.
         </p>
         <form class="lf-saas-create" @submit.prevent="reviewNewWorkspace">

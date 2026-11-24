@@ -1581,6 +1581,15 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "name": "afterId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
                     }
                 ],
                 "security": [
