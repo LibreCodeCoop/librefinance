@@ -148,6 +148,21 @@ result('report module denial identifies its environment blocker',
 denied('report module requires a boolean value',
     fn() => $reports->assertValue('true'), 'invalid_policy_value');
 
+$nfseDrafts = $registry->get('regional.nfseDrafts.enabled');
+result('optional fiscal draft integration preserves installed compatibility by default',
+    $resolver->resolve($nfseDrafts, [])['effectiveValue'], true);
+result('fiscal draft policy cannot grant access at user scope',
+    $nfseDrafts->supports('user'), false);
+$result = $resolver->resolve($nfseDrafts, [
+    layer('instance', true), layer('environment', false), layer('workspace', true),
+]);
+result('workspace cannot bypass environment fiscal draft restriction',
+    $result['effectiveValue'], false);
+result('fiscal draft policy identifies effective environment denial',
+    $result['blockedBy'], 'environment');
+denied('fiscal draft policy rejects a string flag',
+    fn() => $nfseDrafts->assertValue('false'), 'invalid_policy_value');
+
 $dashboard = $registry->get('dashboard.kpis.enabled');
 result('dashboard policy supports self-user scope',
     $dashboard->supports('user'), true);

@@ -129,6 +129,7 @@ final class ModuleService {
         $policy = match ($id) {
             'librefinance_import' => 'imports.enabled',
             'librefinance_reports' => 'modules.reports.enabled',
+            'librefinance_nfse' => 'regional.nfseDrafts.enabled',
             default => null,
         };
         if ($policy !== null && $this->policies->workspace($spaceId, $policy)['effectiveValue'] !== true) {

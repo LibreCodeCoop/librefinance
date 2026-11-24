@@ -149,4 +149,44 @@ $t->check('viewer cannot turn module off', $b, 'PUT',
 $t->check('revoke viewer', $a, 'DELETE', $path . '/members/' . $b, null, 200);
 $t->checkModule('revoked viewer denied reports', $b, $report, 'GET',
     $path . '/trial-balance?through=2026-12-31', null, 404);
+
+// The external NFS-e draft app uses the core public FinanceApi to authorize
+// requests. A global policy must deny its real HTTP routes before any draft is
+// read or written. This lab is disposable; restore the policy in all cases.
+$admin = \OC::$server->get(\OCP\IUserManager::class)->get('synthetictestadmin');
+if ($admin === null) {
+    throw new \RuntimeException('Disposable Nextcloud instance admin not found');
+}
+$session = \OC::$server->get(\OCP\IUserSession::class);
+$policies = \OC::$server->get(\OCA\LibreFinance\Service\SaasPolicyService::class);
+$policyRestricted = false;
+try {
+    $session->setUser($admin);
+    $policies->writeInstance('regional.nfseDrafts.enabled', false, 0);
+    $policyRestricted = true;
+    $session->setUser($ownerUser);
+    $t->checkModule('global fiscal draft denial blocks optional NFS-e read', $a,
+        'librefinance_nfse', 'GET', $path . '/drafts', null, 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled');
+    $t->checkModule('global fiscal draft denial blocks optional NFS-e write', $a,
+        'librefinance_nfse', 'POST', $path . '/drafts',
+        ['operationKey' => 'nfse:forbidden:synthetic'], 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled');
+    $t->check('optional NFS-e effective flag reflects global denial', $a,
+        'GET', $path . '/modules', null, 200,
+        static fn(array $r): bool => count(array_filter($r['modules'] ?? [],
+            static fn(array $module): bool => ($module['id'] ?? null) === 'librefinance_nfse'
+                && ($module['enabled'] ?? null) === false)) === 1);
+    $t->check('local NFS-e activation cannot override the global policy', $a,
+        'PUT', $path . '/modules/librefinance_nfse', ['enabled' => true], 200,
+        static fn(array $r): bool => ($r['enabled'] ?? null) === false);
+} finally {
+    if ($policyRestricted) {
+        $session->setUser($admin);
+        $policies->clearInstance('regional.nfseDrafts.enabled', 1);
+    }
+    $session->setUser($ownerUser);
+}
+$t->checkModule('optional NFS-e draft API works again after global policy clear', $a,
+    'librefinance_nfse', 'GET', $path . '/drafts', null, 200);
 $t->finish();

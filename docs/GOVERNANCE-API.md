@@ -441,3 +441,17 @@ aos relatórios salvos deve retornar `403 module_disabled` quando a policy
 nega o acesso. Esta configuração suspende consultas e alterações futuras; não
 apaga documentos, lançamentos ou relatórios históricos. A restrição de A1
 nunca se propaga para A2 ou para outro ambiente.
+
+### Rascunhos fiscais opcionais
+
+A policy `regional.nfseDrafts.enabled` restringe a integração opcional
+`librefinance_nfse` nos mesmos três escopos. O valor padrão `true` apenas
+preserva instalações que já possuem o aplicativo opcional; **não o instala,
+não concede acesso financeiro e não autoriza a emissão de NFS-e**. A restrição
+é verificada no backend por `FinanceApi::requireModule` em todas as chamadas
+protegidas do aplicativo de rascunhos, além do indicador local de módulo.
+Uma proibição na instância não pode ser revogada por configuração de ambiente
+ou livro. Desabilitar a política impede a leitura/criação seguinte de
+rascunhos (`403 module_disabled`), sem apagar os registros históricos.
+A reativação deve restaurar o acesso somente aos usuários que ainda possuam
+papel financeiro válido e o aplicativo instalado.
