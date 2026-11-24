@@ -236,8 +236,16 @@ final class GovernanceService {
     public function delegatedGroups(): array {
         $user = $this->session->getUser();
         if ($user === null) return [];
-        $groups = array_map(static fn(\OCP\IGroup $group): string => $group->getGID(),
-            $this->subAdmins->getSubAdminsGroups($user));
+        // Native subadmin assignments can outlive membership changes in
+        // independent group backends. Neither native nor app-local delegation
+        // is sufficient without current membership.
+        $groups = [];
+        foreach ($this->subAdmins->getSubAdminsGroups($user) as $group) {
+            $gid = $group->getGID();
+            if ($this->groups->isInGroup($user->getUID(), $gid)) {
+                $groups[] = $gid;
+            }
+        }
         $q = $this->db->getQueryBuilder();
         $q->select('group_gid')->from('lf_governance_delegates')
             ->where($q->expr()->eq('uid', $q->createNamedParameter($user->getUID())));
