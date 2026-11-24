@@ -11,13 +11,19 @@ use InvalidArgumentException;
 
 /** Contract v1: installable Nextcloud app, one link per module, no injected JS. */
 final readonly class ModuleDescriptor {
+    public const SUPPORTED_CONTRACT_VERSION = 1;
+
     public function __construct(
         public string $appId,
         public string $name,
         public string $description,
         public string $routeName,
         public string $requiredRole = 'viewer',
+        public int $contractVersion = self::SUPPORTED_CONTRACT_VERSION,
     ) {
+        if ($contractVersion < 1 || $contractVersion > 65535) {
+            throw new InvalidArgumentException('Invalid module contract version');
+        }
         if (!preg_match('/^librefinance_[a-z][a-z0-9_]{2,40}$/', $appId)) {
             throw new InvalidArgumentException('Invalid module ID');
         }
@@ -35,5 +41,10 @@ final readonly class ModuleDescriptor {
         if (!in_array($requiredRole, ['viewer', 'auditor', 'operator', 'manager'], true)) {
             throw new InvalidArgumentException('Invalid module permission');
         }
+    }
+
+    /** A valid descriptor may target a future incompatible contract. */
+    public function isCompatible(): bool {
+        return $this->contractVersion === self::SUPPORTED_CONTRACT_VERSION;
     }
 }

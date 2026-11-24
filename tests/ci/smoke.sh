@@ -305,6 +305,13 @@ grep -Eq '^OFX parser: 19 positive and negative assertions passed$' <<< "$ofx_un
   echo 'FAIL: OFX parser unit assertions did not complete' >&2
   exit 1
 }
+# Versioned module descriptors reject malformed contracts and distinguish unsupported future versions.
+module_unit="$(compose exec -T --user www-data nextcloud php /var/www/html/custom_apps/librefinance/tests/unit/module-descriptor.php)"
+printf '%s\n' "$module_unit"
+grep -Eq '^Module descriptor: [1-9][0-9]* assertions passed$' <<< "$module_unit" || {
+  echo 'FAIL: module descriptor assertions did not complete' >&2
+  exit 1
+}
 # Named allow/deny matrix, independently of integration role fixtures.
 capabilities="$(compose exec -T --user www-data nextcloud php   /var/www/html/custom_apps/librefinance/tests/unit/saas-financial-capabilities.php)"
 printf '%s\n' "$capabilities"
