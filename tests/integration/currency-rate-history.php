@@ -32,12 +32,39 @@ $first = $t->check('record canonical immutable FX quote', $a, 'POST', $path, $pa
     static fn(array $r): bool => $r['replayed'] === false && $r['rate']['rate'] === '0.002'
         && $r['rate']['sourcePrecision'] === 0 && $r['rate']['targetPrecision'] === 3);
 $id = (int)$first['rate']['id'];
+$preview = $path . '/' . $id . '/preview';
+$otherPreview = $otherPath . '/' . $id . '/preview';
+$t->check('read-only conversion uses exact selected historical rate', $a, 'GET',
+    $preview . '?sourceMinor=1000', null, 200,
+    static fn(array $r): bool => $r['sourceMinor'] === 1000 && $r['targetMinor'] === 2000
+        && $r['rate']['id'] === $id && $r['rate']['sourcePrecision'] === 0
+        && $r['rate']['targetPrecision'] === 3 && $r['postingCreated'] === false
+        && $r['rounding'] === 'half_away_from_zero');
+$t->check('negative exact preview preserves sign', $a, 'GET',
+    $preview . '?sourceMinor=-1000', null, 200,
+    static fn(array $r): bool => $r['targetMinor'] === -2000);
+$t->check('zero exact preview is valid', $a, 'GET',
+    $preview . '?sourceMinor=0', null, 200,
+    static fn(array $r): bool => $r['targetMinor'] === 0);
+$t->check('other actor cannot preview foreign rate', $b, 'GET',
+    $preview . '?sourceMinor=1000', null, 404);
+$t->check('authorized sibling cannot resolve a foreign snapshot ID', $b, 'GET',
+    $otherPreview . '?sourceMinor=1000', null, 404,
+    static fn(array $r): bool => $r === ['error' => 'exchange_rate_not_found']);
+foreach (['-0', '01', '1e3', '1.1', '9000000000001', '9000000000000', ''] as $invalid) {
+    $t->check('reject invalid or overflowing minor amount ' . $invalid, $a, 'GET',
+        $preview . '?sourceMinor=' . rawurlencode($invalid), null, 422);
+}
+$t->check('reject missing source amount', $a, 'GET', $preview, null, 422);
 $t->check('equivalent canonical quote replays same row', $a, 'POST', $path,
     array_replace($payload, ['rate' => '0.002']), 200,
     static fn(array $r): bool => $r['replayed'] === true && $r['rate']['id'] === $id);
 $t->check('correction is a new immutable rate rather than a rewrite', $a, 'POST', $path,
     array_replace($payload, ['rate' => '0.003']), 200,
     static fn(array $r): bool => $r['replayed'] === false && $r['rate']['id'] !== $id);
+$t->check('correction never replaces earlier preview snapshot', $a, 'GET',
+    $preview . '?sourceMinor=1000', null, 200,
+    static fn(array $r): bool => $r['targetMinor'] === 2000 && $r['rate']['id'] === $id);
 $t->check('invalid currency is rejected', $a, 'POST', $path,
     array_replace($payload, ['sourceCurrency' => 'ZZZ']), 422);
 $t->check('invalid date is rejected', $a, 'POST', $path,
@@ -65,6 +92,8 @@ $t->check('recording rate leaves accounting balances unchanged', $a, 'GET', $roo
 $t->check('grant viewer', $a, 'POST', $root . '/members', ['uid' => $b, 'role' => 'viewer'], 200);
 $t->check('viewer can read scoped rate evidence', $b, 'GET', $path, null, 200,
     static fn(array $r): bool => count($r['rates']) === 3);
+$t->check('viewer can preview only scoped history', $b, 'GET', $preview . '?sourceMinor=10', null, 200,
+    static fn(array $r): bool => $r['targetMinor'] === 20 && $r['postingCreated'] === false);
 $t->check('viewer cannot change rate history', $b, 'POST', $path, $payload, 403);
 $t->check('grant manager', $a, 'POST', $root . '/members', ['uid' => $b, 'role' => 'manager'], 200);
 $t->check('manager records scoped rate evidence', $b, 'POST', $path,
@@ -72,6 +101,7 @@ $t->check('manager records scoped rate evidence', $b, 'POST', $path,
     static fn(array $r): bool => $r['replayed'] === false);
 $t->check('revoke role', $a, 'DELETE', $root . '/members/' . $b, null, 200);
 $t->check('revocation denies next rate read', $b, 'GET', $path, null, 404);
+$t->check('revocation denies next historical preview', $b, 'GET', $preview . '?sourceMinor=1', null, 404);
 $t->check('invalid cursor rejected', $a, 'GET', $path . '?afterId=-1', null, 422);
 $t->check('cursor reads only later rows in same book', $a, 'GET', $path . '?afterId=' . $id, null, 200,
     static fn(array $r): bool => count($r['rates']) === 3 && $r['rates'][0]['id'] > $id);

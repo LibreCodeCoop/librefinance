@@ -1004,7 +1004,23 @@ try {
     $t->check('owner stores scoped bank image', $a, 'POST', $bankLogoRoute,
         ['imageBase64' => trim(file_get_contents(__DIR__ . '/fixtures/logo-valid.b64'))], 200);
     $searchRoute = $resourceRoot . '/search?type=contacts&query=' . rawurlencode($contactName);
+    $ratePath = $resourceRoot . '/exchange-rates';
+    $quotePayload = ['sourceCurrency' => 'JPY', 'targetCurrency' => 'KWD', 'rate' => '0.002',
+        'effectiveOn' => '2026-11-24', 'sourceType' => 'manual', 'sourceRef' => 'synthetic-saas-rate'];
+    $quote = $t->check('owner records scoped exchange-rate evidence', $a, 'POST', $ratePath, $quotePayload, 200);
+    $rateId = (int)$quote['rate']['id'];
+    $ratePreview = '/exchange-rates/' . $rateId . '/preview?sourceMinor=1000';
+    $t->check('same owner cannot use A1 quote in A2', $a, 'GET', '/spaces/' . $spaceA2 . $ratePreview, null, 404,
+        static fn(array $r): bool => $r === ['error' => 'exchange_rate_not_found']);
+    $t->check('other tenant cannot use A1 quote in B1', $b, 'GET', '/spaces/' . $spaceB . $ratePreview, null, 404,
+        static fn(array $r): bool => $r === ['error' => 'exchange_rate_not_found']);
+    instanceCheck('instance administrator cannot inspect scoped FX rate evidence', 'GET', $ratePath, null, 404);
+    instanceCheck('instance administrator cannot convert using scoped FX snapshot', 'GET', $resourceRoot . $ratePreview, null, 404);
+    instanceCheck('instance administrator cannot append FX evidence', 'POST', $ratePath, $quotePayload, 404);
+    $t->check('environment administrator cannot append FX evidence', $b, 'POST', $ratePath, $quotePayload, 404);
     $readRoutes = [
+        'exchange-rate history' => $ratePath,
+        'exchange-rate snapshot preview' => $resourceRoot . $ratePreview,
         'contact search' => $searchRoute,
         'invoice' => $resourceRoot . '/invoices/' . (int)$invoice['id'],
         'obligation' => $resourceRoot . '/obligations/' . (int)$obligation['id'],
@@ -1167,6 +1183,10 @@ try {
         static fn(array $r): bool => ($r['result']['isError'] ?? true) === false
             && ($r['result']['structuredContent']['results']['contacts'][0]['name'] ?? '') === $contactName);
 
+    $t->check('viewer cannot append exchange-rate evidence', $b, 'POST', $ratePath, $quotePayload, 403);
+    $t->check('viewer converts using precise authorized snapshot', $b, 'GET', $resourceRoot . $ratePreview, null, 200,
+        static fn(array $r): bool => $r['targetMinor'] === 2000 && $r['postingCreated'] === false);
+
     $t->check('B remains unable to post to A as viewer', $b, 'POST',
         '/spaces/' . $spaceA . '/journals',
         ['debitId' => $ids['1000'], 'creditId' => $ids['4000'],
@@ -1243,6 +1263,8 @@ try {
     foreach ($managerRoutes as $label => $route) {
         $t->check('explicit manager can read ' . $label, $b, 'GET', $route, null, 200);
     }
+    $t->check('explicit financial manager may replay scoped FX evidence', $b, 'POST', $ratePath, $quotePayload, 200,
+        static fn(array $r): bool => $r['replayed'] === true && $r['rate']['id'] === $rateId);
     // Preview does not schedule AI or send any data to an external provider.
     $preview = $t->check('manager can obtain consent-bound aggregate preview', $b, 'GET',
         $resourceRoot . '/ai/preview' . $period, null, 200,
@@ -1326,6 +1348,9 @@ try {
         ['enabled' => false], 200);
     $t->check('suspended environment denies direct owner access', $a, 'GET',
         '/spaces/' . $spaceA . '/journals', null, 404);
+    $t->check('suspended environment denies owner rate history', $a, 'GET', $ratePath, null, 404);
+    $t->check('suspended environment denies owner conversion preview', $a, 'GET', $resourceRoot . $ratePreview, null, 404);
+    $t->check('suspended environment denies owner quote recording', $a, 'POST', $ratePath, $quotePayload, 404);
     if ($withNfse) {
         $t->checkModule('suspended environment denies fiscal owner on next request',$a,$nfse,'GET',$draftA1,null,404);
         $t->checkModule('separate environment B retains fiscal staging capability',$b,$nfse,'GET',$draftB,null,200);

@@ -754,6 +754,11 @@
       "path": "/apps/librefinance/api/spaces/{spaceId}/exchange-rates",
       "request": "POST",
       "route": "librefinance.ratehistory.record"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/exchange-rates/{rateId}/preview",
+      "request": "GET",
+      "route": "librefinance.ratehistory.preview"
     }
   ],
   "librefinance_nfse": [

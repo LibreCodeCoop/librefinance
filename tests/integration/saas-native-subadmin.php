@@ -124,6 +124,16 @@ try {
     $t->check('stale native assignment does not expose environment discovery', $aUid,
         'GET', $base, null, 200,
         static fn(array $r): bool => !in_array($ea, array_column($r['environments'] ?? [], 'id'), true));
+    // The financial owner is still explicitly granted in this book, but
+    // losing current group membership must conceal its data immediately.
+    $ga->removeUser($b);
+    $t->check('financial owner removed from group loses direct ledger access', $bUid,
+        'GET', "/spaces/$spaceId/journals", null, 404);
+    $t->check('removed financial owner cannot discover former workspace', $bUid,
+        'GET', '/spaces', null, 200,
+        static fn(array $r): bool => !in_array($spaceId, array_column($r['spaces'] ?? [], 'id'), true));
+    $t->check('removed financial owner cannot read exchange-rate evidence', $bUid,
+        'GET', "/spaces/$spaceId/exchange-rates", null, 404);
     $t->check('native admin B is unaffected by A revocation', $bUid,
         'GET', "$base/$eb/workspaces", null, 200);
 } finally {
