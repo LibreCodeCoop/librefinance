@@ -24,6 +24,11 @@ final class PolicyRegistry {
                 ['instance', 'environment', 'workspace'], false, true),
             new PolicyDefinition('imports.enabled', 'boolean',
                 ['instance', 'environment', 'workspace'], true, true),
+            // Restrict the actual banking CSV/OFX importer without changing
+            // existing default behavior or authorizing imports by itself.
+            new PolicyDefinition('banking.allowedImportFormats', 'allowed_set',
+                ['instance', 'environment', 'workspace'], ['csv', 'ofx'], true,
+                allowedSetValues: ['csv', 'ofx']),
             // Core report APIs must obey policy even when their module flag is enabled.
             new PolicyDefinition('modules.reports.enabled', 'boolean',
                 ['instance', 'environment', 'workspace'], true, true),

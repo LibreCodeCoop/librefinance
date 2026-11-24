@@ -4,6 +4,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
+import axios from '@nextcloud/axios'
+import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcPopover from '@nextcloud/vue/components/NcPopover'
@@ -128,6 +130,9 @@ function setAccount(id) {
 // second user-facing register.
 const importOpen = ref(false)
 const importFormat = ref('csv')
+const allowedBankFormats = ref([])
+const bankFormatsLoading = ref(true)
+let bankFormatSequence = 0
 const importAccount = ref(0)
 const importFile = ref(null)
 const csvExample = 'data:text/csv;charset=utf-8,' + encodeURIComponent(
@@ -150,8 +155,37 @@ const journalCandidates = computed(() => {
       label:(item.effective_on || '')+' · '+(item.memo || 'Movimentação')
         +' (#'+item.id+')'}))
 })
+async function loadAllowedBankFormats() {
+  const token = ++bankFormatSequence
+  const spaceId = Number(w.activeId.value)
+  bankFormatsLoading.value = true
+  allowedBankFormats.value = []
+  if (!spaceId || Number(w.space.value?.id) !== spaceId) {
+    bankFormatsLoading.value = false
+    return
+  }
+  if (w.space.value.saasManaged !== true) {
+    allowedBankFormats.value = ['csv', 'ofx']
+    bankFormatsLoading.value = false
+    return
+  }
+  try {
+    const path = generateUrl('/apps/librefinance/api/saas/v1/workspaces/'
+      + spaceId + '/policies/banking.allowedImportFormats')
+    const response = await axios.get(path)
+    if (token !== bankFormatSequence || Number(w.activeId.value) !== spaceId) return
+    const actual = response.data.effectiveValue
+    allowedBankFormats.value = Array.isArray(actual)
+      ? ['csv', 'ofx'].filter(format => actual.includes(format)) : []
+  } catch {
+    if (token === bankFormatSequence) allowedBankFormats.value = []
+  } finally {
+    if (token === bankFormatSequence) bankFormatsLoading.value = false
+  }
+}
 function openImport(format = 'csv') {
-  if (!['csv','ofx'].includes(format) || !w.writable.value
+  if (!allowedBankFormats.value.includes(format) || bankFormatsLoading.value
+    || !w.writable.value
     || !canReviewBank.value || !banks.value.length) return
   importFormat.value=format
   importError.value=''
@@ -188,7 +222,8 @@ function chooseImportFile(files) {
 }
 async function importStatement() {
   if (!importFile.value || !importAccount.value || importing.value
-    || !w.writable.value || !canReviewBank.value) return
+    || !w.writable.value || !canReviewBank.value
+    || !allowedBankFormats.value.includes(importFormat.value)) return
   importError.value=''
   const token=++bankActionVersion
   const spaceId=Number(w.activeId.value)
@@ -459,11 +494,14 @@ watch([w.activeId,w.modulesLoadedFor], () => {
   everHadRows.value = false
   clearFilters()
 })
+watch(() => [Number(w.activeId.value), w.space.value?.saasManaged],
+  loadAllowedBankFormats, { immediate: true })
 watch([w.activeId,w.modulesLoadedFor,accountFilter,directionFilter,statusFilter,search], load,
   {immediate:true})
 onBeforeUnmount(() => {
   requestVersion++
   bankActionVersion++
+  ++bankFormatSequence
   if (searchTimer.value) clearTimeout(searchTimer.value)
 })
 const stateLabel = row => ({
@@ -480,15 +518,15 @@ const currency = row => w.money(row.amountMinor)
     <LfPageHeader title="Movimentações" eyebrow="FINANCEIRO"
       description="Tudo que vai entrar ou sair e o que já aconteceu, em uma lista. Os lançamentos do banco que precisam de conferência ficam identificados.">
       <template #actions>
-        <NcActions v-if="w.writable.value && canReviewBank && banks.length"
+        <NcActions v-if="w.writable.value && canReviewBank && banks.length && allowedBankFormats.length && !bankFormatsLoading"
           id="lf-import-menu" menu-name="Importar extrato"
           aria-label="Importar extrato bancário" :default-icon="mdiFileUploadOutline"
           variant="secondary" force-menu>
-          <NcActionButton close-after-click @click="openImport('csv')">
+          <NcActionButton v-if="allowedBankFormats.includes('csv')" close-after-click @click="openImport('csv')">
             <template #icon><NcIconSvgWrapper :path="mdiFileDelimitedOutline" :size="20" /></template>
             Arquivo CSV
           </NcActionButton>
-          <NcActionButton close-after-click @click="openImport('ofx')">
+          <NcActionButton v-if="allowedBankFormats.includes('ofx')" close-after-click @click="openImport('ofx')">
             <template #icon><NcIconSvgWrapper :path="mdiFileCodeOutline" :size="20" /></template>
             Arquivo OFX
           </NcActionButton>
@@ -673,7 +711,7 @@ const currency = row => w.money(row.amountMinor)
           <NcButton variant="tertiary" :disabled="importing"
             @click="closeImport">Cancelar</NcButton>
           <NcButton variant="primary" type="submit"
-            :disabled="importing||!importAccount||!importFile">
+            :disabled="importing||!importAccount||!importFile||!allowedBankFormats.includes(importFormat)">
             {{importing?'Importando…':'Importar '+importFormat.toUpperCase()+' para conferir'}}
           </NcButton>
         </div>

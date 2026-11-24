@@ -19,6 +19,8 @@ final readonly class PolicyDefinition {
         public mixed $defaultValue,
         public bool $allowChildOverride,
         public int $version = 1,
+        /** Optional static universe for enum-like allowed-set policies. */
+        public ?array $allowedSetValues = null,
     ) {
         if (preg_match('/^[a-z][A-Za-z0-9]*(?:\.[a-z][A-Za-z0-9]*)+$/D', $key) !== 1
             || strlen($key) > 100 || $version < 1) {
@@ -53,9 +55,13 @@ final readonly class PolicyDefinition {
             'allowed_set' => is_array($value)
                 && array_is_list($value)
                 && count($value) <= 256
-                && count($value) === count(array_unique($value, SORT_STRING))
+                // Validate scalar types before uniqueness to avoid PHP
+                // array-to-string coercion on malformed nested JSON.
                 && array_reduce($value, static fn(bool $ok, mixed $v): bool =>
-                    $ok && is_string($v) && $v !== '' && strlen($v) <= 64, true),
+                    $ok && is_string($v) && $v !== '' && strlen($v) <= 64, true)
+                && count($value) === count(array_unique($value, SORT_STRING))
+                && ($this->allowedSetValues === null
+                    || array_values(array_intersect($value, $this->allowedSetValues)) === $value),
             default => false,
         };
         if (!$valid) {

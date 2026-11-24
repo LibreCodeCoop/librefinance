@@ -207,11 +207,13 @@ try {
         'GET', '/spaces/' . $spaceA . '/modules', null, 200,
         static fn(array $r): bool => count(array_filter($r['modules'] ?? [],
             static fn(array $m): bool => ($m['id'] ?? null) === 'librefinance_reports'
-                && ($m['enabled'] ?? null) === false)) === 1);
+                && ($m['enabled'] ?? null) === false
+                && ($m['blockedByPolicy'] ?? null) === true)) === 1);
     $t->check('module flag cannot reactivate a policy-disabled report module', $a,
         'PUT', '/spaces/' . $spaceA . '/modules/librefinance_reports',
         ['enabled' => true], 200,
-        static fn(array $r): bool => ($r['enabled'] ?? null) === false);
+        static fn(array $r): bool => ($r['enabled'] ?? null) === false
+            && ($r['blockedByPolicy'] ?? null) === true);
     $t->checkModule('workspace A2 reports unaffected by A1 policy', $a,
         'librefinance_reports', 'GET', $reportRouteA2, null, 200);
     $t->checkModule('environment B reports unaffected by A1 policy', $b,
@@ -252,9 +254,11 @@ try {
         'GET', $workspacePolicyA2, null, 404);
     $t->check('A owner can read workspace policy catalogue', $a,
         'GET', '/saas/v1/workspaces/' . $spaceA2 . '/policies/effective', null, 200,
-        static fn(array $r): bool => count($r['policies'] ?? []) >= 6
+        static fn(array $r): bool => count($r['policies'] ?? []) >= 8
             && in_array('dashboard.kpis.enabled', array_column($r['policies'] ?? [], 'key'), true)
-            && in_array('modules.reports.enabled', array_column($r['policies'] ?? [], 'key'), true));
+            && in_array('banking.allowedImportFormats', array_column($r['policies'] ?? [], 'key'), true)
+            && in_array('modules.reports.enabled', array_column($r['policies'] ?? [], 'key'), true)
+            && in_array('regional.nfseDrafts.enabled', array_column($r['policies'] ?? [], 'key'), true));
     $t->check('A owner restricts imports in A2 without changing A1', $a,
         'PUT', $workspacePolicyA2,
         ['valueJson' => 'false', 'expectedRevision' => 0], 200,
@@ -304,6 +308,107 @@ try {
         static fn(array $r): bool => ($r['inherited'] ?? null) === true
             && ($r['revision'] ?? null) === 2
             && ($r['effectiveValue'] ?? null) === true);
+
+    // Real bank operations enforce the intersection of allowed_set values,
+    // without affecting the independent books in group B or legacy defaults.
+    $bankFormatPathA1 = '/saas/v1/workspaces/' . $spaceA
+        . '/policies/banking.allowedImportFormats';
+    $bankFormatPathA2 = '/saas/v1/workspaces/' . $spaceA2
+        . '/policies/banking.allowedImportFormats';
+    $bankFormatPathB = '/saas/v1/workspaces/' . $spaceB
+        . '/policies/banking.allowedImportFormats';
+    $t->check('banking format policy defaults to existing CSV and OFX', $a,
+        'GET', $bankFormatPathA1, null, 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === ['csv', 'ofx']
+            && ($r['sourceScope'] ?? null) === 'default');
+    $t->check('unknown actor cannot view A1 import formats', $b,
+        'GET', $bankFormatPathA1, null, 404);
+    $t->check('banking format policy narrows A1 to CSV only', $a,
+        'PUT', $bankFormatPathA1,
+        ['valueJson' => '["csv"]', 'expectedRevision' => 0], 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === ['csv']
+            && ($r['revision'] ?? null) === 1
+            && ($r['sourceScope'] ?? null) === 'workspace');
+    $t->check('A2 sibling ledger retains both bank formats', $a,
+        'GET', $bankFormatPathA2, null, 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === ['csv', 'ofx']);
+    $t->check('different environment B retains both bank formats', $b,
+        'GET', $bankFormatPathB, null, 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === ['csv', 'ofx']);
+    $t->check('stale bank import format CAS cannot overwrite restriction', $a,
+        'PUT', $bankFormatPathA1,
+        ['valueJson' => '["ofx"]', 'expectedRevision' => 0], 409);
+    $t->check('workspace cannot invent a new bank import format', $a,
+        'PUT', $bankFormatPathA1,
+        ['valueJson' => '["csv","xml"]', 'expectedRevision' => 1], 422,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'invalid_policy_value');
+    $t->check('invalid bank format leaves the workspace restriction unchanged', $a,
+        'GET', $bankFormatPathA1, null, 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === ['csv']
+            && ($r['revision'] ?? null) === 1);
+    $bankAccountsA1 = $t->check('A1 banking policy test reads its chart', $a,
+        'GET', '/spaces/' . $spaceA . '/accounts', null, 200);
+    $bankByCodeA1 = array_column($bankAccountsA1['accounts'] ?? [], 'id', 'code');
+    $bankAccountA1 = (int)($bankByCodeA1['1000'] ?? 0);
+    saasCheck('A1 synthetic bank cash account exists', $bankAccountA1 > 0);
+    $csvPolicyProof = "id,date,amount,description\n"
+        . "saas-policy-csv,2026-11-20,12.34,Synthetic CSV policy proof\n";
+    $ofxPolicyProof = "OFXHEADER:100\nDATA:OFXSGML\nVERSION:102\nCHARSET:1252\n"
+        . "<OFX><STMTRS><CURDEF>BRL\n<BANKTRANLIST><DTSTART>20261120\n"
+        . "<STMTTRN><DTPOSTED>20261120\n<TRNAMT>-9.35\n"
+        . "<FITID>saas-policy-ofx\n<MEMO>Synthetic OFX policy proof\n</STMTTRN>"
+        . "</BANKTRANLIST></STMTRS></OFX>";
+    $t->check('real bank CSV import works under CSV-only restriction', $a,
+        'POST', '/spaces/' . $spaceA . '/imports',
+        ['bankAccountId' => $bankAccountA1, 'format' => 'csv',
+            'csv' => $csvPolicyProof], 201,
+        static fn(array $r): bool =>
+            ($r['imported'] ?? null) === 1 && ($r['skipped'] ?? null) === 0);
+    $t->check('real bank OFX import blocked before financial write', $a,
+        'POST', '/spaces/' . $spaceA . '/imports',
+        ['bankAccountId' => $bankAccountA1, 'format' => 'ofx',
+            'ofx' => $ofxPolicyProof], 403,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled');
+    $t->check('blocked OFX left no bank transaction record', $a,
+        'GET', '/spaces/' . $spaceA . '/transactions', null, 200,
+        static fn(array $r): bool => count($r['transactions'] ?? []) === 1);
+    $bankFormatEnvironmentA = '/saas/v1/environments/' . $envA
+        . '/policies/banking.allowedImportFormats';
+    $t->check('environment manager narrows import formats to OFX', $b,
+        'PUT', $bankFormatEnvironmentA,
+        ['valueJson' => '["ofx"]', 'expectedRevision' => 0], 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === ['ofx']);
+    $t->check('A1 CSV and parent OFX intersect to empty deny-all', $a,
+        'GET', $bankFormatPathA1, null, 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === []
+            && ($r['blockedBy'] ?? null) === 'workspace');
+    $t->check('empty format intersection denies actual CSV import', $a,
+        'POST', '/spaces/' . $spaceA . '/imports',
+        ['bankAccountId' => $bankAccountA1, 'format' => 'csv',
+            'csv' => $csvPolicyProof], 403);
+    $t->check('clearing local A1 policy retains stricter environment OFX', $a,
+        'DELETE', $bankFormatPathA1 . '?expectedRevision=1', null, 200,
+        static fn(array $r): bool =>
+            ($r['effectiveValue'] ?? null) === ['ofx']
+            && ($r['revision'] ?? null) === 2);
+    $t->check('actual OFX import now works under OFX-only restriction', $a,
+        'POST', '/spaces/' . $spaceA . '/imports',
+        ['bankAccountId' => $bankAccountA1, 'format' => 'ofx',
+            'ofx' => $ofxPolicyProof], 201,
+        static fn(array $r): bool =>
+            ($r['imported'] ?? null) === 1 && ($r['skipped'] ?? null) === 0);
+    $t->check('removing environment format restriction restores CSV and OFX', $b,
+        'DELETE', $bankFormatEnvironmentA . '?expectedRevision=1', null, 200,
+        static fn(array $r): bool => ($r['effectiveValue'] ?? null) === ['csv', 'ofx']);
+    $t->check('CSV import replay is still idempotent after policy reset', $a,
+        'POST', '/spaces/' . $spaceA . '/imports',
+        ['bankAccountId' => $bankAccountA1, 'format' => 'csv',
+            'csv' => $csvPolicyProof], 201,
+        static fn(array $r): bool =>
+            ($r['imported'] ?? null) === 0 && ($r['skipped'] ?? null) === 1);
 
     // This setting is resolved for the active environment; a user in both
     // groups never receives a union of permissive child scopes.

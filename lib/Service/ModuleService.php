@@ -72,12 +72,15 @@ final class ModuleService {
             if (AccessService::rank($role) < AccessService::rank($module->requiredRole)) {
                 continue;
             }
+            $blockedByPolicy = $this->blockedByPolicy($spaceId, $id);
             $modules[] = [
                 'id' => $id,
                 'name' => $module->name,
                 'description' => $module->description,
                 'requiredRole' => $module->requiredRole,
-                'enabled' => $this->enabledInSpace($spaceId, $id),
+                'enabled' => $this->enabledInSpace($spaceId, $id, $blockedByPolicy),
+                // This is informational only; requireEnabled re-checks server policy.
+                'blockedByPolicy' => $blockedByPolicy,
                 'url' => $this->urls->linkToRoute($module->routeName, ['spaceId' => $spaceId]),
             ];
         }
@@ -120,19 +123,27 @@ final class ModuleService {
         }
         // Return the effective state, not a misleading 'enabled' response
         // when an ancestor policy still prohibits the module.
-        return ['id' => $id, 'enabled' => $this->enabledInSpace($spaceId, $id)];
+        $blockedByPolicy = $this->blockedByPolicy($spaceId, $id);
+        return ['id' => $id, 'enabled' => $this->enabledInSpace($spaceId, $id, $blockedByPolicy),
+            'blockedByPolicy' => $blockedByPolicy];
     }
 
-    private function enabledInSpace(int $spaceId, string $id): bool {
-        // Runtime policy and per-space module flags both restrict access.
-        // Neither of them supplies a financial ACL grant.
+    /** Does not grant access or reveal a parent's confidential settings. */
+    private function blockedByPolicy(int $spaceId, string $id): bool {
         $policy = match ($id) {
             'librefinance_import' => 'imports.enabled',
             'librefinance_reports' => 'modules.reports.enabled',
             'librefinance_nfse' => 'regional.nfseDrafts.enabled',
             default => null,
         };
-        if ($policy !== null && $this->policies->workspace($spaceId, $policy)['effectiveValue'] !== true) {
+        return $policy !== null
+            && $this->policies->workspace($spaceId, $policy)['effectiveValue'] !== true;
+    }
+
+    private function enabledInSpace(int $spaceId, string $id, ?bool $blockedByPolicy = null): bool {
+        // Runtime policy and local flags both restrict access. Backend gates
+        // always re-resolve policy unless a single response already resolved it.
+        if (($blockedByPolicy ?? $this->blockedByPolicy($spaceId, $id)) === true) {
             return false;
         }
         $q = $this->db->getQueryBuilder();

@@ -19,7 +19,8 @@ $space = $t->check('create finance module space', $a, 'POST', '/spaces',
 $id = (int)$space['id'];
 $path = '/spaces/' . $id;
 $assertReport = static fn(array $v): bool => count(array_filter($v['modules'] ?? [],
-    static fn(array $m): bool => $m['id'] === $report && $m['enabled'] === true)) === 1;
+    static fn(array $m): bool => $m['id'] === $report && $m['enabled'] === true
+        && ($m['blockedByPolicy'] ?? null) === false)) === 1;
 $t->check('built-in reports discovered by core', $a, 'GET', $path . '/modules', null, 200, $assertReport);
 $t->check('unrelated user cannot list modules', $b, 'GET', $path . '/modules', null, 404);
 
@@ -87,7 +88,8 @@ $t->check('owner disables module only in space', $a, 'PUT',
     static fn(array $v): bool => ($v['enabled'] ?? null) === false);
 $t->check('core reports module disabled', $a, 'GET', $path . '/modules', null, 200,
     static fn(array $v): bool => count(array_filter($v['modules'] ?? [],
-        static fn(array $m): bool => $m['id'] === $report && $m['enabled'] === false)) === 1);
+        static fn(array $m): bool => $m['id'] === $report && $m['enabled'] === false
+            && ($m['blockedByPolicy'] ?? null) === false)) === 1);
 $t->checkModule('disabled module blocks data access', $a, $report, 'GET',
     $path . '/profit-loss?from=2026-01-01&through=2026-12-31', null, 403,
     static fn(array $v): bool => ($v['error'] ?? null) === 'module_disabled');
@@ -170,16 +172,22 @@ try {
         static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled');
     $t->checkModule('global fiscal draft denial blocks optional NFS-e write', $a,
         'librefinance_nfse', 'POST', $path . '/drafts',
-        ['operationKey' => 'nfse:forbidden:synthetic'], 403,
+        ['operationKey' => 'nfse:forbidden:synthetic',
+            'issuerCnpj' => '99999999000191', 'municipalityCode' => '3304557',
+            'competence' => '2026-11-20', 'serviceCode' => '01.01',
+            'description' => 'Synthetic forbidden fiscal draft',
+            'amountMinor' => 10000], 403,
         static fn(array $r): bool => ($r['error'] ?? null) === 'module_disabled');
     $t->check('optional NFS-e effective flag reflects global denial', $a,
         'GET', $path . '/modules', null, 200,
         static fn(array $r): bool => count(array_filter($r['modules'] ?? [],
             static fn(array $module): bool => ($module['id'] ?? null) === 'librefinance_nfse'
-                && ($module['enabled'] ?? null) === false)) === 1);
+                && ($module['enabled'] ?? null) === false
+                && ($module['blockedByPolicy'] ?? null) === true)) === 1);
     $t->check('local NFS-e activation cannot override the global policy', $a,
         'PUT', $path . '/modules/librefinance_nfse', ['enabled' => true], 200,
-        static fn(array $r): bool => ($r['enabled'] ?? null) === false);
+        static fn(array $r): bool => ($r['enabled'] ?? null) === false
+            && ($r['blockedByPolicy'] ?? null) === true);
 } finally {
     if ($policyRestricted) {
         $session->setUser($admin);
@@ -187,6 +195,7 @@ try {
     }
     $session->setUser($ownerUser);
 }
-$t->checkModule('optional NFS-e draft API works again after global policy clear', $a,
-    'librefinance_nfse', 'GET', $path . '/drafts', null, 200);
+$t->checkModule('optional NFS-e draft API works again with no forbidden writes persisted', $a,
+    'librefinance_nfse', 'GET', $path . '/drafts', null, 200,
+    static fn(array $r): bool => ($r['drafts'] ?? null) === []);
 $t->finish();

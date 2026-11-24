@@ -436,6 +436,11 @@ otimista e auditoria, não pela concessão de papéis.
 O módulo ainda exige papel financeiro apropriado e seu próprio indicador
 local de ativação. Mesmo que alguém reative esse indicador, a API só apresenta
 `enabled: true` quando **todos** os controles aplicáveis permitem acesso.
+O endpoint de descoberta e a resposta de alteração do módulo oferecem o
+indicador de apresentação `blockedByPolicy`, sem revelar valores internos do
+ancestral. A interface informa o motivo do bloqueio e não oferece ação de
+ativação local enquanto a policy superior proíbe o recurso; visualizadores
+também não recebem uma ação de configuração que não podem executar.
 A consulta direta ao demonstrativo de resultados, balanço, fluxo de caixa e
 aos relatórios salvos deve retornar `403 module_disabled` quando a policy
 nega o acesso. Esta configuração suspende consultas e alterações futuras; não
@@ -455,3 +460,34 @@ ou livro. Desabilitar a política impede a leitura/criação seguinte de
 rascunhos (`403 module_disabled`), sem apagar os registros históricos.
 A reativação deve restaurar o acesso somente aos usuários que ainda possuam
 papel financeiro válido e o aplicativo instalado.
+
+### Formatos bancários permitidos por policy
+
+A definição `banking.allowedImportFormats` usa o tipo `allowed_set`,
+com níveis **Instância → Ambiente SaaS → Gestão financeira** e padrão
+compatível `["csv","ofx"]`. A restrição é uma **interseção**: cada nível
+pode retirar formatos, mas nunca incluir um formato que seu ancestral tenha
+proibido. O conjunto vazio significa **nenhum extrato permitido**.
+Essa policy não confere autorização para importar, criar conta bancária,
+conciliar movimentações ou postar lançamentos; a ACL financeira, a policy
+`imports.enabled`, a habilitação do módulo e o vínculo da conta são
+validados separadamente.
+
+A API já existente de policies permite ler o valor efetivo, a origem da
+restrição e a revisão, definir uma lista JSON como `["csv"]` com CAS
+(`expectedRevision`) e voltar a herdar a restrição superior. No servidor,
+`POST /api/spaces/{spaceId}/imports` rejeita o formato proibido com
+`403 module_disabled` **antes de interpretar o arquivo ou criar
+movimentações bancárias**. Extratos antigos não são apagados ao alterar
+a policy. CSV e OFX preservam seus contratos anteriores, incluindo
+idempotência e as validações de valor, moeda, conta e tamanho.
+
+Nas telas **Movimentações** e **Bancos e caixa**, os formatos oferecidos
+seguem os valores efetivos da gestão selecionada. Ao mudar de gestão,
+respostas antigas de policy são descartadas. Uma falha de leitura da
+policy em ambiente SaaS não reabilita a importação na interface;
+o servidor continua sendo a autoridade final. O seletor nativo
+`NcFilePicker` escolhe arquivos locais sem enviá-los ao Nextcloud Files.
+Amostra de CSV pode ser baixada na tela. OFX com codificações legadas
+suportadas é convertido corretamente para Unicode antes de enviar o
+conteúdo ao servidor para validação. O limite permanece em 256 KiB.
