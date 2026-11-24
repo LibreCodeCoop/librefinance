@@ -15,8 +15,8 @@ sidecars em produção.
 NUNCA executar a suíte contra a instância real da cooperativa: o script de
 laboratório cria usuários sintéticos, um banco descartável, senhas aleatórias
 temporárias, várias empresas e movimentos contábeis de teste, e elimina
-os volumes ao concluir. A NFS-e continua opcional e externa; o Import antigo pode ser montado
-apenas em testes de atualização/compatibilidade. A instalação limpa deve
+os volumes ao concluir. A NFS-e continua opcional e externa; o esquema histórico do antigo Import
+é exercitado por fixtures descartáveis em testes de atualização. A instalação limpa deve
 funcionar apenas com o núcleo, incluindo o motor de importação.
 
 A suíte usa um bloqueio exclusivo não bloqueante (`flock`) em
@@ -84,8 +84,8 @@ ignorados no Git para não expor capturas ou dados fictícios em PRs.
 
 ## Contrato das rotas declaradas nos controllers
 
-As 92 rotas do núcleo (incluindo importação) e as rotas legadas opcionais
-(13 do antigo Import e três da NFS-e) são declaradas por
+As rotas do núcleo (incluindo importação) e as rotas do aplicativo
+opcional NFS-e são declaradas por
 `#[FrontpageRoute]`, não em `appinfo/routes.php`. A suíte mantém um snapshot
 dos contratos históricos em `tests/ci/routes-expected.json` e executa
 `occ router:list <apps> --index --output=json` contra o **Nextcloud
@@ -98,20 +98,22 @@ Para alterar deliberadamente um endpoint, atualize o snapshot e o OpenAPI
 no mesmo PR, com teste HTTP de compatibilidade; não apenas mude a fixture
 para esconder uma regressão.
 
-## Migrations iniciais consolidadas
+## Migrations e atualização
 
-Esta revisão pré-publicação consolidou antes 23 migrations em sete baselines. Agora o core
-preserva sua baseline anterior e acrescenta a migration de integração dos
-quatro domínios. A migration adicional de importação possui três
-tabelas de origem duráveis, sem excluir ou substituir dados do antigo app Import.
-A NFS-e permanece separada. O smoke testa instalação limpa em SQLite,
-PostgreSQL e MariaDB, com 92 rotas nativas do núcleo e 16 rotas legadas
-externas somente quando os aplicativos anteriores estiverem instalados. A migração é apenas DDL, sem
-conversão de valores, exclusão de dados ou acesso a bancos externos. Antes
-de publicar a mudança, também é obrigatório testar um upgrade de banco
-de desenvolvimento previamente instalado, verificando retenção de dados e
-conservação de índices/constraints. Em releases públicas futuros, não
-reescrever migrations já distribuídas.
+O núcleo possui uma baseline de desenvolvimento seguida de migrations
+incrementais; a NFS-e conserva suas próprias migrations. A suíte valida a
+instalação limpa em SQLite, PostgreSQL e MariaDB, os contratos de rotas
+e as tabelas de governança, importação e concessões. Os jobs históricos
+de Import verificam a preservação de registros e mapeamentos no upgrade.
+A contagem atual de migrations e rotas é obtida com
+`python3 tests/ci/coverage-inventory.py`.
+
+Não confundir a fixture histórica de Import com uma homologação de todos
+os caminhos de upgrade. Novas migrations devem ser incrementais,
+portáveis e preservar dados e identificadores. Qualquer consolidação
+pré-release exige uma avaliação separada de equivalência de esquema,
+instalação limpa e dos caminhos de atualização suportados. Em uma release
+pública, não reescrever migrations já distribuídas.
 
 ## Contratos OpenAPI
 
@@ -152,19 +154,21 @@ sincronização são cópias gerenciadas do catálogo público
 de atualização por PR e patches locais quando necessários.
 
 O workflow **específico** `.github/workflows/finance-integration.yml` fixa o
-Nextcloud Server e os SHAs de **Import legado e NFS-e**. A matriz financeira
-instala os três apps e mantém testes HTTP/PHP, autorização, concorrência e
+Nextcloud Server e o SHA da **NFS-e**. A matriz financeira
+instala o núcleo e a NFS-e; jobs separados verificam instalação apenas
+do núcleo e preservação do esquema histórico de Importação. A matriz
+integrada mantém testes HTTP/PHP, autorização, concorrência e
 Behat em SQLite, PostgreSQL e MariaDB, **sem instalar Node/Chromium**.
 Em paralelo, a matriz Playwright distribui os mesmos testes de navegador
 por três jobs PostgreSQL isolados; cada um instala Nextcloud e executa
 seu próprio shard, sem depender dos dados dos testes PHP. Não se perde
 nenhum cenário de navegador ou banco. O check obrigatório
-`LibreFinance integrated CI` exige sucesso de **contratos, três bancos e
-todos os shards de navegador**; resultados ausentes, cancelados, ignorados
+`LibreFinance integrated CI` exige sucesso de **contratos, três bancos,
+todos os shards de navegador, instalação sem módulos e upgrade histórico**; resultados ausentes, cancelados, ignorados
 ou com falha impedem o merge. Os workflows organizacionais de lint e
 build continuam independentes. O workflow deve ser validado em execução remota no mesmo SHA
 antes de servir como requisito de merge.
 
-Atualize os SHAs dos módulos com revisão e CI antes de integrar mudanças
+Atualize o SHA do aplicativo opcional com revisão e CI antes de integrar mudanças
 entre repositórios. O app permanece em desenvolvimento: testes no laboratório
 não certificam conexão bancária, emissão fiscal ou migração de dados reais.
