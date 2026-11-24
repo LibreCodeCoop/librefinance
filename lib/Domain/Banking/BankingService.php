@@ -27,7 +27,7 @@ final class BankingService {
 
     /** @return array<string,mixed> */
     public function list(int $spaceId, int $bankAccountId = 0, string $status = 'all', int $afterId = 0): array {
-        $this->finance->requireModule($spaceId, self::MODULE);
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'bank.read');
         if ($afterId < 0) {
             throw new DomainException('invalid_cursor');
         }
@@ -63,7 +63,7 @@ final class BankingService {
     /** @return array<string,mixed> */
     public function import(int $spaceId, int $bankAccountId, string $csv,
         string $format = 'csv', string $ofx = ''): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'operator');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'bank.import_statement');
         $this->policies->requireWorkspaceEnabled($spaceId, 'imports.enabled');
         // This check precedes all parsing, bank lookup and financial writes.
         // Unknown formats still use the existing explicit 422 contract.
@@ -136,7 +136,7 @@ final class BankingService {
 
     /** @return array<string,mixed> */
     public function match(int $spaceId, int $transactionId, int $journalId): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'operator');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'bank.reconcile');
         $this->db->beginTransaction();
         try {
             $q = $this->db->getQueryBuilder();

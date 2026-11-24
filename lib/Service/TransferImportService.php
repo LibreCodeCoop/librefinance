@@ -427,8 +427,8 @@ final class TransferImportService {
     }
 
     private function requireModules(int $spaceId): void {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
-        $this->finance->requireModule($spaceId, self::BANKING, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'imports.apply');
+        $this->finance->requireModuleCapability($spaceId, self::BANKING, 'bank.manage');
     }
 
     private static function source(mixed $system, mixed $companyId): void {

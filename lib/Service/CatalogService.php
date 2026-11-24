@@ -23,7 +23,7 @@ final class CatalogService {
 
     /** @return array<string,mixed> */
     public function contacts(int $spaceId, int $afterId = 0, string $search = ''): array {
-        $this->access->requireRole($spaceId, 'viewer');
+        $this->access->requireFinancialCapability($spaceId, 'contacts.read');
         $qb = $this->db->getQueryBuilder();
         $qb->select('id', 'name', 'kind', 'email', 'tax_id', 'active', 'created_at')
             ->from('lf_contacts')
@@ -53,7 +53,7 @@ final class CatalogService {
 
     /** @return array<string,mixed> */
     public function createContact(int $spaceId, string $name, string $kind, ?string $email, ?string $taxId, array $customFields = []): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'contacts.manage');
         $name = $this->requiredName($name);
         if (!in_array($kind, ['customer', 'vendor', 'both'], true)) {
             throw new DomainException('invalid_contact_kind');
@@ -84,7 +84,7 @@ final class CatalogService {
 
     /** @return array<string,mixed> */
     public function updateContact(int $spaceId, int $contactId, string $name, string $kind, ?string $email, ?string $taxId, bool $active, array $customFields = []): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'contacts.manage');
         $name = $this->requiredName($name);
         if (!in_array($kind, ['customer', 'vendor', 'both'], true)) {
             throw new DomainException('invalid_contact_kind');
@@ -116,7 +116,7 @@ final class CatalogService {
 
     /** @return array<string,mixed> */
     public function items(int $spaceId, int $afterId = 0, string $search = ''): array {
-        $this->access->requireRole($spaceId, 'viewer');
+        $this->access->requireFinancialCapability($spaceId, 'items.read');
         $qb = $this->db->getQueryBuilder();
         $qb->select('id', 'sku', 'name', 'kind', 'description', 'unit_price_minor', 'currency', 'active')
             ->from('lf_items')
@@ -150,7 +150,7 @@ final class CatalogService {
         int $spaceId, string $sku, string $name, string $kind,
         int $unitPriceMinor, ?string $description, array $customFields = [],
     ): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'items.manage');
         $sku = $this->sku($sku);
         $name = $this->requiredName($name);
         $kind = $this->itemKind($kind);
@@ -189,7 +189,7 @@ final class CatalogService {
         int $unitPriceMinor, ?string $description, bool $active,
         array $customFields = [],
     ): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'items.manage');
         $sku = $this->sku($sku);
         $name = $this->requiredName($name);
         $kind = $this->itemKind($kind);

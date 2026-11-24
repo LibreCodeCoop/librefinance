@@ -28,7 +28,7 @@ final class ObligationService {
         string $kind = 'all', string $dueRange = 'all', string $search = '',
         string $sortBy = 'id', string $sortDirection = 'asc',
         string $referenceDate = ''): array {
-        $this->finance->requireModule($spaceId, self::MODULE);
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'obligations.read');
         if ($afterId < 0) {
             throw new DomainException('invalid_cursor');
         }
@@ -169,7 +169,7 @@ final class ObligationService {
 
     /** @return array<string,mixed> */
     public function show(int $spaceId, int $id): array {
-        $this->finance->requireModule($spaceId, self::MODULE);
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'obligations.read');
         if ($id < 1) {
             throw new DomainException('obligation_not_found');
         }
@@ -215,7 +215,7 @@ final class ObligationService {
     /** @return array<string,mixed> */
     public function create(int $spaceId, string $kind, string $description, string $reference,
         int $amountMinor, string $issuedOn, string $dueOn, ?int $contactId = null): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'operator');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'obligations.manage');
         if (!in_array($kind, ['payable', 'receivable'], true)) {
             throw new DomainException('invalid_kind');
         }
@@ -278,7 +278,7 @@ final class ObligationService {
     /** @return array<string,mixed> */
     public function settle(int $spaceId, int $id, int $amountMinor, string $paidOn,
         string $operationKey, ?string $note): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'operator');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'obligations.manage');
         if ($amountMinor < 1 || $amountMinor > self::MAX_MINOR) {
             throw new DomainException('invalid_amount');
         }
@@ -369,7 +369,7 @@ final class ObligationService {
      */
     public function settleWithJournal(int $spaceId, int $id, int $amountMinor,
         string $paidOn, string $operationKey, int $journalId, int $bankId): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'operator');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'obligations.manage');
         if ($journalId < 1 || $bankId < 1) {
             throw new DomainException('invalid_payment');
         }
@@ -424,7 +424,7 @@ final class ObligationService {
 
     /** @return array<string,mixed> */
     public function cancel(int $spaceId, int $id): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'obligations.cancel');
         $this->db->beginTransaction();
         try {
             $obligation = $this->find($spaceId, $id);
@@ -460,7 +460,7 @@ final class ObligationService {
 
     /** @return array<string,mixed> */
     public function settlements(int $spaceId, int $id, int $afterId = 0): array {
-        $this->finance->requireModule($spaceId, self::MODULE);
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'obligations.read');
         if ($afterId < 0) {
             throw new DomainException('invalid_cursor');
         }
@@ -493,7 +493,7 @@ final class ObligationService {
      * @param array<string,mixed> $invoice
      */
     public function linkIssuedInvoice(int $spaceId, int $invoiceId, array $invoice): int {
-        $this->finance->requireModule($spaceId, 'librefinance_invoicing', 'manager');
+        $this->finance->requireModuleCapability($spaceId, 'librefinance_invoicing', 'invoice.issue');
         if ($invoiceId < 1 || (int)($invoice['paid_minor'] ?? -1) !== 0
             || (int)($invoice['total_minor'] ?? 0) <= 0
             || !in_array($invoice['kind'] ?? null, ['invoice', 'bill'], true)) {
@@ -533,7 +533,7 @@ final class ObligationService {
 
     /** Read-only one-to-one relationship for a visible commercial invoice. */
     public function linkedObligationId(int $spaceId, int $invoiceId): ?int {
-        $this->finance->requireModule($spaceId, 'librefinance_invoicing');
+        $this->finance->requireModuleCapability($spaceId, 'librefinance_invoicing', 'invoice.read');
         $q = $this->db->getQueryBuilder();
         $q->select('obligation_id')->from('lf_invoice_obligation_links')
             ->where($q->expr()->eq('space_id',
@@ -551,7 +551,7 @@ final class ObligationService {
      */
     public function recordInvoiceAllocation(int $spaceId, int $invoiceId,
         int $journalId, int $amountMinor, int $previousPaidMinor, int $invoiceTotalMinor): void {
-        $this->finance->requireModule($spaceId, 'librefinance_invoicing', 'operator');
+        $this->finance->requireModuleCapability($spaceId, 'librefinance_invoicing', 'invoice.manage');
         if ($amountMinor <= 0 || $journalId <= 0) {
             throw new DomainException('invalid_allocation');
         }

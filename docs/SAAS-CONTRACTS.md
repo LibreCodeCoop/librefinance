@@ -137,6 +137,40 @@ autorizado do grupo poderá ativar o ambiente. Ser membro do grupo não concede
 acesso aos dados financeiros, e a interface não deve sugerir que um ambiente
 foi ativado antes da confirmação do servidor.
 
+## Named financial capabilities
+
+Financial authority is checked at the operation, not inferred from whether
+a route, navigation item, or optional app is visible. Core services use
+`FinancialCapabilities` and `AccessService::requireFinancialCapability()`.
+The compatible public module seam still accepts valid minimum roles;
+unknown role names and unknown capabilities fail closed. The named module
+gate additionally preserves the installed descriptor minimum, per-space
+module flag, and effective policy. A report or import operation cannot use
+a different enabled caller module to bypass its canonical domain gate.
+
+The following summarizes the existing permission floors; this transition
+does not elevate any stored grant.
+
+| Financial role | Current operation scope |
+| --- | --- |
+| Viewer | Scoped ledger, accounts, bank, invoices, obligations, reports, catalog and custom-field reads; own internal dashboard layout |
+| Auditor (accountant) | Same financial read-only access; no posting, reconciliation, grant management, migration or report configuration |
+| Operator | Viewer operations plus journal posting, bank reconciliation and statement import, invoice/obligation operations, permitted use of catalog references and custom-field values |
+| Manager | Operator operations plus reversal, account and catalog configuration, issuance, cancellation, migration, saved report management, analysis, module and workspace configuration |
+| Owner | Manager operations plus financial membership and invitation management |
+
+`audit.read` and `reports.export` are reserved capability identifiers, not
+evidence of implemented dedicated accounting audit/export routes. In
+particular an external accountant is the existing stable `auditor` role
+and does not receive management or posting authority. External invitations
+are read-only even for otherwise writable personal dashboard preferences:
+acceptance is explicit, access is scoped to exactly the invited book,
+and revocation, expiry and effective parent-policy denial are enforced
+at request time, including workspace discovery. Administrative roles
+do not supply financial grants. Runtime tests cover accepted external
+auditor access, policy restriction and restoration, and expiry without
+a cleanup job.
+
 ## Compatibility and validation boundary
 
 Existing `/api/spaces` identifiers, audit history, posted balances, URLs and optional module entry points remain compatibility requirements. Adoption is phased; there is no silent permission elevation or automatic legacy ledger splitting. The synthetic lab installs and tests SQLite, PostgreSQL and MariaDB, including dedicated historical Import preservation, while SaaS policies, group lifecycle and financial isolation are covered by real Nextcloud negative suites. **A green job validates only its exact tested SHA and scenarios**; it does not certify full historic SaaS migration, manual usability/accessibility, production operations or independent human review. See `docs/TESTING.md` and the final acceptance gate in #11. No production deployment is authorized by this contract.

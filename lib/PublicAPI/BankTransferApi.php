@@ -116,7 +116,7 @@ final class BankTransferApi {
 
     /** @return array<string,mixed> */
     public function listForSpace(int $spaceId, int $afterId = 0): array {
-        $this->finance->requireModule($spaceId, self::MODULE);
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'bank.read');
         if ($afterId < 0) {
             throw new DomainException('invalid_cursor');
         }
@@ -156,7 +156,7 @@ final class BankTransferApi {
 
     /** @param list<array<string,mixed>> $rows */
     private function validate(int $spaceId, array $rows): void {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'bank.manage');
         if ($rows === [] || !array_is_list($rows) || count($rows) > 50) {
             throw new DomainException('invalid_transfer_batch');
         }

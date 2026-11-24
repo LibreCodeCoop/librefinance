@@ -44,11 +44,11 @@ final class InventoryParityService {
 
     /** @return array<string,mixed> */
     public function inspect(int $spaceId, string $inventoryJson): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'imports.read');
         $source = $this->parse($inventoryJson);
         $bankEnabled = true;
         try {
-            $this->finance->requireModule($spaceId, self::BANKING, 'manager');
+            $this->finance->requireModuleCapability($spaceId, self::BANKING, 'bank.manage');
         } catch (DomainException $error) {
             if (in_array($error->getMessage(), [
                 'module_not_found', 'module_disabled',

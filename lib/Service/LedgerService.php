@@ -502,7 +502,7 @@ final class LedgerService {
     }
 
     private function spaceCurrency(int $spaceId): string {
-        $this->access->requireRole($spaceId);
+        $this->access->requireFinancialCapability($spaceId, 'workspace.read');
         $q = $this->db->getQueryBuilder();
         $q->select('currency')->from('lf_spaces')
             ->where($q->expr()->eq('id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));

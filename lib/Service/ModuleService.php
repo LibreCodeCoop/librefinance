@@ -91,6 +91,26 @@ final class ModuleService {
         // Enforce both the endpoint role and the module's registered minimum.
         // Hiding a module from the UI is never a substitute for PHP authorization.
         $actualRole = $this->access->requireRole($spaceId, $role);
+        $this->requireInstalledAndEnabled($spaceId, $moduleId, $actualRole);
+    }
+
+    /** Core operation-level gate; retain the module's own minimum and policy. */
+    public function requireEnabledForCapability(int $spaceId, string $moduleId, string $capability): void {
+        $actualRole = $this->access->requireFinancialCapability($spaceId, $capability);
+        $this->requireInstalledAndEnabled($spaceId, $moduleId, $actualRole);
+        // A caller's module must not substitute for the domain whose data
+        // or migration operation it requests through the public FinanceApi.
+        $domain = match ($capability) {
+            'reports.read', 'reports.manage', 'reports.analyze', 'reports.export' => 'librefinance_reports',
+            'imports.read', 'imports.apply' => 'librefinance_import',
+            default => null,
+        };
+        if ($domain !== null && $domain !== $moduleId) {
+            $this->requireInstalledAndEnabled($spaceId, $domain, $actualRole);
+        }
+    }
+
+    private function requireInstalledAndEnabled(int $spaceId, string $moduleId, string $actualRole): void {
         $module = $this->discover()[$moduleId] ?? null;
         if ($module === null) {
             throw new DomainException('module_not_found');
@@ -104,7 +124,7 @@ final class ModuleService {
     }
 
     public function toggle(int $spaceId, string $id, bool $enabled): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'modules.configure');
         if (!isset($this->discover()[$id])) {
             throw new DomainException('module_not_found');
         }

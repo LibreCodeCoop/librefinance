@@ -103,7 +103,7 @@ final class BankImportApi {
 
     /** @param list<array<string,mixed>> $entries */
     private function validate(int $spaceId, array $entries): void {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'bank.manage');
         if ($entries === [] || count($entries) > 100 || !array_is_list($entries)) {
             throw new DomainException('invalid_import_batch');
         }

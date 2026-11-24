@@ -37,7 +37,7 @@ final class ActivityFeedService {
         int $accountId = 0,
         string $search = '',
     ): array {
-        $this->access->requireRole($spaceId);
+        $this->access->requireFinancialCapability($spaceId, 'workspace.read');
         if (!in_array($direction, ['all', 'in', 'out'], true)
             || !in_array($state, ['all', 'planned', 'posted', 'pending'], true)
             || $accountId < 0 || mb_strlen($search) > 120) {

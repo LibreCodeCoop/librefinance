@@ -21,7 +21,7 @@ final class PaymentMethodService {
         private AccountReferenceGuard $accountGuard) {}
 
     public function list(int $spaceId, int $afterId = 0): array {
-        $this->access->requireRole($spaceId, 'viewer');
+        $this->access->requireFinancialCapability($spaceId, 'payment_methods.read');
         if ($afterId < 0) throw new DomainException('invalid_cursor');
         $q=$this->db->getQueryBuilder();
         $q->select('id','name','kind','bank_account_id','active','created_at','updated_at')
@@ -40,7 +40,7 @@ final class PaymentMethodService {
 
     public function create(int $spaceId, string $name, string $kind,
         ?int $bankAccountId=null): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'payment_methods.manage');
         [$name,$kind]=self::validate($name,$kind);
         $now=time();
         $this->db->beginTransaction();
@@ -68,7 +68,7 @@ final class PaymentMethodService {
 
     public function update(int $spaceId,int $methodId,string $name,
         ?int $bankAccountId=null,bool $active=true): array {
-        $this->access->requireRole($spaceId,'manager');
+        $this->access->requireFinancialCapability($spaceId, 'payment_methods.manage');
         $old=$this->find($spaceId,$methodId);
         if ($old===null) throw new DomainException('payment_method_not_found');
         [$name]=self::validate($name,(string)$old['kind']);
@@ -97,7 +97,7 @@ final class PaymentMethodService {
     }
 
     public function delete(int $spaceId,int $methodId): array {
-        $this->access->requireRole($spaceId,'manager');
+        $this->access->requireFinancialCapability($spaceId, 'payment_methods.manage');
         $this->db->beginTransaction();
         try {
             $q=$this->db->getQueryBuilder();
@@ -119,7 +119,7 @@ final class PaymentMethodService {
     }
 
     public function validateForJournal(int $spaceId,int $methodId,int $debitId,int $creditId): void {
-        $this->access->requireRole($spaceId,'operator');
+        $this->access->requireFinancialCapability($spaceId, 'payment_methods.use');
         $method=$this->find($spaceId,$methodId);
         if ($method===null || !$method['active']) throw new DomainException('payment_method_not_found');
         $account=$method['bank_account_id'];

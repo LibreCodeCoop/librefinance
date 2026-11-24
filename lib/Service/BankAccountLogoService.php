@@ -24,7 +24,7 @@ final class BankAccountLogoService {
         private IAppData $appData) {}
 
     public function upload(int $spaceId, int $accountId, string $imageBase64): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'accounts.manage');
         $this->requireAccount($spaceId, $accountId);
         if ($imageBase64 === '' || strlen($imageBase64) > (int)ceil(self::MAX_BYTES * 4 / 3) + 8
             || preg_match('~[^A-Za-z0-9+/=]~', $imageBase64)) {
@@ -50,7 +50,7 @@ final class BankAccountLogoService {
 
     /** @return array{content:string,mime:string} */
     public function read(int $spaceId, int $accountId): array {
-        $this->access->requireRole($spaceId, 'viewer');
+        $this->access->requireFinancialCapability($spaceId, 'accounts.read');
         $account = $this->requireAccount($spaceId, $accountId);
         if ($account['logo_version'] === null) throw new DomainException('account_logo_not_found');
         try {
@@ -66,7 +66,7 @@ final class BankAccountLogoService {
     }
 
     public function remove(int $spaceId, int $accountId): array {
-        $this->access->requireRole($spaceId, 'manager');
+        $this->access->requireFinancialCapability($spaceId, 'accounts.manage');
         $this->requireAccount($spaceId, $accountId);
         $this->writer->update('lf_accounts', ['logo_version' => null],
             ['id' => $accountId, 'space_id' => $spaceId]);

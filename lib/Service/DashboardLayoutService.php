@@ -29,7 +29,7 @@ final class DashboardLayoutService {
 
     /** @return array<string,mixed> */
     public function get(int $spaceId): array {
-        $this->access->requireRole($spaceId, 'viewer');
+        $this->access->requireFinancialCapability($spaceId, 'workspace.read');
         $value = $this->config->getUserValue($this->uid(), self::APP, self::key($spaceId), '');
         if ($value === '') return ['widgets' => self::defaults()];
         try {
@@ -46,7 +46,7 @@ final class DashboardLayoutService {
      *  @return array<string,mixed>
      */
     public function save(int $spaceId, array $widgets): array {
-        $this->access->requireRole($spaceId, 'viewer');
+        $this->access->requireFinancialCapability($spaceId, 'dashboard.configure');
         self::validate($widgets);
         $this->config->setUserValue($this->uid(), self::APP, self::key($spaceId),
             json_encode($widgets, JSON_THROW_ON_ERROR));
@@ -55,7 +55,7 @@ final class DashboardLayoutService {
 
     /** @return array<string,mixed> */
     public function reset(int $spaceId): array {
-        $this->access->requireRole($spaceId, 'viewer');
+        $this->access->requireFinancialCapability($spaceId, 'dashboard.configure');
         $this->config->deleteUserValue($this->uid(), self::APP, self::key($spaceId));
         return ['widgets' => self::defaults()];
     }

@@ -128,6 +128,26 @@ $t->record('viewer cannot use manager-only module through generic API gate',
     $deniedManagerModule, $deniedManagerModule ? 'permission_denied' : 'not denied');
 $moduleService->requireEnabled($id, $report, 'viewer');
 $t->record('viewer retains access to viewer-level module', true, 'authorized');
+$expectDomain = static function (string $name, callable $operation, string $expected) use ($t): void {
+    $actual = 'allowed';
+    try {
+        $operation();
+    } catch (\DomainException $e) {
+        $actual = $e->getMessage();
+    }
+    $t->record($name, $actual === $expected, $actual);
+};
+$expectDomain('unknown legacy role fails closed',
+    static fn() => $moduleService->requireEnabled($id, $report, 'not_a_role'), 'invalid_role');
+$moduleService->requireEnabledForCapability($id, $report, 'reports.read');
+$t->record('viewer may use named report read capability', true, 'authorized');
+$expectDomain('viewer cannot manage reports through named gate',
+    static fn() => $moduleService->requireEnabledForCapability($id, $report, 'reports.manage'), 'permission_denied');
+$expectDomain('named capability cannot bypass module descriptor floor',
+    static fn() => $moduleService->requireEnabledForCapability($id, 'librefinance_import', 'workspace.read'), 'permission_denied');
+$expectDomain('unknown named capability fails closed',
+    static fn() => $moduleService->requireEnabledForCapability($id, $report, 'unknown.read'), 'unknown_financial_capability');
+
 $deniedElevatedOperation = false;
 try {
     $moduleService->requireEnabled($id, $report, 'manager');
@@ -143,6 +163,38 @@ if ($ownerUser === null) {
 \OC::$server->get(\OCP\IUserSession::class)->setUser($ownerUser);
 $moduleService->requireEnabled($id, 'librefinance_import', 'viewer');
 $t->record('owner retains access to manager-only module', true, 'authorized');
+// The public extension seam must enforce the protected domain even if a
+// different enabled module is supplied. No financial writes are needed.
+$api = \OC::$server->get(\OCA\LibreFinance\PublicAPI\FinanceApi::class);
+$bank = 'librefinance_banking';
+$import = 'librefinance_import';
+$reportOperations = [
+    'profitLoss' => static fn() => $api->profitLoss($id, $bank, '2026-01-01', '2026-12-31'),
+    'cashFlow' => static fn() => $api->cashFlow($id, $bank, '2026-01-01', '2026-12-31'),
+    'trialBalance' => static fn() => $api->trialBalance($id, $bank, '2026-12-31'),
+];
+foreach ($reportOperations as $name => $operation) {
+    $operation();
+    $t->record("enabled caller and report domain allow $name", true, 'authorized');
+}
+$moduleService->toggle($id, $report, false);
+try {
+    foreach ($reportOperations as $name => $operation) {
+        $expectDomain("alternate module cannot bypass disabled report domain: $name",
+            $operation, 'module_disabled');
+    }
+} finally {
+    $moduleService->toggle($id, $report, true);
+}
+$api->importLiquidAccountCodes($id, $bank, ['1000']);
+$moduleService->toggle($id, $import, false);
+try {
+    $expectDomain('alternate module cannot bypass disabled import domain',
+        static fn() => $api->importLiquidAccountCodes($id, $bank, ['1000']), 'module_disabled');
+} finally {
+    $moduleService->toggle($id, $import, true);
+}
+
 $t->checkModule('viewer can inspect reports', $b, $report, 'GET',
     $path . '/trial-balance?through=2026-12-31', null, 200);
 $t->check('viewer cannot turn module off', $b, 'PUT',

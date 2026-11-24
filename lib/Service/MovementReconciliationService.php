@@ -30,8 +30,8 @@ final class MovementReconciliationService {
     /** @return array<string,mixed> */
     public function list(int $spaceId, string $sourceCompanyId,
         string $sourceSystem = 'generic', int $afterId = 0): array {
-        $this->finance->requireModule($spaceId, 'librefinance_import', 'manager');
-        $this->finance->requireModule($spaceId, 'librefinance_banking', 'manager');
+        $this->finance->requireModuleCapability($spaceId, 'librefinance_import', 'imports.read');
+        $this->finance->requireModuleCapability($spaceId, 'librefinance_banking', 'bank.manage');
         if (!SourceSystem::valid($sourceSystem)
             || !is_string($sourceCompanyId) || strlen($sourceCompanyId) > 64
             || preg_match('/^[A-Za-z0-9_.:-]+$/D', $sourceCompanyId) !== 1

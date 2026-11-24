@@ -31,7 +31,7 @@ final class SearchService {
 
     /** @return array<string,mixed> */
     public function search(int $spaceId, string $query, string $type = 'all'): array {
-        $this->access->requireRole($spaceId, 'viewer');
+        $this->access->requireFinancialCapability($spaceId, 'workspace.read');
         $query = trim($query);
         if (mb_strlen($query) < 2 || mb_strlen($query) > 80 || preg_match('/[\x00-\x1F\x7F]/u', $query)) {
             throw new DomainException('invalid_search_query');

@@ -25,7 +25,7 @@ final class SavedReportService {
 
     /** @return array<string,mixed> */
     public function list(int $spaceId, int $afterId = 0): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'viewer');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'reports.read');
         if ($afterId < 0) { throw new DomainException('invalid_cursor'); }
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'name', 'kind', 'from_on', 'through_on', 'columns_json', 'class_filter', 'created_by', 'created_at', 'updated_at')
@@ -45,7 +45,7 @@ final class SavedReportService {
     /** @return array<string,mixed> */
     public function create(int $spaceId, string $name, string $kind, ?string $from, string $through,
         array $columns = [], ?string $accountClass = null): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'reports.manage');
         $fields = self::validate($name, $kind, $from, $through, $columns, $accountClass);
         $now = time();
         $qb = $this->db->getQueryBuilder();
@@ -70,7 +70,7 @@ final class SavedReportService {
     public function update(int $spaceId, int $reportId, string $name,
         string $kind, ?string $from, string $through, array $columns = [],
         ?string $accountClass = null): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'reports.manage');
         $this->requireExists($spaceId, $reportId);
         $fields = self::validate($name, $kind, $from, $through, $columns, $accountClass);
         $now = time();
@@ -92,7 +92,7 @@ final class SavedReportService {
 
     /** @return array<string,mixed> */
     public function archive(int $spaceId, int $reportId): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'reports.manage');
         $this->requireExists($spaceId, $reportId);
         $q = $this->db->getQueryBuilder();
         $q->update('lfr_saved_reports')
@@ -106,7 +106,7 @@ final class SavedReportService {
 
     /** Permanently remove only the saved report configuration, never journals. */
     public function deletePermanently(int $spaceId, int $reportId): array {
-        $this->finance->requireModule($spaceId, self::MODULE, 'manager');
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'reports.manage');
         if ($reportId < 1) { throw new DomainException('saved_report_not_found'); }
         $q = $this->db->getQueryBuilder();
         $q->delete('lfr_saved_reports')
