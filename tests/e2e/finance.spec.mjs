@@ -28,6 +28,21 @@ test('eligible group shows suspended SaaS environment without financial grants',
   await expect(group.getByRole('button', { name: /Ativar ambiente/ })).toHaveCount(0)
 })
 
+test('SaaS environment panel explains an empty enabled-group list after loading', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'personal')
+  await page.route('**/apps/librefinance/api/saas/v1/environments', route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    return route.fulfill({ status: 200, json: { environments: [], nextCursor: null } })
+  })
+  await goToView(page, 'Gestões financeiras')
+  await expect(page.getByRole('heading', { name: 'Ambientes LibreFinance' })).toBeVisible()
+  await expect(page.getByText('Nenhum ambiente SaaS está disponível para esta conta.')).toBeVisible()
+  await expect(page.getByText('As gestões pessoais existentes continuam independentes.')).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Ambientes SaaS disponíveis' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Ativar ambiente' })).toHaveCount(0)
+})
+
 test('SaaS administration chooses one environment and retries creation idempotently', async ({ page }) => {
   await login(page)
   await makeSpace(page, 'personal')

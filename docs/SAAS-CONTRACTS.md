@@ -110,6 +110,16 @@ Do not return the current grant when the requester lacks access.
 | P02 | Explicit allowed external invitation | Only authorized workspace and operation |
 | P03 | Authorized current group subadmin | Can provision existing enabled group idempotently |
 
+## Primeiro acesso e estados vazios
+
+Em **Gestões financeiras**, o painel **Ambientes LibreFinance** informa
+quando a conta não possui nenhum ambiente SaaS disponível. Isso não impede
+a continuidade de livros pessoais ou não empresariais. O administrador da
+instância deve habilitar um grupo Nextcloud; o subadministrador ou delegado
+autorizado do grupo poderá ativar o ambiente. Ser membro do grupo não concede
+acesso aos dados financeiros, e a interface não deve sugerir que um ambiente
+foi ativado antes da confirmação do servidor.
+
 ## Compatibility and validation boundary
 
 Existing `/api/spaces` identifiers, audit history, posted balances, URLs and optional module entry points must remain backward-compatible. Adoption is phased; no silent permission elevation to restore prior behavior. Before implementation completion, test SQLite, PostgreSQL and MariaDB fresh installs and seeded upgrades, actual Nextcloud session/CSRF behavior, permission-denial responses and concurrency. CI passing on the previous main SHA does not certify this proposed contract.
