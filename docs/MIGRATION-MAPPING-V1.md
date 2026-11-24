@@ -99,6 +99,22 @@ The independent synthetic fixture in
 These are transport fixtures, not claims that the destination already
 implements these economic functions.
 
+## Scoped control-total comparison
+
+The offline ControlTotalComparator compares independently computed, already
+authorized control-total sets against a separately supplied plan. The plan
+declares source/destination workspace pairs, currency, precision, required
+control names and a common UTC cutoff. Values are canonical signed minor-unit
+strings: missing evidence is not an explicit zero. The result is matched
+only for the exact declared controls, different for unequal complete
+evidence, or unverified for missing, duplicate, unexpected, unsupported or
+cutoff-mismatched evidence. No amount is summed across books or currencies.
+
+This helper does not compute the source or destination totals, authenticate
+provenance, map accounts, import records or establish migration readiness.
+The owning domain contracts must still define independently reproducible
+control totals and their sign conventions.
+
 ## Handoff to historical migration (#66)
 
 Review the actual authorized source inventory against this vocabulary and
