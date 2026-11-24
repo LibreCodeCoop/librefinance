@@ -8,17 +8,43 @@ test('Nextcloud official navigation and dashboard load without iframe', async ({
   await expect(page.locator('.lf-product-name')).toHaveText('LibreFinance')
   await expect(page.getByRole('navigation', { name: 'Navegação do LibreFinance' })).toBeVisible()
   await expect(page.locator('iframe')).toHaveCount(0)
-  // A fresh installation intentionally hides context-bound management until
-  // the first financial context exists. Verify its real entry point instead.
+  // With no financial book, the first-use action must still open SaaS
+  // management. A financial context is not a prerequisite for this action.
   const management = page.getByRole('link', { name: 'Gerenciar', exact: true })
-  const firstRun = page.getByRole('button', { name: 'Criar primeira gestão', exact: true })
+  const firstRun = page.getByRole('button', { name: 'Gerenciar ou criar gestões', exact: true })
   await expect(management.or(firstRun).first()).toBeVisible()
+})
+
+test('new SaaS administrator can open environment setup without creating a ledger', async ({ page }) => {
+  let createdBooks = 0
+  await page.route('**/apps/librefinance/api/spaces*', route => {
+    const { pathname } = new URL(route.request().url())
+    if (!pathname.endsWith('/api/spaces')) return route.continue()
+    if (route.request().method() === 'POST') ++createdBooks
+    if (route.request().method() === 'GET') {
+      return route.fulfill({ status: 200, json: { spaces: [] } })
+    }
+    return route.continue()
+  })
+  await page.route('**/apps/librefinance/api/saas/v1/environments*', route => {
+    const { pathname } = new URL(route.request().url())
+    if (route.request().method() !== 'GET'
+      || !pathname.endsWith('/api/saas/v1/environments')) return route.continue()
+    return route.fulfill({ status: 200, json: { environments: [], nextCursor: null } })
+  })
+  await login(page)
+  const entry = page.getByRole('button', { name: 'Gerenciar ou criar gestões', exact: true })
+  await expect(entry).toBeVisible()
+  await entry.click()
+  await expect(page.getByRole('heading', { name: 'Gestões financeiras' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Ambientes LibreFinance' })).toBeVisible()
+  await expect(page.getByText('Nenhum ambiente SaaS está disponível para esta conta.')).toBeVisible()
+  expect(createdBooks).toBe(0)
 })
 
 test('eligible group shows suspended SaaS environment without financial grants', async ({ page }) => {
   await login(page)
-  // Fresh installs hide management until a first personal book exists.
-  // Create a real synthetic book; never fake Nextcloud navigation.
+  // Use a real synthetic financial book to test the suspended-tenant view.
   await makeSpace(page, 'personal')
   await goToView(page, 'Gestões financeiras')
   await expect(page.getByRole('heading', { name: 'Ambientes LibreFinance' })).toBeVisible()
@@ -26,6 +52,21 @@ test('eligible group shows suspended SaaS environment without financial grants',
     .getByRole('listitem').filter({ hasText: 'lf_synth_finance_group' })
   await expect(group).toContainText('Estado: Suspenso')
   await expect(group.getByRole('button', { name: /Ativar ambiente/ })).toHaveCount(0)
+})
+
+test('SaaS environment panel explains an empty enabled-group list after loading', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'personal')
+  await page.route('**/apps/librefinance/api/saas/v1/environments', route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    return route.fulfill({ status: 200, json: { environments: [], nextCursor: null } })
+  })
+  await goToView(page, 'Gestões financeiras')
+  await expect(page.getByRole('heading', { name: 'Ambientes LibreFinance' })).toBeVisible()
+  await expect(page.getByText('Nenhum ambiente SaaS está disponível para esta conta.')).toBeVisible()
+  await expect(page.getByText('As gestões pessoais existentes continuam independentes.')).toBeVisible()
+  await expect(page.getByRole('list', { name: 'Ambientes SaaS disponíveis' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Ativar ambiente' })).toHaveCount(0)
 })
 
 test('SaaS administration chooses one environment and retries creation idempotently', async ({ page }) => {

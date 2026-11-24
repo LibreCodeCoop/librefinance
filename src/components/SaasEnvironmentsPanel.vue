@@ -20,6 +20,7 @@ import {
 
 const environments = ref([])
 const loading = ref(false)
+const loaded = ref(false)
 const activating = ref(null)
 const problem = ref('')
 const notice = ref('')
@@ -118,7 +119,10 @@ async function reload() {
       problem.value = financeError(error)
     }
   } finally {
-    if (seq === requestSeq && mounted) loading.value = false
+    if (seq === requestSeq && mounted) {
+      loading.value = false
+      loaded.value = true
+    }
   }
 }
 
@@ -207,7 +211,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section v-if="environments.length || loading || problem"
+  <section v-if="environments.length || loading || problem || loaded"
     class="lf-surface" aria-labelledby="lf-saas-environments-heading">
     <div class="lf-section-heading">
       <div>
@@ -219,6 +223,13 @@ onBeforeUnmount(() => {
     </div>
     <NcLoadingIcon v-if="loading" :size="20" />
     <NcNoteCard v-if="problem" type="error" role="alert">{{ problem }}</NcNoteCard>
+    <NcNoteCard v-if="loaded && !loading && !problem && !environments.length"
+      type="info" role="status">
+      Nenhum ambiente SaaS está disponível para esta conta.
+      Um administrador da instância precisa habilitar o grupo Nextcloud;
+      depois, um subadministrador ou delegado poderá ativá-lo.
+      As gestões pessoais existentes continuam independentes.
+    </NcNoteCard>
     <NcNoteCard v-if="notice" type="success" role="status">{{ notice }}</NcNoteCard>
     <ul v-if="environments.length" class="lf-saas-environments"
       aria-label="Ambientes SaaS disponíveis">
