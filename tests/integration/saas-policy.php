@@ -116,6 +116,24 @@ policyCheck('revision-guarded clear restores default', 'DELETE',
 policyCheck('cleared environment feature inherits compatibility default', 'GET', $key, null, 200,
     static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true
         && ($r['sourceScope'] ?? null) === 'default');
+policyCheck('instance admin reads append-only typed policy history', 'GET',
+    '/saas/v1/policy-audit/instance', null, 200,
+    static fn(array $r): bool =>
+        count($r['events'] ?? []) >= 3
+        && ($r['events'][0]['action'] ?? null) === 'clear'
+        && ($r['events'][0]['actorUid'] ?? null) === 'synthetictestadmin'
+        && ($r['events'][0]['policyKey'] ?? null) === 'environments.enabled'
+        && ($r['events'][0]['previousRevision'] ?? null) === 2
+        && ($r['events'][0]['newRevision'] ?? null) === 3
+        && ($r['nextBeforeId'] ?? null) === null);
+$t->check('finance operator cannot enumerate instance policy audit',
+    'lfmaintestA', 'GET', '/saas/v1/policy-audit/instance', null, 403);
+policyCheck('policy audit cursor below first record is empty', 'GET',
+    '/saas/v1/policy-audit/instance?beforeId=1', null, 200,
+    static fn(array $r): bool =>
+        ($r['events'] ?? null) === []
+        && array_key_exists('nextBeforeId', $r)
+        && $r['nextBeforeId'] === null);
 // A typed, instance-level restriction must affect actual module discovery
 // and request handling immediately, not just the policy JSON response.
 $workspace = $t->check('synthetic finance owner creates import-policy workspace',

@@ -389,6 +389,39 @@ A interface respeita a revisão otimista e atualiza os valores após erro 409;
 o servidor continua revalidando a permissão em cada operação. Os dados
 contábeis não são enviados no convite, e as alterações são auditadas.
 
+### Consulta de auditoria das policies SaaS
+
+Cada alteração de policy é registrada em `lf_saas_policy_audit`, incluindo
+identidade do ator, escopo, chave, valor anterior, valor novo, revisão e data.
+A consulta de histórico é **exclusivamente em leitura**, sem acesso a saldos
+ou lançamentos. Ela não concede, restaura ou amplia permissões financeiras.
+
+A API tem quatro rotas autenticadas, todas com cursor opcional
+`beforeId` para eventos anteriores ao último evento recebido:
+
+- `GET /api/saas/v1/policy-audit/instance`: apenas administrador Nextcloud,
+  somente as alterações das policies da instância.
+- `GET /api/saas/v1/policy-audit/environments/{environmentId}`:
+  administrador delegado/subadministrador **atual** desse ambiente ativo.
+- `GET /api/saas/v1/policy-audit/workspaces/{spaceId}`: apenas
+  proprietário/gestor financeiro desse livro contábil ativo e confirmado.
+- `GET /api/saas/v1/policy-audit/workspaces/{spaceId}/me`: participante
+  financeiro autenticado, **somente suas alterações pessoais** naquele
+  livro; não recebe identificador de outro usuário na requisição.
+
+Cada página contém até 30 eventos, em ordem de ID decrescente, e
+`nextBeforeId` para continuação sem deslocamentos por novos registros.
+O filtro de escopo é aplicado pelo banco **antes** da paginação, nunca
+após buscar uma tabela inteira. Valores JSON e nomes de ator são renderizados
+como texto na interface, sem executar ou interpretar HTML.
+
+Nas telas existentes de policies do LibreFinance, o botão
+**Ver histórico de policies** apresenta os eventos do escopo selecionado
+e permite carregar os anteriores. Ao trocar de livro ou ambiente, as
+respostas pendentes são descartadas para não misturar históricos.
+O histórico administrativo é diferente da auditoria financeira de cada
+livro, que segue suas próprias regras de preservação.
+
 ### Formatos bancários permitidos por policy
 
 A definição `banking.allowedImportFormats` usa o tipo `allowed_set`,

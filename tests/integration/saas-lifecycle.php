@@ -191,6 +191,15 @@ try {
     $t->check('stale environment policy update rejected', $b, 'PUT',
         $policyPrefix . '/imports.enabled',
         ['valueJson' => 'true', 'expectedRevision' => 0], 409);
+    $t->check('delegated environment admin reads only current audit history',
+        $b, 'GET', '/saas/v1/policy-audit/environments/' . $id, null, 200,
+        static fn(array $r): bool =>
+            count($r['events'] ?? []) === 1
+            && ($r['events'][0]['actorUid'] ?? null) === $b
+            && ($r['events'][0]['policyKey'] ?? null) === 'imports.enabled'
+            && ($r['events'][0]['newValueJson'] ?? null) === 'false');
+    $t->check('ordinary group member denied environment policy audit',
+        $a, 'GET', '/saas/v1/policy-audit/environments/' . $id, null, 404);
     $t->check('clearing child policy restores instance inheritance', $b,
         'DELETE', $policyPrefix . '/imports.enabled?expectedRevision=1',
         null, 200, static fn(array $r): bool =>

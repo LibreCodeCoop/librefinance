@@ -203,6 +203,19 @@ try {
             && ($r['sourceScope'] ?? null) === 'workspace'
             && ($r['blockedBy'] ?? null) === 'workspace'
             && ($r['revision'] ?? null) === 1);
+    $workspaceAuditA2 = '/saas/v1/policy-audit/workspaces/' . $spaceA2;
+    $t->check('financial owner can inspect scoped A2 policy audit', $a,
+        'GET', $workspaceAuditA2, null, 200,
+        static fn(array $r): bool =>
+            count($r['events'] ?? []) === 1
+            && ($r['events'][0]['policyKey'] ?? null) === 'imports.enabled'
+            && ($r['events'][0]['actorUid'] ?? null) === $a
+            && ($r['events'][0]['newValueJson'] ?? null) === 'false'
+            && ($r['events'][0]['previousRevision'] ?? null) === 0);
+    $t->check('group administrator without finance role cannot inspect A2 policy audit',
+        $b, 'GET', $workspaceAuditA2, null, 404);
+    instanceCheck('instance admin cannot inspect independent financial policy audit',
+        'GET', $workspaceAuditA2, null, 404);
     $t->check('A cannot write A2 policy from stale revision', $a,
         'PUT', $workspacePolicyA2,
         ['valueJson' => 'false', 'expectedRevision' => 0], 409,
@@ -436,6 +449,24 @@ try {
             ($r['effectiveValue'] ?? null) === false
             && ($r['sourceScope'] ?? null) === 'user'
             && ($r['revision'] ?? null) === 1);
+    $personalAudit = '/saas/v1/policy-audit/workspaces/' . $spaceA . '/me';
+    $t->check('user reads only own actor-bound policy audit', $a,
+        'GET', $personalAudit, null, 200,
+        static fn(array $r): bool =>
+            count($r['events'] ?? []) === 1
+            && ($r['events'][0]['policyKey'] ?? null) === 'dashboard.kpis.enabled'
+            && ($r['events'][0]['actorUid'] ?? null) === $a
+            && ($r['events'][0]['newValueJson'] ?? null) === 'false'
+            && ($r['events'][0]['previousRevision'] ?? null) === 0
+            && ($r['events'][0]['newRevision'] ?? null) === 1);
+    $t->check('nonmember cannot probe another actor policy history',
+        $b, 'GET', $personalAudit, null, 404);
+    $t->check('user audit cursor cannot include newer records',
+        $a, 'GET', $personalAudit . '?beforeId=1', null, 200,
+        static fn(array $r): bool =>
+            ($r['events'] ?? null) === []
+            && array_key_exists('nextBeforeId', $r)
+            && $r['nextBeforeId'] === null);
     $t->check('user presentation denial does not contaminate other books', $a,
         'GET', $mineA2, null, 200,
         static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true);
