@@ -66,6 +66,7 @@ test('Nextcloud admin reads isolated SaaS lifecycle audit with cursor pagination
   await expect(events).toContainText('environment.group_deleted')
   await expect(events.getByRole('listitem')).toHaveCount(2)
   expect(auditRequests).toBe(2)
-  await dialog.getByRole('button', { name: 'Fechar' }).click()
+  // Select the labeled footer action, not the equally named native close icon.
+  await dialog.getByRole('button', { name: 'Fechar', exact: true }).filter({ hasText: 'Fechar' }).click()
   await expect(dialog).toHaveCount(0)
 })
