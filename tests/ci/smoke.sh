@@ -189,6 +189,9 @@ compose exec -T -e LF_SYNTHETIC_SAAS_POLICY_SCHEMA=yes nextcloud php \
 # All fixtures roll back and never infer legacy company ownership.
 compose exec -T -e LF_SYNTHETIC_SAAS_WORKSPACE_SCHEMA=yes nextcloud php \
   /var/www/html/custom_apps/librefinance/tests/ci/check-saas-workspace-schema.php
+# CAS revision survives revocation and is initialized without creating member grants.
+compose exec -T -e LF_SYNTHETIC_SAAS_GRANT_SCHEMA=yes nextcloud php \
+  /var/www/html/custom_apps/librefinance/tests/ci/check-saas-grant-revision-schema.php
 # External grants are opt-in and must not copy any historical lf_members.
 compose exec -T -e LF_SYNTHETIC_SAAS_EXTERNAL_SCHEMA=yes nextcloud php \
   /var/www/html/custom_apps/librefinance/tests/ci/check-saas-external-schema.php

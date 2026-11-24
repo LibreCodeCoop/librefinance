@@ -17,7 +17,7 @@ import FieldStudioManager from '../components/FieldStudioManager.vue'
 import PaymentMethodsManager from '../components/PaymentMethodsManager.vue'
 import { financeApi, financeError } from '../services/api.js'
 const w=inject('lfWorkspace')
-const {activeId, manager, members, groupGrants, modules,
+const {activeId, manager, members, membersGrantRevision, groupGrants, modules,
   shareUid, shareRole, groupGid, groupRole, shareUser, shareGroup,
   toggleModule, refreshCurrent, busy}=w
 const props = defineProps({
@@ -92,12 +92,20 @@ async function confirmRemoval() {
   problem.value=''
   try {
     const t=removeTarget.value
+    const expected = t.type === 'member' && Number.isSafeInteger(membersGrantRevision.value)
+      ? '?expectedRevision=' + membersGrantRevision.value : ''
     await financeApi('librefinance',activeId.value,
-      '/' + (t.type==='member'?'members/':'groups/') + encodeURIComponent(t.id),'DELETE')
+      '/' + (t.type==='member'?'members/':'groups/') + encodeURIComponent(t.id) + expected,'DELETE')
     removeTarget.value=null
     await refreshCurrent()
-  } catch(e) {problem.value=financeError(e)}
-  finally {removing.value=false}
+  } catch(e) {
+    if (e.response?.data?.error === 'revision_conflict') {
+      try { await refreshCurrent() } catch { /* Keep the original failure visible. */ }
+      problem.value = 'Os acessos mudaram. Confira a lista atualizada antes de revogar novamente.'
+    } else {
+      problem.value = financeError(e)
+    }
+  } finally {removing.value=false}
 }
 </script>
 <template>

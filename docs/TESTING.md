@@ -129,6 +129,7 @@ quantidade de rotas como medida de maturidade.
 - Instalação limpa e isolamento em SQLite, PostgreSQL e MariaDB
 - Testes de acesso negativo para empresa, grupo, módulo e perfil
 - Idempotência e condições de corrida para lançamentos, impostos e importações
+- Revisão otimista das concessões internas SaaS: duas alterações simultâneas com a mesma versão (uma aceita, outra HTTP 409), falta de precondição (HTTP 428), revogação seguida de regrant obsoleto, segregação entre livros e manutenção do modo legado; migration aditiva validada com rollback em SQLite, PostgreSQL e MariaDB
 - Behat com cenário executado em ambos os shards, sem skips disfarçados
 - Playwright com browser real, teclado, telas móveis e troca rápida de estado
 - Lint PHP 8.3/8.5, build e testes Vue, licenças REUSE e verificação de OpenAPI

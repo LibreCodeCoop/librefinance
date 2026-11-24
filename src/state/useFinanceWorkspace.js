@@ -54,6 +54,7 @@ const itemNextAfterId = ref(null)
 const activeTab = ref('dashboard')
 const journals = ref([])
 const members = ref([])
+const membersGrantRevision = ref(null)
 const groupGrants = ref([])
 const nextBeforeId = ref(null)
 const error = ref('')
@@ -96,7 +97,10 @@ const naturalBalance = (account) => money((['liability', 'equity', 'revenue'].in
 const accountNameById = (id) => accounts.value.find((a) => a.id === Number(id))?.name || ('#' + id)
 
 function unwrapError(e) {
-  return e.response?.data?.error || e.message || 'Falha desconhecida'
+  const code = e.response?.data?.error
+  if (code === 'revision_conflict') return 'As permissões mudaram. Atualize a gestão antes de tentar novamente.'
+  if (code === 'grant_revision_required') return 'Carregue as permissões atuais antes de alterar os acessos.'
+  return code || e.message || 'Falha desconhecida'
 }
 async function call(method, path, data) {
   const url = generateUrl('/apps/librefinance' + path)
@@ -141,6 +145,7 @@ async function refreshCurrent(options = {}) {
     itemNextAfterId.value = null
     journals.value = []
     members.value = []
+    membersGrantRevision.value = null
     groupGrants.value = []
     return
   }
@@ -179,7 +184,13 @@ async function refreshCurrent(options = {}) {
     journals.value = data.journals.journals
     nextBeforeId.value = data.journals.nextBeforeId
   }
-  if (data.members) members.value = data.members.members
+  if (data.members) {
+    members.value = data.members.members
+    membersGrantRevision.value = Number.isSafeInteger(data.members.grantRevision)
+      ? data.members.grantRevision : null
+  } else {
+    membersGrantRevision.value = null
+  }
   if (data.groups) groupGrants.value = data.groups.groups
   if (data.contacts) {
     contacts.value = data.contacts.contacts
@@ -226,6 +237,7 @@ watch(activeId, () => {
   companyFields.value = []
   categoryRecords.value = []
   members.value = []
+  membersGrantRevision.value = null
   groupGrants.value = []
   selectedModuleId.value = ''
   activeTab.value = managingSpaces ? 'spaces' : 'dashboard'
@@ -240,7 +252,7 @@ watch(transactionCategoryId, (id) => {
   const classification = categoryRecords.value.find(c => c.id === Number(id))
   if (classification?.effective_account_id) categoryId.value = classification.effective_account_id
 })
-async function doAction(action, success) {
+async function doAction(action, success, refreshOnRevisionConflict = false) {
   busy.value = true
   error.value = ''
   message.value = ''
@@ -248,6 +260,11 @@ async function doAction(action, success) {
     await action()
     message.value = success
   } catch (e) {
+    if (refreshOnRevisionConflict && e.response?.data?.error === 'revision_conflict') {
+      // The server rejected the stale write. Reload its authoritative
+      // revision; do not retry or silently replace a concurrent change.
+      try { await refreshCurrent() } catch { /* Retain the original conflict. */ }
+    }
     error.value = unwrapError(e)
   } finally {
     busy.value = false
@@ -531,10 +548,14 @@ async function toggleModule(module) {
 }
 async function shareUser() {
   await doAction(async () => {
-    await call('POST', '/api/spaces/' + activeId.value + '/members', { uid: shareUid.value, role: shareRole.value })
+    const data = { uid: shareUid.value, role: shareRole.value }
+    if (Number.isSafeInteger(membersGrantRevision.value)) {
+      data.expectedRevision = membersGrantRevision.value
+    }
+    await call('POST', '/api/spaces/' + activeId.value + '/members', data)
     shareUid.value = ''
     await refreshCurrent()
-  }, 'Acesso individual configurado.')
+  }, 'Acesso individual configurado.', true)
 }
 async function shareGroup() {
   await doAction(async () => {
@@ -547,9 +568,11 @@ async function removeAccess(type, identifier) {
   if (!confirm('Revogar o acesso selecionado?')) return
   await doAction(async () => {
     const route = type === 'member' ? '/members/' : '/groups/'
-    await call('DELETE', '/api/spaces/' + activeId.value + route + encodeURIComponent(identifier))
+    const revision = type === 'member' && Number.isSafeInteger(membersGrantRevision.value)
+      ? '?expectedRevision=' + membersGrantRevision.value : ''
+    await call('DELETE', '/api/spaces/' + activeId.value + route + encodeURIComponent(identifier) + revision)
     await refreshCurrent()
-  }, 'Acesso revogado.')
+  }, 'Acesso revogado.', type === 'member')
 }
 async function createEntry(options = {}) {
   await doAction(async () => {
@@ -589,6 +612,6 @@ onMounted(async () => {
   try { await refreshSpaces() } catch (e) { error.value = unwrapError(e) }
 })
   return {
-    spaces, activeId, accounts, contacts, items, companies, companyNextAfterId, companyEditId, companyName, companyTradeName, companyTaxId, companyCountry, companyFields, companyCustomValues, companyMunicipal, companyState, companyProfile, companyActive, modules, modulesLoadedFor, categoryRecords, categoryNextAfterId, categoryCode, categoryName, categoryColor, categoryKind, categoryParentId, categoryAccountId, selectedModuleId, aiCapability, aiPreview, aiTask, aiConsent, aiBusy, aiError, aiThrough, aiFrom, contactNextAfterId, itemNextAfterId, activeTab, journals, members, groupGrants, nextBeforeId, error, message, busy, spaceName, kind, accountName, accountCode, contactName, contactKind, contactEmail, contactTaxId, itemSku, itemName, itemKind, itemPrice, itemDescription, shareUid, shareRole, groupGid, groupRole, direction, bankId, categoryId, transactionCategoryId, amount, memo, date, loadSequence, preferredSpaceHandled, space, selectedModule, writable, manager, banks, categories, money, naturalBalance, accountNameById, unwrapError, call, refreshSpaces, refreshCurrent, doAction, resetCompanyForm, editCompany, saveCompany, loadMoreCompanies, createSpace, createAccount, createContact, createItem, loadMoreCatalog, createCategory, loadMoreCategories, resetAi, openAi, previewAi, requestAi, checkAiStatus, openModule, toggleModule, shareUser, shareGroup, removeAccess, createEntry, loadMore
+    spaces, activeId, accounts, contacts, items, companies, companyNextAfterId, companyEditId, companyName, companyTradeName, companyTaxId, companyCountry, companyFields, companyCustomValues, companyMunicipal, companyState, companyProfile, companyActive, modules, modulesLoadedFor, categoryRecords, categoryNextAfterId, categoryCode, categoryName, categoryColor, categoryKind, categoryParentId, categoryAccountId, selectedModuleId, aiCapability, aiPreview, aiTask, aiConsent, aiBusy, aiError, aiThrough, aiFrom, contactNextAfterId, itemNextAfterId, activeTab, journals, members, membersGrantRevision, groupGrants, nextBeforeId, error, message, busy, spaceName, kind, accountName, accountCode, contactName, contactKind, contactEmail, contactTaxId, itemSku, itemName, itemKind, itemPrice, itemDescription, shareUid, shareRole, groupGid, groupRole, direction, bankId, categoryId, transactionCategoryId, amount, memo, date, loadSequence, preferredSpaceHandled, space, selectedModule, writable, manager, banks, categories, money, naturalBalance, accountNameById, unwrapError, call, refreshSpaces, refreshCurrent, doAction, resetCompanyForm, editCompany, saveCompany, loadMoreCompanies, createSpace, createAccount, createContact, createItem, loadMoreCatalog, createCategory, loadMoreCategories, resetAi, openAi, previewAi, requestAi, checkAiStatus, openModule, toggleModule, shareUser, shareGroup, removeAccess, createEntry, loadMore
   }
 }

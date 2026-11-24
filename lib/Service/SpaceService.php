@@ -259,8 +259,9 @@ final class SpaceService {
         return $record;
     }
 
-    public function shareUser(int $spaceId, string $uid, string $role): void {
-        if ($this->access->isSaasWorkspace($spaceId)) {
+    public function shareUser(int $spaceId, string $uid, string $role, int $expectedRevision = -1): void {
+        $saas = $this->access->isSaasWorkspace($spaceId);
+        if ($saas) {
             $this->access->requireFinancialCapability($spaceId, 'roles.manage');
         } else {
             $this->access->requireRole($spaceId, 'manager');
@@ -268,7 +269,7 @@ final class SpaceService {
         AccessService::validateGrantRole($role);
         $uid = trim($uid);
         $this->governance->checkUserGrant($spaceId, $uid);
-        if (!$this->access->isSaasWorkspace($spaceId)
+        if (!$saas
             && $this->governance->groupFor($spaceId) !== null
             && $role === 'manager' && !$this->governance->isInstanceAdmin()) {
             throw new DomainException('permission_denied');
@@ -276,7 +277,7 @@ final class SpaceService {
         if ($uid === '' || !$this->users->userExists($uid)) {
             throw new DomainException('user_not_found');
         }
-        if ($this->access->isSaasWorkspace($spaceId)) {
+        if ($saas) {
             // Never materialize an out-of-tenant financial role that could
             // silently activate if the recipient joins the group later.
             $this->access->requireSaasRecipientGroupMember($spaceId, $uid);
@@ -287,8 +288,18 @@ final class SpaceService {
         if ($qb->executeQuery()->fetchOne() === $uid) {
             throw new DomainException('cannot_change_owner');
         }
+        if ($saas && $expectedRevision < 0) {
+            throw new DomainException('grant_revision_required');
+        }
         $this->db->beginTransaction();
         try {
+            if ($saas) {
+                // Recheck authorization close to the atomic revision claim;
+                // a stale UI page cannot convert a prior grant into authority.
+                $this->access->requireFinancialCapability($spaceId, 'roles.manage');
+                $this->access->requireSaasRecipientGroupMember($spaceId, $uid);
+                $this->claimGrantRevision($spaceId, $expectedRevision);
+            }
             $existing = $this->db->getQueryBuilder();
             $existing->select('id')->from('lf_members')
                 ->where($existing->expr()->eq('space_id', $existing->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
@@ -338,15 +349,23 @@ final class SpaceService {
         }
     }
 
-    public function revokeUser(int $spaceId, string $uid): void {
-        if ($this->access->isSaasWorkspace($spaceId)) {
+    public function revokeUser(int $spaceId, string $uid, int $expectedRevision = -1): void {
+        $saas = $this->access->isSaasWorkspace($spaceId);
+        if ($saas) {
             $this->access->requireFinancialCapability($spaceId, 'roles.manage');
         } else {
             $this->access->requireRole($spaceId, 'manager');
         }
         $this->governance->checkUserGrant($spaceId, $uid);
+        if ($saas && $expectedRevision < 0) {
+            throw new DomainException('grant_revision_required');
+        }
         $this->db->beginTransaction();
         try {
+            if ($saas) {
+                $this->access->requireFinancialCapability($spaceId, 'roles.manage');
+                $this->claimGrantRevision($spaceId, $expectedRevision);
+            }
             $q = $this->db->getQueryBuilder();
             $q->select('id', 'role')->from('lf_members')
                 ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
@@ -359,10 +378,13 @@ final class SpaceService {
                 throw new DomainException('cannot_change_owner');
             }
             $q = $this->db->getQueryBuilder();
-            $q->delete('lf_members')
+            $changed = $q->delete('lf_members')
                 ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
                 ->andWhere($q->expr()->eq('id', $q->createNamedParameter((int)$member['id'], IQueryBuilder::PARAM_INT)))
                 ->executeStatement();
+            if ($changed !== 1) {
+                throw new DomainException('concurrent_change');
+            }
             $this->audit($spaceId, 'membership.revoked', 'member', (int)$member['id']);
             $this->db->commit();
         } catch (\Throwable $e) {
@@ -401,6 +423,82 @@ final class SpaceService {
             $this->db->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * A single monotonically increasing revision serializes all internal
+     * SaaS membership mutations, including a revoke followed by a regrant.
+     * Non-SaaS member APIs preserve their historical unversioned behavior.
+     */
+    public function memberGrantRevision(int $spaceId): ?int {
+        if (!$this->access->isSaasWorkspace($spaceId)) {
+            return null;
+        }
+        $this->access->requireFinancialCapability($spaceId, 'roles.read');
+        $q = $this->db->getQueryBuilder();
+        $q->select('grants_revision')->from('lf_environment_spaces')
+            ->where($q->expr()->eq('space_id',
+                $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)));
+        $revision = $q->executeQuery()->fetchOne();
+        if ($revision === false) {
+            throw new DomainException('space_not_found');
+        }
+        return (int)$revision;
+    }
+
+    private function claimGrantRevision(int $spaceId, int $expectedRevision): void {
+        if ($expectedRevision < 0) {
+            throw new DomainException('grant_revision_required');
+        }
+        $q = $this->db->getQueryBuilder();
+        try {
+            $updated = $q->update('lf_environment_spaces')
+                ->set('grants_revision', $q->createFunction('grants_revision + 1'))
+                ->where($q->expr()->eq('space_id',
+                    $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('grants_revision',
+                    $q->createNamedParameter($expectedRevision, IQueryBuilder::PARAM_INT)))
+                ->executeStatement();
+        } catch (\OCP\DB\Exception $e) {
+            // SQLite cannot always promote a concurrent read transaction to
+            // a writer. The losing same-revision CAS may raise SQLITE_BUSY
+            // instead of returning zero updated rows. Abort this transaction
+            // and ask the caller to reload; do not retry stale writes or
+            // convert unrelated DB failures into an apparent conflict.
+            // Nextcloud/DBAL does not consistently classify SQLITE_BUSY as
+            // REASON_DRIVER; a generic wrapper can report a null reason.
+            // Match the SQLite-specific SQLSTATE and text on this CAS update
+            // instead of relying on the wrapper's classification.
+            if ($this->db->getDatabaseProvider() === IDBConnection::PLATFORM_SQLITE
+                && str_contains(strtolower($e->getMessage()), 'database is locked')
+                && str_contains(strtoupper($e->getMessage()), 'SQLSTATE[HY000]')) {
+                throw new DomainException('revision_conflict', previous: $e);
+            }
+            throw $e;
+        }
+        if ($updated !== 1) {
+            throw new DomainException('revision_conflict');
+        }
+    }
+
+    /**
+     * Return members with a matching grant revision. Without the two reads, a
+     * concurrent grant between listing rows and fetching the version could
+     * advertise a new revision alongside stale roles (a lost-update hazard).
+     * A continuously changing workspace is a conflict, never an inconsistent
+     * snapshot that may be used as authority by the next client write.
+     * @return array{members:array<int,array<string,mixed>>,grantRevision:int|null}
+     */
+    public function membersWithRevision(int $spaceId): array {
+        for ($attempt = 0; $attempt < 3; ++$attempt) {
+            $before = $this->memberGrantRevision($spaceId);
+            $members = $this->members($spaceId);
+            $after = $this->memberGrantRevision($spaceId);
+            if ($before === $after) {
+                return ['members' => $members, 'grantRevision' => $after];
+            }
+        }
+        throw new DomainException('revision_conflict');
     }
 
     /** @return array<int, array<string, mixed>> */

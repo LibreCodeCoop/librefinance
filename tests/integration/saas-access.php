@@ -770,8 +770,44 @@ try {
         'GET', '/spaces/' . $spaceA . '/members', null, 200,
         static fn(array $r): bool =>
             !in_array('synthetictestadmin', array_column($r['members'] ?? [], 'uid'), true));
+    $t->check('A1 internal grants start with an independent revision', $a, 'GET',
+        '/spaces/' . $spaceA . '/members', null, 200,
+        static fn(array $r): bool => ($r['grantRevision'] ?? null) === 0);
+    $t->check('authorized SaaS grant without revision is rejected', $a, 'POST',
+        '/spaces/' . $spaceA . '/members', ['uid' => $b, 'role' => 'viewer'], 428,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'grant_revision_required');
     $t->check('A explicitly grants B viewer access to A1', $a, 'POST',
-        '/spaces/' . $spaceA . '/members', ['uid' => $b, 'role' => 'viewer'], 200);
+        '/spaces/' . $spaceA . '/members',
+        ['uid' => $b, 'role' => 'viewer', 'expectedRevision' => 0], 200);
+    $t->check('first grant advances A1 revision once', $a, 'GET',
+        '/spaces/' . $spaceA . '/members', null, 200,
+        static fn(array $r): bool => ($r['grantRevision'] ?? null) === 1
+            && count(array_filter($r['members'] ?? [],
+                static fn(array $row): bool => ($row['uid'] ?? null) === $b
+                    && ($row['role'] ?? null) === 'viewer')) === 1);
+    $sameVersionGrantRace = $t->parallel(
+        ['user' => $a, 'method' => 'POST', 'path' => '/spaces/' . $spaceA . '/members',
+            'data' => ['uid' => $b, 'role' => 'viewer', 'expectedRevision' => 1]],
+        ['user' => $a, 'method' => 'POST', 'path' => '/spaces/' . $spaceA . '/members',
+            'data' => ['uid' => $b, 'role' => 'viewer', 'expectedRevision' => 1]],
+    );
+    $sameVersionCodes = array_column($sameVersionGrantRace, 'code');
+    sort($sameVersionCodes);
+    $t->record('two concurrent same-revision grants have one winner',
+        $sameVersionCodes === [200, 409]
+            && count(array_filter($sameVersionGrantRace,
+                static fn(array $r): bool => ($r['body']['error'] ?? null) === 'revision_conflict')) === 1,
+        'HTTP ' . implode('/', $sameVersionCodes), $sameVersionGrantRace);
+    $t->check('concurrent grant preserves member role and single revision', $a,
+        'GET', '/spaces/' . $spaceA . '/members', null, 200,
+        static fn(array $r): bool => ($r['grantRevision'] ?? null) === 2
+            && count(array_filter($r['members'] ?? [],
+                static fn(array $row): bool => ($row['uid'] ?? null) === $b
+                    && ($row['role'] ?? null) === 'viewer')) === 1);
+    $t->check('stale grant replay is rejected without overwriting role', $a, 'POST',
+        '/spaces/' . $spaceA . '/members',
+        ['uid' => $b, 'role' => 'manager', 'expectedRevision' => 1], 409,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'revision_conflict');
     $t->check('B may now read A ledger through direct grant', $b, 'GET',
         '/spaces/' . $spaceA . '/journals', null, 200);
     $t->check('B remains unable to post to A as viewer', $b, 'POST',
@@ -783,7 +819,7 @@ try {
         '/spaces/' . $spaceA . '/members', ['uid' => $b, 'role' => 'manager'], 403);
     $t->check('A grants B operator in A2 while B remains viewer in A1', $a,
         'POST', '/spaces/' . $spaceA2 . '/members',
-        ['uid' => $b, 'role' => 'operator'], 200);
+        ['uid' => $b, 'role' => 'operator', 'expectedRevision' => 0], 200);
     $t->check('B can post to A2 with its independent operator role', $b,
         'POST', '/spaces/' . $spaceA2 . '/journals',
         ['debitId' => $a2Ids['1000'], 'creditId' => $a2Ids['4000'],
@@ -798,26 +834,32 @@ try {
         'POST', '/spaces/' . $spaceA2 . '/members',
         ['uid' => $a, 'role' => 'viewer'], 403);
     $t->check('A revokes B operator membership in A2', $a,
-        'DELETE', '/spaces/' . $spaceA2 . '/members/' . $b, null, 200);
+        'DELETE', '/spaces/' . $spaceA2 . '/members/' . $b . '?expectedRevision=1', null, 200);
     $t->check('B loses A2 access after operator revocation', $b,
         'GET', '/spaces/' . $spaceA2 . '/journals', null, 404);
     $t->check('A2 revocation preserves B viewer access in A1', $b,
         'GET', '/spaces/' . $spaceA . '/journals', null, 200);
 
     $t->check('A revokes B viewer grant', $a, 'DELETE',
-        '/spaces/' . $spaceA . '/members/' . $b, null, 200);
+        '/spaces/' . $spaceA . '/members/' . $b . '?expectedRevision=2', null, 200);
+    $t->check('A1 revoke advances persisted revision', $a, 'GET',
+        '/spaces/' . $spaceA . '/members', null, 200,
+        static fn(array $r): bool => ($r['grantRevision'] ?? null) === 3);
+    $t->check('revoked member cannot be regranted using a pre-revoke revision', $a,
+        'POST', '/spaces/' . $spaceA . '/members',
+        ['uid' => $b, 'role' => 'viewer', 'expectedRevision' => 2], 409);
     $t->check('B is denied on very next finance request', $b, 'GET',
         '/spaces/' . $spaceA . '/journals', null, 404);
     $t->check('SaaS owner may explicitly grant manager below owner authority',
         $a, 'POST', '/spaces/' . $spaceA . '/members',
-        ['uid' => $b, 'role' => 'manager'], 200);
+        ['uid' => $b, 'role' => 'manager', 'expectedRevision' => 3], 200);
     $t->check('manager can inspect assigned workspace membership',
         $b, 'GET', '/spaces/' . $spaceA . '/members', null, 200);
     $t->check('manager cannot reassign roles or promote itself to owner',
         $b, 'POST', '/spaces/' . $spaceA . '/members',
         ['uid' => $a, 'role' => 'manager'], 403);
     $t->check('owner revokes manager grant', $a, 'DELETE',
-        '/spaces/' . $spaceA . '/members/' . $b, null, 200);
+        '/spaces/' . $spaceA . '/members/' . $b . '?expectedRevision=4', null, 200);
     $t->check('manager revocation immediately revokes ledger read',
         $b, 'GET', '/spaces/' . $spaceA . '/journals', null, 404);
     instanceCheck('instance admin suspends environment A without deleting postings',
