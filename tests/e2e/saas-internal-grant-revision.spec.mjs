@@ -21,13 +21,13 @@ test('SaaS member editor sends current CAS revision for grant and revocation', a
     const request = route.request()
     const url = new URL(request.url())
     if (request.method() === 'GET' && url.pathname.endsWith('/members')) {
-      const response = await route.fetch()
-      const payload = await response.json()
-      return route.fulfill({ response, json: {
-        ...payload, grantRevision: revision, canManageMembers: true,
-        members: [...(payload.members || []),
+      // Synthetic frontend contract; no dangling network request.
+      return route.fulfill({ status: 200, json: {
+        grantRevision: revision, canManageMembers: true,
+        members: [
           { uid: 'synthetic-list-loaded', role: 'owner' },
-          ...(present ? [{ uid: 'synthetic-revision-user', role: 'viewer' }] : [])],
+          ...(present ? [{ uid: 'synthetic-revision-user', role: 'viewer' }] : []),
+        ],
       } })
     }
     if (request.method() === 'POST' && url.pathname.endsWith('/members')) {
