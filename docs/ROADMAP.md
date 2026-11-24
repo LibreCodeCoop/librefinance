@@ -31,4 +31,30 @@ This document records user-visible gaps without claiming that an unimplemented f
 - Audited cooperative member production, period closure and allocation as an optional module, not a mandatory national specialization.
 - Independent interoperability tests for bank providers, country-specific fiscal services and MCP clients.
 
+## Native financial journeys
+
+- Preserve the selected workspace and account across movements, accounts,
+  statements and linked documents; present the booked balance separately
+  from unreviewed statement amounts. Keep one payment and reconciliation
+  workflow, with no duplicate posting.
+- Improve the CSV/OFX import and recovery journey. Keep the downloadable
+  sample and format limits; introduce a bank-statement dry run only after
+  a server-side validation, duplicate and authorization contract exists.
+  Do not confuse this with the normalized migration preview.
+- Refine named account, direction and status filters, keyboard and dialog
+  focus, loading, empty, denied and recoverable error states. Preserve stable
+  routes and existing server-side authorization.
+- Keep one invoice creation entry point, explicit sale/purchase choice and
+  linked settlement status. Use the existing reports destination for
+  templates and saved reports.
+- Group workspace access, invitations, policy and administration through
+  native Nextcloud disclosure and navigation components. Test authorized
+  feature visibility, direct API denial, translated controls and mobile
+  layouts independently.
+
+These refinements are proposals, not evidence of completed implementation.
+Maintain operator instructions in `FINANCIAL-WORKFLOW.md` and
+`MODULES.md`, and document any new backend contract in the API
+documentation before adding a corresponding control.
+
 Each feature requires its own observable API/UI tests, permission denials, appropriate concurrency checks and user/admin documentation. Public source publication does **not** equal release or financial certification.
