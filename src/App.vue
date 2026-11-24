@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcContent from '@nextcloud/vue/components/NcContent'
 import NcAppNavigation from '@nextcloud/vue/components/NcAppNavigation'
 import NcAppNavigationList from '@nextcloud/vue/components/NcAppNavigationList'
@@ -146,11 +147,11 @@ const searchQuery = ref('')
 const urlSearchTerm = ref(new URLSearchParams(window.location.search).get('search') || '')
 const openGroups = ref({})
 const managementGroupIcons = {
-  'Gestões financeiras': mdiFolderAccountOutline,
-  'Cadastros': mdiAccountMultipleOutline,
-  'Financeiro e fiscal': mdiBookOpenPageVariantOutline,
-  'Equipe e personalização': mdiCogOutline,
-  'Recursos e dados': mdiFileUploadOutline,
+  'workspaces': mdiFolderAccountOutline,
+  'records': mdiAccountMultipleOutline,
+  'financeTax': mdiBookOpenPageVariantOutline,
+  'team': mdiCogOutline,
+  'features': mdiFileUploadOutline,
 }
 const companyOnboarding = ref(false)
 provide('lfCompanyOnboarding', companyOnboarding)
@@ -175,12 +176,12 @@ function visibleView(view) {
 function groupHasActive(item) {
   return item.children?.some(child => child.id === readyView.value) || false
 }
-function subgroupOpen(groupName, item) {
-  if (item.children?.some(child => child.id === readyView.value && child.group === groupName)) return true
-  return openGroups.value['sub:' + groupName] ?? false
+function subgroupOpen(groupId, item) {
+  if (item.children?.some(child => child.id === readyView.value && child.group === groupId)) return true
+  return openGroups.value['sub:' + groupId] ?? false
 }
-function changeSubgroup(groupName, value) {
-  setGroupOpen('sub:' + groupName, value)
+function changeSubgroup(groupId, value) {
+  setGroupOpen('sub:' + groupId, value)
 }
 function groupedChildren(item) {
   const grouped = new Map()
@@ -188,7 +189,7 @@ function groupedChildren(item) {
     if (!grouped.has(child.group)) grouped.set(child.group, [])
     grouped.get(child.group).push(child)
   }
-  return [...grouped].map(([name, children]) => ({ name, children }))
+  return [...grouped].map(([id, children]) => ({ id, name: children[0].groupLabel, children }))
 }
 function isGroupOpen(item) {
   // The active view must remain reachable in the navigation after a reload.
@@ -235,13 +236,13 @@ function onNavGroupClick(event, groupId) {
     .find(item => item.id === groupId)
   if (group) setGroupOpen(groupId, !isGroupOpen(group))
 }
-const roleNames = { owner: 'Proprietário', manager: 'Gestor', operator: 'Operador',
-  auditor: 'Auditor', viewer: 'Visualizador' }
-const spaceKind = computed(() => ({ personal: 'Casa / pessoal', collective: 'Grupo / coletivo',
-  organization: 'Empresa / organização' })[space.value?.kind] || 'Espaço financeiro')
-const spaceRole = computed(() => roleNames[space.value?.role] || 'Participante')
+const roleNames = { owner: t('librefinance', 'Owner'), manager: t('librefinance', 'Manager'), operator: t('librefinance', 'Operator'),
+  auditor: t('librefinance', 'Auditor'), viewer: t('librefinance', 'Viewer') }
+const spaceKind = computed(() => ({ personal: t('librefinance', 'Home / personal'), collective: t('librefinance', 'Group / collective'),
+  organization: t('librefinance', 'Business / organization') })[space.value?.kind] || t('librefinance', 'Financial workspace'))
+const spaceRole = computed(() => roleNames[space.value?.role] || t('librefinance', 'Participant'))
 const selectedSpace = computed(() => spaces.value.find(s =>
-  Number(s.id) === Number(activeId.value))?.name ?? 'Selecione uma área')
+  Number(s.id) === Number(activeId.value))?.name ?? t('librefinance', 'Select a workspace'))
 const spaceOptions = computed(() => spaces.value.map(s => ({
   value: Number(s.id), label: s.name,
 })))
@@ -266,8 +267,8 @@ const focusedObligation = ref(null)
 provide('lfFocusedObligation', focusedObligation)
 const activeLocation = computed(() => {
   if (['finance','payables','receivables','sales','purchases','documents','banking',
-    'bankAccounts'].includes(readyView.value)) return 'Financeiro'
-  if (readyView.value === 'settings' || readyView.value === 'spaces' || readyView.value === 'import') return 'Gerenciar'
+    'bankAccounts'].includes(readyView.value)) return t('librefinance', 'Finance')
+  if (readyView.value === 'settings' || readyView.value === 'spaces' || readyView.value === 'import') return t('librefinance', 'Manage')
   const match = menuEntries(availableNav.value).find(item => item.id === readyView.value)
   return match?.parent || match?.section || 'LibreFinance'
 })
@@ -393,19 +394,20 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
 
 <template>
   <NcContent app-name="librefinance">
-    <NcAppNavigation aria-label="Navegação do LibreFinance">
+    <NcAppNavigation :aria-label="t('librefinance', 'LibreFinance navigation')">
       <div class="lf-navigation-context">
         <div class="lf-product-lockup">
           <span class="lf-product-symbol" aria-hidden="true"><NcIconSvgWrapper :path="mdiChartLine" :size="22" /></span>
           <div><p class="lf-product-name">LibreFinance</p>
             <p class="lf-muted">{{space?.kind==='personal'
-              ? 'Finanças da casa' : 'Finanças pessoais e de organizações'}}</p></div>
+              ? t('librefinance', 'Household finances') : t('librefinance', 'Personal and organizational finances')}}</p></div>
         </div>
         <LfSelect v-if="spaceOptions.length > 1" id="lf-space-select"
           :model-value="activeId" :options="spaceOptions"
-          label="Gestão financeira atual" placeholder="Escolha uma gestão"
+          :label="t('librefinance', 'Current financial workspace')"
+          :placeholder="t('librefinance', 'Choose a workspace')"
           @update:model-value="selectSpace" />
-        <p v-else-if="space" class="lf-space-current" aria-label="Gestão financeira atual">
+        <p v-else-if="space" class="lf-space-current" :aria-label="t('librefinance', 'Current financial workspace')">
           <strong>{{selectedSpace}}</strong>
         </p>
         <p v-if="space" class="lf-space-meta">
@@ -417,17 +419,18 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         </p>
         <div v-if="space" class="lf-menu-search" role="search">
           <NcIconSvgWrapper :path="mdiMagnify" :size="19" aria-hidden="true" />
-          <label for="lf-menu-search" class="lf-visually-hidden">Buscar uma função do LibreFinance</label>
+          <label for="lf-menu-search" class="lf-visually-hidden">{{ t('librefinance', 'Find a LibreFinance feature') }}</label>
           <input id="lf-menu-search" v-model="searchQuery" type="search"
             autocomplete="off" spellcheck="false" maxlength="90"
-            aria-label="Buscar no menu" placeholder="Buscar uma função…"
+            :aria-label="t('librefinance', 'Search the menu')"
+          :placeholder="t('librefinance', 'Search for a feature…')"
             @keydown="searchKeydown" />
         </div>
       </div>
       <template #list>
         <NcAppNavigationList v-if="space" class="lf-nav-list">
           <template v-if="isSearching">
-            <li class="lf-nav-section"><span>RESULTADOS DA BUSCA</span></li>
+            <li class="lf-nav-section"><span>{{ t('librefinance', 'SEARCH RESULTS') }}</span></li>
             <NcAppNavigationItem v-for="entry in searchResults" :key="entry.id"
               :name="labels[entry.id]" :title="entry.parent || entry.section"
               :href="viewHref(entry.id)" :active="readyView === entry.id"
@@ -435,8 +438,8 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
               <template #icon><NcIconSvgWrapper :path="icons[entry.icon]" :size="20" /></template>
             </NcAppNavigationItem>
             <li v-if="!searchResults.length" class="lf-menu-empty" role="status">
-              <strong>Nenhuma função encontrada</strong>
-              <span>Tente outro termo. Somente recursos disponíveis neste espaço são exibidos.</span>
+              <strong>{{ t('librefinance', 'No features found') }}</strong>
+              <span>{{ t('librefinance', 'Try another term. Only features available in this workspace are shown.') }}</span>
             </li>
           </template>
           <template v-else>
@@ -459,14 +462,14 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
                   </template>
                   <template v-else>
                     <NcAppNavigationItem v-for="subgroup in groupedChildren(item)"
-                      :key="subgroup.name" class="lf-native-management-group"
+                      :key="subgroup.id" class="lf-native-management-group"
                       :name="subgroup.name" :allow-collapse="true"
-                      :open="subgroupOpen(subgroup.name, item)"
+                      :open="subgroupOpen(subgroup.id, item)"
                       :active="subgroup.children.some(child => child.id === readyView)"
-                      @click.prevent="changeSubgroup(subgroup.name, !subgroupOpen(subgroup.name, item))"
-                      @update:open="changeSubgroup(subgroup.name, $event)">
+                      @click.prevent="changeSubgroup(subgroup.id, !subgroupOpen(subgroup.id, item))"
+                      @update:open="changeSubgroup(subgroup.id, $event)">
                       <template #icon>
-                        <NcIconSvgWrapper :path="managementGroupIcons[subgroup.name]" :size="20" />
+                        <NcIconSvgWrapper :path="managementGroupIcons[subgroup.id]" :size="20" />
                       </template>
                       <NcAppNavigationItem v-for="child in subgroup.children" :key="child.id"
                         :name="labels[child.id]" :href="viewHref(child.id)"
@@ -503,9 +506,9 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
             <span class="lf-context-currency">{{ space.currency }}</span>
             <NcButton v-if="writable && readyView === 'dashboard'" variant="primary" @click="openEntry">
               <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-              Ver movimentações
+              {{ t('librefinance', 'View financial movements') }}
             </NcButton>
-            <NcButton variant="tertiary" aria-label="Atualizar dados"
+            <NcButton variant="tertiary" :aria-label="t('librefinance', 'Refresh data')"
               :disabled="busy" @click="refreshCurrent">
               <template #icon><NcIconSvgWrapper :path="mdiRefresh" :size="20" /></template>
             </NcButton>
@@ -515,25 +518,25 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         <NcNoteCard v-if="message" type="success" role="status">{{ message }}</NcNoteCard>
 
         <component :is="SpacesView" v-if="!space && readyView==='spaces'" />
-        <NcEmptyContent v-else-if="!space" name="Comece a organizar suas finanças"
-          description="Ative um ambiente SaaS autorizado, crie uma gestão pessoal ou restaure uma gestão arquivada. A administração de um grupo não concede acesso financeiro.">
+        <NcEmptyContent v-else-if="!space" :name="t('librefinance', 'Start organizing your finances')"
+          :description="t('librefinance', 'Activate an authorized SaaS environment, create a personal workspace, or restore an archived workspace. Group administration does not grant financial access.')">
           <template #action>
             <NcButton variant="primary" @click="navigate('spaces')">
-              Gerenciar ou criar gestões
+              {{ t('librefinance', 'Manage or create workspaces') }}
             </NcButton>
           </template>
         </NcEmptyContent>
         <div v-else-if="modulesLoadedFor !== Number(activeId)" class="lf-loading">
           <NcLoadingIcon :size="44" />
-          <p>Carregando dados financeiros…</p>
+          <p>{{ t('librefinance', 'Loading financial data…') }}</p>
         </div>
         <SettingsView v-else-if="settingPanels.includes(readyView)"
           :key="activeId + ':' + readyView" :section-key="readyView" />
         <div v-else-if="readyView === 'data' && !migrationAvailable" class="lf-view">
-          <NcEmptyContent name="Importação indisponível"
-            description="Ative o módulo de importação em Recursos instalados para migrar dados de outra solução.">
+          <NcEmptyContent :name="t('librefinance', 'Import unavailable')"
+            :description="t('librefinance', 'Enable the import module in Installed features to migrate data from another solution.')">
             <template #action>
-              <NcButton variant="primary" @click="navigate('modules')">Ver recursos instalados</NcButton>
+              <NcButton variant="primary" @click="navigate('modules')">{{ t('librefinance', 'View installed features') }}</NcButton>
             </template>
           </NcEmptyContent>
         </div>

@@ -1,0 +1,402 @@
+# SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+msgid ""
+msgstr ""
+"Project-Id-Version: LibreFinance\n"
+"Language: pt_BR\n"
+"PO-Revision-Date: 2026-11-24 00:00+0000\n"
+"Last-Translator: LibreCode Coop and contributors\n"
+"Language-Team: Brazilian Portuguese\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: lib/Search/FinanceSearchProvider.php:40
+#: specialAppInfoFakeDummyForL10nScript.php:2
+msgid "LibreFinance"
+msgstr "LibreFinance"
+
+#: specialAppInfoFakeDummyForL10nScript.php:3
+msgid "Free and collaborative financial management for Nextcloud."
+msgstr "Gestão financeira livre e colaborativa para Nextcloud."
+
+#: specialAppInfoFakeDummyForL10nScript.php:4
+msgid ""
+"Independent modular finance app for individuals, groups and organizations, "
+"with workspace isolation, an accounting ledger and APIs. Development "
+"preview; not certified for financial production use."
+msgstr "Aplicativo financeiro modular e independente para pessoas, grupos e organizações, com isolamento de espaços financeiros, livro contábil e APIs. Versão de desenvolvimento; não certificada para uso financeiro em produção."
+
+#: specialVueFakeDummyForL10nScript.js:235
+msgid "Owner"
+msgstr "Proprietário"
+
+#: specialVueFakeDummyForL10nScript.js:235
+msgid "Manager"
+msgstr "Gestor"
+
+#: specialVueFakeDummyForL10nScript.js:235
+msgid "Operator"
+msgstr "Operador"
+
+#: specialVueFakeDummyForL10nScript.js:236
+msgid "Auditor"
+msgstr "Auditor"
+
+#: specialVueFakeDummyForL10nScript.js:236
+msgid "Viewer"
+msgstr "Visualizador"
+
+#: specialVueFakeDummyForL10nScript.js:237
+msgid "Home / personal"
+msgstr "Casa / pessoal"
+
+#: specialVueFakeDummyForL10nScript.js:237
+msgid "Group / collective"
+msgstr "Grupo / coletivo"
+
+#: specialVueFakeDummyForL10nScript.js:238
+msgid "Business / organization"
+msgstr "Empresa / organização"
+
+#: specialVueFakeDummyForL10nScript.js:238
+msgid "Financial workspace"
+msgstr "Espaço financeiro"
+
+#: specialVueFakeDummyForL10nScript.js:239
+msgid "Participant"
+msgstr "Participante"
+
+#: specialVueFakeDummyForL10nScript.js:241
+msgid "Select a workspace"
+msgstr "Selecione uma área"
+
+#: specialVueFakeDummyForL10nScript.js:266 /app/src/navigation.js:48
+msgid "Finance"
+msgstr "Financeiro"
+
+#: specialVueFakeDummyForL10nScript.js:267 /app/src/navigation.js:58
+msgid "Manage"
+msgstr "Gerenciar"
+
+#. TRANSLATORS vue:397
+#: specialVueFakeDummyForL10nScript.js:391
+msgid "LibreFinance navigation"
+msgstr "Navegação do LibreFinance"
+
+#. TRANSLATORS vue:403
+#: specialVueFakeDummyForL10nScript.js:393
+msgid "Household finances"
+msgstr "Finanças da casa"
+
+#: specialVueFakeDummyForL10nScript.js:393
+msgid "Personal and organizational finances"
+msgstr "Finanças pessoais e de organizações"
+
+#. TRANSLATORS vue:407
+#: specialVueFakeDummyForL10nScript.js:395
+#: specialVueFakeDummyForL10nScript.js:399
+msgid "Current financial workspace"
+msgstr "Gestão financeira atual"
+
+#. TRANSLATORS vue:408
+#: specialVueFakeDummyForL10nScript.js:397
+msgid "Choose a workspace"
+msgstr "Escolha uma gestão"
+
+#. TRANSLATORS vue:422
+#: specialVueFakeDummyForL10nScript.js:401
+msgid "Find a LibreFinance feature"
+msgstr "Buscar uma função do LibreFinance"
+
+#. TRANSLATORS vue:425
+#: specialVueFakeDummyForL10nScript.js:403
+msgid "Search the menu"
+msgstr "Buscar no menu"
+
+#. TRANSLATORS vue:426
+#: specialVueFakeDummyForL10nScript.js:405
+msgid "Search for a feature…"
+msgstr "Buscar uma função…"
+
+#. TRANSLATORS vue:433
+#: specialVueFakeDummyForL10nScript.js:407
+msgid "SEARCH RESULTS"
+msgstr "RESULTADOS DA BUSCA"
+
+#. TRANSLATORS vue:441
+#: specialVueFakeDummyForL10nScript.js:409
+msgid "No features found"
+msgstr "Nenhuma função encontrada"
+
+#. TRANSLATORS vue:442
+#: specialVueFakeDummyForL10nScript.js:411
+msgid "Try another term. Only features available in this workspace are shown."
+msgstr "Tente outro termo. Somente recursos disponíveis neste espaço são exibidos."
+
+#. TRANSLATORS vue:509
+#: specialVueFakeDummyForL10nScript.js:413
+msgid "View financial movements"
+msgstr "Ver movimentações"
+
+#. TRANSLATORS vue:511
+#: specialVueFakeDummyForL10nScript.js:415
+msgid "Refresh data"
+msgstr "Atualizar dados"
+
+#. TRANSLATORS vue:521
+#: specialVueFakeDummyForL10nScript.js:417
+msgid "Start organizing your finances"
+msgstr "Comece a organizar suas finanças"
+
+#. TRANSLATORS vue:522
+#: specialVueFakeDummyForL10nScript.js:419
+msgid ""
+"Activate an authorized SaaS environment, create a personal workspace, or "
+"restore an archived workspace. Group administration does not grant financial "
+"access."
+msgstr "Ative um ambiente SaaS autorizado, crie uma gestão pessoal ou restaure uma gestão arquivada. A administração de um grupo não concede acesso financeiro."
+
+#. TRANSLATORS vue:525
+#: specialVueFakeDummyForL10nScript.js:421
+msgid "Manage or create workspaces"
+msgstr "Gerenciar ou criar gestões"
+
+#. TRANSLATORS vue:531
+#: specialVueFakeDummyForL10nScript.js:423
+msgid "Loading financial data…"
+msgstr "Carregando dados financeiros…"
+
+#. TRANSLATORS vue:536
+#: specialVueFakeDummyForL10nScript.js:425
+msgid "Import unavailable"
+msgstr "Importação indisponível"
+
+#. TRANSLATORS vue:537
+#: specialVueFakeDummyForL10nScript.js:427
+msgid ""
+"Enable the import module in Installed features to migrate data from another "
+"solution."
+msgstr "Ative o módulo de importação em Recursos instalados para migrar dados de outra solução."
+
+#. TRANSLATORS vue:539
+#: specialVueFakeDummyForL10nScript.js:429
+msgid "View installed features"
+msgstr "Ver recursos instalados"
+
+#: src/money.js:13
+msgid "Enter a valid amount with up to two decimal places."
+msgstr "Informe um valor válido com até duas casas decimais."
+
+#: src/money.js:18
+msgid "Amount outside the permitted limits."
+msgstr "Valor fora dos limites admitidos."
+
+#: src/navigation.js:9
+msgid "Overview"
+msgstr "Visão geral"
+
+#: src/navigation.js:10
+msgid "Accounting history"
+msgstr "Histórico contábil"
+
+#: src/navigation.js:11
+msgid "Account statement"
+msgstr "Extrato da conta"
+
+#: src/navigation.js:12
+msgid "Accounts and banks"
+msgstr "Contas e bancos"
+
+#: src/navigation.js:13 /app/src/navigation.js:17
+#: src/navigation.js:18 /app/src/navigation.js:21
+msgid "Financial movements"
+msgstr "Movimentações"
+
+#: src/navigation.js:14
+msgid "Reports"
+msgstr "Relatórios"
+
+#: src/navigation.js:15 /app/src/navigation.js:16
+#: src/navigation.js:19 /app/src/navigation.js:22
+msgid "Invoices"
+msgstr "Faturas"
+
+#: src/navigation.js:20 /app/src/navigation.js:59
+msgid "Financial workspaces"
+msgstr "Gestões financeiras"
+
+#: src/navigation.js:23
+msgid "Tax rules"
+msgstr "Regras tributárias"
+
+#: src/navigation.js:24
+msgid "Brazilian NFS-e"
+msgstr "NFS-e Brasil"
+
+#: src/navigation.js:25
+msgid "Customers and suppliers"
+msgstr "Clientes e fornecedores"
+
+#: src/navigation.js:26
+msgid "Products and services"
+msgstr "Produtos e serviços"
+
+#: src/navigation.js:27
+msgid "Categories"
+msgstr "Categorias"
+
+#: src/navigation.js:28
+msgid "Chart of accounts"
+msgstr "Plano de contas"
+
+#: src/navigation.js:29
+msgid "Organization details"
+msgstr "Dados da organização"
+
+#: src/navigation.js:30
+msgid "Financial assistant"
+msgstr "Assistente financeiro"
+
+#: src/navigation.js:31 /app/src/navigation.js:32
+msgid "Access and sharing"
+msgstr "Acessos e compartilhamento"
+
+#: src/navigation.js:33
+msgid "Custom fields"
+msgstr "Campos personalizados"
+
+#: src/navigation.js:34
+msgid "Payment methods"
+msgstr "Formas de pagamento"
+
+#: src/navigation.js:35
+msgid "Installed features"
+msgstr "Recursos instalados"
+
+#: src/navigation.js:36
+msgid "Data and migration"
+msgstr "Dados e migração"
+
+#: src/navigation.js:37
+msgid "Data migration"
+msgstr "Migração de dados"
+
+#: src/navigation.js:44
+msgid "home overview summary dashboard"
+msgstr "inicio visao geral resumo painel home"
+
+#: src/navigation.js:50
+msgid ""
+"movements payables receivables inflows outflows payments collections balance "
+"statement"
+msgstr "movimentacoes contas a pagar a receber entradas saidas pagamentos cobrancas saldo extrato"
+
+#: src/navigation.js:52
+msgid ""
+"invoices sales purchases customers suppliers products services items taxes"
+msgstr "faturas vendas compras clientes fornecedores produtos servicos itens tributos"
+
+#: src/navigation.js:54
+msgid "statements import review reconciliation by account"
+msgstr "extratos importar conferir conciliacao por conta"
+
+#: src/navigation.js:57
+msgid "reports statements cash flow results profit and loss trial balance"
+msgstr "relatorios demonstrativos fluxo de caixa resultados dre balancete"
+
+#: src/navigation.js:60
+msgid ""
+"workspaces finance areas create rename archive restore organization personal"
+msgstr "gestoes financeiras areas financeiras espacos areas financas criar renomear arquivar restaurar organizacao pessoal"
+
+#: src/navigation.js:61 /app/src/navigation.js:63
+#: src/navigation.js:65 /app/src/navigation.js:67
+#: src/navigation.js:70
+msgid "Records"
+msgstr "Cadastros"
+
+#: src/navigation.js:62
+msgid ""
+"company tax ID fiscal details issuer legal identity registration logo color"
+msgstr "empresa cnpj dados fiscais empresa emissora identidade legal cadastro juridico logotipo cor"
+
+#: src/navigation.js:64
+msgid "customers suppliers people contacts"
+msgstr "clientes fornecedores pessoas contatos"
+
+#: src/navigation.js:66
+msgid "products services items price catalog"
+msgstr "produtos servicos itens preco catalogo"
+
+#: src/navigation.js:68
+msgid "categories classification income expenses"
+msgstr "categorias classificacao receitas despesas"
+
+#: src/navigation.js:71
+msgid "accounts banks cash register bank details finance"
+msgstr "contas bancos caixa cadastrar dados bancarios financeiro"
+
+#: src/navigation.js:72 /app/src/navigation.js:74
+#: src/navigation.js:76 /app/src/navigation.js:78
+#: src/navigation.js:80
+msgid "Finance and tax"
+msgstr "Financeiro e fiscal"
+
+#: src/navigation.js:73
+msgid "chart of accounts accounting equity assets liabilities"
+msgstr "plano de contas contabilidade patrimonio ativo passivo"
+
+#: src/navigation.js:75
+msgid "accounting journal debit credit actual inflows outflows history"
+msgstr "lancamentos contabeis diario debito credito dinheiro ja saiu entrou historico realizado"
+
+#: src/navigation.js:77
+msgid "payment methods cash Pix bank slip card"
+msgstr "formas pagamento dinheiro pix boleto cartao metodos"
+
+#: src/navigation.js:79
+msgid "taxes jurisdiction rates withholding"
+msgstr "impostos jurisdicao tributacao aliquotas retencao"
+
+#: src/navigation.js:81
+msgid "service invoice draft national"
+msgstr "nota fiscal servico rascunho nacional"
+
+#: src/navigation.js:83 /app/src/navigation.js:85
+msgid "Team and customization"
+msgstr "Equipe e personalização"
+
+#: src/navigation.js:84
+msgid "access team permissions members users groups sharing"
+msgstr "acessos equipe permissoes membros usuarios grupos compartilhar pessoas e grupos"
+
+#: src/navigation.js:86
+msgid "custom fields forms entities"
+msgstr "campos personalizados customizados formularios entidades"
+
+#: src/navigation.js:88 /app/src/navigation.js:90
+#: src/navigation.js:92
+msgid "Features and data"
+msgstr "Recursos e dados"
+
+#: src/navigation.js:89
+msgid "installed features modules enable disable extensions settings"
+msgstr "recursos instalados modulos ativar desativar extensoes configuracoes"
+
+#: src/navigation.js:91
+msgid "data migration import export source files conversion"
+msgstr "dados migracao importar exportar origem arquivos conversao akaunting"
+
+#: src/navigation.js:93
+msgid "assistant artificial intelligence summary analysis"
+msgstr "assistente inteligencia artificial resumo analise"
+
+#: src/navigation.js:101
+msgid "People and businesses"
+msgstr "Pessoas e estabelecimentos"
+
+#: src/navigation.js:102
+msgid "Organizations (optional)"
+msgstr "Organizações (opcional)"
