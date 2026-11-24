@@ -465,8 +465,11 @@ final class SpaceService {
             // instead of returning zero updated rows. Abort this transaction
             // and ask the caller to reload; do not retry stale writes or
             // convert unrelated DB failures into an apparent conflict.
+            // Nextcloud/DBAL does not consistently classify SQLITE_BUSY as
+            // REASON_DRIVER; a generic wrapper can report a null reason.
+            // Match the SQLite-specific SQLSTATE and text on this CAS update
+            // instead of relying on the wrapper's classification.
             if ($this->db->getDatabaseProvider() === IDBConnection::PLATFORM_SQLITE
-                && $e->getReason() === \OCP\DB\Exception::REASON_DRIVER
                 && str_contains(strtolower($e->getMessage()), 'database is locked')
                 && str_contains(strtoupper($e->getMessage()), 'SQLSTATE[HY000]')) {
                 throw new DomainException('revision_conflict', previous: $e);
