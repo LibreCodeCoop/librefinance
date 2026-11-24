@@ -476,3 +476,41 @@ test('migration previews preserve source identifiers, counts and explicit consen
   await expect(row).toContainText('Already present')
   await expect(page.getByRole('button', { name: 'Import validated batch' })).toBeDisabled()
 })
+
+
+test('localized settings preserve role codes and payment method identity', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'personal')
+  const id = new URL(page.url()).searchParams.get('spaceId')
+  const url = '/index.php/apps/librefinance/?spaceId=' + id
+  await page.goto(url + '&view=access&forceLanguage=en')
+  const view = page.locator('.lf-view')
+  await expect(view.getByRole('heading', { name: 'Access and sharing' })).toBeVisible()
+  const owner = view.locator('[data-role="owner"]')
+  await expect(owner).toHaveText('Owner')
+  await page.goto(url + '&view=access&forceLanguage=pt_BR')
+  await expect(view.getByRole('heading', { name: 'Acessos e compartilhamento' })).toBeVisible()
+  await expect(owner).toHaveText('Proprietário')
+  await page.goto(url + '&view=paymentMethods&forceLanguage=en')
+  await expect(view.getByRole('heading', { name: 'Payment methods' })).toBeVisible()
+  await view.getByRole('button', { name: 'New payment method' }).click()
+  const editor = page.getByRole('dialog', { name: 'Create payment method' })
+  const methodName = 'Carteira sintética locale'
+  await editor.getByRole('textbox', { name: 'Payment method name' }).fill(methodName)
+  await editor.locator('#lf-payment-kind').click()
+  await page.getByRole('option', { name: /Digital wallet or in\s*termediary/ }).click()
+  const created = page.waitForResponse(response =>
+    response.url().includes('/payment-methods') && response.request().method() === 'POST')
+  await editor.getByRole('button', { name: 'Save payment method' }).click()
+  const response = await created
+  expect(response.ok()).toBe(true)
+  expect(response.request().postDataJSON()).toMatchObject({
+    name: methodName, kind: 'digital_wallet', bankAccountId: null,
+  })
+  const row = view.getByRole('row', { name: new RegExp(methodName) })
+  await expect(row).toContainText('Digital wallet or intermediary')
+  await page.goto(url + '&view=paymentMethods&forceLanguage=pt_BR')
+  await expect(row).toContainText('Carteira digital ou intermediador')
+  await expect(row.getByRole('button', { name: 'Ações da forma ' + methodName })).toBeVisible()
+  await expect(row).toHaveCount(1)
+})
