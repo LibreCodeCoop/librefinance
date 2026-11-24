@@ -190,7 +190,7 @@ test('SaaS workspace policy editor restricts, audits and restores inheritance', 
 
   await goToView(page, 'Gestões financeiras')
   await page.getByRole('button', { name: 'Configurar políticas' }).click()
-  const editor = page.getByRole('region', { name: 'Políticas SaaS de workspace' })
+  const editor = page.getByRole('region', { name: 'Políticas SaaS de Gestão' })
   await expect(editor).toContainText('Origem: Instância Nextcloud')
   await expect(editor).toContainText('Efetivo: Permitido')
   const importSwitch = editor.getByRole('switch', { name: 'Permitir importação de dados' })

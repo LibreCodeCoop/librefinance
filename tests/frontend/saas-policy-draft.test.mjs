@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { readFileSync } from 'node:fs'
+import { register, unregister } from '@nextcloud/l10n'
 import {
   initialPolicyDraft, policyInputValue, formatPolicyValue,
 } from '../../src/services/saasPolicyDraft.js'
@@ -23,9 +25,9 @@ test('typed drafts retain the exact policy type', () => {
 })
 
 test('boolean child cannot reenable denied parent', () => {
-  assert.throws(() => policyInputValue(boolean, true), /herdada/)
+  assert.throws(() => policyInputValue(boolean, true), /inherited/)
   assert.equal(policyInputValue(boolean, false), false)
-  assert.throws(() => policyInputValue({ ...boolean, editableByCurrentActor: false }, false), /autorização/)
+  assert.throws(() => policyInputValue({ ...boolean, editableByCurrentActor: false }, false), /not authorized/)
 })
 
 test('numeric ceiling rejects unsafe and widening values', () => {
@@ -38,15 +40,26 @@ test('numeric ceiling rejects unsafe and widening values', () => {
 
 test('sets reject widened, duplicate and malformed entries', () => {
   assert.deepEqual(policyInputValue(set, ''), [])
-  assert.throws(() => policyInputValue(set, 'BR, US'), /herdados/)
-  assert.throws(() => policyInputValue(set, 'BR, BR'), /repetidos/)
-  assert.throws(() => policyInputValue(set, 'X'.repeat(65)), /repetidos/)
+  assert.throws(() => policyInputValue(set, 'BR, US'), /inherited/)
+  assert.throws(() => policyInputValue(set, 'BR, BR'), /Duplicate/)
+  assert.throws(() => policyInputValue(set, 'X'.repeat(65)), /Duplicate/)
 })
 
 test('visible effective values do not infer permissions', () => {
-  assert.equal(formatPolicyValue(boolean), 'Bloqueado')
+  assert.equal(formatPolicyValue(boolean), 'Blocked')
   assert.equal(formatPolicyValue(ceiling), '8')
   assert.equal(formatPolicyValue(set), 'BR')
-  assert.equal(formatPolicyValue({ ...set, effectiveValue: [] }), 'Nenhum valor permitido')
-  assert.throws(() => policyInputValue({ ...ceiling, editableByCurrentActor: false }, 0), /autorização/)
+  assert.equal(formatPolicyValue({ ...set, effectiveValue: [] }), 'No allowed values')
+  assert.throws(() => policyInputValue({ ...ceiling, editableByCurrentActor: false }, 0), /not authorized/)
+})
+
+test('native catalog translates policy validation without changing stored values', () => {
+  const { translations } = JSON.parse(readFileSync(new URL('../../l10n/pt_BR.json', import.meta.url)))
+  register('librefinance', translations)
+  try {
+    assert.equal(formatPolicyValue(boolean), 'Bloqueado')
+    assert.equal(formatPolicyValue({ ...set, effectiveValue: [] }), 'Nenhum valor permitido')
+    assert.equal(policyInputValue(ceiling, '2'), 2)
+    assert.throws(() => policyInputValue(boolean, true), /herdada/)
+  } finally { unregister('librefinance') }
 })

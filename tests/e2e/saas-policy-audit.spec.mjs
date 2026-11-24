@@ -48,7 +48,7 @@ test('native workspace policy editor shows scoped cursor-paginated audit history
   await page.reload()
   await goToView(page, 'Gestões financeiras')
   await page.getByRole('button', { name: 'Configurar políticas' }).click()
-  const editor = page.getByRole('region', { name: 'Políticas SaaS de workspace' })
+  const editor = page.getByRole('region', { name: 'Políticas SaaS de Gestão' })
   await editor.getByRole('button', { name: 'Ver histórico de policies' }).click()
   const audit = editor.getByRole('region', {
     name: 'Histórico de alterações das policies SaaS',

@@ -53,7 +53,7 @@ test('authenticated personal policy hides financial dashboard KPI cards', async 
   })
   await page.reload()
   await goToView(page, 'Gestões financeiras')
-  const panel = page.getByRole('region', { name: 'Políticas SaaS de user' })
+  const panel = page.getByRole('region', { name: 'Políticas SaaS de Usuário' })
   await expect(panel).toContainText('Exibir indicadores resumidos no painel')
   const toggle = panel.getByRole('switch', { name: /Permitir exibir indicadores resumidos no painel/i })
   await toggle.focus()

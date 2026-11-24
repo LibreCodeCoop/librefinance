@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Nextcloud 3.14159\n"
 "Report-Msgid-Bugs-To: translations\\@example.com\n"
-"POT-Creation-Date: 2026-11-24 13:29+0000\n"
+"POT-Creation-Date: 2026-11-24 14:20+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -184,6 +184,600 @@ msgstr ""
 #. TRANSLATORS vue:539
 #: specialVueFakeDummyForL10nScript.js:429
 msgid "View installed features"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:457
+msgid "Delegation reviewed"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:458
+msgid "Group administrator restored"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:459
+msgid "Security incident resolved"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:460
+msgid "Group membership corrected"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:464
+msgid "Not enabled"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:465
+msgid "Awaiting administrator"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:466
+msgid "Active environment"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:467
+msgid "Suspended"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:286
+#: specialVueFakeDummyForL10nScript.js:468
+#: specialVueFakeDummyForL10nScript.js:699
+msgid "State unavailable"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:329
+#: specialVueFakeDummyForL10nScript.js:470
+#: specialVueFakeDummyForL10nScript.js:731
+msgid "Organization"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:330
+#: specialVueFakeDummyForL10nScript.js:471
+#: specialVueFakeDummyForL10nScript.js:733
+msgid "Group"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:331
+#: specialVueFakeDummyForL10nScript.js:472
+#: specialVueFakeDummyForL10nScript.js:735
+msgid "Personal"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:494
+msgid "Unexpected error"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:542
+msgid "The group administrative association changed. Reopen the history."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:621
+msgid "Configuration updated."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:240
+#: specialVueFakeDummyForL10nScript.js:663
+msgid "LibreFinance — Instance administration"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:241
+#: specialVueFakeDummyForL10nScript.js:665
+msgid ""
+"Global administration is restricted to Nextcloud administrators. Delegated "
+"group administrators manage only their own financial contexts."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:247
+#: specialVueFakeDummyForL10nScript.js:667
+msgid "Provisioning managed by the instance administrator"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:249
+#: specialVueFakeDummyForL10nScript.js:669
+msgid ""
+"When enabled, ordinary users cannot create legacy financial contexts. Legacy "
+"context associations and delegations are preserved. In new SaaS "
+"environments, administering a group or the instance does not in itself grant "
+"access to financial data."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:252
+#: specialVueFakeDummyForL10nScript.js:671
+msgid "Instance SaaS policies"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:253
+#: specialVueFakeDummyForL10nScript.js:673
+msgid ""
+"The limits and restrictions defined here are inherited by environments and "
+"workspaces. Editing them does not grant access to financial ledgers."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:258
+#: specialVueFakeDummyForL10nScript.js:675
+msgid "Available Nextcloud groups"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:259
+#: specialVueFakeDummyForL10nScript.js:677
+msgid ""
+"Enable individual Nextcloud groups for LibreFinance SaaS. Without a "
+"qualified group subadministrator or delegate, the environment awaits "
+"authorization to be provisioned. None of these actions grants access to the "
+"accounting ledger."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:261
+#: specialVueFakeDummyForL10nScript.js:679
+msgid "Search groups"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:262
+#: specialVueFakeDummyForL10nScript.js:681
+msgid "Find groups"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:266
+#: specialVueFakeDummyForL10nScript.js:683
+msgid "No groups found."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:267
+#: specialVueFakeDummyForL10nScript.js:685
+msgid "SaaS status of Nextcloud groups"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:276
+#: specialVueFakeDummyForL10nScript.js:687
+msgid "Enable LibreFinance for {name}"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:277
+#: specialVueFakeDummyForL10nScript.js:689
+msgid "Enable"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:280
+#: specialVueFakeDummyForL10nScript.js:691
+msgid "Suspend LibreFinance for {name}"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:281
+#: specialVueFakeDummyForL10nScript.js:693
+msgid "Suspend"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:284
+#: specialVueFakeDummyForL10nScript.js:695
+msgid "Recover environment for {name}"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:285
+#: specialVueFakeDummyForL10nScript.js:697
+msgid "Recover"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:289
+#: specialVueFakeDummyForL10nScript.js:701
+msgid "View audit history for {name}"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:290
+#: specialVueFakeDummyForL10nScript.js:703
+msgid "Audit"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:295
+#: specialVueFakeDummyForL10nScript.js:705
+msgid "Load more groups"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:299
+#: specialVueFakeDummyForL10nScript.js:707
+msgid "LibreFinance delegated administrators"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:300
+#: specialVueFakeDummyForL10nScript.js:709
+msgid ""
+"Delegation allows administration of the LibreFinance environment for that "
+"group. In new SaaS environments, it grants neither a financial role nor "
+"access to journal entries. The grant applies only to LibreFinance and does "
+"not change permissions in other Nextcloud apps."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:301
+#: specialVueFakeDummyForL10nScript.js:711
+msgid "Governing group"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:303
+#: specialVueFakeDummyForL10nScript.js:713
+#: specialVueFakeDummyForL10nScript.js:739
+#: specialVueFakeDummyForL10nScript.js:759
+msgid "Select a group"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:313
+#: specialVueFakeDummyForL10nScript.js:715
+msgid "Revoke delegation for {name}"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:314
+#: specialVueFakeDummyForL10nScript.js:717
+msgid "Revoke"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:317
+#: specialVueFakeDummyForL10nScript.js:719
+msgid "No LibreFinance delegated administrators."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:319
+#: specialVueFakeDummyForL10nScript.js:721
+msgid "Nextcloud user in the group"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:320
+#: specialVueFakeDummyForL10nScript.js:723
+msgid "Delegate administration"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:324
+#: specialVueFakeDummyForL10nScript.js:725
+msgid "New financial context"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:326
+#: specialVueFakeDummyForL10nScript.js:727
+msgid "Context name"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:327
+#: specialVueFakeDummyForL10nScript.js:729
+msgid "Type"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:333
+#: specialVueFakeDummyForL10nScript.js:737
+#: specialVueFakeDummyForL10nScript.js:757
+msgid "Nextcloud group"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:341
+#: specialVueFakeDummyForL10nScript.js:741
+msgid "Create context"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:346
+#: specialVueFakeDummyForL10nScript.js:743
+msgid "Existing contexts"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:350
+#: specialVueFakeDummyForL10nScript.js:745
+msgid "No governing group"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:352
+#: specialVueFakeDummyForL10nScript.js:747
+msgid "Review pending: multiple legal identities in the same ledger."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:354
+#: specialVueFakeDummyForL10nScript.js:749
+msgid "Archived"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:356
+#: specialVueFakeDummyForL10nScript.js:751
+msgid "Restore"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:361
+#: specialVueFakeDummyForL10nScript.js:753
+msgid "Associate existing context"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:363
+#: specialVueFakeDummyForL10nScript.js:755
+msgid "Choose a context without a group"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:374
+#: specialVueFakeDummyForL10nScript.js:761
+msgid "Associate"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:378
+#: specialVueFakeDummyForL10nScript.js:763
+msgid "LibreFinance audit history"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:381
+#: specialVueFakeDummyForL10nScript.js:765
+msgid "Environment history for {name}"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:382
+#: specialVueFakeDummyForL10nScript.js:767
+msgid ""
+"Chronological record of environment administration actions. It does not "
+"contain balances, journal entries or financial documents."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:385
+#: specialVueFakeDummyForL10nScript.js:769
+msgid "Administrative audit events"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:388
+#: specialVueFakeDummyForL10nScript.js:771
+msgid "{time} · By {actor}"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:392
+#: specialVueFakeDummyForL10nScript.js:773
+msgid "No events recorded yet."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:396
+#. TRANSLATORS onents/SaasPolicyEditor.vue:290
+#: specialVueFakeDummyForL10nScript.js:775
+#: specialVueFakeDummyForL10nScript.js:1995
+msgid "Load earlier events"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:398
+#: specialVueFakeDummyForL10nScript.js:777
+msgid "Close"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:403
+#: specialVueFakeDummyForL10nScript.js:779
+msgid "Suspend LibreFinance group"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:406
+#: specialVueFakeDummyForL10nScript.js:781
+msgid ""
+"Suspension prevents new access to the environment, but preserves journal "
+"entries, documents and historical associations. Reactivation requires "
+"audited administrative recovery."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:407
+#: specialVueFakeDummyForL10nScript.js:783
+msgid "Suspend {name}?"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:409
+#: specialVueFakeDummyForL10nScript.js:785
+#: specialVueFakeDummyForL10nScript.js:799
+msgid "Cancel"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:411
+#: specialVueFakeDummyForL10nScript.js:787
+msgid "Suspend group"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:416
+#: specialVueFakeDummyForL10nScript.js:789
+msgid "Recover LibreFinance environment"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:420
+#: specialVueFakeDummyForL10nScript.js:791
+msgid ""
+"Only the instance administrator can perform recovery. The reason is recorded "
+"in the audit history. The operation keeps financial data intact and returns "
+"the environment to the awaiting administrator state, without granting "
+"automatic financial access."
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:422
+#: specialVueFakeDummyForL10nScript.js:793
+msgid "Recover {name}?"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:424
+#: specialVueFakeDummyForL10nScript.js:795
+msgid "Required recovery reason"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:426
+#: specialVueFakeDummyForL10nScript.js:797
+msgid "Choose the recovery reason"
+msgstr ""
+
+#. TRANSLATORS n/AdminPage.vue:431
+#: specialVueFakeDummyForL10nScript.js:801
+msgid "Confirm recovery"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1809
+msgid "Enable SaaS environments"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1810
+msgid "External sharing"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1811
+msgid "Data import"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1812
+msgid "Allowed bank statement formats (CSV or OFX)"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1813
+msgid "Financial reports"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1814
+msgid "NFS-e drafts (optional integration)"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1815
+msgid "Workspace limit per environment"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1816
+msgid "Show summary indicators on the dashboard"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1819
+msgid "Application default"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1819
+msgid "Nextcloud instance"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1820
+msgid "Environment"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1820
+msgid "Workspace"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1820
+msgid "User"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1821
+msgid "Unavailable"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1823
+msgid "Inherited"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1931
+msgid "Local restriction removed. The inherited policy remains in effect."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1932
+msgid "Restriction applied and audited for this scope."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1942
+msgid ""
+"The revision changed. Current values were reloaded; review them before "
+"saving."
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:219
+#: specialVueFakeDummyForL10nScript.js:1953
+msgid "SaaS policies for {scope}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:220
+#: specialVueFakeDummyForL10nScript.js:1955
+msgid ""
+"These policies restrict operations but do not grant financial permissions. "
+"The server revalidates authority and revision on every change."
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:229
+#: specialVueFakeDummyForL10nScript.js:1957
+msgid "Effective: {value}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:230
+#: specialVueFakeDummyForL10nScript.js:1959
+msgid "Source: {source}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:231
+#: specialVueFakeDummyForL10nScript.js:1961
+msgid "Revision: {revision}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:233
+#: specialVueFakeDummyForL10nScript.js:1963
+msgid "Mandatory restriction: {scope}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:235
+#: specialVueFakeDummyForL10nScript.js:1965
+msgid "Read-only at this scope; there is no automatic delegation."
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:252
+#: specialVueFakeDummyForL10nScript.js:1971
+msgid "Allowed values for {policy}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:257
+#: specialVueFakeDummyForL10nScript.js:1973
+msgid "Save restriction {policy}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:258
+#: specialVueFakeDummyForL10nScript.js:1975
+msgid "Save restriction"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:260
+#: specialVueFakeDummyForL10nScript.js:1977
+msgid "Inherit policy {policy}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:261
+#: specialVueFakeDummyForL10nScript.js:1979
+msgid "Inherit value"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:266
+#: specialVueFakeDummyForL10nScript.js:1981
+msgid "No policies available."
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:269
+#: specialVueFakeDummyForL10nScript.js:1983
+msgid "Hide policy history"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:1983
+msgid "View policy history"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:271
+#: specialVueFakeDummyForL10nScript.js:1985
+msgid "SaaS policy change history"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:279
+#: specialVueFakeDummyForL10nScript.js:1987
+msgid "{time} · By {actor} · Revision {previous} → {next}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:281
+#: specialVueFakeDummyForL10nScript.js:1989
+msgid "Before: {value}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:282
+#: specialVueFakeDummyForL10nScript.js:1991
+msgid "After: {value}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:286
+#: specialVueFakeDummyForL10nScript.js:1993
+msgid "No changes recorded for this scope."
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:247
+#: specialVueFakeDummyForL10nScript.js:1969
+msgid "Limit for {policy}"
+msgstr ""
+
+#. TRANSLATORS onents/SaasPolicyEditor.vue:243
+#: specialVueFakeDummyForL10nScript.js:1967
+msgid "Allow {policy}"
 msgstr ""
 
 #: src/money.js:13
@@ -400,4 +994,61 @@ msgstr ""
 
 #: src/navigation.js:102
 msgid "Organizations (optional)"
+msgstr ""
+
+#: src/services/api.js:9
+msgid "Invalid financial request"
+msgstr ""
+
+#: src/services/api.js:45
+msgid "Financial operation failed"
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:11
+msgid "Invalid policy."
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:17
+#: src/services/saasPolicyDraft.js:57
+msgid "Unknown policy type."
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:23
+msgid "You are not authorized to change this policy."
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:26
+msgid "The policy requires true or false."
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:29
+msgid "An inherited restriction cannot be widened."
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:36
+msgid "Enter a nonnegative integer limit."
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:41
+msgid "The limit cannot exceed the inherited restriction."
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:49
+msgid "Duplicate, oversized or invalid values."
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:53
+msgid "Only values inherited from higher levels are allowed."
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:62
+msgid "Allowed"
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:62
+msgid "Blocked"
+msgstr ""
+
+#: src/services/saasPolicyDraft.js:65
+msgid "No allowed values"
 msgstr ""

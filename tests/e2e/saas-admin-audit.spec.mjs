@@ -74,4 +74,17 @@ test('Nextcloud admin reads isolated SaaS lifecycle audit with cursor pagination
   // Select the labeled footer action, not the equally named native close icon.
   await dialog.getByRole('button', { name: 'Fechar', exact: true }).filter({ hasText: 'Fechar' }).click()
   await expect(dialog).toHaveCount(0)
+
+  // The native Nextcloud request locale affects the admin application too.
+  // Synthetic group names and stable API identities remain unchanged.
+  await page.goto('/index.php/settings/admin/librefinance?forceLanguage=en')
+  await expect(page.getByRole('heading', { name: 'LibreFinance — Instance administration' })).toBeVisible()
+  await expect(page.getByRole('region', { name: 'SaaS policies for Nextcloud instance' })).toBeVisible()
+  await expect(page.getByRole('listitem').filter({ hasText: 'Livro legado misto' })).toContainText('Review pending')
+  await expect(page.getByRole('button', { name: 'View audit history for Grupo Auditoria' })).toBeVisible()
+  await page.getByRole('button', { name: 'View audit history for Grupo Auditoria' }).click()
+  const englishDialog = page.getByRole('dialog', { name: 'LibreFinance audit history' })
+  await expect(englishDialog.getByRole('list', { name: 'Administrative audit events' })).toContainText('environment.recovered')
+  await englishDialog.getByRole('button', { name: 'Close', exact: true }).filter({ hasText: 'Close' }).click()
+  await expect(englishDialog).toHaveCount(0)
 })
