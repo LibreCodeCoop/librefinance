@@ -516,10 +516,10 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
 
         <component :is="SpacesView" v-if="!space && readyView==='spaces'" />
         <NcEmptyContent v-else-if="!space" name="Comece a organizar suas finanças"
-          description="Crie uma gestão financeira ou restaure uma gestão arquivada.">
+          description="Ative um ambiente SaaS autorizado, crie uma gestão pessoal ou restaure uma gestão arquivada. A administração de um grupo não concede acesso financeiro.">
           <template #action>
             <NcButton variant="primary" @click="navigate('spaces')">
-              Criar primeira gestão
+              Gerenciar ou criar gestões
             </NcButton>
           </template>
         </NcEmptyContent>

@@ -112,8 +112,10 @@ Do not return the current grant when the requester lacks access.
 
 ## Primeiro acesso e estados vazios
 
-Em **Gestões financeiras**, o painel **Ambientes LibreFinance** informa
-quando a conta não possui nenhum ambiente SaaS disponível. Isso não impede
+Mesmo sem nenhum livro contábil, a primeira tela oferece **Gerenciar ou criar
+gestões**: essa ação abre a administração de ambientes e não cria uma gestão
+pessoal automaticamente. Em **Gestões financeiras**, o painel **Ambientes
+LibreFinance** informa quando a conta não possui nenhum ambiente SaaS disponível. Isso não impede
 a continuidade de livros pessoais ou não empresariais. O administrador da
 instância deve habilitar um grupo Nextcloud; o subadministrador ou delegado
 autorizado do grupo poderá ativar o ambiente. Ser membro do grupo não concede

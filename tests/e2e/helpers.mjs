@@ -133,7 +133,7 @@ export async function selectFinanceSpace(page, name) {
 
 export async function makeSpace(page, kind = 'organization') {
   const name = 'E2E ' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-  const firstRun = page.getByRole('button', { name: 'Criar primeira gestão', exact: true })
+  const firstRun = page.getByRole('button', { name: 'Gerenciar ou criar gestões', exact: true })
   const management = page.getByRole('navigation', { name: 'Navegação do LibreFinance' })
     .getByRole('link', { name: 'Gerenciar', exact: true })
   await expect(firstRun.or(management).first()).toBeVisible({ timeout: 15_000 })
