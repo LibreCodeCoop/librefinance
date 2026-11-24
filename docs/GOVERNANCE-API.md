@@ -160,9 +160,14 @@ ambiente não concede automaticamente leitura do livro nem privilégios a todo
 o grupo. Para atribuir papéis financeiros individuais, o **proprietário**
 usa o controle de acessos da própria gestão financeira.
 
-`GET /api/saas/v1/environments/{environmentId}/workspaces` retorna apenas
-metadados das gestões disponíveis ao administrador daquele ambiente:
-`id`, `name`, `ownerUid` e `kind`. Não retorna lançamentos, extratos,
+`GET /api/saas/v1/environments/{environmentId}/workspaces` retorna
+`workspaces` com no máximo 50 registros e `nextAfterId` para
+continuação (`GET .../workspaces?afterId=N`); a ausência de continuação
+é indicada por `null`. Somente os campos `id`, `name`, `ownerUid`
+e `kind` são expostos. A interface oferece **Carregar mais gestões**;
+cada página é filtrada no servidor pelo ambiente selecionado, antes do
+limite, e ordenada por ID para impedir duplicação por alterações simultâneas.
+Cursor negativo retorna erro de validação. Não retorna lançamentos, extratos,
 saldos ou conteúdos de outras organizações. Se o acesso administrativo for
 revogado ou o ambiente suspenso, a próxima solicitação protegida é negada,
 e a interface descarta dados carregados daquele contexto.

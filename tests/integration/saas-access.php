@@ -865,6 +865,44 @@ try {
         '/spaces/' . $spaceA . '/members/' . $b . '?expectedRevision=4', null, 200);
     $t->check('manager revocation immediately revokes ledger read',
         $b, 'GET', '/spaces/' . $spaceA . '/journals', null, 404);
+    // 52 workspace rows prove the server does not silently cap at 50 and
+    // applies the tenant predicate BEFORE page sizing and cursor selection.
+    $t->check('tenant A list starts with two independently provisioned books',
+        $b, 'GET', $pathA, null, 200,
+        static fn(array $r): bool => count($r['workspaces'] ?? []) === 2
+            && ($r['nextAfterId'] ?? null) === null);
+    $t->check('negative workspace cursor is rejected without disclosure',
+        $b, 'GET', $pathA . '?afterId=-1', null, 422,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'invalid_cursor');
+    for ($i = 1; $i <= 50; ++$i) {
+        $t->check('tenant A cursor test creates independent book ' . $i,
+            $b, 'POST', $pathA, [
+                'name' => 'SaaS page book ' . str_pad((string)$i, 3, '0', STR_PAD_LEFT),
+                'ownerUid' => $a,
+                'idempotencyKey' => 'synthetic-saas-page-' . str_pad((string)$i, 3, '0', STR_PAD_LEFT),
+            ], 201);
+    }
+    $firstPage = $t->check('tenant A first page contains exactly 50 books',
+        $b, 'GET', $pathA, null, 200,
+        static fn(array $r): bool => count($r['workspaces'] ?? []) === 50
+            && is_int($r['nextAfterId'] ?? null));
+    $cursor = (int)($firstPage['nextAfterId'] ?? 0);
+    $secondPage = $t->check('tenant A continuation contains remaining two books',
+        $b, 'GET', $pathA . '?afterId=' . $cursor, null, 200,
+        static fn(array $r): bool => count($r['workspaces'] ?? []) === 2
+            && ($r['nextAfterId'] ?? false) === null);
+    $firstIds = array_column($firstPage['workspaces'] ?? [], 'id');
+    $secondIds = array_column($secondPage['workspaces'] ?? [], 'id');
+    saasCheck('cursor pages are disjoint, sorted and complete',
+        count(array_unique([...$firstIds, ...$secondIds])) === 52
+            && $firstIds === array_values($firstIds)
+            && $secondIds === array_values($secondIds)
+            && max($firstIds) < min($secondIds));
+    $t->check('tenant B enumeration never sees A paginated books', $a,
+        'GET', $pathB, null, 200,
+        static fn(array $r): bool => count($r['workspaces'] ?? []) === 1
+            && ($r['nextAfterId'] ?? null) === null
+            && ($r['workspaces'][0]['name'] ?? '') === 'Isolated B1');
     instanceCheck('instance admin suspends environment A without deleting postings',
         'PUT', '/saas/v1/admin/groups/' . $groupA . '/enablement',
         ['enabled' => false], 200);

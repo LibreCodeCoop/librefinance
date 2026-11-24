@@ -228,9 +228,17 @@ final class SaasWorkspaceService {
         return null;
     }
 
-    /** @return list<array{id:int,name:string,ownerUid:string,kind:string}> */
-    public function listForManager(string $environmentUuid): array {
+    /**
+     * Paginate after applying the active environment and ownership boundary.
+     * A stable space-id cursor avoids offset drift when other managers create
+     * books concurrently; no page can include a foreign environment's book.
+     * @return array{workspaces:list<array{id:int,name:string,ownerUid:string,kind:string}>,nextAfterId:?int}
+     */
+    public function listForManager(string $environmentUuid, int $afterId = 0): array {
         $environment = $this->environments->requireActiveManager($environmentUuid);
+        if ($afterId < 0) {
+            throw new DomainException('invalid_cursor');
+        }
         $q = $this->db->getQueryBuilder();
         $q->select('s.id', 's.name', 's.owner_uid', 's.kind')
             ->from('lf_environment_spaces', 'es')
@@ -241,11 +249,20 @@ final class SaasWorkspaceService {
                 $q->createNamedParameter('confirmed')))
             ->andWhere($q->expr()->eq('s.archived',
                 $q->createNamedParameter(false, IQueryBuilder::PARAM_BOOL)))
-            ->orderBy('s.id', 'ASC');
-        return array_map(static fn(array $row): array => [
-            'id' => (int)$row['id'], 'name' => (string)$row['name'],
-            'ownerUid' => (string)$row['owner_uid'], 'kind' => (string)$row['kind'],
-        ], $q->executeQuery()->fetchAllAssociative());
+            ->andWhere($q->expr()->gt('s.id',
+                $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)))
+            ->orderBy('s.id', 'ASC')
+            ->setMaxResults(51);
+        $rows = $q->executeQuery()->fetchAllAssociative();
+        $hasMore = count($rows) > 50;
+        $rows = array_slice($rows, 0, 50);
+        return [
+            'workspaces' => array_map(static fn(array $row): array => [
+                'id' => (int)$row['id'], 'name' => (string)$row['name'],
+                'ownerUid' => (string)$row['owner_uid'], 'kind' => (string)$row['kind'],
+            ], $rows),
+            'nextAfterId' => $hasMore ? (int)end($rows)['id'] : null,
+        ];
     }
 
     /** @return array<string,mixed>|null */

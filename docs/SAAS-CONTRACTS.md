@@ -16,7 +16,7 @@ All requests must use Nextcloud's authenticated app API with CSRF protections an
 | GET | `/api/saas/v1/environments` | **Implemented** | Eligible environment discovery; no financial records |
 | POST | `/api/saas/v1/environments/{environmentId}/provision` | **Implemented** | Qualified current group administrator; idempotent |
 | GET | `/api/saas/v1/environments/{environmentId}` | **Not implemented** | Original proposed detail route; do not call |
-| GET | `/api/saas/v1/environments/{environmentId}/workspaces` | **Implemented** | Manager-scoped list; no implicit financial role |
+| GET | `/api/saas/v1/environments/{environmentId}/workspaces` | **Implemented** | Manager-scoped list, 50 rows per page, `afterId` continuation and `nextAfterId`, no implicit financial role |
 | POST | `/api/saas/v1/environments/{environmentId}/workspaces` | **Implemented** | Authorized workspace provisioning with idempotency |
 | GET | `/api/saas/v1/environments/{environmentId}/policies/effective` | **Implemented** | Authorized effective policy metadata |
 | PUT | `/api/saas/v1/environments/{environmentId}/policies/{policyKey}` | **Implemented** | Delegated policy admin, `valueJson` and `expectedRevision` |
