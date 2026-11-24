@@ -2,6 +2,7 @@
 SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 import { computed, inject, onMounted, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
@@ -20,16 +21,16 @@ import { financeApi, financeError } from '../services/api.js'
 const w = inject('lfWorkspace')
 const { activeId, accounts, manager } = w
 const kinds = [
-  { value:'cash', label:'Dinheiro' },
-  { value:'bank_transfer', label:'Transferência bancária' },
-  { value:'credit_card', label:'Cartão de crédito' },
-  { value:'debit_card', label:'Cartão de débito' },
-  { value:'pix', label:'Pagamento instantâneo (ex.: Pix)' },
-  { value:'digital_wallet', label:'Carteira digital ou intermediador' },
-  { value:'other', label:'Outro' },
+  { value:'cash', label:t('librefinance', 'Cash') },
+  { value:'bank_transfer', label:t('librefinance', 'Bank transfer') },
+  { value:'credit_card', label:t('librefinance', 'Credit card') },
+  { value:'debit_card', label:t('librefinance', 'Debit card') },
+  { value:'pix', label:t('librefinance', 'Instant payment (e.g. Pix)') },
+  { value:'digital_wallet', label:t('librefinance', 'Digital wallet or intermediary') },
+  { value:'other', label:t('librefinance', 'Other') },
 ]
 const bankAccounts = computed(() => [
-  { value:0, label:'Sem vínculo obrigatório' },
+  { value:0, label:t('librefinance', 'No mandatory link') },
   ...accounts.value.filter(a => a.active && a.is_bank)
     .map(a => ({ value:a.id, label:a.name })),
 ])
@@ -101,49 +102,48 @@ async function remove() {
   <div class="lf-payment-settings">
     <div class="lf-section-heading lf-payment-toolbar">
       <p v-if="methods.length" class="lf-muted">
-        Modalidades usadas na classificação de lançamentos. Não representam integração com provedores.
+        {{ t('librefinance', 'Methods used to classify entries. They do not represent provider integrations.') }}
       </p>
       <NcButton v-if="manager" variant="primary" :disabled="loading" @click="begin()">
         <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-        Nova forma de pagamento
+        {{ t('librefinance', 'New payment method') }}
       </NcButton>
     </div>
     <NcNoteCard v-if="methods.length" type="info">
-      Formas de pagamento cadastradas não movimentam dinheiro nem habilitam integração
-      automática com bancos, cartões ou provedores.
+      {{ t('librefinance', 'Registered payment methods do not move money or enable automatic integration with banks, cards or providers.') }}
     </NcNoteCard>
     <NcNoteCard v-if="problem && !dialog" type="error" role="alert">{{ problem }}</NcNoteCard>
     <div v-if="loading && !methods.length" class="lf-loading" role="status">
-      <NcLoadingIcon :size="36" /> Carregando formas de pagamento…
+      <NcLoadingIcon :size="36" /> {{ t('librefinance', 'Loading payment methods…') }}
     </div>
-    <NcEmptyContent v-else-if="!methods.length" name="Nenhuma forma de pagamento cadastrada"
-      description="Use Nova forma de pagamento para registrar uma modalidade de pagamento ou recebimento." />
+    <NcEmptyContent v-else-if="!methods.length" :name="t('librefinance', 'No payment methods registered')"
+      :description="t('librefinance', 'Use New payment method to register a payment or receipt method.')" />
     <div v-else class="lf-table-scroll">
       <table class="lf-data-table">
         <thead><tr>
           <th v-for="col in [
-            {key:'name',label:'Nome'}, {key:'kind',label:'Tipo'},
-            {key:'bank',label:'Conta associada'}, {key:'active',label:'Situação'}]"
+            {key:'name',label:t('librefinance', 'Name')}, {key:'kind',label:t('librefinance', 'Type')},
+            {key:'bank',label:t('librefinance', 'Associated account')}, {key:'active',label:t('librefinance', 'Status')}]"
             :key="col.key" :aria-sort="sort.ariaSort(col.key)">
             <LfSortableHeader :label="col.label" :column="col.key"
               :active-column="sort.column.value" :direction="sort.direction.value"
               scope="loaded" @sort="sort.sort" />
           </th>
-          <th v-if="manager">Ações</th></tr></thead>
+          <th v-if="manager">{{ t('librefinance', 'Actions') }}</th></tr></thead>
         <tbody><tr v-for="method in orderedMethods" :key="method.id">
           <td><strong>{{ method.name }}</strong></td>
           <td>{{ kinds.find(k => k.value === method.kind)?.label }}</td>
-          <td>{{ accounts.find(a => a.id === method.bank_account_id)?.name || 'Nenhuma' }}</td>
-          <td>{{ method.active ? 'Ativa' : 'Desativada' }}</td>
+          <td>{{ accounts.find(a => a.id === method.bank_account_id)?.name || t('librefinance', 'None') }}</td>
+          <td>{{ method.active ? t('librefinance', 'Enabled payment method') : t('librefinance', 'Disabled payment method') }}</td>
           <td v-if="manager">
-            <NcActions :aria-label="'Ações da forma ' + method.name" :force-menu="true">
+            <NcActions :aria-label="t('librefinance', 'Actions for payment method {name}', { name: method.name }, { escape: false, sanitize: false })" :force-menu="true">
               <NcActionButton close-after-click @click="begin(method)">
                 <template #icon><NcIconSvgWrapper :path="mdiPencilOutline" :size="20" /></template>
-                Editar
+                {{ t('librefinance', 'Edit') }}
               </NcActionButton>
               <NcActionButton close-after-click @click="problem=''; removeTarget=method">
                 <template #icon><NcIconSvgWrapper :path="mdiDeleteOutline" :size="20" /></template>
-                Excluir
+                {{ t('librefinance', 'Delete') }}
               </NcActionButton>
             </NcActions>
           </td>
@@ -151,45 +151,43 @@ async function remove() {
       </table>
     </div>
     <p v-if="methods.length && afterId && sort.column.value" class="lf-muted">
-      A ordenação considera apenas os registros carregados.
+      {{ t('librefinance', 'Sorting applies only to loaded records.') }}
     </p>
     <NcButton v-if="methods.length && afterId" variant="tertiary" :disabled="loading"
-      @click="load(afterId)">Carregar mais formas</NcButton>
+      @click="load(afterId)">{{ t('librefinance', 'Load more payment methods') }}</NcButton>
     <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="dialog"
-      :name="draft.id ? 'Editar forma de pagamento' : 'Criar forma de pagamento'"
+      :name="draft.id ? t('librefinance', 'Edit payment method') : t('librefinance', 'Create payment method')"
       @update:open="dialog=$event">
       <form class="lf-dialog-form" @submit.prevent="save">
         <NcNoteCard v-if="problem" type="error" role="alert">{{ problem }}</NcNoteCard>
-        <NcTextField v-model="draft.name" label="Nome da forma de pagamento"
-          maxlength="120" required placeholder="Ex.: cartão da empresa" />
-        <LfSelect id="lf-payment-kind" v-model="draft.kind" label="Tipo de pagamento"
+        <NcTextField v-model="draft.name" :label="t('librefinance', 'Payment method name')"
+          maxlength="120" required :placeholder="t('librefinance', 'E.g. company card')" />
+        <LfSelect id="lf-payment-kind" v-model="draft.kind" :label="t('librefinance', 'Payment type')"
           :options="kinds" :disabled="Boolean(draft.id)" />
         <LfSelect id="lf-payment-bank" v-model="draft.bankAccountId"
-          label="Conta financeira vinculada (opcional)" :options="bankAccounts" />
+          :label="t('librefinance', 'Linked financial account (optional)')" :options="bankAccounts" />
         <NcCheckboxRadioSwitch v-if="draft.id" v-model="draft.active" type="checkbox">
-          Permitir utilizar em novos lançamentos
+          {{ t('librefinance', 'Allow use in new entries') }}
         </NcCheckboxRadioSwitch>
         <NcNoteCard type="info">
-          Não alteramos o tipo de formas já existentes nem seus vínculos após serem usadas.
-          Desative uma forma com histórico para preservar os lançamentos.
+          {{ t('librefinance', 'Existing method types and links are not changed after use. Deactivate a method with history to preserve entries.') }}
         </NcNoteCard>
-        <div class="lf-form-actions"><NcButton variant="tertiary" @click="dialog=false">Cancelar</NcButton>
-          <NcButton variant="primary" type="submit" :disabled="loading">Salvar forma</NcButton></div>
+        <div class="lf-form-actions"><NcButton variant="tertiary" @click="dialog=false">{{ t('librefinance', 'Cancel') }}</NcButton>
+          <NcButton variant="primary" type="submit" :disabled="loading">{{ t('librefinance', 'Save payment method') }}</NcButton></div>
       </form>
     </NcDialog>
     <NcDialog size="normal" content-classes="lf-finance-dialog-content"
-      :open="Boolean(removeTarget)" name="Excluir forma de pagamento"
+      :open="Boolean(removeTarget)" :name="t('librefinance', 'Delete payment method')"
       @update:open="!$event && (removeTarget=null)">
       <div class="lf-dialog-form">
         <NcNoteCard type="warning">
-          Só é possível excluir uma forma nunca usada. Se houver lançamentos,
-          a exclusão será bloqueada; você pode desativá-la.
+          {{ t('librefinance', 'Only unused methods can be deleted. If entries exist, deletion is blocked; you can deactivate the method.') }}
         </NcNoteCard>
         <NcNoteCard v-if="problem" type="error" role="alert">{{ problem }}</NcNoteCard>
-        <p>Excluir <strong>{{ removeTarget?.name }}</strong>?</p>
+        <p>{{ t('librefinance', 'Delete payment method {name}?', { name: removeTarget?.name }, { escape: false, sanitize: false }) }}</p>
         <div class="lf-form-actions"><NcButton variant="tertiary"
-          @click="removeTarget=null">Cancelar</NcButton>
-          <NcButton variant="error" :disabled="loading" @click="remove">Excluir forma</NcButton>
+          @click="removeTarget=null">{{ t('librefinance', 'Cancel') }}</NcButton>
+          <NcButton variant="error" :disabled="loading" @click="remove">{{ t('librefinance', 'Remove payment method') }}</NcButton>
         </div>
       </div>
     </NcDialog>
