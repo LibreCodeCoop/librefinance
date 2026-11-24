@@ -69,8 +69,6 @@ provide('lfJournalOpenRequest', journalOpenRequest)
 // One-shot editor requests must outlive the finance sub-panel route remount.
 const newSimple = ref(false)
 provide('lfNewSimple', newSimple)
-const bankImportRequest = ref(0)
-provide('lfBankImportRequest', bankImportRequest)
 const focusedBank = ref(null)
 provide('lfBankFocus', focusedBank)
 const bankContext = ref(0)
@@ -324,7 +322,6 @@ function selectSpace(id) {
   focusedObligation.value = null
   focusedBank.value = null
   bankContext.value = 0
-  bankImportRequest.value = 0
   journalOpenRequest.value = 0
   quickEntry.value = false
   newDetailed.value = false

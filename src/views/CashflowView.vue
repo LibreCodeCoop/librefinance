@@ -30,7 +30,7 @@ const focusedInvoice = inject('lfFocusedInvoice')
 const focusedObligation = inject('lfFocusedObligation')
 const focusedBank = inject('lfBankFocus', ref(null))
 const newDetailed = inject('lfNewDetailed', ref(false))
-const importRequest = inject('lfBankImportRequest', ref(0))
+const bankingView = ref(null)
 const newSimple = inject('lfNewSimple', ref(false))
 const journalOpenRequest = inject('lfJournalOpenRequest', ref(0))
 // Context is part of the selected route, never inferred from an untrusted
@@ -175,7 +175,7 @@ function startSimple(kind='all') {
 function startPosted() {
   if (!w.writable.value || !w.activeId.value) return
   // Do not open a dialog while destroying the source view. The destination
-  // consumes a one-shot request, exactly as bank imports do.
+  // consumes a one-shot request after mounting.
   journalOpenRequest.value += 1
   navigate('transactions')
 }
@@ -185,8 +185,8 @@ function startInvoice(kind) {
   newDetailed.value = true
 }
 function startImport() {
-  if (!w.writable.value || !hasBank.value) return
-  importRequest.value += 1
+  if (!isBanking.value || !hasBank.value || !bankingView.value?.canImport) return
+  bankingView.value.openImportDialog()
 }
 const flow = {
   newSimple,
@@ -240,8 +240,7 @@ onBeforeUnmount(() => { ++generation })
         <NcButton v-if="isBanking" variant="tertiary" @click="navigate('finance')">
           {{ t('librefinance', 'Back to transactions') }}
         </NcButton>
-        <NcButton v-if="w.writable.value && isBanking && hasBank
-          && w.accounts.value.some(account => account.is_bank && account.active)"
+        <NcButton v-if="isBanking && hasBank && bankingView?.canImport"
           variant="primary" @click="startImport">
           <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
           {{ t('librefinance', 'Import statement') }}
@@ -303,7 +302,7 @@ onBeforeUnmount(() => { ++generation })
     </template>
     <InvoicesView v-else-if="isDocument && hasDocuments"
       :key="'document-' + direction" :embedded="true" />
-    <BankingView v-else-if="isBanking && hasBank" :embedded="true" />
+    <BankingView v-else-if="isBanking && hasBank" ref="bankingView" :embedded="true" />
     <NcEmptyContent v-else :name="t('librefinance', 'Feature unavailable in this workspace')"
       :description="t('librefinance', 'This feature is not enabled for the selected workspace.')" />
   </div>

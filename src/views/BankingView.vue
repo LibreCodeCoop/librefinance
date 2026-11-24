@@ -24,7 +24,6 @@ import { financeApi, financeError } from '../services/api.js'
 const props=defineProps({ embedded:{type:Boolean,default:false} })
 const w=inject('lfWorkspace')
 const navigate=inject('lfNavigate')
-const importRequest=inject('lfBankImportRequest',ref(0))
 const focusedBank=inject('lfBankFocus',ref(null))
 const bankContext=inject('lfBankContext',ref(0))
 const { activeId, accounts, journals, nextBeforeId,
@@ -66,6 +65,10 @@ const journalId=ref(0)
 const reconciliationError=ref('')
 let generation=0
 const banks=computed(()=>accounts.value.filter(a=>a.is_bank && a.active))
+const canImport = computed(() => Number(activeId.value) > 0
+  && Number(w.space.value?.id) === Number(activeId.value)
+  && writable.value && banks.value.length > 0
+  && !formatPolicyLoading.value && allowedFormats.value.length > 0)
 const journalCandidates=computed(()=>{
   if (!reconcile.value) return []
   const target = reconcile.value
@@ -184,7 +187,7 @@ async function moreTransfers() {
   finally{if(token===generation)busy.value=false}
 }
 function openImportDialog() {
-  if (!allowedFormats.value.length || formatPolicyLoading.value) return
+  if (!canImport.value) return
   importError.value = ''
   statementFile.value = null
   importFormat.value = allowedFormats.value[0]
@@ -221,19 +224,22 @@ function pickFile(files) {
   statementFile.value = file
 }
 async function importStatement() {
-  if (!statementFile.value || !importAccount.value || busy.value
+  if (!canImport.value || !statementFile.value || !importAccount.value || busy.value
     || !allowedFormats.value.includes(importFormat.value)) return
   const token = ++generation
   const target = Number(activeId.value)
+  const file = statementFile.value
+  const format = importFormat.value
+  const accountId = Number(importAccount.value)
   busy.value = true; error.value = ''; success.value = ''; importError.value = ''
   try {
-    if (statementFile.value.size > 262144) {
+    if (file.size > 262144) {
       throw new Error('Arquivo acima de 256 KiB')
     }
     // A UTF-8 File.text() decode would corrupt OFX using legacy Windows-1252.
-    const bytes = new Uint8Array(await statementFile.value.arrayBuffer())
+    const bytes = new Uint8Array(await file.arrayBuffer())
     let charset = 'utf-8'
-    if (importFormat.value === 'ofx') {
+    if (format === 'ofx') {
       const header = new TextDecoder('windows-1252').decode(bytes.slice(0, 512))
       const numeric = header.match(/^CHARSET:\s*(\d+)\s*$/mi)?.[1]
       const xml = header.match(/<\?xml[^>]*encoding=['"]([^'"]+)['"]/i)?.[1]?.toLowerCase()
@@ -243,12 +249,13 @@ async function importStatement() {
       else if (xml && !['utf-8', 'utf8'].includes(xml)) throw new Error('Codificação OFX desconhecida: ' + xml)
     }
     const content = new TextDecoder(charset, { fatal: true }).decode(bytes)
-    if (token !== generation || Number(activeId.value) !== target) return
-    const params = {
-      bankAccountId: Number(importAccount.value),
-      format: importFormat.value,
-    }
-    if (importFormat.value === 'ofx') params.ofx = content
+    if (token !== generation || Number(activeId.value) !== target || !canImport.value
+      || statementFile.value !== file || importFormat.value !== format
+      || Number(importAccount.value) !== accountId
+      || !allowedFormats.value.includes(format)
+      || !banks.value.some(bank => Number(bank.id) === accountId)) return
+    const params = { bankAccountId: accountId, format }
+    if (format === 'ofx') params.ofx = content
     else params.csv = content
     const out = await financeApi('librefinance_banking', target, '/imports', 'POST', params)
     if (token !== generation || Number(activeId.value) !== target) return
@@ -290,8 +297,11 @@ watch(chosenAccount, id => {
   }
 })
 watch([chosenAccount,filter],load)
-watch(() => [Number(activeId.value), w.space.value?.saasManaged],
-  loadFormatPolicy, { immediate: true })
+watch(() => [Number(activeId.value), Number(w.space.value?.id), w.space.value?.saasManaged],
+  loadFormatPolicy, { immediate: true, flush: 'sync' })
+watch(canImport, allowed => {
+  if (!allowed) closeImportDialog()
+})
 watch(importFormat, () => { statementFile.value = null; importError.value = '' })
 // Opening from a pending evidence row lands on that exact authorized
 // statement transaction; no payment or ledger entry is created here.
@@ -307,13 +317,8 @@ watch(focusedBank, focus => {
   filter.value='pending'
   if(writable.value) chooseReconciliation(row)
 }, { immediate:true })
-// A toolbar outside this component may request an import while the banking
-// panel is mounting. Consume exactly once, even if the user revisits the tab.
-watch(importRequest, requested => {
-  if (!requested || !props.embedded) return
-  importRequest.value=0
-  if (writable.value && banks.value.length) openImportDialog()
-}, { immediate:true })
+// The embedded toolbar uses the same resolved authority as this dialog.
+defineExpose({ canImport, openImportDialog })
 onMounted(load)
 onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
 </script>
@@ -322,7 +327,7 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
     <LfPageHeader v-if="!embedded" title="Bancos e caixa" eyebrow="FINANCEIRO"
       description="Confira extratos e concilie movimentações sem contar transferências internas duas vezes.">
       <template #actions>
-        <NcButton v-if="writable && banks.length && rows.length && allowedFormats.length"
+        <NcButton v-if="canImport && rows.length"
           variant="primary" :disabled="busy || formatPolicyLoading"
           @click="openImportDialog">
           <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
@@ -400,7 +405,7 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
         description="Importe um extrato CSV ou OFX para conferir movimentos, sem alterar o saldo contábil.">
         <template #action>
           <NcButton v-if="chosenAccount || filter!=='all'" @click="chosenAccount=0;filter='all'">Limpar filtros</NcButton>
-          <NcButton v-else-if="writable && !embedded && allowedFormats.length"
+          <NcButton v-else-if="canImport && !embedded"
             variant="primary" @click="openImportDialog">Importar extrato</NcButton>
         </template>
       </NcEmptyContent>
@@ -474,7 +479,7 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
           nenhum lançamento contábil será criado automaticamente.</p>
         <NcNoteCard v-if="importError" type="error" role="alert">{{ importError }}</NcNoteCard>
         <LfSelect id="lf-import-bank" v-model="importAccount" label="Conta de destino"
-          :options="importChoices" />
+          :options="importChoices" :disabled="busy" />
         <LfSelect id="lf-import-format" v-model="importFormat" label="Formato do extrato"
           :options="formatChoices" :disabled="busy || formatPolicyLoading" />
         <NcFilePicker :key="importFormat" :disabled="busy || !allowedFormats.includes(importFormat)"
@@ -497,7 +502,7 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
         <div class="lf-form-actions">
           <NcButton variant="tertiary" type="button" @click="closeImportDialog">Cancelar</NcButton>
           <NcButton variant="primary" type="submit"
-            :disabled="busy || !statementFile || !importAccount || !allowedFormats.includes(importFormat)">
+            :disabled="busy || !canImport || !statementFile || !importAccount || !allowedFormats.includes(importFormat)">
             Importar para revisão
           </NcButton>
         </div>
