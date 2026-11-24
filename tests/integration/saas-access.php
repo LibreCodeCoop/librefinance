@@ -927,18 +927,24 @@ try {
     $secondPage = $t->check('tenant A continuation contains remaining two books',
         $b, 'GET', $pathA . '?afterId=' . $cursor, null, 200,
         static fn(array $r): bool => count($r['workspaces'] ?? []) === 2
-            && ($r['nextAfterId'] ?? false) === null);
+            && array_key_exists('nextAfterId', $r)
+            && $r['nextAfterId'] === null);
     $firstIds = array_column($firstPage['workspaces'] ?? [], 'id');
     $secondIds = array_column($secondPage['workspaces'] ?? [], 'id');
+    $sortedFirst = $firstIds;
+    $sortedSecond = $secondIds;
+    sort($sortedFirst, SORT_NUMERIC);
+    sort($sortedSecond, SORT_NUMERIC);
     saasCheck('cursor pages are disjoint, sorted and complete',
         count(array_unique([...$firstIds, ...$secondIds])) === 52
-            && $firstIds === array_values($firstIds)
-            && $secondIds === array_values($secondIds)
+            && $firstIds === $sortedFirst
+            && $secondIds === $sortedSecond
             && max($firstIds) < min($secondIds));
     $t->check('tenant B enumeration never sees A paginated books', $a,
         'GET', $pathB, null, 200,
         static fn(array $r): bool => count($r['workspaces'] ?? []) === 1
-            && ($r['nextAfterId'] ?? null) === null
+            && array_key_exists('nextAfterId', $r)
+            && $r['nextAfterId'] === null
             && ($r['workspaces'][0]['name'] ?? '') === 'Isolated B1');
     instanceCheck('instance admin suspends environment A without deleting postings',
         'PUT', '/saas/v1/admin/groups/' . $groupA . '/enablement',
