@@ -4,7 +4,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { toMinorUnits } from '../money.js'
+import { formatLedgerMoney, toMinorUnits } from '../money.js'
 
 export function useFinanceWorkspace() {
 
@@ -93,7 +93,7 @@ const writable = computed(() => ['owner', 'manager', 'operator'].includes(space.
 const manager = computed(() => ['owner', 'manager'].includes(space.value?.role))
 const banks = computed(() => accounts.value.filter((a) => a.is_bank && a.active))
 const categories = computed(() => accounts.value.filter((a) => a.active && a.class === (direction.value === 'expense' ? 'expense' : 'revenue')))
-const money = (minor) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: space.value?.currency || 'BRL' }).format(Number(minor) / 100)
+const money = (minor) => formatLedgerMoney(minor, space.value?.currency || 'BRL')
 const naturalBalance = (account) => money((['liability', 'equity', 'revenue'].includes(account.class) ? -1 : 1) * account.balance_minor)
 const accountNameById = (id) => accounts.value.find((a) => a.id === Number(id))?.name || ('#' + id)
 

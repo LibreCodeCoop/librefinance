@@ -72,11 +72,11 @@ msgstr "Participante"
 msgid "Select a workspace"
 msgstr "Selecione uma área"
 
-#: specialVueFakeDummyForL10nScript.js:266 src/navigation.js:48
+#: specialVueFakeDummyForL10nScript.js:266 /app/src/navigation.js:48
 msgid "Finance"
 msgstr "Financeiro"
 
-#: specialVueFakeDummyForL10nScript.js:267 src/navigation.js:58
+#: specialVueFakeDummyForL10nScript.js:267 /app/src/navigation.js:58
 msgid "Manage"
 msgstr "Gerenciar"
 
@@ -206,7 +206,7 @@ msgid "Not enabled"
 msgstr "Não habilitado"
 
 #: specialVueFakeDummyForL10nScript.js:465
-#: specialVueFakeDummyForL10nScript.js:1391
+#: specialVueFakeDummyForL10nScript.js:1395
 msgid "Awaiting administrator"
 msgstr "Aguardando administrador"
 
@@ -215,7 +215,7 @@ msgid "Active environment"
 msgstr "Ambiente ativo"
 
 #: specialVueFakeDummyForL10nScript.js:467
-#: specialVueFakeDummyForL10nScript.js:1393
+#: specialVueFakeDummyForL10nScript.js:1397
 msgid "Suspended"
 msgstr "Suspenso"
 
@@ -365,7 +365,7 @@ msgstr "Ver histórico de auditoria de {name}"
 #. TRANSLATORS n/AdminPage.vue:290
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:182
 #: specialVueFakeDummyForL10nScript.js:703
-#: specialVueFakeDummyForL10nScript.js:1841
+#: specialVueFakeDummyForL10nScript.js:1845
 msgid "Audit"
 msgstr "Auditoria"
 
@@ -408,7 +408,7 @@ msgstr "Revogar delegação de {name}"
 #. TRANSLATORS n/AdminPage.vue:314
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:193
 #: specialVueFakeDummyForL10nScript.js:717
-#: specialVueFakeDummyForL10nScript.js:1851
+#: specialVueFakeDummyForL10nScript.js:1855
 msgid "Revoke"
 msgstr "Revogar"
 
@@ -438,7 +438,9 @@ msgid "Context name"
 msgstr "Nome do contexto"
 
 #. TRANSLATORS n/AdminPage.vue:327
+#. TRANSLATORS s/CategoriesView.vue:107
 #: specialVueFakeDummyForL10nScript.js:729
+#: specialVueFakeDummyForL10nScript.js:3075
 msgid "Type"
 msgstr "Tipo"
 
@@ -528,12 +530,14 @@ msgstr "Ainda não há eventos registrados."
 #. TRANSLATORS n/AdminPage.vue:396
 #. TRANSLATORS onents/SaasPolicyEditor.vue:290
 #: specialVueFakeDummyForL10nScript.js:775
-#: specialVueFakeDummyForL10nScript.js:2114
+#: specialVueFakeDummyForL10nScript.js:2118
 msgid "Load earlier events"
 msgstr "Carregar eventos anteriores"
 
 #. TRANSLATORS n/AdminPage.vue:398
+#. TRANSLATORS s/AccountsView.vue:401
 #: specialVueFakeDummyForL10nScript.js:777
+#: specialVueFakeDummyForL10nScript.js:2459
 msgid "Close"
 msgstr "Fechar"
 
@@ -557,9 +561,14 @@ msgstr "Suspender {name}?"
 
 #. TRANSLATORS n/AdminPage.vue:409
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:376
+#. TRANSLATORS s/AccountsView.vue:373
+#. TRANSLATORS s/CategoriesView.vue:157
 #: specialVueFakeDummyForL10nScript.js:785
 #: specialVueFakeDummyForL10nScript.js:799
-#: specialVueFakeDummyForL10nScript.js:1668
+#: specialVueFakeDummyForL10nScript.js:1672
+#: specialVueFakeDummyForL10nScript.js:2441
+#: specialVueFakeDummyForL10nScript.js:3115
+#: specialVueFakeDummyForL10nScript.js:3133
 msgid "Cancel"
 msgstr "Cancelar"
 
@@ -602,52 +611,60 @@ msgstr "Escolha o motivo da recuperação"
 msgid "Confirm recovery"
 msgstr "Confirmar recuperação"
 
-#: specialVueFakeDummyForL10nScript.js:1375
+#: specialVueFakeDummyForL10nScript.js:1239
+msgid "Sort loaded records by {label}"
+msgstr "Ordenar registros carregados por {label}"
+
+#: specialVueFakeDummyForL10nScript.js:1240
+msgid "Sort by {label}"
+msgstr "Ordenar por {label}"
+
+#: specialVueFakeDummyForL10nScript.js:1379
 msgid "Business or organization"
 msgstr "Negócio ou organização"
 
-#: specialVueFakeDummyForL10nScript.js:1376
+#: specialVueFakeDummyForL10nScript.js:1380
 msgid "Group or collective"
 msgstr "Grupo ou coletivo"
 
-#: specialVueFakeDummyForL10nScript.js:1377
+#: specialVueFakeDummyForL10nScript.js:1381
 msgid "Personal or household"
 msgstr "Pessoal ou da casa"
 
-#: specialVueFakeDummyForL10nScript.js:1392
+#: specialVueFakeDummyForL10nScript.js:1396
 msgid "Active"
 msgstr "Ativo"
 
-#: specialVueFakeDummyForL10nScript.js:1394
-#: specialVueFakeDummyForL10nScript.js:1714
-#: specialVueFakeDummyForL10nScript.js:1940
+#: specialVueFakeDummyForL10nScript.js:1398
+#: specialVueFakeDummyForL10nScript.js:1718
+#: specialVueFakeDummyForL10nScript.js:1944
 msgid "Unavailable"
 msgstr "Indisponível"
 
-#: specialVueFakeDummyForL10nScript.js:1497
+#: specialVueFakeDummyForL10nScript.js:1501
 msgid "Environment activated. Financial access is defined separately."
 msgstr "Ambiente ativado. Os acessos financeiros são definidos separadamente."
 
-#: specialVueFakeDummyForL10nScript.js:1509
+#: specialVueFakeDummyForL10nScript.js:1513
 msgid "Enter the legal name and the two-letter ISO country code."
 msgstr "Informe a razão social e o país ISO de duas letras."
 
-#: specialVueFakeDummyForL10nScript.js:1567
+#: specialVueFakeDummyForL10nScript.js:1571
 msgid ""
 "Workspace and company created together, with independent ledger and accounts."
 msgstr "Gestão e empresa criadas juntas, com livro e contas independentes."
 
-#: specialVueFakeDummyForL10nScript.js:1568
+#: specialVueFakeDummyForL10nScript.js:1572
 msgid "Independent financial workspace created for the specified owner."
 msgstr "Gestão financeira independente criada para o proprietário informado."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:267
-#: specialVueFakeDummyForL10nScript.js:1592
+#: specialVueFakeDummyForL10nScript.js:1596
 msgid "LibreFinance environments"
 msgstr "Ambientes LibreFinance"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:268
-#: specialVueFakeDummyForL10nScript.js:1594
+#: specialVueFakeDummyForL10nScript.js:1598
 msgid ""
 "Nextcloud groups enabled for LibreFinance SaaS. Each environment has "
 "independent administration. Being a member or administrator of the group "
@@ -655,7 +672,7 @@ msgid ""
 msgstr "Grupos Nextcloud habilitados para o LibreFinance SaaS. Cada ambiente tem administração independente. Ser membro ou administrador do grupo não concede acesso aos livros financeiros."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:275
-#: specialVueFakeDummyForL10nScript.js:1596
+#: specialVueFakeDummyForL10nScript.js:1600
 msgid ""
 "No SaaS environment is available for this account. An instance administrator "
 "must enable the Nextcloud group; a group administrator or delegate can then "
@@ -663,109 +680,109 @@ msgid ""
 msgstr "Nenhum ambiente SaaS está disponível para esta conta. Um administrador da instância precisa habilitar o grupo Nextcloud; depois, um subadministrador ou delegado poderá ativá-lo. As gestões pessoais existentes continuam independentes."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:279
-#: specialVueFakeDummyForL10nScript.js:1598
+#: specialVueFakeDummyForL10nScript.js:1602
 msgid "Available SaaS environments"
 msgstr "Ambientes SaaS disponíveis"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:284
-#: specialVueFakeDummyForL10nScript.js:1600
+#: specialVueFakeDummyForL10nScript.js:1604
 msgid "State: {state}"
 msgstr "Estado: {state}"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:288
-#: specialVueFakeDummyForL10nScript.js:1602
+#: specialVueFakeDummyForL10nScript.js:1606
 msgid "Activate environment {name}"
 msgstr "Ativar ambiente {name}"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:290
-#: specialVueFakeDummyForL10nScript.js:1604
+#: specialVueFakeDummyForL10nScript.js:1608
 msgid "Activate environment"
 msgstr "Ativar ambiente"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:293
-#: specialVueFakeDummyForL10nScript.js:1606
+#: specialVueFakeDummyForL10nScript.js:1610
 msgid "Reactivation requires administrative recovery."
 msgstr "Reativação somente após recuperação administrativa."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:296
-#: specialVueFakeDummyForL10nScript.js:1608
+#: specialVueFakeDummyForL10nScript.js:1612
 msgid "Awaiting an enabled group administrator or delegate."
 msgstr "Aguarda subadministrador ou delegado habilitado."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:303
-#: specialVueFakeDummyForL10nScript.js:1610
+#: specialVueFakeDummyForL10nScript.js:1614
 msgid "Manage workspaces by environment"
 msgstr "Gerenciar gestões por ambiente"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:304
-#: specialVueFakeDummyForL10nScript.js:1612
+#: specialVueFakeDummyForL10nScript.js:1616
 msgid ""
 "Choose one environment. Workspaces and permissions are never combined across "
 "groups."
 msgstr "Escolha um único ambiente. Gestões e permissões nunca são combinadas entre grupos."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:306
-#: specialVueFakeDummyForL10nScript.js:1614
+#: specialVueFakeDummyForL10nScript.js:1618
 msgid "Administrative environment"
 msgstr "Ambiente administrativo"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:307
-#: specialVueFakeDummyForL10nScript.js:1616
+#: specialVueFakeDummyForL10nScript.js:1620
 msgid "Select the environment"
 msgstr "Selecione o ambiente"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:309
-#: specialVueFakeDummyForL10nScript.js:1618
+#: specialVueFakeDummyForL10nScript.js:1622
 msgid ""
 "If you manage multiple groups, explicitly select the environment you want to "
 "manage."
 msgstr "Se você administra vários grupos, selecione explicitamente qual ambiente deseja gerenciar."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:312
-#: specialVueFakeDummyForL10nScript.js:1620
+#: specialVueFakeDummyForL10nScript.js:1624
 msgid "Policies for this environment"
 msgstr "Políticas deste ambiente"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:313
-#: specialVueFakeDummyForL10nScript.js:1622
+#: specialVueFakeDummyForL10nScript.js:1626
 msgid ""
 "Restrict the environment without extending instance limits or gaining access "
 "to accounting ledgers."
 msgstr "Restrinja o ambiente sem ampliar os limites da instância nem adquirir acesso a livros contábeis."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:315
-#: specialVueFakeDummyForL10nScript.js:1624
+#: specialVueFakeDummyForL10nScript.js:1628
 msgid "Workspaces of environment {name}"
 msgstr "Gestões do ambiente {name}"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:318
-#: specialVueFakeDummyForL10nScript.js:1626
+#: specialVueFakeDummyForL10nScript.js:1630
 msgid "Administrative workspaces in the environment"
 msgstr "Gestões administrativas do ambiente"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:321
-#: specialVueFakeDummyForL10nScript.js:1628
+#: specialVueFakeDummyForL10nScript.js:1632
 msgid "{kind} · Owner: {owner}"
 msgstr "{kind} · Proprietário: {owner}"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:326
-#: specialVueFakeDummyForL10nScript.js:1630
+#: specialVueFakeDummyForL10nScript.js:1634
 msgid "Load more workspaces"
 msgstr "Carregar mais gestões"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:328
-#: specialVueFakeDummyForL10nScript.js:1632
+#: specialVueFakeDummyForL10nScript.js:1636
 msgid ""
 "No independent financial workspace has been created in this environment."
 msgstr "Nenhuma gestão financeira independente foi criada neste ambiente."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:331
-#: specialVueFakeDummyForL10nScript.js:1634
+#: specialVueFakeDummyForL10nScript.js:1638
 msgid "New independent workspace"
 msgstr "Nova gestão independente"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:332
-#: specialVueFakeDummyForL10nScript.js:1636
+#: specialVueFakeDummyForL10nScript.js:1640
 msgid ""
 "The workspace will have separate accounts and an accounting ledger. The "
 "group administrator does not receive financial access. The owner must be "
@@ -773,421 +790,1082 @@ msgid ""
 msgstr "A gestão terá contas e livro contábil separados. O administrador do grupo não recebe acesso financeiro. O proprietário precisa ser outro participante do grupo Nextcloud."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:333
-#: specialVueFakeDummyForL10nScript.js:1638
+#: specialVueFakeDummyForL10nScript.js:1642
 msgid "Workspace name"
 msgstr "Nome da gestão"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:334
-#: specialVueFakeDummyForL10nScript.js:1640
+#: specialVueFakeDummyForL10nScript.js:1644
 msgid "Nextcloud username of the owner"
 msgstr "Usuário Nextcloud do proprietário"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:337
-#: specialVueFakeDummyForL10nScript.js:1642
+#: specialVueFakeDummyForL10nScript.js:1646
 msgid "Workspace type"
 msgstr "Tipo da gestão"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:340
-#: specialVueFakeDummyForL10nScript.js:1644
+#: specialVueFakeDummyForL10nScript.js:1648
 msgid "Register a legal entity together with the new ledger"
 msgstr "Cadastrar empresa jurídica junto com o novo livro"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:343
-#: specialVueFakeDummyForL10nScript.js:1646
+#: specialVueFakeDummyForL10nScript.js:1650
 msgid "Legal name"
 msgstr "Razão social"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:344
-#: specialVueFakeDummyForL10nScript.js:1648
+#: specialVueFakeDummyForL10nScript.js:1652
 msgid "Company country (ISO 3166-1, two letters)"
 msgstr "País da empresa (ISO 3166-1, duas letras)"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:346
-#: specialVueFakeDummyForL10nScript.js:1650
+#: specialVueFakeDummyForL10nScript.js:1654
 msgid "Tax identifier (optional)"
 msgstr "Identificador fiscal (opcional)"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:349
-#: specialVueFakeDummyForL10nScript.js:1652
+#: specialVueFakeDummyForL10nScript.js:1656
 msgid ""
 "The company and ledger will be created in the same transaction. No external "
 "tax registration will be issued or validated automatically."
 msgstr "Empresa e livro serão criados na mesma transação. Nenhum cadastro fiscal externo será emitido ou validado automaticamente."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:354
-#: specialVueFakeDummyForL10nScript.js:1654
+#: specialVueFakeDummyForL10nScript.js:1658
 msgid "Review creation"
 msgstr "Revisar criação"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:360
-#: specialVueFakeDummyForL10nScript.js:1656
+#: specialVueFakeDummyForL10nScript.js:1660
 msgid "Confirm independent financial workspace"
 msgstr "Confirmar gestão financeira independente"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:364
-#: specialVueFakeDummyForL10nScript.js:1658
+#: specialVueFakeDummyForL10nScript.js:1662
 msgid ""
 "Creating a new workspace separates the accounting ledger and does not grant "
 "you any financial role. Confirm the environment and owner."
 msgstr "Criar uma nova gestão separa o livro contábil e não concede a você nenhum papel financeiro. Confirme ambiente e proprietário."
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:366
-#: specialVueFakeDummyForL10nScript.js:1660
+#: specialVueFakeDummyForL10nScript.js:1664
 msgid "Environment:"
 msgstr "Ambiente:"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:367
-#: specialVueFakeDummyForL10nScript.js:1662
+#: specialVueFakeDummyForL10nScript.js:1666
 msgid "Workspace:"
 msgstr "Gestão:"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:368
-#: specialVueFakeDummyForL10nScript.js:1664
+#: specialVueFakeDummyForL10nScript.js:1668
 msgid "Owner:"
 msgstr "Proprietário:"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:369
-#: specialVueFakeDummyForL10nScript.js:1666
+#: specialVueFakeDummyForL10nScript.js:1670
 msgid "Company:"
 msgstr "Empresa:"
 
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:379
-#: specialVueFakeDummyForL10nScript.js:1670
+#: specialVueFakeDummyForL10nScript.js:1674
 msgid "Create company and workspace"
 msgstr "Criar empresa e gestão"
 
-#: specialVueFakeDummyForL10nScript.js:1670
+#: specialVueFakeDummyForL10nScript.js:1674
 msgid "Create independent workspace"
 msgstr "Criar gestão independente"
 
-#: specialVueFakeDummyForL10nScript.js:1698
+#: specialVueFakeDummyForL10nScript.js:1702
 msgid "Financial read access"
 msgstr "Leitura financeira"
 
-#: specialVueFakeDummyForL10nScript.js:1699
+#: specialVueFakeDummyForL10nScript.js:1703
 msgid "Audit and export (read-only)"
 msgstr "Auditoria e exportação (sem escrita)"
 
-#: specialVueFakeDummyForL10nScript.js:1712
+#: specialVueFakeDummyForL10nScript.js:1716
 msgid "Expired"
 msgstr "Expirado"
 
-#: specialVueFakeDummyForL10nScript.js:1713
+#: specialVueFakeDummyForL10nScript.js:1717
 msgid "Awaiting acceptance"
 msgstr "Aguardando aceite"
 
-#: specialVueFakeDummyForL10nScript.js:1713
+#: specialVueFakeDummyForL10nScript.js:1717
 msgid "Accepted"
 msgstr "Aceito"
 
-#: specialVueFakeDummyForL10nScript.js:1713
+#: specialVueFakeDummyForL10nScript.js:1717
 msgid "Revoked"
 msgstr "Revogado"
 
-#: specialVueFakeDummyForL10nScript.js:1755
+#: specialVueFakeDummyForL10nScript.js:1759
 msgid "Enter a validity period of 1 to 30 days."
 msgstr "Informe uma validade de 1 a 30 dias."
 
-#: specialVueFakeDummyForL10nScript.js:1778
+#: specialVueFakeDummyForL10nScript.js:1782
 msgid ""
 "The invitation was updated in another session. Review the current state."
 msgstr "O convite foi atualizado em outra sessão. Revise o estado atual."
 
-#: specialVueFakeDummyForL10nScript.js:1791
+#: specialVueFakeDummyForL10nScript.js:1795
 msgid "Enter a Nextcloud user identifier."
 msgstr "Informe um identificador de usuário Nextcloud."
 
-#: specialVueFakeDummyForL10nScript.js:1798
+#: specialVueFakeDummyForL10nScript.js:1802
 msgid "Invitation created. The recipient must accept it in their account."
 msgstr "Convite criado. O destinatário precisa aceitá-lo em sua conta."
 
-#: specialVueFakeDummyForL10nScript.js:1807
+#: specialVueFakeDummyForL10nScript.js:1811
 msgid "New invitation issued. The recipient must accept it again."
 msgstr "Novo convite emitido. O destinatário deverá aceitar novamente."
 
-#: specialVueFakeDummyForL10nScript.js:1812
+#: specialVueFakeDummyForL10nScript.js:1816
 msgid "External permission has been revoked for the next request."
 msgstr "A permissão externa foi revogada para a próxima requisição."
 
-#: specialVueFakeDummyForL10nScript.js:1818
+#: specialVueFakeDummyForL10nScript.js:1822
 msgid ""
 "Invitation accepted. The workspace can now appear among your workspaces."
 msgstr "Convite aceito. A gestão já pode aparecer entre as suas áreas."
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:159
-#: specialVueFakeDummyForL10nScript.js:1823
+#: specialVueFakeDummyForL10nScript.js:1827
 msgid "External financial grants"
 msgstr "Concessões financeiras externas"
 
-#: specialVueFakeDummyForL10nScript.js:1823
-#: specialVueFakeDummyForL10nScript.js:1825
+#: specialVueFakeDummyForL10nScript.js:1827
+#: specialVueFakeDummyForL10nScript.js:1829
 msgid "Received financial invitations"
 msgstr "Convites financeiros recebidos"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:160
-#: specialVueFakeDummyForL10nScript.js:1825
+#: specialVueFakeDummyForL10nScript.js:1829
 msgid "Invitations for external access"
 msgstr "Convites para acesso externo"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:161
-#: specialVueFakeDummyForL10nScript.js:1827
+#: specialVueFakeDummyForL10nScript.js:1831
 msgid ""
 "Invitations are limited to the specified financial ledger, with expiry and "
 "revocation. They do not grant membership in Nextcloud groups or write access."
 msgstr "Convites limitados ao livro financeiro indicado, com validade e revogação. Não concedem participação em grupos Nextcloud nem acesso de escrita."
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:166
-#: specialVueFakeDummyForL10nScript.js:1829
+#: specialVueFakeDummyForL10nScript.js:1833
 msgid "Nextcloud user identifier"
 msgstr "Identificador do usuário Nextcloud"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:167
-#: specialVueFakeDummyForL10nScript.js:1831
+#: specialVueFakeDummyForL10nScript.js:1835
 msgid "Existing account outside the environment group"
 msgstr "Conta existente fora do grupo do ambiente"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:170
-#: specialVueFakeDummyForL10nScript.js:1833
+#: specialVueFakeDummyForL10nScript.js:1837
 msgid "External permission"
 msgstr "Permissão externa"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:171
-#: specialVueFakeDummyForL10nScript.js:1835
+#: specialVueFakeDummyForL10nScript.js:1839
 msgid "Validity in days (1 to 30)"
 msgstr "Validade em dias (1 a 30)"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:174
-#: specialVueFakeDummyForL10nScript.js:1837
+#: specialVueFakeDummyForL10nScript.js:1841
 msgid "Invite external account"
 msgstr "Convidar conta externa"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:181
-#: specialVueFakeDummyForL10nScript.js:1839
+#: specialVueFakeDummyForL10nScript.js:1843
 msgid "Workspace {id}"
 msgstr "Gestão {id}"
 
-#: specialVueFakeDummyForL10nScript.js:1841
+#: specialVueFakeDummyForL10nScript.js:1845
 msgid "Read access"
 msgstr "Leitura"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:183
-#: specialVueFakeDummyForL10nScript.js:1843
+#: specialVueFakeDummyForL10nScript.js:1847
 msgid "Valid until {date} · Revision {revision}"
 msgstr "Válido até {date} · Revisão {revision}"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:188
-#: specialVueFakeDummyForL10nScript.js:1845
+#: specialVueFakeDummyForL10nScript.js:1849
 msgid "Accept invitation for workspace {id}"
 msgstr "Aceitar convite da gestão {id}"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:189
-#: specialVueFakeDummyForL10nScript.js:1847
+#: specialVueFakeDummyForL10nScript.js:1851
 msgid "Accept invitation"
 msgstr "Aceitar convite"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:192
-#: specialVueFakeDummyForL10nScript.js:1849
+#: specialVueFakeDummyForL10nScript.js:1853
 msgid "Revoke access for {name}"
 msgstr "Revogar acesso de {name}"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:197
-#: specialVueFakeDummyForL10nScript.js:1853
+#: specialVueFakeDummyForL10nScript.js:1857
 msgid "Renew invitation for {name}"
 msgstr "Renovar convite para {name}"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:198
-#: specialVueFakeDummyForL10nScript.js:1855
+#: specialVueFakeDummyForL10nScript.js:1859
 msgid "Invite again"
 msgstr "Convidar novamente"
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:202
-#: specialVueFakeDummyForL10nScript.js:1857
+#: specialVueFakeDummyForL10nScript.js:1861
 msgid "No external invitation registered."
 msgstr "Nenhum convite externo cadastrado."
 
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:204
-#: specialVueFakeDummyForL10nScript.js:1859
+#: specialVueFakeDummyForL10nScript.js:1863
 msgid "Load more invitations"
 msgstr "Carregar mais convites"
 
-#: specialVueFakeDummyForL10nScript.js:1928
+#: specialVueFakeDummyForL10nScript.js:1932
 msgid "Enable SaaS environments"
 msgstr "Habilitar os ambientes SaaS"
 
-#: specialVueFakeDummyForL10nScript.js:1929
+#: specialVueFakeDummyForL10nScript.js:1933
 msgid "External sharing"
 msgstr "Compartilhamento externo"
 
-#: specialVueFakeDummyForL10nScript.js:1930
+#: specialVueFakeDummyForL10nScript.js:1934
 msgid "Data import"
 msgstr "Importação de dados"
 
-#: specialVueFakeDummyForL10nScript.js:1931
+#: specialVueFakeDummyForL10nScript.js:1935
 msgid "Allowed bank statement formats (CSV or OFX)"
 msgstr "Formatos de extrato bancário permitidos (CSV ou OFX)"
 
-#: specialVueFakeDummyForL10nScript.js:1932
+#: specialVueFakeDummyForL10nScript.js:1936
 msgid "Financial reports"
 msgstr "Relatórios financeiros"
 
-#: specialVueFakeDummyForL10nScript.js:1933
+#: specialVueFakeDummyForL10nScript.js:1937
 msgid "NFS-e drafts (optional integration)"
 msgstr "Rascunhos de NFS-e (integração opcional)"
 
-#: specialVueFakeDummyForL10nScript.js:1934
+#: specialVueFakeDummyForL10nScript.js:1938
 msgid "Workspace limit per environment"
 msgstr "Limite de gestões por ambiente"
 
-#: specialVueFakeDummyForL10nScript.js:1935
+#: specialVueFakeDummyForL10nScript.js:1939
 msgid "Show summary indicators on the dashboard"
 msgstr "Exibir indicadores resumidos no painel"
 
-#: specialVueFakeDummyForL10nScript.js:1938
+#: specialVueFakeDummyForL10nScript.js:1942
 msgid "Application default"
 msgstr "Padrão do aplicativo"
 
-#: specialVueFakeDummyForL10nScript.js:1938
+#: specialVueFakeDummyForL10nScript.js:1942
 msgid "Nextcloud instance"
 msgstr "Instância Nextcloud"
 
-#: specialVueFakeDummyForL10nScript.js:1939
+#: specialVueFakeDummyForL10nScript.js:1943
 msgid "Environment"
 msgstr "Ambiente"
 
-#: specialVueFakeDummyForL10nScript.js:1939
+#: specialVueFakeDummyForL10nScript.js:1943
 msgid "Workspace"
 msgstr "Gestão"
 
-#: specialVueFakeDummyForL10nScript.js:1939
+#: specialVueFakeDummyForL10nScript.js:1943
 msgid "User"
 msgstr "Usuário"
 
-#: specialVueFakeDummyForL10nScript.js:1942
+#: specialVueFakeDummyForL10nScript.js:1946
 msgid "Inherited"
 msgstr "Herdado"
 
-#: specialVueFakeDummyForL10nScript.js:2050
+#: specialVueFakeDummyForL10nScript.js:2054
 msgid "Local restriction removed. The inherited policy remains in effect."
 msgstr "Restrição local removida. A política herdada permanece em vigor."
 
-#: specialVueFakeDummyForL10nScript.js:2051
+#: specialVueFakeDummyForL10nScript.js:2055
 msgid "Restriction applied and audited for this scope."
 msgstr "Restrição aplicada e auditada para este escopo."
 
-#: specialVueFakeDummyForL10nScript.js:2061
+#: specialVueFakeDummyForL10nScript.js:2065
 msgid ""
 "The revision changed. Current values were reloaded; review them before "
 "saving."
 msgstr "A revisão mudou. Os valores atuais foram recarregados; revise antes de salvar."
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:219
-#: specialVueFakeDummyForL10nScript.js:2072
+#: specialVueFakeDummyForL10nScript.js:2076
 msgid "SaaS policies for {scope}"
 msgstr "Políticas SaaS de {scope}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:220
-#: specialVueFakeDummyForL10nScript.js:2074
+#: specialVueFakeDummyForL10nScript.js:2078
 msgid ""
 "These policies restrict operations but do not grant financial permissions. "
 "The server revalidates authority and revision on every change."
 msgstr "Estas políticas restringem operações, mas não concedem permissões financeiras. O servidor revalida a autoridade e a revisão a cada alteração."
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:229
-#: specialVueFakeDummyForL10nScript.js:2076
+#: specialVueFakeDummyForL10nScript.js:2080
 msgid "Effective: {value}"
 msgstr "Efetivo: {value}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:230
-#: specialVueFakeDummyForL10nScript.js:2078
+#: specialVueFakeDummyForL10nScript.js:2082
 msgid "Source: {source}"
 msgstr "Origem: {source}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:231
-#: specialVueFakeDummyForL10nScript.js:2080
+#: specialVueFakeDummyForL10nScript.js:2084
 msgid "Revision: {revision}"
 msgstr "Revisão: {revision}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:233
-#: specialVueFakeDummyForL10nScript.js:2082
+#: specialVueFakeDummyForL10nScript.js:2086
 msgid "Mandatory restriction: {scope}"
 msgstr "Restrição obrigatória: {scope}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:235
-#: specialVueFakeDummyForL10nScript.js:2084
+#: specialVueFakeDummyForL10nScript.js:2088
 msgid "Read-only at this scope; there is no automatic delegation."
 msgstr "Somente leitura neste escopo; não há delegação automática."
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:252
-#: specialVueFakeDummyForL10nScript.js:2090
+#: specialVueFakeDummyForL10nScript.js:2094
 msgid "Allowed values for {policy}"
 msgstr "Valores permitidos para {policy}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:257
-#: specialVueFakeDummyForL10nScript.js:2092
+#: specialVueFakeDummyForL10nScript.js:2096
 msgid "Save restriction {policy}"
 msgstr "Salvar restrição {policy}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:258
-#: specialVueFakeDummyForL10nScript.js:2094
+#: specialVueFakeDummyForL10nScript.js:2098
 msgid "Save restriction"
 msgstr "Salvar restrição"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:260
-#: specialVueFakeDummyForL10nScript.js:2096
+#: specialVueFakeDummyForL10nScript.js:2100
 msgid "Inherit policy {policy}"
 msgstr "Herdar política {policy}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:261
-#: specialVueFakeDummyForL10nScript.js:2098
+#: specialVueFakeDummyForL10nScript.js:2102
 msgid "Inherit value"
 msgstr "Herdar valor"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:266
-#: specialVueFakeDummyForL10nScript.js:2100
+#: specialVueFakeDummyForL10nScript.js:2104
 msgid "No policies available."
 msgstr "Nenhuma política disponível."
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:269
-#: specialVueFakeDummyForL10nScript.js:2102
+#: specialVueFakeDummyForL10nScript.js:2106
 msgid "Hide policy history"
 msgstr "Ocultar histórico de policies"
 
-#: specialVueFakeDummyForL10nScript.js:2102
+#: specialVueFakeDummyForL10nScript.js:2106
 msgid "View policy history"
 msgstr "Ver histórico de policies"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:271
-#: specialVueFakeDummyForL10nScript.js:2104
+#: specialVueFakeDummyForL10nScript.js:2108
 msgid "SaaS policy change history"
 msgstr "Histórico de alterações das policies SaaS"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:279
-#: specialVueFakeDummyForL10nScript.js:2106
+#: specialVueFakeDummyForL10nScript.js:2110
 msgid "{time} · By {actor} · Revision {previous} → {next}"
 msgstr "{time} · Por {actor} · Revisão {previous} → {next}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:281
-#: specialVueFakeDummyForL10nScript.js:2108
+#: specialVueFakeDummyForL10nScript.js:2112
 msgid "Before: {value}"
 msgstr "Antes: {value}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:282
-#: specialVueFakeDummyForL10nScript.js:2110
+#: specialVueFakeDummyForL10nScript.js:2114
 msgid "After: {value}"
 msgstr "Depois: {value}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:286
-#: specialVueFakeDummyForL10nScript.js:2112
+#: specialVueFakeDummyForL10nScript.js:2116
 msgid "No changes recorded for this scope."
 msgstr "Nenhuma alteração registrada neste escopo."
 
+#: specialVueFakeDummyForL10nScript.js:2151
+msgid "Historical journal entries exist, even if the current balance is zero"
+msgstr "Existem lançamentos históricos, mesmo que o saldo atual seja zero"
+
+#: specialVueFakeDummyForL10nScript.js:2152
+msgid "Categories are linked to this account"
+msgstr "Existem categorias vinculadas a esta conta"
+
+#: specialVueFakeDummyForL10nScript.js:2153
+msgid "Bank statement movements are linked to this account"
+msgstr "Existem movimentações de extrato associadas"
+
+#: specialVueFakeDummyForL10nScript.js:2154
+msgid "Payment methods are linked to this account"
+msgstr "Há formas de pagamento vinculadas a esta conta"
+
+#: specialVueFakeDummyForL10nScript.js:2155
+msgid "Bank transfers are linked to this account"
+msgstr "Existem transferências bancárias associadas"
+
+#: specialVueFakeDummyForL10nScript.js:2156
+msgid "Invoice payments or receipts are linked to this account"
+msgstr "Existem pagamentos ou recebimentos de faturas associados"
+
+#: specialVueFakeDummyForL10nScript.js:2157
+msgid "A logo is linked; remove the image before deleting the account"
+msgstr "Há um logotipo associado; remova a imagem antes de excluir a conta"
+
+#: specialVueFakeDummyForL10nScript.js:2158
+msgid "Imported source balances and identifiers exist"
+msgstr "Existem saldos e identificadores de origem importados"
+
+#: specialVueFakeDummyForL10nScript.js:2159
+msgid "A link to imported source records exists"
+msgstr "Existe um vínculo com registros de origem importados"
+
+#: specialVueFakeDummyForL10nScript.js:2198
+msgid "Financial institution"
+msgstr "Instituição financeira"
+
+#: specialVueFakeDummyForL10nScript.js:2199
+msgid "Institution code"
+msgstr "Código da instituição"
+
+#: specialVueFakeDummyForL10nScript.js:2200
+msgid "Branch"
+msgstr "Agência"
+
+#: specialVueFakeDummyForL10nScript.js:2201
+msgid "Account number"
+msgstr "Número da conta"
+
+#: specialVueFakeDummyForL10nScript.js:2202
+msgid "Account type"
+msgstr "Tipo de conta"
+
+#: specialVueFakeDummyForL10nScript.js:2203
+msgid "IBAN (international)"
+msgstr "IBAN (internacional)"
+
+#: specialVueFakeDummyForL10nScript.js:2204
+msgid "SWIFT/BIC"
+msgstr "SWIFT/BIC"
+
+#: specialVueFakeDummyForL10nScript.js:2217
+msgid "Invalid format."
+msgstr "Formato inválido."
+
+#: specialVueFakeDummyForL10nScript.js:2225
+msgid "Select a PNG, JPG or WebP image up to 512 KB."
+msgstr "Selecione PNG, JPG ou WebP de até 512 KB."
+
+#: specialVueFakeDummyForL10nScript.js:2232
+msgid "Failed to read the image."
+msgstr "Falha ao ler a imagem."
+
+#: specialVueFakeDummyForL10nScript.js:2254
+msgid "All classes"
+msgstr "Todas as classes"
+
+#: specialVueFakeDummyForL10nScript.js:2255
+#: specialVueFakeDummyForL10nScript.js:2260
+msgid "Asset"
+msgstr "Ativo"
+
+#: specialVueFakeDummyForL10nScript.js:2255
+#: specialVueFakeDummyForL10nScript.js:2261
+msgid "Liability"
+msgstr "Passivo"
+
+#: specialVueFakeDummyForL10nScript.js:2256
+#: specialVueFakeDummyForL10nScript.js:2262
+msgid "Equity"
+msgstr "Patrimônio"
+
+#. TRANSLATORS s/CategoriesView.vue:120
+#. TRANSLATORS s/CategoriesView.vue:143
+#: specialVueFakeDummyForL10nScript.js:2256
+#: specialVueFakeDummyForL10nScript.js:2263
+#: specialVueFakeDummyForL10nScript.js:3081
+#: specialVueFakeDummyForL10nScript.js:3103
+msgid "Revenue"
+msgstr "Receita"
+
+#: specialVueFakeDummyForL10nScript.js:2257
+#: specialVueFakeDummyForL10nScript.js:2264
+#: specialVueFakeDummyForL10nScript.js:3081
+#: specialVueFakeDummyForL10nScript.js:3103
+msgid "Expense"
+msgstr "Despesa"
+
+#: specialVueFakeDummyForL10nScript.js:2260
+msgid "what the organization owns or is owed (e.g. cash and bank accounts)"
+msgstr "o que a organização possui ou tem a receber (ex.: caixa e bancos)"
+
+#: specialVueFakeDummyForL10nScript.js:2261
+msgid "obligations to pay (e.g. loans and suppliers)"
+msgstr "obrigações a pagar (ex.: empréstimos e fornecedores)"
+
+#: specialVueFakeDummyForL10nScript.js:2262
+msgid "own resources and accumulated results"
+msgstr "recursos próprios e resultados acumulados"
+
+#: specialVueFakeDummyForL10nScript.js:2263
+msgid "what was earned from sales, services or other activities"
+msgstr "o que foi ganho com vendas, serviços ou outras atividades"
+
+#: specialVueFakeDummyForL10nScript.js:2264
+msgid "spending on activities and maintenance"
+msgstr "gastos com atividades e manutenção"
+
+#: specialVueFakeDummyForL10nScript.js:2324
+msgid "Account saved, but the image was not uploaded: {error}"
+msgstr "Conta salva, mas a imagem não foi enviada: {error}"
+
+#. TRANSLATORS s/AccountsView.vue:222
+#: specialVueFakeDummyForL10nScript.js:2337 /app/src/navigation.js:12
+msgid "Accounts and banks"
+msgstr "Contas e bancos"
+
+#: specialVueFakeDummyForL10nScript.js:2337 /app/src/navigation.js:28
+msgid "Chart of accounts"
+msgstr "Plano de contas"
+
+#. TRANSLATORS s/AccountsView.vue:223
+#: specialVueFakeDummyForL10nScript.js:2339
+msgid "FINANCE"
+msgstr "FINANCEIRO"
+
+#: specialVueFakeDummyForL10nScript.js:2339
+#: specialVueFakeDummyForL10nScript.js:3063
+msgid "ACCOUNTING"
+msgstr "CONTABILIDADE"
+
+#. TRANSLATORS s/AccountsView.vue:225
+#: specialVueFakeDummyForL10nScript.js:2341
+msgid ""
+"Record where your money is held: bank accounts and cash. Select an account "
+"when recording payments or importing statements."
+msgstr "Cadastre onde seu dinheiro fica: contas bancárias e caixa. Selecione uma conta ao registrar pagamentos ou importar extratos."
+
+#. TRANSLATORS s/AccountsView.vue:226
+#: specialVueFakeDummyForL10nScript.js:2343
+msgid ""
+"Organize and review the accounts that support financial reports. Accounting "
+"knowledge is not required to record income and expenses."
+msgstr "Organize e consulte as contas que sustentam os relatórios financeiros. Não é preciso conhecer contabilidade para registrar receitas e despesas."
+
+#. TRANSLATORS s/AccountsView.vue:229
+#: specialVueFakeDummyForL10nScript.js:2345 /app/src/navigation.js:13
+#: src/navigation.js:17 /app/src/navigation.js:18
+#: src/navigation.js:21
+msgid "Financial movements"
+msgstr "Movimentações"
+
+#. TRANSLATORS s/AccountsView.vue:232
+#: specialVueFakeDummyForL10nScript.js:2347 /app/src/navigation.js:34
+msgid "Payment methods"
+msgstr "Formas de pagamento"
+
+#. TRANSLATORS s/AccountsView.vue:236
+#: specialVueFakeDummyForL10nScript.js:2349
+#: specialVueFakeDummyForL10nScript.js:2401
+#: specialVueFakeDummyForL10nScript.js:2407
+msgid "New bank or cash account"
+msgstr "Nova conta bancária ou caixa"
+
+#: specialVueFakeDummyForL10nScript.js:2349
+msgid "Create account"
+msgstr "Criar conta"
+
+#. TRANSLATORS s/AccountsView.vue:241
+#: specialVueFakeDummyForL10nScript.js:2351
+msgid "About connecting your bank"
+msgstr "Sobre conectar o banco"
+
+#. TRANSLATORS s/AccountsView.vue:242
+#: specialVueFakeDummyForL10nScript.js:2353
+msgid ""
+"For now, you can record movements and import statements manually. Automatic "
+"connections to your bank are not available yet. Do not enter passwords here."
+msgstr "Por enquanto, você pode registrar movimentações e importar extratos manualmente. Ainda não é possível conectar sua instituição bancária automaticamente. Não informe senhas neste cadastro."
+
+#. TRANSLATORS s/AccountsView.vue:245
+#: specialVueFakeDummyForL10nScript.js:2355
+msgid "Financial account vs. chart of accounts:"
+msgstr "Conta financeira x plano de contas:"
+
+#. TRANSLATORS s/AccountsView.vue:246
+#: specialVueFakeDummyForL10nScript.js:2357
+msgid ""
+"A bank account is where money is held; the chart of accounts explains the "
+"nature of each movement. The five classes are accounting standards, not "
+"customizable categories. You can create accounts within them."
+msgstr "uma conta bancária é onde o dinheiro está; o plano de contas explica a natureza de cada movimento. As cinco classes são padrões contábeis, não categorias para personalizar. Você pode criar contas dentro delas."
+
+#. TRANSLATORS s/AccountsView.vue:250
+#: specialVueFakeDummyForL10nScript.js:2359
+msgid "My bank and cash accounts"
+msgstr "Meus bancos e caixas"
+
+#: specialVueFakeDummyForL10nScript.js:2359
+msgid "Registered accounts"
+msgstr "Contas cadastradas"
+
+#. TRANSLATORS s/AccountsView.vue:252
+#: specialVueFakeDummyForL10nScript.js:2361
+msgid "Search loaded accounts"
+msgstr "Buscar contas carregadas"
+
+#. TRANSLATORS s/AccountsView.vue:253
+#: specialVueFakeDummyForL10nScript.js:2363
+msgid "Code or name"
+msgstr "Código ou nome"
+
+#. TRANSLATORS s/AccountsView.vue:256
+#: specialVueFakeDummyForL10nScript.js:2365
+msgid "{shown} of {total} accounts"
+msgstr "{shown} de {total} contas"
+
+#. TRANSLATORS s/AccountsView.vue:261
+#: specialVueFakeDummyForL10nScript.js:2367
+msgid "Class: {class}"
+msgstr "Classe: {class}"
+
+#. TRANSLATORS s/AccountsView.vue:264
+#: specialVueFakeDummyForL10nScript.js:2369
+msgid "Filter chart of accounts by class"
+msgstr "Filtrar plano de contas por classe"
+
+#. TRANSLATORS s/AccountsView.vue:273
+#. TRANSLATORS s/CategoriesView.vue:106
+#. TRANSLATORS s/CategoriesView.vue:139
+#: specialVueFakeDummyForL10nScript.js:2371
+#: specialVueFakeDummyForL10nScript.js:3073
+#: specialVueFakeDummyForL10nScript.js:3095
+msgid "Code"
+msgstr "Código"
+
+#. TRANSLATORS s/AccountsView.vue:274
+#: specialVueFakeDummyForL10nScript.js:2373
+msgid "Account"
+msgstr "Conta"
+
+#. TRANSLATORS s/AccountsView.vue:275
+#. TRANSLATORS s/CategoriesView.vue:142
+#: specialVueFakeDummyForL10nScript.js:2375
+#: specialVueFakeDummyForL10nScript.js:3101
+msgid "Account nature"
+msgstr "Natureza"
+
+#. TRANSLATORS s/AccountsView.vue:276
+#: specialVueFakeDummyForL10nScript.js:2377
+msgid "Status"
+msgstr "Situação"
+
+#. TRANSLATORS s/AccountsView.vue:277
+#: specialVueFakeDummyForL10nScript.js:2379
+msgid "Balance"
+msgstr "Saldo"
+
+#. TRANSLATORS s/AccountsView.vue:283
+#. TRANSLATORS s/CategoriesView.vue:114
+#: specialVueFakeDummyForL10nScript.js:2381
+#: specialVueFakeDummyForL10nScript.js:3079
+msgid "Actions"
+msgstr "Ações"
+
+#. TRANSLATORS s/AccountsView.vue:289
+#: specialVueFakeDummyForL10nScript.js:2383
+msgid "Logo of {name}"
+msgstr "Logotipo de {name}"
+
+#. TRANSLATORS s/AccountsView.vue:295
+#: specialVueFakeDummyForL10nScript.js:2385
+msgid "Bank or cash"
+msgstr "Banco ou caixa"
+
+#. TRANSLATORS s/AccountsView.vue:296
+#: specialVueFakeDummyForL10nScript.js:2387
+msgid "Branch {branch}"
+msgstr "Agência {branch}"
+
+#. TRANSLATORS s/AccountsView.vue:303
+#: specialVueFakeDummyForL10nScript.js:2389
+msgid "Enabled account"
+msgstr "Ativa"
+
+#: specialVueFakeDummyForL10nScript.js:2389
+msgid "Disabled account"
+msgstr "Desativada"
+
+#. TRANSLATORS s/AccountsView.vue:307
+#. TRANSLATORS s/CategoriesView.vue:125
+#: specialVueFakeDummyForL10nScript.js:2391
+#: specialVueFakeDummyForL10nScript.js:3087
+msgid "Edit {name}"
+msgstr "Editar {name}"
+
+#. TRANSLATORS s/AccountsView.vue:311
+#: specialVueFakeDummyForL10nScript.js:2393
+msgid "Delete {name}"
+msgstr "Excluir {name}"
+
+#. TRANSLATORS s/AccountsView.vue:319
+#: specialVueFakeDummyForL10nScript.js:2395
+msgid "No bank or cash account registered"
+msgstr "Nenhum banco ou caixa cadastrado"
+
+#: specialVueFakeDummyForL10nScript.js:2395
+msgid "No account found"
+msgstr "Nenhuma conta encontrada"
+
+#. TRANSLATORS s/AccountsView.vue:321
+#: specialVueFakeDummyForL10nScript.js:2397
+msgid ""
+"Add your first bank or cash account to organize payments, receipts and "
+"statements."
+msgstr "Adicione a primeira conta bancária ou caixa para organizar pagamentos, recebimentos e extratos."
+
+#. TRANSLATORS s/AccountsView.vue:322
+#: specialVueFakeDummyForL10nScript.js:2399
+msgid "Change the filter or create an account in this financial workspace."
+msgstr "Mude o filtro ou crie uma conta nesta gestão financeira."
+
+#. TRANSLATORS s/AccountsView.vue:328
+#: specialVueFakeDummyForL10nScript.js:2403
+msgid "What do Asset, Liability, Equity, Revenue and Expense mean?"
+msgstr "O que significam Ativo, Passivo, Patrimônio, Receita e Despesa?"
+
+#. TRANSLATORS s/AccountsView.vue:331
+#: specialVueFakeDummyForL10nScript.js:2405
+msgid ""
+"These classifications must remain stable to keep balances and results "
+"consistent."
+msgstr "Essas classificações precisam permanecer estáveis para que balanços e resultados sejam coerentes."
+
+#. TRANSLATORS s/AccountsView.vue:335
+#: specialVueFakeDummyForL10nScript.js:2407
+msgid "Edit bank or cash account"
+msgstr "Editar banco ou caixa"
+
+#. TRANSLATORS s/AccountsView.vue:336
+#: specialVueFakeDummyForL10nScript.js:2409
+msgid "Edit financial account"
+msgstr "Editar conta financeira"
+
+#: specialVueFakeDummyForL10nScript.js:2409
+msgid "Create financial account"
+msgstr "Criar conta financeira"
+
+#. TRANSLATORS s/AccountsView.vue:340
+#: specialVueFakeDummyForL10nScript.js:2411
+msgid "Account name"
+msgstr "Nome da conta"
+
+#. TRANSLATORS s/AccountsView.vue:342
+#: specialVueFakeDummyForL10nScript.js:2413
+msgid "Accounting code"
+msgstr "Código contábil"
+
+#. TRANSLATORS s/AccountsView.vue:343
+#: specialVueFakeDummyForL10nScript.js:2415
+msgid "E.g. BANK-001"
+msgstr "Ex.: BANCO-001"
+
+#. TRANSLATORS s/AccountsView.vue:345
+#: specialVueFakeDummyForL10nScript.js:2417
+msgid "Accounting nature"
+msgstr "Natureza contábil"
+
+#. TRANSLATORS s/AccountsView.vue:349
+#: specialVueFakeDummyForL10nScript.js:2419
+msgid "This account represents money held in a bank or in cash"
+msgstr "Esta conta representa dinheiro em banco ou caixa"
+
+#. TRANSLATORS s/AccountsView.vue:352
+#: specialVueFakeDummyForL10nScript.js:2421
+msgid "Bank details (optional)"
+msgstr "Dados bancários (opcionais)"
+
+#. TRANSLATORS s/AccountsView.vue:353
+#: specialVueFakeDummyForL10nScript.js:2423
+msgid ""
+"Enter the information provided by the institution. Do not enter passwords, "
+"tokens, credentials or card numbers. These details do not connect your bank."
+msgstr "Preencha o que a instituição fornecer. Não informe senhas, tokens, credenciais nem números de cartão. Esses dados não conectam o banco."
+
+#. TRANSLATORS s/AccountsView.vue:357
+#: specialVueFakeDummyForL10nScript.js:2425
+msgid "Institution logo (optional)"
+msgstr "Logotipo da instituição (opcional)"
+
+#. TRANSLATORS s/AccountsView.vue:359
+#: specialVueFakeDummyForL10nScript.js:2427
+msgid "Current logo"
+msgstr "Logotipo atual"
+
+#. TRANSLATORS s/AccountsView.vue:361
+#: specialVueFakeDummyForL10nScript.js:2429
+msgid "Select bank logo"
+msgstr "Selecionar logotipo do banco"
+
+#. TRANSLATORS s/AccountsView.vue:362
+#: specialVueFakeDummyForL10nScript.js:2431
+msgid "Image selected for saving."
+msgstr "Imagem selecionada para salvar."
+
+#. TRANSLATORS s/AccountsView.vue:363
+#: specialVueFakeDummyForL10nScript.js:2433
+msgid "PNG, JPG or WebP, up to 512 KB. Private profile image."
+msgstr "PNG, JPG ou WebP, até 512 KB. Imagem privada do perfil."
+
+#. TRANSLATORS s/AccountsView.vue:365
+#: specialVueFakeDummyForL10nScript.js:2435
+msgid "Remove logo"
+msgstr "Remover logotipo"
+
+#. TRANSLATORS s/AccountsView.vue:370
+#: specialVueFakeDummyForL10nScript.js:2437
+msgid "Allow new journal entries in this account"
+msgstr "Permitir novos lançamentos nesta conta"
+
+#. TRANSLATORS s/AccountsView.vue:372
+#: specialVueFakeDummyForL10nScript.js:2439
+msgid ""
+"An existing account code does not change because it identifies its journal "
+"entries. Accounts with a balance or history have restrictions on editing and "
+"deletion. Do not enter bank passwords here."
+msgstr "O código de uma conta existente não muda porque identifica seus lançamentos. Contas com saldo ou histórico têm restrições de alteração e exclusão. Não use este cadastro para fornecer senhas bancárias."
+
+#. TRANSLATORS s/AccountsView.vue:374
+#: specialVueFakeDummyForL10nScript.js:2443
+msgid "Save account"
+msgstr "Salvar conta"
+
+#. TRANSLATORS s/AccountsView.vue:378
+#: specialVueFakeDummyForL10nScript.js:2445
+msgid "Delete account"
+msgstr "Excluir conta"
+
+#. TRANSLATORS s/AccountsView.vue:383
+#: specialVueFakeDummyForL10nScript.js:2447
+msgid "{error}. The account was not deleted. Refresh the check and try again."
+msgstr "{error}. A exclusão não foi realizada. Atualize a verificação e tente novamente."
+
+#. TRANSLATORS s/AccountsView.vue:385
+#: specialVueFakeDummyForL10nScript.js:2449
+msgid "Checking the history and links of this account…"
+msgstr "Conferindo histórico e vínculos desta conta…"
+
+#. TRANSLATORS s/AccountsView.vue:388
+#: specialVueFakeDummyForL10nScript.js:2451
+msgid ""
+"This account cannot be deleted because it has history or links. Deletion "
+"does not erase journal entries, statements or invoices."
+msgstr "Esta conta não pode ser excluída porque possui histórico ou vínculos. A exclusão não apaga lançamentos, extratos nem faturas."
+
+#. TRANSLATORS s/AccountsView.vue:392
+#: specialVueFakeDummyForL10nScript.js:2453
+msgid "Linked records must be preserved"
+msgstr "Há registros vinculados que precisam ser preservados"
+
+#. TRANSLATORS s/AccountsView.vue:395
+#: specialVueFakeDummyForL10nScript.js:2455
+msgid ""
+"You can disable accounts without a balance while preserving their history."
+msgstr "Você pode desativar contas sem saldo, mantendo seu histórico."
+
+#. TRANSLATORS s/AccountsView.vue:398
+#: specialVueFakeDummyForL10nScript.js:2457
+msgid ""
+"This account has no known journal entries or links. Deleting the account is "
+"permanent and cannot be undone. No financial records will be erased."
+msgstr "Esta conta não possui lançamentos nem vínculos conhecidos. A exclusão do cadastro será permanente e não poderá ser desfeita. Nenhum registro financeiro será apagado."
+
+#. TRANSLATORS s/AccountsView.vue:403
+#: specialVueFakeDummyForL10nScript.js:2461
+msgid "Edit or disable"
+msgstr "Editar ou desativar"
+
+#. TRANSLATORS s/AccountsView.vue:405
+#: specialVueFakeDummyForL10nScript.js:2463
+msgid "Delete account permanently"
+msgstr "Excluir conta permanentemente"
+
+#. TRANSLATORS s/AccountsView.vue:407
+#: specialVueFakeDummyForL10nScript.js:2465
+msgid "Check again"
+msgstr "Verificar novamente"
+
+#: specialVueFakeDummyForL10nScript.js:3021
+msgid "All categories"
+msgstr "Todas"
+
+#: specialVueFakeDummyForL10nScript.js:3022
+msgid "Income"
+msgstr "Receitas"
+
+#: specialVueFakeDummyForL10nScript.js:3023
+msgid "Expenses"
+msgstr "Despesas"
+
+#: specialVueFakeDummyForL10nScript.js:3030
+msgid "No parent category"
+msgstr "Sem categoria superior"
+
+#: specialVueFakeDummyForL10nScript.js:3033
+msgid "Inherit from parent category"
+msgstr "Herdar da categoria superior"
+
+#. TRANSLATORS s/CategoriesView.vue:78
+#: specialVueFakeDummyForL10nScript.js:3063 /app/src/navigation.js:27
+msgid "Categories"
+msgstr "Categorias"
+
+#. TRANSLATORS s/CategoriesView.vue:79
+#: specialVueFakeDummyForL10nScript.js:3065
+msgid "Hierarchical classifications of income and expenses."
+msgstr "Classificações de receitas e despesas com estrutura hierárquica."
+
+#. TRANSLATORS s/CategoriesView.vue:83
+#: specialVueFakeDummyForL10nScript.js:3067
+msgid "New category"
+msgstr "Nova categoria"
+
+#. TRANSLATORS s/CategoriesView.vue:93
+#: specialVueFakeDummyForL10nScript.js:3069
+msgid "Type: {type}"
+msgstr "Tipo: {type}"
+
+#. TRANSLATORS s/CategoriesView.vue:96
+#: specialVueFakeDummyForL10nScript.js:3071
+msgid "Filter categories by type"
+msgstr "Filtrar categorias por tipo"
+
+#: specialVueFakeDummyForL10nScript.js:3073
+msgid "Category"
+msgstr "Categoria"
+
+#. TRANSLATORS s/CategoriesView.vue:144
+#: specialVueFakeDummyForL10nScript.js:3075
+#: specialVueFakeDummyForL10nScript.js:3105
+msgid "Parent category"
+msgstr "Categoria superior"
+
+#. TRANSLATORS s/CategoriesView.vue:108
+#: specialVueFakeDummyForL10nScript.js:3077
+msgid "Linked account"
+msgstr "Conta vinculada"
+
+#. TRANSLATORS s/CategoriesView.vue:121
+#: specialVueFakeDummyForL10nScript.js:3083
+msgid "Root"
+msgstr "Raiz"
+
+#. TRANSLATORS s/CategoriesView.vue:124
+#: specialVueFakeDummyForL10nScript.js:3085
+msgid "Not defined"
+msgstr "Não definida"
+
+#. TRANSLATORS s/CategoriesView.vue:132
+#: specialVueFakeDummyForL10nScript.js:3089
+msgid "No categories registered"
+msgstr "Nenhuma categoria cadastrada"
+
+#. TRANSLATORS s/CategoriesView.vue:134
+#: specialVueFakeDummyForL10nScript.js:3091
+msgid "More categories"
+msgstr "Mais categorias"
+
+#. TRANSLATORS s/CategoriesView.vue:137
+#: specialVueFakeDummyForL10nScript.js:3093
+msgid "Register category"
+msgstr "Cadastrar categoria"
+
+#. TRANSLATORS s/CategoriesView.vue:140
+#: specialVueFakeDummyForL10nScript.js:3097
+msgid "E.G. CONSULTING"
+msgstr "EX: CONSULTORIA"
+
+#. TRANSLATORS s/CategoriesView.vue:141
+#: specialVueFakeDummyForL10nScript.js:3099
+#: specialVueFakeDummyForL10nScript.js:3121
+msgid "Category name"
+msgstr "Nome da categoria"
+
+#. TRANSLATORS s/CategoriesView.vue:146
+#: specialVueFakeDummyForL10nScript.js:3107
+msgid "Ledger account"
+msgstr "Conta contábil"
+
+#. TRANSLATORS s/CategoriesView.vue:148
+#: specialVueFakeDummyForL10nScript.js:3109
+#: specialVueFakeDummyForL10nScript.js:3123
+msgid "Category color"
+msgstr "Cor da categoria"
+
+#. TRANSLATORS s/CategoriesView.vue:150
+#: specialVueFakeDummyForL10nScript.js:3111
+msgid "Choose category color"
+msgstr "Escolher cor da categoria"
+
+#. TRANSLATORS s/CategoriesView.vue:152
+#: specialVueFakeDummyForL10nScript.js:3113
+#: specialVueFakeDummyForL10nScript.js:3127
+msgid "Select color"
+msgstr "Selecionar cor"
+
+#. TRANSLATORS s/CategoriesView.vue:158
+#: specialVueFakeDummyForL10nScript.js:3117
+msgid "Save category"
+msgstr "Salvar categoria"
+
+#. TRANSLATORS s/CategoriesView.vue:163
+#: specialVueFakeDummyForL10nScript.js:3119
+msgid "Edit category"
+msgstr "Editar categoria"
+
+#. TRANSLATORS s/CategoriesView.vue:169
+#: specialVueFakeDummyForL10nScript.js:3125
+msgid "Choose new category color"
+msgstr "Escolher nova cor da categoria"
+
+#. TRANSLATORS s/CategoriesView.vue:175
+#: specialVueFakeDummyForL10nScript.js:3129
+msgid "Active category"
+msgstr "Categoria ativa"
+
+#. TRANSLATORS s/CategoriesView.vue:176
+#: specialVueFakeDummyForL10nScript.js:3131
+msgid ""
+"The code, accounting nature and hierarchy remain unchanged to protect "
+"previous entries."
+msgstr "O código, a natureza contábil e a hierarquia permanecem inalterados para proteger lançamentos anteriores."
+
+#. TRANSLATORS s/CategoriesView.vue:178
+#: specialVueFakeDummyForL10nScript.js:3135
+msgid "Save changes"
+msgstr "Salvar alterações"
+
 #. TRANSLATORS onents/SaasPolicyEditor.vue:247
-#: specialVueFakeDummyForL10nScript.js:2088
+#: specialVueFakeDummyForL10nScript.js:2092
 msgid "Limit for {policy}"
 msgstr "Limite de {policy}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:243
-#: specialVueFakeDummyForL10nScript.js:2086
+#: specialVueFakeDummyForL10nScript.js:2090
 msgid "Allow {policy}"
 msgstr "Permitir {policy}"
 
@@ -1211,25 +1889,16 @@ msgstr "Histórico contábil"
 msgid "Account statement"
 msgstr "Extrato da conta"
 
-#: src/navigation.js:12
-msgid "Accounts and banks"
-msgstr "Contas e bancos"
-
-#: src/navigation.js:13 src/navigation.js:17
-#: src/navigation.js:18 src/navigation.js:21
-msgid "Financial movements"
-msgstr "Movimentações"
-
 #: src/navigation.js:14
 msgid "Reports"
 msgstr "Relatórios"
 
-#: src/navigation.js:15 src/navigation.js:16
-#: src/navigation.js:19 src/navigation.js:22
+#: src/navigation.js:15 /app/src/navigation.js:16
+#: src/navigation.js:19 /app/src/navigation.js:22
 msgid "Invoices"
 msgstr "Faturas"
 
-#: src/navigation.js:20 src/navigation.js:59
+#: src/navigation.js:20 /app/src/navigation.js:59
 msgid "Financial workspaces"
 msgstr "Gestões financeiras"
 
@@ -1249,14 +1918,6 @@ msgstr "Clientes e fornecedores"
 msgid "Products and services"
 msgstr "Produtos e serviços"
 
-#: src/navigation.js:27
-msgid "Categories"
-msgstr "Categorias"
-
-#: src/navigation.js:28
-msgid "Chart of accounts"
-msgstr "Plano de contas"
-
 #: src/navigation.js:29
 msgid "Organization details"
 msgstr "Dados da organização"
@@ -1265,17 +1926,13 @@ msgstr "Dados da organização"
 msgid "Financial assistant"
 msgstr "Assistente financeiro"
 
-#: src/navigation.js:31 src/navigation.js:32
+#: src/navigation.js:31 /app/src/navigation.js:32
 msgid "Access and sharing"
 msgstr "Acessos e compartilhamento"
 
 #: src/navigation.js:33
 msgid "Custom fields"
 msgstr "Campos personalizados"
-
-#: src/navigation.js:34
-msgid "Payment methods"
-msgstr "Formas de pagamento"
 
 #: src/navigation.js:35
 msgid "Installed features"
@@ -1317,8 +1974,8 @@ msgid ""
 "workspaces finance areas create rename archive restore organization personal"
 msgstr "gestoes financeiras areas financeiras espacos areas financas criar renomear arquivar restaurar organizacao pessoal"
 
-#: src/navigation.js:61 src/navigation.js:63
-#: src/navigation.js:65 src/navigation.js:67
+#: src/navigation.js:61 /app/src/navigation.js:63
+#: src/navigation.js:65 /app/src/navigation.js:67
 #: src/navigation.js:70
 msgid "Records"
 msgstr "Cadastros"
@@ -1344,8 +2001,8 @@ msgstr "categorias classificacao receitas despesas"
 msgid "accounts banks cash register bank details finance"
 msgstr "contas bancos caixa cadastrar dados bancarios financeiro"
 
-#: src/navigation.js:72 src/navigation.js:74
-#: src/navigation.js:76 src/navigation.js:78
+#: src/navigation.js:72 /app/src/navigation.js:74
+#: src/navigation.js:76 /app/src/navigation.js:78
 #: src/navigation.js:80
 msgid "Finance and tax"
 msgstr "Financeiro e fiscal"
@@ -1370,7 +2027,7 @@ msgstr "impostos jurisdicao tributacao aliquotas retencao"
 msgid "service invoice draft national"
 msgstr "nota fiscal servico rascunho nacional"
 
-#: src/navigation.js:83 src/navigation.js:85
+#: src/navigation.js:83 /app/src/navigation.js:85
 msgid "Team and customization"
 msgstr "Equipe e personalização"
 
@@ -1382,7 +2039,7 @@ msgstr "acessos equipe permissoes membros usuarios grupos compartilhar pessoas e
 msgid "custom fields forms entities"
 msgstr "campos personalizados customizados formularios entidades"
 
-#: src/navigation.js:88 src/navigation.js:90
+#: src/navigation.js:88 /app/src/navigation.js:90
 #: src/navigation.js:92
 msgid "Features and data"
 msgstr "Recursos e dados"

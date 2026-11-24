@@ -3,7 +3,7 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { toMinorUnits } from '../../src/money.js'
+import { formatLedgerMoney, ledgerLocale, toMinorUnits } from '../../src/money.js'
 
 test('exact conversion of common Brazilian amounts', () => {
   assert.equal(toMinorUnits('0,01'), 1)
@@ -21,4 +21,17 @@ test('never guesses separators or rounds malformed money', () => {
 
 test('rejects values larger than the core ledger maximum', () => {
   assert.throws(() => toMinorUnits('90000000000.01'), Error)
+})
+
+
+test('platform locale changes only presentation, not currency or minor units', () => {
+  const amount = toMinorUnits('1234.56')
+  assert.equal(amount, 123456)
+  assert.equal(ledgerLocale('pt_BR'), 'pt-BR')
+  assert.equal(ledgerLocale('en_US'), 'en-US')
+  assert.equal(ledgerLocale('invalid_locale_!'), 'pt-BR')
+  assert.equal(formatLedgerMoney(amount, 'BRL', 'pt_BR'), 'R$\u00a01.234,56')
+  assert.equal(formatLedgerMoney(amount, 'BRL', 'en_US'), 'R$1,234.56')
+  assert.equal(formatLedgerMoney(-1, 'BRL', 'en_US'), '-R$0.01')
+  assert.equal(toMinorUnits('1234.56'), amount)
 })

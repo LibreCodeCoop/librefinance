@@ -456,6 +456,7 @@ if [ "${LF_RUN_PLAYWRIGHT:-0}" = 1 ]; then
   # the localization case separately requests the English fallback.
   for test_user in lfmaintestA lfmaintestB synthetictestadmin; do
     compose exec -T --user www-data nextcloud php occ user:setting "$test_user" core lang pt_BR
+    compose exec -T --user www-data nextcloud php occ user:setting "$test_user" core locale pt_BR
   done
   # Only synthetic browser identity A: discover the already-suspended SaaS
   # group after the finance and authorization suites have finished.
