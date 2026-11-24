@@ -30,7 +30,7 @@ const role = ref('viewer')
 const days = ref('7')
 const roles = [
   { value: 'viewer', label: t('librefinance', 'Financial read access') },
-  { value: 'auditor', label: t('librefinance', 'Audit and export (read-only)') },
+  { value: 'auditor', label: t('librefinance', 'Accountant (read-only)') },
 ]
 const endpoint = computed(() => {
   const root = '/apps/librefinance/api/saas/v1'

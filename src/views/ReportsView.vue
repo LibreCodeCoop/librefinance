@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
@@ -22,9 +23,9 @@ const { activeId, money, manager } = w
 const today = new Date().toLocaleDateString('sv-SE')
 const startYear = today.slice(0, 4) + '-01-01'
 const reportKinds = [
-  { value: 'profit_loss', label: 'Resultado do período', help: 'Receitas, despesas e resultado por período', icon: mdiChartLine },
-  { value: 'cash_flow', label: 'Fluxo de caixa realizado', help: 'Entradas, saídas e saldo contábil do caixa', icon: mdiCashMultiple },
-  { value: 'trial_balance', label: 'Balancete', help: 'Saldo contábil por conta e natureza', icon: mdiTableLarge },
+  { value: 'profit_loss', label: t('librefinance', 'Profit and loss for the period'), help: t('librefinance', 'Income, expenses and result by period'), icon: mdiChartLine },
+  { value: 'cash_flow', label: t('librefinance', 'Actual cash flow'), help: t('librefinance', 'Cash inflows, outflows and ledger balance'), icon: mdiCashMultiple },
+  { value: 'trial_balance', label: t('librefinance', 'Trial balance'), help: t('librefinance', 'Ledger balance by account and class'), icon: mdiTableLarge },
 ]
 const catalog = ref([])
 const catalogNext = ref(null)
@@ -50,17 +51,17 @@ const currentKind = computed(() => currentSaved.value?.kind ?? selected.value)
 const currentType = computed(() => reportKinds.find(item => item.value === currentKind.value) ?? reportKinds[0])
 const currentTitle = computed(() => currentSaved.value?.name ?? currentType.value.label)
 const canUsePeriod = computed(() => currentKind.value !== 'trial_balance')
-const classes = { asset: 'Ativo', liability: 'Passivo', equity: 'Patrimônio',
-  revenue: 'Receita', expense: 'Despesa' }
+const classes = { asset: t('librefinance', 'Asset'), liability: t('librefinance', 'Liability'), equity: t('librefinance', 'Equity'),
+  revenue: t('librefinance', 'Revenue'), expense: t('librefinance', 'Expense') }
 const balanceColumns = [
-  { id: 'code', label: 'Código contábil' },
-  { id: 'name', label: 'Nome da conta' },
-  { id: 'class', label: 'Natureza' },
-  { id: 'balanceMinor', label: 'Saldo contábil' },
+  { id: 'code', label: t('librefinance', 'Accounting code') },
+  { id: 'name', label: t('librefinance', 'Account name') },
+  { id: 'class', label: t('librefinance', 'Account nature') },
+  { id: 'balanceMinor', label: t('librefinance', 'Ledger balance') },
 ]
 const defaultBalanceColumns = balanceColumns.map(column => column.id)
 const classOptions = [
-  { value: '', label: 'Todas as classes' },
+  { value: '', label: t('librefinance', 'All classes') },
   ...Object.entries(classes).map(([value,label]) => ({ value, label })),
 ]
 const activeBalanceColumns = computed(() => currentSaved.value?.columns?.length
@@ -155,7 +156,7 @@ function beginEdit() {
 async function saveReport() {
   if (catalogBusy.value) return
   modalError.value = ''
-  if (!draft.value.name.trim()) { modalError.value = 'Informe um nome para o relatório.'; return }
+  if (!draft.value.name.trim()) { modalError.value = t('librefinance', 'Enter a name for the report.'); return }
   catalogBusy.value = true
   try {
     const payload = { name: draft.value.name.trim(), kind: draft.value.kind,
@@ -174,7 +175,7 @@ async function saveReport() {
     from.value = response.from ?? startYear
     through.value = response.through
     editorOpen.value = false
-    notice.value = id ? 'Relatório atualizado.' : 'Relatório cadastrado neste espaço.'
+    notice.value = id ? t('librefinance', 'Report updated.') : t('librefinance', 'Report registered in this workspace.')
     execute()
   } catch (e) { modalError.value = financeError(e) }
   finally { catalogBusy.value = false }
@@ -187,7 +188,7 @@ async function archiveReport() {
     await financeApi('librefinance_reports', Number(activeId.value), '/saved-reports/' + id, 'DELETE')
     catalog.value = catalog.value.filter(row => row.id !== id)
     archiveTarget.value = null
-    notice.value = 'Relatório arquivado; nenhum lançamento contábil foi excluído.'
+    notice.value = t('librefinance', 'Report archived; no ledger entries were deleted.')
     if (selected.value === 'saved:' + id) selectReport('profit_loss')
   } catch (e) { error.value = financeError(e) }
   finally { catalogBusy.value = false }
@@ -202,7 +203,7 @@ async function deleteReport() {
     catalog.value = catalog.value.filter(row => row.id !== id)
     deleteTarget.value = null
     if (selected.value === 'saved:' + id) selectReport('profit_loss')
-    notice.value = 'Configuração excluída. Nenhum lançamento contábil foi modificado.'
+    notice.value = t('librefinance', 'Configuration deleted. No ledger entries were changed.')
   } catch (e) { error.value = financeError(e) }
   finally { catalogBusy.value = false }
 }
@@ -211,21 +212,21 @@ onBeforeUnmount(() => ++generation)
 </script>
 <template>
   <div class="lf-view lf-report-workspace">
-    <LfPageHeader title="Relatórios" eyebrow="ANÁLISE FINANCEIRA"
-      description="Escolha um demonstrativo, ajuste seu período e salve configurações para uso futuro.">
+    <LfPageHeader :title="t('librefinance', 'Reports')" :eyebrow="t('librefinance', 'FINANCIAL ANALYSIS')"
+      :description="t('librefinance', 'Choose a report, adjust its period and save configurations for future use.')">
       <template #actions>
         <NcButton v-if="manager" variant="primary" @click="beginCreate">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-          Novo relatório
+          {{ t('librefinance', 'New report') }}
         </NcButton>
       </template>
     </LfPageHeader>
     <NcNoteCard v-if="error" type="error" role="alert">{{ error }}</NcNoteCard>
     <NcNoteCard v-if="notice" type="success" role="status">{{ notice }}</NcNoteCard>
     <div class="lf-report-layout">
-      <section class="lf-surface lf-report-catalog" aria-label="Catálogo de relatórios">
-        <h2>Modelos disponíveis</h2>
-        <p class="lf-muted">Demonstrativos baseados em dados efetivamente contabilizados.</p>
+      <section class="lf-surface lf-report-catalog" :aria-label="t('librefinance', 'Report catalog')">
+        <h2>{{ t('librefinance', 'Available templates') }}</h2>
+        <p class="lf-muted">{{ t('librefinance', 'Reports based on posted accounting data.') }}</p>
         <div class="lf-report-choices">
           <button v-for="type in reportKinds" :key="type.value" type="button"
             :aria-pressed="selected === type.value" :class="{ active: selected === type.value }"
@@ -234,9 +235,9 @@ onBeforeUnmount(() => ++generation)
             <span><strong>{{ type.label }}</strong><small>{{ type.help }}</small></span>
           </button>
         </div>
-        <div class="lf-report-catalog-heading"><h3>Meus relatórios</h3>
-          <NcButton v-if="manager" variant="tertiary" @click="beginCreate">Adicionar</NcButton></div>
-        <p v-if="!catalog.length" class="lf-muted">Nenhum relatório personalizado cadastrado.</p>
+        <div class="lf-report-catalog-heading"><h3>{{ t('librefinance', 'My reports') }}</h3>
+          <NcButton v-if="manager" variant="tertiary" @click="beginCreate">{{ t('librefinance', 'Add') }}</NcButton></div>
+        <p v-if="!catalog.length" class="lf-muted">{{ t('librefinance', 'No custom report has been registered.') }}</p>
         <div class="lf-report-choices">
           <button v-for="saved in catalog" :key="saved.id" type="button"
             :aria-pressed="selected === 'saved:' + saved.id"
@@ -247,56 +248,58 @@ onBeforeUnmount(() => ++generation)
           </button>
         </div>
         <NcButton v-if="catalogNext" variant="tertiary" :disabled="catalogBusy"
-          @click="loadSaved(catalogNext)">Carregar mais modelos</NcButton>
+          @click="loadSaved(catalogNext)">{{ t('librefinance', 'Load more templates') }}</NcButton>
       </section>
       <section class="lf-surface lf-report-preview">
         <div class="lf-section-heading"><div>
           <h2>{{ currentTitle }}</h2><p>{{ currentType.help }}</p></div>
           <div v-if="manager && currentSaved" class="lf-row-actions">
             <NcButton variant="tertiary" @click="beginEdit">
-              <template #icon><NcIconSvgWrapper :path="mdiPencilOutline" :size="18" /></template>Editar
+              <template #icon><NcIconSvgWrapper :path="mdiPencilOutline" :size="18" /></template>{{ t('librefinance', 'Edit') }}
             </NcButton>
             <NcButton variant="tertiary" @click="archiveTarget = currentSaved">
-              <template #icon><NcIconSvgWrapper :path="mdiArchiveOutline" :size="18" /></template>Arquivar
+              <template #icon><NcIconSvgWrapper :path="mdiArchiveOutline" :size="18" /></template>{{ t('librefinance', 'Archive') }}
             </NcButton>
             <NcButton variant="tertiary" @click="deleteTarget = currentSaved">
-              <template #icon><NcIconSvgWrapper :path="mdiDeleteOutline" :size="18" /></template>Excluir
+              <template #icon><NcIconSvgWrapper :path="mdiDeleteOutline" :size="18" /></template>{{ t('librefinance', 'Delete') }}
             </NcButton>
           </div>
         </div>
         <form class="lf-filter-row lf-report-period" @submit.prevent="execute">
-          <LfDateField v-if="canUsePeriod" id="lf-report-from" v-model="from" label="De" />
-          <LfDateField id="lf-report-through" v-model="through" :label="canUsePeriod ? 'Até' : 'Data de referência'" />
-          <NcButton variant="secondary" type="submit" :disabled="busy">Aplicar período</NcButton>
+          <LfDateField v-if="canUsePeriod" id="lf-report-from" v-model="from" :label="t('librefinance', 'From')" />
+          <LfDateField id="lf-report-through" v-model="through" :label="canUsePeriod ? t('librefinance', 'Through') : t('librefinance', 'Reference date')" />
+          <NcButton variant="secondary" type="submit" :disabled="busy">{{ t('librefinance', 'Apply period') }}</NcButton>
         </form>
-        <p class="lf-muted">{{currentSaved ? 'Modelo salvo com período inicial. Você pode consultar outras datas sem alterar o modelo.' : 'Modelo padrão disponível em todos os espaços autorizados.'}}</p>
-        <div v-if="busy && !result" class="lf-loading"><NcLoadingIcon :size="30" /><p>Calculando relatório…</p></div>
+        <p class="lf-muted">{{currentSaved ? t('librefinance', 'Saved template with an initial period. You can view other dates without changing the template.') : t('librefinance', 'Standard template available in all authorized workspaces.')}}</p>
+        <div v-if="busy && !result" class="lf-loading"><NcLoadingIcon :size="30" /><p>{{ t('librefinance', 'Calculating report…') }}</p></div>
         <template v-if="result && currentKind === 'profit_loss'">
           <div class="lf-report-metrics">
-            <div><span>Receitas</span><strong>{{ money(result.revenueMinor) }}</strong></div>
-            <div><span>Despesas</span><strong>{{ money(result.expenseMinor) }}</strong></div>
-            <div><span>Resultado</span><strong>{{ money(result.resultMinor) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Income') }}</span><strong>{{ money(result.revenueMinor) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Expenses') }}</span><strong>{{ money(result.expenseMinor) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Result') }}</span><strong>{{ money(result.resultMinor) }}</strong></div>
           </div>
-          <p class="lf-muted">Resultado realizado no período. Não inclui previsões ou extratos pendentes.</p>
+          <p class="lf-muted">{{ t('librefinance', 'Actual result for the period. Excludes forecasts and pending bank statements.') }}</p>
         </template>
         <template v-if="result && currentKind === 'cash_flow'">
           <div class="lf-report-metrics">
-            <div><span>Saldo inicial</span><strong>{{ money(result.openingMinor) }}</strong></div>
-            <div><span>Variação</span><strong>{{ money(result.netMinor) }}</strong></div>
-            <div><span>Saldo final</span><strong>{{ money(result.closingMinor) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Opening balance') }}</span><strong>{{ money(result.openingMinor) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Change') }}</span><strong>{{ money(result.netMinor) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Closing balance') }}</span><strong>{{ money(result.closingMinor) }}</strong></div>
           </div>
-          <h3>Movimentos por mês</h3>
+          <h3>{{ t('librefinance', 'Movements by month') }}</h3>
           <div v-if="result.months.length" class="lf-table-scroll"><table class="lf-data-table">
-            <thead><tr><th>Mês</th><th class="lf-numeric">Variação líquida</th></tr></thead>
+            <thead><tr>
+              <th>{{ t('librefinance', 'Month') }}</th>
+              <th class="lf-numeric">{{ t('librefinance', 'Net change') }}</th>
+            </tr></thead>
             <tbody><tr v-for="month in result.months" :key="month.month">
               <td>{{ month.month }}</td><td class="lf-numeric">{{ money(month.netMinor) }}</td>
             </tr></tbody>
           </table></div>
-          <NcEmptyContent v-else name="Sem movimentação neste período" />
+          <NcEmptyContent v-else :name="t('librefinance', 'No movements in this period')" />
         </template>
         <template v-if="result && currentKind === 'trial_balance'">
-          <p v-if="activeAccountClass" class="lf-muted">Filtrado por natureza: {{ classes[activeAccountClass] }}.
-            O filtro é aplicado no servidor antes da paginação.</p>
+          <p v-if="activeAccountClass" class="lf-muted">{{ t('librefinance', 'Filtered by class: {class}. The filter is applied on the server before pagination.', { class: classes[activeAccountClass] }, { escape: false, sanitize: false }) }}</p>
           <div v-if="trial.length" class="lf-table-scroll"><table class="lf-data-table">
             <thead><tr><th v-for="column in activeBalanceColumns" :key="column"
               :class="{ 'lf-numeric': column === 'balanceMinor' }">
@@ -311,34 +314,31 @@ onBeforeUnmount(() => ++generation)
               </td>
             </tr></tbody>
           </table></div>
-          <NcEmptyContent v-else name="Nenhuma conta encontrada" />
-          <div v-if="trialNext" class="lf-table-footer"><NcButton :disabled="busy" @click="loadMore">Mais contas</NcButton></div>
+          <NcEmptyContent v-else :name="t('librefinance', 'No account found')" />
+          <div v-if="trialNext" class="lf-table-footer"><NcButton :disabled="busy" @click="loadMore">{{ t('librefinance', 'More accounts') }}</NcButton></div>
         </template>
         <details class="lf-finance-explanation">
-          <summary>Como esses números são calculados?</summary>
-          <p>Os demonstrativos utilizam exclusivamente lançamentos contabilizados do espaço.
-            Não incluem extratos pendentes, projeções ou dados fiscais sem escrituração.
-            Novos modelos contábeis ainda exigem serviços de cálculo próprios e validação formal.</p>
+          <summary>{{ t('librefinance', 'How are these numbers calculated?') }}</summary>
+          <p>{{ t('librefinance', 'Reports use only posted entries in the workspace. They exclude pending statements, projections and unposted tax data. New accounting models still require their own calculation services and formal validation.') }}</p>
         </details>
       </section>
     </div>
     <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="editorOpen"
-      :name="draft.id ? 'Editar relatório' : 'Novo relatório'" @update:open="editorOpen = $event">
+      :name="draft.id ? t('librefinance', 'Edit report') : t('librefinance', 'New report')" @update:open="editorOpen = $event">
       <form class="lf-dialog-form" @submit.prevent="saveReport">
-        <p>Cadastre uma configuração de relatório a partir de um demonstrativo existente.
-          A criação de demonstrativos contábeis inteiramente novos será uma capacidade futura.</p>
+        <p>{{ t('librefinance', 'Register a report configuration from an existing report. Creating entirely new accounting reports is a future capability.') }}</p>
         <NcNoteCard v-if="modalError" type="error" role="alert">{{ modalError }}</NcNoteCard>
-        <NcTextField v-model="draft.name" label="Nome do relatório" required maxlength="120" />
-        <LfSelect id="lf-saved-report-kind" v-model="draft.kind" label="Modelo base"
+        <NcTextField v-model="draft.name" :label="t('librefinance', 'Report name')" required maxlength="120" />
+        <LfSelect id="lf-saved-report-kind" v-model="draft.kind" :label="t('librefinance', 'Base template')"
           :options="reportKinds.map(item => ({value:item.value,label:item.label}))" />
         <div class="lf-form-grid">
-          <LfDateField v-if="draft.kind !== 'trial_balance'" id="lf-saved-report-from" v-model="draft.from" label="De" />
+          <LfDateField v-if="draft.kind !== 'trial_balance'" id="lf-saved-report-from" v-model="draft.from" :label="t('librefinance', 'From')" />
           <LfDateField id="lf-saved-report-through" v-model="draft.through"
-            :label="draft.kind === 'trial_balance' ? 'Data de referência' : 'Até'" />
+            :label="draft.kind === 'trial_balance' ? t('librefinance', 'Reference date') : t('librefinance', 'Through')" />
         </div>
         <section v-if="draft.kind === 'trial_balance'" class="lf-report-builder">
-          <h3>Personalizar a tabela</h3>
-          <p class="lf-muted">Escolha as colunas, sua ordem e a natureza das contas. Os cálculos contábeis não mudam.</p>
+          <h3>{{ t('librefinance', 'Customize the table') }}</h3>
+          <p class="lf-muted">{{ t('librefinance', 'Choose columns, their order and the account class. Accounting calculations do not change.') }}</p>
           <div class="lf-report-column-options">
             <NcCheckboxRadioSwitch v-for="column in balanceColumns" :key="column.id"
               :model-value="draft.columns?.includes(column.id)" type="checkbox"
@@ -346,38 +346,35 @@ onBeforeUnmount(() => ++generation)
               {{ column.label }}</NcCheckboxRadioSwitch>
           </div>
           <LfSelect id="lf-saved-report-account-class" v-model="draft.accountClass"
-            label="Mostrar apenas contas de" :options="classOptions" />
-          <NcNoteCard type="info">Esta versão configura a apresentação e o filtro de classe do balancete,
-            não cria fórmulas ou demonstrações contábeis livres.</NcNoteCard>
+            :label="t('librefinance', 'Show only accounts of class')" :options="classOptions" />
+          <NcNoteCard type="info">{{ t('librefinance', 'This version configures the trial balance presentation and class filter; it does not create custom formulas or financial statements.') }}</NcNoteCard>
         </section>
         <div class="lf-form-actions">
-          <NcButton variant="tertiary" @click="editorOpen=false">Cancelar</NcButton>
-          <NcButton variant="primary" type="submit" :disabled="catalogBusy">Salvar relatório</NcButton>
+          <NcButton variant="tertiary" @click="editorOpen=false">{{ t('librefinance', 'Cancel') }}</NcButton>
+          <NcButton variant="primary" type="submit" :disabled="catalogBusy">{{ t('librefinance', 'Save report') }}</NcButton>
         </div>
       </form>
     </NcDialog>
     <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="Boolean(deleteTarget)"
-      name="Excluir relatório permanentemente" @update:open="!$event && (deleteTarget = null)">
+      :name="t('librefinance', 'Permanently delete report')" @update:open="!$event && (deleteTarget = null)">
       <div class="lf-dialog-form">
-        <NcNoteCard type="warning">Esta ação exclui definitivamente a configuração do relatório,
-          inclusive se estiver arquivada. Não remove informações contábeis.</NcNoteCard>
-        <p>Deseja excluir <strong>{{ deleteTarget?.name }}</strong>?</p>
+        <NcNoteCard type="warning">{{ t('librefinance', 'This action permanently deletes the report configuration, even if it is archived. It does not remove accounting information.') }}</NcNoteCard>
+        <p>{{ t('librefinance', 'Delete {name}?', { name: deleteTarget?.name }, { escape: false, sanitize: false }) }}</p>
         <div class="lf-form-actions">
-          <NcButton variant="tertiary" @click="deleteTarget=null">Cancelar</NcButton>
+          <NcButton variant="tertiary" @click="deleteTarget=null">{{ t('librefinance', 'Cancel') }}</NcButton>
           <NcButton variant="primary" :disabled="catalogBusy" @click="deleteReport">
-            Excluir configuração
+            {{ t('librefinance', 'Delete configuration') }}
           </NcButton>
         </div>
       </div>
     </NcDialog>
     <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="Boolean(archiveTarget)"
-      name="Arquivar relatório" @update:open="!$event && (archiveTarget = null)">
+      :name="t('librefinance', 'Archive report')" @update:open="!$event && (archiveTarget = null)">
       <div class="lf-dialog-form">
-        <p>Arquivar <strong>{{ archiveTarget?.name }}</strong>? O modelo deixará de aparecer no catálogo.
-          Os lançamentos e dados contábeis permanecerão intactos.</p>
+        <p>{{ t('librefinance', 'Archive {name}? The template will no longer appear in the catalog. Ledger entries and accounting data will remain intact.', { name: archiveTarget?.name }, { escape: false, sanitize: false }) }}</p>
         <div class="lf-form-actions">
-          <NcButton variant="tertiary" @click="archiveTarget=null">Cancelar</NcButton>
-          <NcButton variant="primary" :disabled="catalogBusy" @click="archiveReport">Arquivar modelo</NcButton>
+          <NcButton variant="tertiary" @click="archiveTarget=null">{{ t('librefinance', 'Cancel') }}</NcButton>
+          <NcButton variant="primary" :disabled="catalogBusy" @click="archiveReport">{{ t('librefinance', 'Archive template') }}</NcButton>
         </div>
       </div>
     </NcDialog>

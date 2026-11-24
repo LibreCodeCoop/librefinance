@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcSelect from '@nextcloud/vue/components/NcSelect'
 
 const props = defineProps({
@@ -12,7 +13,7 @@ const props = defineProps({
   label: { type: String, required: true },
   id: { type: String, required: true },
   disabled: { type: Boolean, default: false },
-  placeholder: { type: String, default: 'Selecione…' },
+  placeholder: { type: String, default: undefined },
 })
 const emit = defineEmits(['update:modelValue'])
 const selected = computed(() => props.options.find(option =>
@@ -26,7 +27,7 @@ function choose(item) {
     <label class="lf-field-label" :for="id">{{ label }}</label>
     <NcSelect :input-id="id" :model-value="selected" :options="options"
       label="label" :searchable="options.length > 6"
-      :clearable="false" :disabled="disabled" :placeholder="placeholder"
+      :clearable="false" :disabled="disabled" :placeholder="placeholder ?? t('librefinance', 'Select…')"
       @update:model-value="choose" />
   </div>
 </template>
