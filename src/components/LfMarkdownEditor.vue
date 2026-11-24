@@ -2,9 +2,10 @@
 SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
-const props = defineProps({ modelValue: { type: String, default: '' }, label: { type: String, default: 'Notas detalhadas' } })
+const props = defineProps({ modelValue: { type: String, default: '' }, label: { type: String, default: t('librefinance', 'Detailed notes') } })
 const emit = defineEmits(['update:modelValue'])
 const host = ref(null)
 const source = ref(null)
@@ -36,20 +37,19 @@ onBeforeUnmount(() => { destroyed = true; editor?.destroy?.(); editor = null })
 </script>
 <template>
   <div class="lf-markdown-editor lf-form-full">
-    <label class="lf-field-label">{{ label }} (Markdown opcional)</label>
+    <label class="lf-field-label">{{ t('librefinance', '{label} (optional Markdown)', { label }, { escape: false, sanitize: false }) }}</label>
     <div ref="host" class="lf-markdown-native" :class="{ 'lf-markdown-native-ready': rich }" />
     <template v-if="!rich">
-      <div class="lf-markdown-actions" role="toolbar" aria-label="Formatação Markdown">
-        <NcButton size="small" variant="tertiary" @click="addMarkdown('**')">**Negrito**</NcButton>
-        <NcButton size="small" variant="tertiary" @click="addMarkdown('_')">*Itálico*</NcButton>
-        <NcButton size="small" variant="tertiary" @click="addMarkdown('\n- ', '')">Lista</NcButton>
+      <div class="lf-markdown-actions" role="toolbar" :aria-label="t('librefinance', 'Markdown formatting')">
+        <NcButton size="small" variant="tertiary" @click="addMarkdown('**')">{{ t('librefinance', '**Bold**') }}</NcButton>
+        <NcButton size="small" variant="tertiary" @click="addMarkdown('_')">{{ t('librefinance', '*Italic*') }}</NcButton>
+        <NcButton size="small" variant="tertiary" @click="addMarkdown('\n- ', '')">{{ t('librefinance', 'List') }}</NcButton>
       </div>
       <textarea ref="source" :value="modelValue" rows="4" maxlength="5000"
-        aria-label="Notas em Markdown" placeholder="Ex.: Contrato **123**\n- Referência do pedido"
+        :aria-label="t('librefinance', 'Markdown notes')" :placeholder="t('librefinance', 'E.g. Contract **123** - Order reference')"
         @input="setValue($event.target.value)" />
-      <small class="lf-muted">Se o aplicativo Nextcloud Text estiver ativo, será usado seu editor rico.
-        Caso contrário, as notas são gravadas como Markdown puro, sem executar HTML.</small>
+      <small class="lf-muted">{{ t('librefinance', 'If Nextcloud Text is enabled, its rich editor is used. Otherwise, notes are stored as plain Markdown without executing HTML.') }}</small>
     </template>
-    <NcNoteCard type="info">Notas adicionais não alteram o valor, a data nem a classificação do lançamento.</NcNoteCard>
+    <NcNoteCard type="info">{{ t('librefinance', 'Additional notes do not change the amount, date or classification of the entry.') }}</NcNoteCard>
   </div>
 </template>

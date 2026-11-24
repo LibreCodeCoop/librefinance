@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, nextTick, onMounted, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
@@ -17,7 +18,8 @@ import LfPageHeader from '../components/LfPageHeader.vue'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import FieldStudioShortcut from '../components/FieldStudioShortcut.vue'
 import LfMarkdownEditor from '../components/LfMarkdownEditor.vue'
-import { toMinorUnits } from '../money.js'
+import { ledgerLocale, toMinorUnits } from '../money.js'
+import { formatLedgerDate } from '../date.js'
 import { financeApi, financeError } from '../services/api.js'
 
 const w = inject('lfWorkspace')
@@ -28,15 +30,17 @@ const { writable, activeId, journals, accounts, categoryRecords,
   date, busy, banks, categories, nextBeforeId, createEntry, loadMore,
   money, accountNameById, space } = w
 const search = ref('')
+const amountPlaceholder = new Intl.NumberFormat(ledgerLocale(), { minimumFractionDigits: 2 }).format(0)
 const filtered = computed(() => journals.value.filter(row => (
   (row.memo || '').toLowerCase().includes(search.value.trim().toLowerCase())
   || (row.effective_on || '').includes(search.value.trim())
+  || formatLedgerDate(row.effective_on).includes(search.value.trim())
 )))
 const bankChoices = computed(() => banks.value.map(a => ({ value: a.id, label: a.name })))
 const counterpartChoices = computed(() => categories.value.map(a =>
   ({ value: a.id, label: a.name + ' · ' + a.code })))
 const categoryChoices = computed(() => [
-  { value: 0, label: 'Sem categoria' },
+  { value: 0, label: t('librefinance', 'No category') },
   ...categoryRecords.value.filter(c => c.kind === direction.value && c.active && c.effective_account_id)
     .map(c => ({ value: c.id, label: c.code + ' · ' + c.name })),
 ])
@@ -66,7 +70,7 @@ async function loadPaymentMethods() {
 onMounted(loadPaymentMethods)
 watch(activeId, loadPaymentMethods)
 const paymentChoices = computed(() => [
-  { value:0, label:'Não informar' },
+  { value:0, label:t('librefinance', 'Not specified') },
   ...paymentMethods.value.filter(m => m.active && (
     m.bank_account_id === null || Number(m.bank_account_id) === Number(bankId.value)))
     .map(m => ({ value:m.id, label:m.name })),
@@ -85,9 +89,9 @@ const selectedBank = computed(() => banks.value.find(item => Number(item.id) ===
 const selectedCounterpart = computed(() => counterpartChoices.value.find(item => Number(item.value) === Number(categoryId.value)))
 const entrySummary = computed(() => {
   if (!entryMinor.value || !selectedBank.value || !selectedCounterpart.value) return ''
-  return (direction.value === 'expense' ? 'Saída de ' : 'Entrada de ')
-    + money(entryMinor.value) + (direction.value === 'expense' ? ' da conta ' : ' na conta ')
-    + selectedBank.value.name + '. Classificação: ' + selectedCounterpart.value.label + '.'
+  return direction.value === 'expense'
+    ? t('librefinance', 'Outflow of {amount} from account {account}. Classification: {classification}.', { amount: money(entryMinor.value), account: selectedBank.value.name, classification: selectedCounterpart.value.label }, { escape: false, sanitize: false })
+    : t('librefinance', 'Inflow of {amount} into account {account}. Classification: {classification}.', { amount: money(entryMinor.value), account: selectedBank.value.name, classification: selectedCounterpart.value.label }, { escape: false, sanitize: false })
 })
 // Picking the only valid account is safe; guessing when there are multiple is not.
 watch([dialog, counterpartChoices], ([opened, choices]) => {
@@ -117,7 +121,7 @@ async function submit() {
     return
   }
   if (!bankId.value || !categoryId.value || !date.value || !memo.value.trim()) {
-    entryError.value = 'Informe conta financeira, conta de receita/despesa, data e descrição antes de continuar.'
+    entryError.value = t('librefinance', 'Enter the financial account, income or expense account, date and description before continuing.')
     return
   }
   await createEntry({ customFields: entryFields.value, notesMarkdown: notesMarkdown.value,
@@ -135,44 +139,46 @@ const formatted = row => money(Math.abs(row.postings?.[0]?.amountMinor || 0))
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Entradas e saídas" eyebrow="FINANCEIRO"
-      description="Registre dinheiro já movimentado sem conta pendente cadastrada. Quando houver uma conta a pagar ou receber, use Pagar ou Receber nela; para conferir o banco, use Extratos e conciliação.">
+    <LfPageHeader :title="t('librefinance', 'Inflows and outflows')" :eyebrow="t('librefinance', 'FINANCE')"
+      :description="t('librefinance', 'Record money already moved without a registered pending bill. For an existing payable or receivable, use its Pay or Receive action; to review bank activity, use Statements and reconciliation.')">
       <template #actions>
         <FieldStudioShortcut entity-kind="journal" />
         <NcButton v-if="writable" variant="primary" @click="dialog = true">
           <template #icon><NcIconSvgWrapper :path="mdiPlus" :size="20" /></template>
-          Registrar entrada ou saída
+          {{ t('librefinance', 'Record inflow or outflow') }}
         </NcButton>
       </template>
     </LfPageHeader>
     <section class="lf-surface">
       <div class="lf-section-heading">
-        <h2>Movimentações contabilizadas</h2>
-        <NcTextField v-model="search" label="Filtrar lançamentos carregados"
-          placeholder="Descrição ou data" type="search"
+        <h2>{{ t('librefinance', 'Posted transactions') }}</h2>
+        <NcTextField v-model="search" :label="t('librefinance', 'Filter loaded journal entries')"
+          :placeholder="t('librefinance', 'Description or date')" type="search"
           class="lf-search-field" />
       </div>
       <details class="lf-finance-explanation">
-        <summary>Como interpretar os lançamentos?</summary>
-        <p>Débito e crédito são os dois lados do registro contábil. Um lançamento concluído não é editado:
-          diferenças precisam ser corrigidas por outro registro. A busca filtra apenas as páginas carregadas.
-          Extratos importados e ainda pendentes são revisados em Extratos e conciliação.</p>
+        <summary>{{ t('librefinance', 'How should journal entries be interpreted?') }}</summary>
+        <p>{{ t('librefinance', 'Debit and credit are the two sides of an accounting entry. A posted entry cannot be edited: differences must be corrected with another entry. Search filters only loaded pages. Imported, pending statements are reviewed in Statements and reconciliation.') }}</p>
       </details>
       <div v-if="filtered.length" class="lf-table-scroll">
         <table class="lf-data-table">
           <thead><tr>
-            <th>Data</th><th>Descrição</th><th>Classificação</th>
-            <th>Débito</th><th>Crédito</th><th class="lf-numeric">Valor</th>
+            <th>{{ t('librefinance', 'Date') }}</th>
+            <th>{{ t('librefinance', 'Description') }}</th>
+            <th>{{ t('librefinance', 'Classification') }}</th>
+            <th>{{ t('librefinance', 'Debit') }}</th>
+            <th>{{ t('librefinance', 'Credit') }}</th>
+            <th class="lf-numeric">{{ t('librefinance', 'Amount') }}</th>
           </tr></thead>
           <tbody>
             <tr v-for="entry in filtered" :key="entry.id">
-              <td>{{ entry.effective_on }}</td>
+              <td><time :datetime="entry.effective_on">{{ formatLedgerDate(entry.effective_on) }}</time></td>
               <td><strong>{{ entry.memo }}</strong>
-                <small v-if="entry.notes_md" class="lf-muted">Notas em Markdown anexadas</small><small v-if="entry.payment_method_id && paymentLabel(entry.payment_method_id)"
+                <small v-if="entry.notes_md" class="lf-muted">{{ t('librefinance', 'Markdown notes attached') }}</small><small v-if="entry.payment_method_id && paymentLabel(entry.payment_method_id)"
                   class="lf-muted"> · {{ paymentLabel(entry.payment_method_id) }}</small></td>
               <td>{{ entry.category_id
                 ? (categoryRecords.find(c => c.id === entry.category_id)?.name || '#' + entry.category_id)
-                : 'Não classificado' }}</td>
+                : t('librefinance', 'Unclassified') }}</td>
               <td>{{ accountNameById(entry.postings?.find(p => p.amountMinor > 0)?.accountId) }}</td>
               <td>{{ accountNameById(entry.postings?.find(p => p.amountMinor < 0)?.accountId) }}</td>
               <td class="lf-numeric lf-nowrap"><strong>{{ formatted(entry) }}</strong></td>
@@ -181,70 +187,68 @@ const formatted = row => money(Math.abs(row.postings?.[0]?.amountMinor || 0))
         </table>
       </div>
       <NcEmptyContent v-else
-        :name="search ? 'Nenhum lançamento encontrado nesta página' : 'Nenhum lançamento contabilizado'"
-        description="Use Registrar entrada ou saída ou carregue mais páginas do histórico." />
+        :name="search ? t('librefinance', 'No journal entries found on this page') : t('librefinance', 'No posted journal entries')"
+        :description="t('librefinance', 'Use Record inflow or outflow, or load more history.')" />
       <div v-if="nextBeforeId" class="lf-table-footer">
-        <NcButton variant="secondary" :disabled="busy" @click="loadMore">Carregar mais lançamentos</NcButton>
+        <NcButton variant="secondary" :disabled="busy" @click="loadMore">{{ t('librefinance', 'Load more journal entries') }}</NcButton>
       </div>
     </section>
 
-    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="dialog" name="Registrar entrada ou saída"
+    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="dialog" :name="t('librefinance', 'Record inflow or outflow')"
       @update:open="dialog = $event">
       <form class="lf-dialog-form" @submit.prevent="submit">
-        <p>Registre uma <strong>{{ direction === 'expense' ? 'despesa paga' : 'receita recebida' }}</strong>.
-          O saldo contábil da conta financeira será atualizado imediatamente.
-          Se estiver pagando uma conta ou cobrança cadastrada, use a ação
-          Pagar ou Receber nessa conta para evitar duplicidade.
-          Para apenas conferir um extrato, utilize Extratos e conciliação.</p>
+        <p><strong>{{ direction === 'expense' ? t('librefinance', 'Record a paid expense.') : t('librefinance', 'Record received income.') }}</strong>
+          {{ t('librefinance', 'The financial account ledger balance will be updated immediately. To pay or receive a registered bill, use its Pay or Receive action to avoid duplicates. To review a bank statement, use Statements and reconciliation.') }}</p>
         <NcNoteCard v-if="entryError" type="error" role="alert">{{ entryError }}</NcNoteCard>
         <fieldset class="lf-entry-direction">
-          <legend>O que aconteceu?</legend>
+          <legend>{{ t('librefinance', 'What happened?') }}</legend>
           <div class="lf-entry-direction-options">
             <button type="button" :class="{ selected: direction === 'expense' }"
               :aria-pressed="direction === 'expense'" @click="direction = 'expense'">
               <NcIconSvgWrapper :path="mdiArrowUpRight" :size="22" aria-hidden="true" />
-              <span><strong>Despesa</strong><small>Dinheiro saiu</small></span>
+              <span><strong>{{ t('librefinance', 'Expense') }}</strong>
+                <small>{{ t('librefinance', 'Money went out') }}</small></span>
             </button>
             <button type="button" :class="{ selected: direction === 'income' }"
               :aria-pressed="direction === 'income'" @click="direction = 'income'">
               <NcIconSvgWrapper :path="mdiArrowDownLeft" :size="22" aria-hidden="true" />
-              <span><strong>Receita</strong><small>Dinheiro entrou</small></span>
+              <span><strong>{{ t('librefinance', 'Revenue') }}</strong>
+                <small>{{ t('librefinance', 'Money came in') }}</small></span>
             </button>
           </div>
         </fieldset>
         <div class="lf-form-grid">
           <LfSelect id="lf-journal-bank" v-model="bankId"
-            :label="direction === 'expense' ? 'De onde saiu o dinheiro?' : 'Onde o dinheiro entrou?'"
-            :options="bankChoices" placeholder="Selecione uma conta" />
+            :label="direction === 'expense' ? t('librefinance', 'Where did the money come from?') : t('librefinance', 'Where did the money go?')"
+            :options="bankChoices" :placeholder="t('librefinance', 'Select an account')" />
           <LfSelect id="lf-journal-counterpart" v-model="categoryId"
-            :label="direction === 'expense' ? 'Conta de despesa' : 'Conta de receita'"
-            :options="counterpartChoices" placeholder="Escolha a classificação contábil" />
+            :label="direction === 'expense' ? t('librefinance', 'Expense account') : t('librefinance', 'Revenue account')"
+            :options="counterpartChoices" :placeholder="t('librefinance', 'Choose the accounting classification')" />
           <LfSelect v-if="categoryChoices.length > 1" id="lf-journal-category"
-            v-model="transactionCategoryId" label="Categoria (opcional)"
+            v-model="transactionCategoryId" :label="t('librefinance', 'Category (optional)')"
             :options="categoryChoices" />
-          <NcTextField v-model="amount" label="Valor" inputmode="decimal"
-            placeholder="0,00" />
+          <NcTextField v-model="amount" :label="t('librefinance', 'Amount')" inputmode="decimal"
+            :placeholder="amountPlaceholder" />
           <LfSelect id="lf-journal-payment-method" v-model="paymentMethodId"
-            label="Forma de pagamento (opcional)" :options="paymentChoices" />
-          <LfDateField id="lf-journal-date" v-model="date" label="Data da movimentação" />
-          <NcTextField v-model="memo" label="Descrição breve" maxlength="255"
-            placeholder="Ex.: pagamento de material de escritório" class="lf-form-full" />
+            :label="t('librefinance', 'Payment method (optional)')" :options="paymentChoices" />
+          <LfDateField id="lf-journal-date" v-model="date" :label="t('librefinance', 'Transaction date')" />
+          <NcTextField v-model="memo" :label="t('librefinance', 'Short description')" maxlength="255"
+            :placeholder="t('librefinance', 'E.g. payment for office supplies')" class="lf-form-full" />
         </div>
         <NcNoteCard v-if="paymentError" type="warning">
-          Formas de pagamento indisponíveis: {{ paymentError }}
+          {{ t('librefinance', 'Payment methods unavailable: {error}', { error: paymentError }, { escape: false, sanitize: false }) }}
         </NcNoteCard>
-        <LfMarkdownEditor v-model="notesMarkdown" label="Descrição detalhada" />
+        <LfMarkdownEditor v-model="notesMarkdown" :label="t('librefinance', 'Detailed description')" />
         <CustomFieldsPanel v-model="entryFields" entity-kind="journal" />
-        <p class="lf-dialog-help">A conta de receita ou despesa determina como a operação aparece nos relatórios.
-          A categoria, quando disponível, permite detalhar a classificação.</p>
+        <p class="lf-dialog-help">{{ t('librefinance', 'The income or expense account determines how the transaction appears in reports. A category, if available, provides a more detailed classification.') }}</p>
         <div v-if="entrySummary" class="lf-dialog-summary" role="status" aria-live="polite">
-          <strong>Confira antes de contabilizar</strong>
+          <strong>{{ t('librefinance', 'Review before posting') }}</strong>
           <p>{{ entrySummary }}</p>
-          <small>O registro é definitivo. Corrija um erro por um novo lançamento, nunca alterando o histórico.</small>
+          <small>{{ t('librefinance', 'The entry is final. Correct errors with a new entry, never by changing the history.') }}</small>
         </div>
         <div class="lf-form-actions">
-          <NcButton variant="tertiary" @click="closeDialog">Cancelar</NcButton>
-          <NcButton variant="primary" type="submit" :disabled="busy">Contabilizar movimentação</NcButton>
+          <NcButton variant="tertiary" @click="closeDialog">{{ t('librefinance', 'Cancel') }}</NcButton>
+          <NcButton variant="primary" type="submit" :disabled="busy">{{ t('librefinance', 'Post transaction') }}</NcButton>
         </div>
       </form>
     </NcDialog>
