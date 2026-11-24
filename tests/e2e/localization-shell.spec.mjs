@@ -191,3 +191,84 @@ test('report templates retain saved filter, columns, name and amounts across lan
   await expect(table.locator('tbody .lf-numeric')).toHaveText(balances)
   await expect(page.getByText('Filtrado por natureza: Ativo.')).toBeVisible()
 })
+
+
+test('journal localization preserves posted amount, calendar date and user text', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'personal')
+  const id = new URL(page.url()).searchParams.get('spaceId')
+  const url = '/index.php/apps/librefinance/?spaceId=' + id + '&view=transactions&forceLanguage='
+  await page.goto(url + 'en')
+  const view = page.locator('.lf-view')
+  await expect(view.getByRole('heading', { name: 'Inflows and outflows', exact: true })).toBeVisible()
+  await view.getByRole('button', { name: 'Record inflow or outflow', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Record inflow or outflow' })
+  await expect(dialog.getByRole('button', { name: /Expense Money went out/ })).toHaveAttribute('aria-pressed', 'true')
+  await dialog.getByRole('textbox', { name: 'Amount', exact: true }).fill('123.45')
+  const memo = 'Despesa sintética locale'
+  const notes = '**Contrato sintético 123**'
+  await dialog.getByRole('textbox', { name: 'Short description' }).fill(memo)
+  await dialog.getByRole('textbox', { name: 'Markdown notes' }).fill(notes)
+  await expect(dialog.getByText(/Outflow of.*Classification:/)).toBeVisible()
+  const saved = page.waitForResponse(response => response.url().includes('/api/spaces/' + id + '/journals')
+    && response.request().method() === 'POST' && response.ok())
+  await dialog.getByRole('button', { name: 'Post transaction', exact: true }).click()
+  const payload = (await saved).request().postDataJSON()
+  expect(payload.amountMinor).toBe(12345)
+  expect(payload.memo).toBe(memo)
+  expect(payload.notesMarkdown).toBe(notes)
+  expect(payload.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  const row = view.getByRole('row', { name: new RegExp(memo) })
+  await expect(row).toContainText('Markdown notes attached')
+  await expect(row.locator('time')).toHaveAttribute('datetime', payload.date)
+  const presented = await row.locator('time').innerText()
+  const amount = await row.locator('.lf-numeric').innerText()
+  await page.goto(url + 'pt_BR')
+  await expect(view.getByRole('heading', { name: 'Entradas e saídas', exact: true })).toBeVisible()
+  await expect(row).toContainText('Notas em Markdown anexadas')
+  await expect(row.locator('time')).toHaveAttribute('datetime', payload.date)
+  await expect(row.locator('time')).toHaveText(presented)
+  await expect(row.locator('.lf-numeric')).toHaveText(amount)
+  const filter = view.getByRole('searchbox', { name: 'Filtrar lançamentos carregados' })
+  await filter.fill(presented)
+  await expect(row).toBeVisible()
+  await filter.fill(payload.date)
+  await expect(row).toBeVisible()
+})
+
+
+test('financial assistant localizes consent while previews remain read-only', async ({ page }) => {
+  await login(page)
+  await makeSpace(page)
+  const id = new URL(page.url()).searchParams.get('spaceId')
+  const url = '/index.php/apps/librefinance/?spaceId=' + id + '&view=ai&forceLanguage='
+  let submissions = 0
+  await page.route('**/api/spaces/*/ai/analyze', async route => {
+    submissions++
+    // A regression must fail safely: never reach a provider during this test.
+    await route.abort()
+  })
+  await page.goto(url + 'en')
+  await expect(page.getByRole('heading', { name: 'Financial assistant' })).toBeVisible()
+  await expect(page.getByText('No amounts will be sent without your confirmation.', { exact: false })).toBeVisible()
+  const enPreview = page.waitForResponse(response => response.url().includes('/api/spaces/' + id + '/ai/preview?')
+    && response.request().method() === 'GET' && response.ok())
+  await page.getByRole('button', { name: 'Preview amounts', exact: true }).click()
+  const en = await (await enPreview).json()
+  await expect(page.getByRole('heading', { name: 'Information that would be shared' })).toBeVisible()
+  await expect(page.getByRole('checkbox', { name: 'I authorize sending only these totals to the configured provider.' })).not.toBeChecked()
+  await expect(page.getByRole('button', { name: 'Request analysis', exact: true })).toBeDisabled()
+  await page.goto(url + 'pt_BR')
+  await expect(page.getByRole('heading', { name: 'Assistente financeiro' })).toBeVisible()
+  const ptPreview = page.waitForResponse(response => response.url().includes('/api/spaces/' + id + '/ai/preview?')
+    && response.request().method() === 'GET' && response.ok())
+  await page.getByRole('button', { name: 'Pré-visualizar valores', exact: true }).click()
+  const pt = await (await ptPreview).json()
+  for (const field of ['periodStart', 'periodEnd', 'currency', 'revenueMinor', 'expenseMinor', 'resultMinor']) {
+    expect(pt[field], field).toEqual(en[field])
+  }
+  await expect(page.getByRole('heading', { name: 'Informações que seriam compartilhadas' })).toBeVisible()
+  await expect(page.getByRole('checkbox', { name: 'Autorizo o envio somente destes totais ao provedor configurado.' })).not.toBeChecked()
+  await expect(page.getByRole('button', { name: 'Solicitar análise', exact: true })).toBeDisabled()
+  expect(submissions).toBe(0)
+})

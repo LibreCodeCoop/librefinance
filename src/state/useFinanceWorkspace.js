@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Finance workspace state and authorized API actions. No view markup.
 import { ref, computed, onMounted, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { formatLedgerMoney, toMinorUnits } from '../money.js'
@@ -99,9 +100,9 @@ const accountNameById = (id) => accounts.value.find((a) => a.id === Number(id))?
 
 function unwrapError(e) {
   const code = e.response?.data?.error
-  if (code === 'revision_conflict') return 'As permissões mudaram. Atualize a gestão antes de tentar novamente.'
-  if (code === 'grant_revision_required') return 'Carregue as permissões atuais antes de alterar os acessos.'
-  return code || e.message || 'Falha desconhecida'
+  if (code === 'revision_conflict') return t('librefinance', 'Permissions changed. Refresh the workspace before trying again.')
+  if (code === 'grant_revision_required') return t('librefinance', 'Load the current permissions before changing access.')
+  return code || e.message || t('librefinance', 'Unknown failure')
 }
 async function call(method, path, data) {
   const url = generateUrl('/apps/librefinance' + path)
@@ -582,7 +583,7 @@ async function removeAccess(type, identifier) {
 async function createEntry(options = {}) {
   await doAction(async () => {
     const minor = toMinorUnits(amount.value)
-    if (minor <= 0 || !bankId.value || !categoryId.value) throw new Error('Selecione as contas e informe o valor.')
+    if (minor <= 0 || !bankId.value || !categoryId.value) throw new Error(t('librefinance', 'Select the accounts and enter the amount.'))
     const debitId = direction.value === 'income' ? Number(bankId.value) : Number(categoryId.value)
     const creditId = direction.value === 'income' ? Number(categoryId.value) : Number(bankId.value)
     await call('POST', '/api/spaces/' + activeId.value + '/journals', {
@@ -598,7 +599,7 @@ async function createEntry(options = {}) {
     memo.value = ''
     transactionCategoryId.value = 0
     await refreshCurrent()
-  }, 'Lançamento contabilizado.')
+  }, t('librefinance', 'Journal entry posted.'))
 }
 async function loadMore() {
   if (!nextBeforeId.value) return
