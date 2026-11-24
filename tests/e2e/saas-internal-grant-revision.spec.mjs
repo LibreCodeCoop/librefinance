@@ -14,6 +14,8 @@ test('SaaS member editor sends current CAS revision for grant and revocation', a
   let present = false
   let posted = 0
   let deleted = 0
+  let postedPayload = null
+  let deletedRevision = null
 
   await page.route('**/apps/librefinance/api/spaces/*/members**', async route => {
     const request = route.request()
@@ -22,22 +24,21 @@ test('SaaS member editor sends current CAS revision for grant and revocation', a
       const response = await route.fetch()
       const payload = await response.json()
       return route.fulfill({ response, json: {
-        ...payload, grantRevision: revision,
+        ...payload, grantRevision: revision, canManageMembers: true,
         members: [...(payload.members || []),
+          { uid: 'synthetic-list-loaded', role: 'owner' },
           ...(present ? [{ uid: 'synthetic-revision-user', role: 'viewer' }] : [])],
       } })
     }
     if (request.method() === 'POST' && url.pathname.endsWith('/members')) {
-      expect(request.postDataJSON()).toEqual({
-        uid: 'synthetic-revision-user', role: 'viewer', expectedRevision: 6,
-      })
+      postedPayload = request.postDataJSON()
       ++posted
       revision = 7
       present = true
       return route.fulfill({ status: 200, json: { ok: true } })
     }
     if (request.method() === 'DELETE' && url.pathname.endsWith('/members/synthetic-revision-user')) {
-      expect(url.searchParams.get('expectedRevision')).toBe('7')
+      deletedRevision = url.searchParams.get('expectedRevision')
       ++deleted
       revision = 8
       present = false
@@ -47,6 +48,9 @@ test('SaaS member editor sends current CAS revision for grant and revocation', a
   })
   await page.reload()
   await goToView(page, 'Acessos e compartilhamento')
+  // Wait for the first member response and the reactive revision to render;
+  // clicking during initial loading exercises a different UI state.
+  await expect(page.getByText('synthetic-list-loaded', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Usuário', exact: true }).click()
   const grant = page.getByRole('dialog', { name: 'Conceder acesso a usuário' })
@@ -60,4 +64,33 @@ test('SaaS member editor sends current CAS revision for grant and revocation', a
   await expect(page.getByRole('button', { name: 'Revogar acesso de synthetic-revision-user' })).toHaveCount(0)
   expect(posted).toBe(1)
   expect(deleted).toBe(1)
+  expect(postedPayload).toEqual({
+    uid: 'synthetic-revision-user', role: 'viewer', expectedRevision: 6,
+  })
+  expect(deletedRevision).toBe('7')
+})
+
+test('SaaS member buttons follow the server-authorized management capability', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'personal')
+  let authorized = false
+  await page.route('**/apps/librefinance/api/spaces/*/members**', async route => {
+    const request = route.request()
+    if (request.method() !== 'GET'
+      || !new URL(request.url()).pathname.endsWith('/members')) return route.continue()
+    const response = await route.fetch()
+    const payload = await response.json()
+    return route.fulfill({ response, json: {
+      ...payload, grantRevision: 5, canManageMembers: authorized,
+    } })
+  })
+  await page.reload()
+  await goToView(page, 'Acessos e compartilhamento')
+  await expect(page.getByRole('button', { name: 'Usuário', exact: true })).toHaveCount(0)
+  await expect(page.getByText('Apenas quem possui permissão financeira para gerenciar papéis', { exact: false })).toBeVisible()
+
+  authorized = true
+  await page.reload()
+  await goToView(page, 'Acessos e compartilhamento')
+  await expect(page.getByRole('button', { name: 'Usuário', exact: true })).toBeVisible()
 })

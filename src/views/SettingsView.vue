@@ -17,7 +17,7 @@ import FieldStudioManager from '../components/FieldStudioManager.vue'
 import PaymentMethodsManager from '../components/PaymentMethodsManager.vue'
 import { financeApi, financeError } from '../services/api.js'
 const w=inject('lfWorkspace')
-const {activeId, manager, members, membersGrantRevision, groupGrants, modules,
+const {activeId, manager, members, membersGrantRevision, canManageMembers, groupGrants, modules,
   shareUid, shareRole, groupGid, groupRole, shareUser, shareGroup,
   toggleModule, refreshCurrent, busy}=w
 const props = defineProps({
@@ -118,13 +118,17 @@ async function confirmRemoval() {
           Contas e grupos do Nextcloud não são cadastros financeiros personalizáveis:
           os campos extras pertencem a empresas, contatos, itens e lançamentos.</p></div>
         <div class="lf-header-actions">
-          <NcButton variant="secondary" @click="shareDialog='member'">
+          <NcButton v-if="canManageMembers" variant="secondary" @click="shareDialog='member'">
             <template #icon><NcIconSvgWrapper :path="mdiAccountPlusOutline" :size="20" /></template>
             Usuário
           </NcButton>
           <NcButton v-if="canChangeGroupGrants" variant="secondary" @click="shareDialog='group'">Grupo</NcButton>
         </div>
       </div>
+      <NcNoteCard v-if="!canManageMembers" type="info">
+        Apenas quem possui permissão financeira para gerenciar papéis pode conceder ou revogar acessos individuais.
+        O administrador do ambiente não recebe automaticamente essa permissão.
+      </NcNoteCard>
       <NcNoteCard v-if="governanceGroup" type="info">
         Este contexto é administrado pelo grupo Nextcloud {{ governanceGroup }}.
         Administradores delegados podem conceder acesso somente a usuários
@@ -136,7 +140,7 @@ async function confirmRemoval() {
           <tbody>
             <tr v-for="member in members" :key="'user-'+member.uid">
               <td>Usuário</td><td><strong>{{ member.uid }}</strong></td><td>{{member.role}}</td>
-              <td><NcButton v-if="member.role!=='owner'" variant="tertiary"
+              <td><NcButton v-if="canManageMembers && member.role!=='owner'" variant="tertiary"
                 :aria-label="'Revogar acesso de '+member.uid"
                 @click="removeTarget={type:'member',id:member.uid}">
                 <template #icon><NcIconSvgWrapper :path="mdiAccountRemoveOutline" :size="20" /></template>
