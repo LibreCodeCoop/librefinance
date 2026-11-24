@@ -18,9 +18,10 @@ test('only unissued documents and unreviewed bank evidence enter the work queue'
   const result = workQueueItems(drafts,bank)
   assert.deepEqual(result.map(item=>item.key), ['draft:2','unlinked:3','draft:4','bank:2'])
   assert.deepEqual(result.map(item=>item.amountMinor), [7500,-1000,-2100,-2100])
-  assert.equal(result[3].status,'A conciliar')
-  assert.equal(result[2].status,'A confirmar')
-  assert.equal(result[1].status,'Revisar vínculo')
+  assert.equal(result[3].status,'reconcile')
+  assert.equal(result[2].status,'confirm')
+  assert.equal(result[1].status,'link_review')
+  assert.deepEqual(result.map(item=>item.label), ['sales_document','historic_unlinked','purchase_document','bank_outflow'])
   // A bank statement and a commercial document can share an ID and value,
   // yet neither is another ledger entry or a duplicate debt.
   assert.equal(new Set(result.map(item=>item.key)).size,4)

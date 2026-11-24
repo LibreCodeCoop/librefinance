@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -18,6 +19,8 @@ import {
 } from '@mdi/js'
 import LfPageHeader from '../components/LfPageHeader.vue'
 import { financeApi, financeError } from '../services/api.js'
+import { ledgerLocale } from '../money.js'
+import { formatLedgerDate } from '../date.js'
 
 const store = inject('lfWorkspace')
 const navigate = inject('lfNavigate')
@@ -61,9 +64,9 @@ const dateUntil = year + '-' + String(today.getMonth() + 1).padStart(2, '0')
   + '-' + String(today.getDate()).padStart(2, '0')
 const period = ref('year')
 const from = computed(() => period.value === 'month' ? startMonth : startYear)
-const formatPeriodDate = (value) => new Intl.DateTimeFormat('pt-BR', {
-  day: 'numeric', month: 'short', year: 'numeric',
-}).format(new Date(value + 'T12:00:00'))
+const formatPeriodDate = (value) => new Intl.DateTimeFormat(ledgerLocale(), {
+  day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+}).format(new Date(value + 'T00:00:00Z'))
 const periodLabel = computed(() => formatPeriodDate(from.value)
   + ' — ' + formatPeriodDate(dateUntil))
 function changePeriod(next) {
@@ -104,25 +107,25 @@ const namedAccounts = computed(() =>
   accounts.value.filter(a => a.is_bank && a.active).slice(0, 5))
 const kpis = computed(() => [
   {
-    id: 'cash', label: 'Saldo de caixa',
+    id: 'cash', label: t('librefinance', 'Cash balance'),
     value: cash.value ? money(cash.value.closingMinor) : '—',
-    help: 'Saldo contabilizado, não saldo do extrato',
+    help: t('librefinance', 'Posted balance, not statement balance'),
     icon: mdiWalletOutline, tone: 'cash',
   },
   {
-    id: 'revenue', label: 'Receitas',
+    id: 'revenue', label: t('librefinance', 'Income'),
     value: profit.value ? money(profit.value.revenueMinor) : '—',
-    help: 'Acumuladas no período', icon: mdiArrowDownLeft, tone: 'income',
+    help: t('librefinance', 'Accumulated in the period'), icon: mdiArrowDownLeft, tone: 'income',
   },
   {
-    id: 'expense', label: 'Despesas',
+    id: 'expense', label: t('librefinance', 'Expenses'),
     value: profit.value ? money(profit.value.expenseMinor) : '—',
-    help: 'Acumuladas no período', icon: mdiArrowUpRight, tone: 'expense',
+    help: t('librefinance', 'Accumulated in the period'), icon: mdiArrowUpRight, tone: 'expense',
   },
   {
-    id: 'result', label: 'Resultado',
+    id: 'result', label: t('librefinance', 'Result'),
     value: profit.value ? money(profit.value.resultMinor) : '—',
-    help: 'Receitas menos despesas', icon: mdiChartLine, tone: 'result',
+    help: t('librefinance', 'Income minus expenses'), icon: mdiChartLine, tone: 'result',
   },
 ])
 const months = computed(() => {
@@ -134,8 +137,8 @@ const months = computed(() => {
     const key = year + '-' + String(month).padStart(2, '0')
     return {
       key,
-      label: new Intl.DateTimeFormat('pt-BR', { month: 'short' })
-        .format(new Date(year, month - 1, 15)).replace('.', ''),
+      label: new Intl.DateTimeFormat(ledgerLocale(), { month: 'short', timeZone: 'UTC' })
+        .format(new Date(Date.UTC(year, month - 1, 15))),
       minor: known.get(key) ?? 0,
     }
   })
@@ -146,22 +149,18 @@ function barHeight(minor) {
   if (!minor) return '0%'
   return Math.max(8, Math.round(Math.abs(minor) / maxMovement.value * 100)) + '%'
 }
-function displayDate(iso) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso))
-  return match ? match[3] + '/' + match[2] + '/' + match[1] : iso
-}
 const shortcuts = computed(() => [
   bankEnabled.value && {
-    id: 'banking', label: 'Conciliação bancária',
-    help: 'Confira extratos e lançamentos', icon: mdiBankOutline,
+    id: 'banking', label: t('librefinance', 'Bank reconciliation'),
+    help: t('librefinance', 'Review statements and journal entries'), icon: mdiBankOutline,
   },
   obligationsEnabled.value && {
-    id: 'finance', label: 'A pagar e receber',
-    help: 'Entradas e saídas previstas na mesma agenda', icon: mdiCashClock,
+    id: 'finance', label: t('librefinance', 'Payables and receivables'),
+    help: t('librefinance', 'Expected inflows and outflows in one schedule'), icon: mdiCashClock,
   },
   reportEnabled.value && {
-    id: 'reports', label: 'Relatórios completos',
-    help: 'Explore o balancete e o fluxo de caixa', icon: mdiChartLine,
+    id: 'reports', label: t('librefinance', 'Full reports'),
+    help: t('librefinance', 'Explore the trial balance and cash flow'), icon: mdiChartLine,
   },
 ].filter(Boolean))
 function firstExpense() {
@@ -178,9 +177,9 @@ const defaultWidgets = [
   { id: 'quickActions', width: 1, visible: true },
 ]
 const widgetLabels = {
-  summary: 'Resumo financeiro', cashflow: 'Movimento do caixa',
-  bankAccounts: 'Contas financeiras', recentActivity: 'Atividade recente',
-  quickActions: 'Acesso rápido',
+  summary: t('librefinance', 'Financial summary'), cashflow: t('librefinance', 'Cash movement'),
+  bankAccounts: t('librefinance', 'Financial accounts'), recentActivity: t('librefinance', 'Recent activity'),
+  quickActions: t('librefinance', 'Quick access'),
 }
 const widgets = ref(defaultWidgets.map(item => ({ ...item })))
 const editingWidgets = ref(false)
@@ -267,25 +266,25 @@ function go(view) { navigate(view) }
 
 <template>
   <div class="lf-view lf-overview">
-    <LfPageHeader title="Visão geral" eyebrow="PAINEL FINANCEIRO"
+    <LfPageHeader :title="t('librefinance', 'Overview')" :eyebrow="t('librefinance', 'FINANCIAL DASHBOARD')"
       :description="personal
-        ? 'Acompanhe as entradas e saídas realizadas da casa. Contas futuras ficam na agenda A pagar e receber.'
-        : 'Uma leitura objetiva da posição financeira e dos movimentos registrados.'">
+        ? t('librefinance', 'Track actual household inflows and outflows. Future bills appear in Payables and receivables.')
+        : t('librefinance', 'A clear view of the financial position and recorded transactions.')">
       <template #actions>
         <NcButton v-if="!editingWidgets" variant="secondary" @click="startWidgetEditing">
-          Personalizar painel
+          {{ t('librefinance', 'Customize dashboard') }}
         </NcButton>
         <div v-else class="lf-widget-edit-actions">
-          <NcButton variant="tertiary" :disabled="savingWidgets" @click="cancelWidgetEditing">Cancelar</NcButton>
-          <NcButton variant="tertiary" :disabled="savingWidgets" @click="resetWidgets">Restaurar padrão</NcButton>
-          <NcButton variant="primary" :disabled="savingWidgets" @click="saveWidgetLayout">Concluir edição</NcButton>
+          <NcButton variant="tertiary" :disabled="savingWidgets" @click="cancelWidgetEditing">{{ t('librefinance', 'Cancel') }}</NcButton>
+          <NcButton variant="tertiary" :disabled="savingWidgets" @click="resetWidgets">{{ t('librefinance', 'Restore defaults') }}</NcButton>
+          <NcButton variant="primary" :disabled="savingWidgets" @click="saveWidgetLayout">{{ t('librefinance', 'Finish editing') }}</NcButton>
         </div>
-        <div class="lf-period-controls" aria-label="Período dos indicadores">
+        <div class="lf-period-controls" :aria-label="t('librefinance', 'Indicator period')">
           <div class="lf-period-switch">
             <NcButton :variant="period === 'month' ? 'primary' : 'tertiary'"
-              :pressed="period === 'month'" @click="changePeriod('month')">Este mês</NcButton>
+              :pressed="period === 'month'" @click="changePeriod('month')">{{ t('librefinance', 'This month') }}</NcButton>
             <NcButton :variant="period === 'year' ? 'primary' : 'tertiary'"
-              :pressed="period === 'year'" @click="changePeriod('year')">Neste ano</NcButton>
+              :pressed="period === 'year'" @click="changePeriod('year')">{{ t('librefinance', 'This year') }}</NcButton>
           </div>
           <div class="lf-period-chip">
             <NcIconSvgWrapper :path="mdiCalendarMonthOutline" :size="18" />
@@ -297,38 +296,36 @@ function go(view) { navigate(view) }
 
     <div v-if="firstUse" class="lf-overview-subhead lf-overview-first-use">
       <div>
-        <strong>{{personal ? 'Sua gestão da casa está pronta' : 'Seu espaço financeiro está pronto'}}</strong>
+        <strong>{{personal ? t('librefinance', 'Your household workspace is ready') : t('librefinance', 'Your financial workspace is ready')}}</strong>
         <span>{{ namedAccounts.length
           ? (personal
-            ? 'Comece com uma despesa da casa já paga. Não é necessário cadastrar uma empresa.'
-            : 'Comece registrando uma despesa já paga ou uma receita já recebida.')
-          : 'Antes do primeiro registro, cadastre uma conta financeira no plano de contas.' }}</span>
+            ? t('librefinance', 'Start with a paid household expense. There is no need to register a company.')
+            : t('librefinance', 'Start by recording a paid expense or received income.'))
+          : t('librefinance', 'Before the first entry, register a financial account in the chart of accounts.') }}</span>
       </div>
-      <NcButton v-if="namedAccounts.length" variant="primary" @click="firstExpense">Registrar primeira despesa</NcButton>
-      <NcButton v-else variant="secondary" @click="go('accounts')">Cadastrar conta financeira</NcButton>
+      <NcButton v-if="namedAccounts.length" variant="primary" @click="firstExpense">{{ t('librefinance', 'Record first expense') }}</NcButton>
+      <NcButton v-else variant="secondary" @click="go('accounts')">{{ t('librefinance', 'Register financial account') }}</NcButton>
     </div>
     <div v-else class="lf-overview-subhead">
       <div>
-        <strong>Seu financeiro em perspectiva</strong>
-        <span>Indicadores consolidados do livro contábil</span>
+        <strong>{{ t('librefinance', 'Your finances in perspective') }}</strong>
+        <span>{{ t('librefinance', 'Consolidated ledger indicators') }}</span>
       </div>
       <span class="lf-data-source"><span class="lf-data-source-dot" aria-hidden="true" />
-        {{ loading ? 'Atualizando indicadores' : 'Dados contabilizados' }}
+        {{ loading ? t('librefinance', 'Updating indicators') : t('librefinance', 'Posted data') }}
         <NcLoadingIcon v-if="loading" :size="18" />
       </span>
     </div>
 
     <NcNoteCard v-if="error" type="warning" role="alert">
-      Os indicadores não puderam ser consultados: {{ error }}. Nenhum saldo foi estimado.
+      {{ t('librefinance', 'Indicators could not be retrieved: {error}. No balance was estimated.', { error }, { escape: false, sanitize: false }) }}
     </NcNoteCard>
     <NcNoteCard v-else-if="!reportEnabled" type="info">
-      Ative Relatórios em Gerenciar → Recursos instalados para consultar totais e evolução do caixa.
-      Extratos pendentes não compõem os saldos contabilizados.
+      {{ t('librefinance', 'Enable Reports under Manage → Installed features to view totals and cash trends. Pending statements are not part of posted balances.') }}
     </NcNoteCard>
 
     <NcNoteCard v-if="widgetError" type="warning" role="alert">{{ widgetError }}</NcNoteCard>
-    <p v-if="editingWidgets" class="lf-muted">Arraste os widgets ou use as setas para reorganizar.
-      Ajuste a largura e escolha quais aparecem para você nesta gestão financeira.</p>
+    <p v-if="editingWidgets" class="lf-muted">{{ t('librefinance', 'Drag widgets or use the arrows to reorder them. Adjust their width and choose which appear for you in this workspace.') }}</p>
     <div class="lf-widget-grid" :class="{ 'lf-widget-grid--editing': editingWidgets }">
       <div v-for="(widget, index) in visibleWidgets" :key="widget.id"
         class="lf-widget-slot" :class="{ 'lf-widget-slot--hidden': !widget.visible,
@@ -341,20 +338,20 @@ function go(view) { navigate(view) }
           <strong>{{ widgetLabels[widget.id] }}</strong>
           <div>
             <NcButton size="small" variant="tertiary" :disabled="index === 0"
-              :aria-label="'Mover ' + widgetLabels[widget.id] + ' para cima'"
+              :aria-label="t('librefinance', 'Move {widget} up', { widget: widgetLabels[widget.id] }, { escape: false, sanitize: false })"
               @click="moveWidget(widget.id, -1)">↑</NcButton>
             <NcButton size="small" variant="tertiary" :disabled="index === visibleWidgets.length - 1"
-              :aria-label="'Mover ' + widgetLabels[widget.id] + ' para baixo'"
+              :aria-label="t('librefinance', 'Move {widget} down', { widget: widgetLabels[widget.id] }, { escape: false, sanitize: false })"
               @click="moveWidget(widget.id, 1)">↓</NcButton>
             <NcButton size="small" variant="tertiary" @click="resizeWidget(widget.id)">
-              {{ widget.width === 2 ? 'Largura normal' : 'Largura dupla' }}</NcButton>
+              {{ widget.width === 2 ? t('librefinance', 'Normal width') : t('librefinance', 'Double width') }}</NcButton>
             <NcButton size="small" variant="tertiary" @click="toggleWidget(widget.id)">
-              {{ widget.visible ? 'Ocultar' : 'Exibir' }}</NcButton>
+              {{ widget.visible ? t('librefinance', 'Hide') : t('librefinance', 'Show') }}</NcButton>
           </div>
         </div>
         <template v-if="widget.id === 'summary'">
           <div v-if="showOverviewKpis" class="lf-kpis lf-overview-kpis"
-            aria-label="Indicadores financeiros do ano">
+            :aria-label="period === 'month' ? t('librefinance', 'Financial indicators for the month') : t('librefinance', 'Financial indicators for the year')">
                 <section v-for="stat in kpis" :key="stat.id"
                   class="lf-kpi lf-overview-kpi" :class="'lf-overview-kpi--' + stat.tone">
                   <div class="lf-kpi-topline">
@@ -366,22 +363,22 @@ function go(view) { navigate(view) }
                 </section>
               </div>
           <p v-if="!showOverviewKpis" class="lf-muted">
-            Indicadores resumidos ocultos por política de apresentação.
-            A permissão financeira e os demais relatórios permanecem inalterados.
+            <span>{{ t('librefinance', 'Summary indicators hidden by presentation policy.') }}</span>
+            {{ t('librefinance', 'Financial permissions and other reports remain unchanged.') }}
           </p>
         </template>
         <template v-else-if="widget.id === 'cashflow'">
       <section class="lf-surface lf-trend-panel">
         <div class="lf-section-heading">
-          <div><h2>Movimento do caixa</h2>
-            <p>Variação líquida mensal dos lançamentos bancários contabilizados</p></div>
+          <div><h2>{{ t('librefinance', 'Cash movement') }}</h2>
+            <p>{{ t('librefinance', 'Monthly net change in posted bank entries') }}</p></div>
           <NcButton v-if="reportEnabled" variant="tertiary" @click="go('reports')">
-            Ver análise <template #icon><NcIconSvgWrapper :path="mdiArrowRight" :size="18" /></template>
+            {{ t('librefinance', 'View analysis') }} <template #icon><NcIconSvgWrapper :path="mdiArrowRight" :size="18" /></template>
           </NcButton>
         </div>
         <div v-if="cash && hasRecentMovement" class="lf-trend-chart"
           :style="{ gridTemplateColumns: `repeat(${months.length}, minmax(0, 1fr))` }"
-          role="img" :aria-label="'Variação líquida do caixa nos últimos meses: ' + months.map(m => m.label + ' ' + money(m.minor)).join(', ')">
+          role="img" :aria-label="t('librefinance', 'Net cash change over recent months: {values}', { values: months.map(m => m.label + ' ' + money(m.minor)).join(', ') }, { escape: false, sanitize: false })">
           <div v-for="item in months" :key="item.key" class="lf-trend-month"
             :title="item.key + ': ' + money(item.minor)">
             <div class="lf-trend-plot">
@@ -399,58 +396,60 @@ function go(view) { navigate(view) }
         </div>
         <div v-else class="lf-trend-empty">
           <NcIconSvgWrapper :path="mdiChartLine" :size="28" />
-          <strong>{{ loading ? 'Consultando o fluxo de caixa…' : 'Sem variação de caixa neste intervalo' }}</strong>
-          <p>O gráfico é preenchido somente por lançamentos que afetam contas bancárias ou caixa.</p>
+          <strong>{{ loading ? t('librefinance', 'Loading cash flow…') : t('librefinance', 'No cash change in this period') }}</strong>
+          <p>{{ t('librefinance', 'The chart includes only posted entries affecting bank or cash accounts.') }}</p>
         </div>
-        <div class="lf-trend-legend"><span class="lf-legend-positive" />Variação positiva
-          <span class="lf-legend-negative" />Variação negativa</div>
+        <div class="lf-trend-legend"><span class="lf-legend-positive" />{{ t('librefinance', 'Positive change') }}
+          <span class="lf-legend-negative" />{{ t('librefinance', 'Negative change') }}</div>
       </section>
 
         </template>
         <template v-else-if="widget.id === 'bankAccounts'">
       <section class="lf-surface lf-bank-panel">
         <div class="lf-section-heading">
-          <div><h2>Contas financeiras</h2>
-            <p>Saldo contábil por conta</p></div>
-          <NcButton variant="tertiary" @click="go('accounts')">Ver plano de contas</NcButton>
+          <div><h2>{{ t('librefinance', 'Financial accounts') }}</h2>
+            <p>{{ t('librefinance', 'Ledger balance by account') }}</p></div>
+          <NcButton variant="tertiary" @click="go('accounts')">{{ t('librefinance', 'View chart of accounts') }}</NcButton>
         </div>
         <ul v-if="namedAccounts.length" class="lf-account-preview">
           <li v-for="bank in namedAccounts" :key="bank.id">
             <span class="lf-bank-account-symbol" aria-hidden="true"><NcIconSvgWrapper :path="mdiBankOutline" :size="20" /></span>
-            <span class="lf-account-identity"><strong>{{ bank.name }}</strong><small>Conta {{ bank.code }}</small></span>
+            <span class="lf-account-identity"><strong>{{ bank.name }}</strong><small>{{ t('librefinance', 'Account {code}', { code: bank.code }, { escape: false, sanitize: false }) }}</small></span>
             <strong>{{ naturalBalance(bank) }}</strong>
           </li>
         </ul>
-        <NcEmptyContent v-else name="Nenhuma conta de caixa cadastrada"
-          description="Os saldos aparecem após o cadastro e a contabilização de movimentos." />
+        <NcEmptyContent v-else :name="t('librefinance', 'No cash account registered')"
+          :description="t('librefinance', 'Balances appear after accounts are registered and transactions are posted.')" />
         <div v-if="bankEnabled" class="lf-bank-panel-footer">
-          <NcButton variant="secondary" @click="go('banking')">Abrir conciliação bancária</NcButton>
+          <NcButton variant="secondary" @click="go('banking')">{{ t('librefinance', 'Open bank reconciliation') }}</NcButton>
         </div>
       </section>
         </template>
         <template v-else-if="widget.id === 'recentActivity'">
       <section class="lf-surface lf-activity-panel">
         <div class="lf-section-heading">
-          <div><h2>Atividade recente</h2><p>Últimos lançamentos do livro razão</p></div>
-          <NcButton variant="tertiary" @click="go('transactions')">Todos os lançamentos</NcButton>
+          <div><h2>{{ t('librefinance', 'Recent activity') }}</h2>
+            <p>{{ t('librefinance', 'Latest ledger entries') }}</p></div>
+          <NcButton variant="tertiary" @click="go('transactions')">{{ t('librefinance', 'All journal entries') }}</NcButton>
         </div>
         <ul v-if="recent.length" class="lf-activity-list">
           <li v-for="item in recent" :key="item.id">
             <span class="lf-activity-symbol" aria-hidden="true"><NcIconSvgWrapper :path="mdiSwapHorizontal" :size="18" /></span>
-            <div class="lf-activity-label"><strong>{{ item.memo || 'Lançamento contábil' }}</strong>
-              <small>{{ displayDate(item.effective_on) }} · {{ item.postings?.length || 0 }} partidas</small></div>
+            <div class="lf-activity-label"><strong>{{ item.memo || t('librefinance', 'Journal entry') }}</strong>
+              <small>{{ formatLedgerDate(item.effective_on) }} · {{ t('librefinance', 'Postings: {count}', { count: item.postings?.length || 0 }, { escape: false, sanitize: false }) }}</small></div>
             <strong class="lf-activity-value">{{ money(Math.abs(item.postings?.[0]?.amountMinor || 0)) }}</strong>
           </li>
         </ul>
-        <NcEmptyContent v-else name="Nenhum lançamento registrado"
-          description="Esta lista será preenchida quando houver movimentações contabilizadas." />
+        <NcEmptyContent v-else :name="t('librefinance', 'No journal entries recorded')"
+          :description="t('librefinance', 'This list will be populated when transactions are posted.')" />
       </section>
 
         </template>
         <template v-else-if="widget.id === 'quickActions'">
       <section class="lf-surface lf-shortcuts-panel">
         <div class="lf-section-heading">
-          <div><h2>Acesso rápido</h2><p>Continue de onde seu trabalho precisa</p></div>
+          <div><h2>{{ t('librefinance', 'Quick access') }}</h2>
+            <p>{{ t('librefinance', 'Continue with the work you need') }}</p></div>
         </div>
         <ul v-if="shortcuts.length" class="lf-quick-action-list">
           <li v-for="action in shortcuts" :key="action.id">
@@ -461,17 +460,15 @@ function go(view) { navigate(view) }
             </button>
           </li>
         </ul>
-        <p v-else class="lf-muted">Habilite recursos em Gerenciar → Recursos instalados para acessar outras atividades por aqui.</p>
+        <p v-else class="lf-muted">{{ t('librefinance', 'Enable features under Manage → Installed features to access other activities here.') }}</p>
       </section>
         </template>
       </div>
     </div>
 
     <details class="lf-data-methodology">
-      <summary>Entenda os números apresentados</summary>
-      <p>Saldo de caixa, receitas, despesas e resultado são calculados a partir do livro contábil do espaço.
-        Importações, extratos pendentes de conciliação e rascunhos fiscais não entram automaticamente
-        nos indicadores. Os gráficos mostram variações realizadas, não previsões.</p>
+      <summary>{{ t('librefinance', 'Understand the displayed figures') }}</summary>
+      <p>{{ t('librefinance', 'Cash balance, income, expenses and result are calculated from the workspace ledger. Imports, unreconciled statements and fiscal drafts do not automatically enter these indicators. Charts show actual changes, not forecasts.') }}</p>
     </details>
   </div>
 </template>
