@@ -332,22 +332,26 @@ for domain_test in banking obligations invoicing payments reports-cash-flow repo
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/domains/$domain_test.php"
 done
 echo "PASS: Native banking, obligations, invoicing, reporting and core-import integration suites."
-# Instance policy store is checked against the real disposable Nextcloud API
-# with synthetic administrator credentials; no financial permission grant.
-if ! policy_runtime_output="$(compose exec -T -e LF_SYNTHETIC_SAAS_POLICY=yes \
-  -e LF_TEST_ADMIN_PASSWORD="$LF_TEST_ADMIN_PASSWORD" \
-  -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
-  -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
-  php /var/www/html/custom_apps/librefinance/tests/integration/saas-policy.php 2>&1)"; then
-    printf '%s\n' "$policy_runtime_output" >&2
-    echo "FAIL: synthetic SaaS suite policy_runtime_output exited nonzero" >&2
+assert_saas_policy_complete() {
+  local output
+  if ! output="$(compose exec -T -e LF_SYNTHETIC_SAAS_POLICY=yes \
+    -e LF_TEST_ADMIN_PASSWORD="$LF_TEST_ADMIN_PASSWORD" \
+    -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
+    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
+    php /var/www/html/custom_apps/librefinance/tests/integration/saas-policy.php "$@" 2>&1)"; then
+    printf '%s\n' "$output" >&2
+    echo 'FAIL: synthetic SaaS policy suite exited nonzero' >&2
     exit 1
   fi
-printf '%s\n' "$policy_runtime_output"
-grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$policy_runtime_output" || {
-  echo 'FAIL: policy persistence and admin authorization assertions did not complete' >&2
-  exit 1
+  printf '%s\n' "$output"
+  if grep -Eq '^FAIL([ :]|$)' <<< "$output" \
+    || ! grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$output"; then
+    echo 'FAIL: synthetic SaaS policy assertions did not complete' >&2
+    exit 1
+  fi
 }
+# Check the instance store before other suites advance its policy revisions.
+assert_saas_policy_complete
 
 # This is a disposable CI lab only. Exercise the real instance-admin -> group
 # delegation -> concurrent provisioning -> revocation lifecycle, then restore
@@ -440,6 +444,9 @@ if [ "$LF_WITH_EXTENSIONS" = 1 ]; then
   assert_integration_complete /var/www/html/custom_apps/librefinance_nfse/tests/integration.php
   echo "PASS: Independently installed NFS-e draft app passed its PHP suite."
 fi
+# This suite advances the instance sharing revision. Run it after suites that
+# rely on an untouched sharing policy or exact fixture revisions.
+assert_saas_policy_complete --provenance
 else
   echo "SKIPPED: Native PHP and Behat suites, browser-only local diagnostics explicitly requested."
 fi

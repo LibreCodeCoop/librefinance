@@ -8,6 +8,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/TestHarness.php';
 
 use LibreFinance\Tests\Integration\TestHarness;
+use OCP\IGroupManager;
+use OCP\IUserManager;
 
 if (getenv('LF_SYNTHETIC_SAAS_POLICY') !== 'yes') {
     throw new RuntimeException('Synthetic policy test opt-in required');
@@ -70,6 +72,174 @@ function policyCheck(string $title, string $method, string $path, ?array $data,
     ++$checks;
     return $observed['body'];
 }
+
+function hasPolicySource(array $policy, string $scope, ?string $id): bool {
+    return ($policy['sourceScope'] ?? null) === $scope
+        && array_key_exists('sourceIdentifier', $policy)
+        && $policy['sourceIdentifier'] === $id;
+}
+
+/** Run in a disposable Nextcloud after suites that require untouched policy revisions. */
+function checkScopedPolicySources(TestHarness $t): void {
+    $groups = \OC::$server->get(IGroupManager::class);
+    $users = \OC::$server->get(IUserManager::class);
+    $a = $users->get('lfmaintestA') ?? throw new RuntimeException('Missing synthetic user A');
+    $b = $users->get('lfmaintestB') ?? throw new RuntimeException('Missing synthetic user B');
+    $suffix = bin2hex(random_bytes(6));
+    $governance = '/admin/governance';
+    $managed = policyCheck('read original managed mode', 'GET', $governance, null, 200)['managed'];
+    $sharing = '/saas/v1/admin/policies/externalSharing.enabled';
+    $previousSharing = policyCheck('read original external sharing policy', 'GET', $sharing, null, 200);
+    $sharingRevision = null;
+    $createdGroups = [];
+    $paths = [];
+    $key = 'dashboard.kpis.enabled';
+    policyCheck('enable managed mode for provenance fixtures', 'PUT', $governance, ['managed' => true], 200);
+    try {
+        foreach ([[$a, $b, 'A'], [$b, $a, 'B']] as [$owner, $manager, $label]) {
+            $gid = 'lf_synth_provenance_' . $label . '_' . $suffix;
+            $group = $groups->createGroup($gid) ?? throw new RuntimeException('Cannot create synthetic group');
+            $createdGroups[] = $group;
+            $group->addUser($owner);
+            $group->addUser($manager);
+            $uuid = policyCheck('enable synthetic environment ' . $label, 'PUT',
+                "/saas/v1/admin/groups/$gid/enablement", ['enabled' => true], 200)['environment']['id'];
+            policyCheck('delegate synthetic environment ' . $label, 'POST',
+                "/admin/groups/$gid/delegates", ['uid' => $manager->getUID()], 201);
+            $environment = "/saas/v1/environments/$uuid";
+            $t->check('activate synthetic environment ' . $label, $manager->getUID(),
+                'POST', "$environment/provision", null, 200);
+            $spaceId = (int)$t->check('create separately owned workspace ' . $label, $manager->getUID(),
+                'POST', "$environment/workspaces", ['name' => 'Policy provenance ' . $label,
+                    'ownerUid' => $owner->getUID(), 'idempotencyKey' => 'provenance-' . $suffix], 201)['id'];
+            $workspace = "/saas/v1/workspaces/$spaceId";
+            $t->check('write identifies the environment that denied dashboard ' . $label,
+                $manager->getUID(), 'PUT', "$environment/policies/$key",
+                ['valueJson' => 'false', 'expectedRevision' => 0], 200,
+                static fn(array $r): bool => hasPolicySource($r, 'environment', $uuid)
+                    && $r['effectiveValue'] === false && $r['blockedBy'] === 'environment');
+            $t->check('workspace inherits its own environment source ' . $label,
+                $owner->getUID(), 'GET', "$workspace/policies/$key", null, 200,
+                static fn(array $r): bool => hasPolicySource($r, 'environment', $uuid)
+                    && $r['inherited'] === true && $r['revision'] === 0);
+            $paths[$label] = [$uuid, $workspace, $spaceId];
+        }
+        [$envA, $workspaceA, $spaceA] = $paths['A'];
+        [$envB, $workspaceB, $spaceB] = $paths['B'];
+        if ($envA === $envB || $spaceA === $spaceB) {
+            throw new RuntimeException('Expected independent environment and workspace identities');
+        }
+        $t->check('environment manager without a financial role cannot read its workspace policy',
+            $a->getUID(), 'GET', "$workspaceB/policies/$key", null, 404,
+            static fn(array $r): bool => $r === ['error' => 'space_not_found']);
+        $formatKey = 'banking.allowedImportFormats';
+        $t->check('environment narrows the allowed formats', $a->getUID(), 'PUT',
+            "/saas/v1/environments/$envB/policies/$formatKey",
+            ['valueJson' => '["csv"]', 'expectedRevision' => 0], 200,
+            static fn(array $r): bool => hasPolicySource($r, 'environment', $envB)
+                && $r['effectiveValue'] === ['csv']);
+        $t->check('equal workspace intersection retains the environment source', $b->getUID(),
+            'PUT', "$workspaceB/policies/$formatKey",
+            ['valueJson' => '["csv"]', 'expectedRevision' => 0], 200,
+            static fn(array $r): bool => hasPolicySource($r, 'environment', $envB)
+                && $r['effectiveValue'] === ['csv'] && $r['inherited'] === false);
+        $t->check('workspace restriction identifies only the authorized workspace', $b->getUID(),
+            'PUT', "$workspaceB/policies/$formatKey",
+            ['valueJson' => '[]', 'expectedRevision' => 1], 200,
+            static fn(array $r): bool => hasPolicySource($r, 'workspace', (string)$spaceB)
+                && $r['effectiveValue'] === [] && $r['blockedBy'] === 'workspace');
+        $t->check('the other environment keeps its own effective formats', $a->getUID(),
+            'GET', "$workspaceA/policies/$formatKey", null, 200,
+            static fn(array $r): bool => hasPolicySource($r, 'default', null)
+                && $r['effectiveValue'] === ['csv', 'ofx']);
+        $t->check('matching self restriction keeps the inherited environment source', $b->getUID(),
+            'PUT', "$workspaceB/policies/me/$key", ['valueJson' => 'false', 'expectedRevision' => 0], 200,
+            static fn(array $r): bool => hasPolicySource($r, 'environment', $envB)
+                && $r['effectiveValue'] === false && $r['revision'] === 1);
+        $t->check('environment clear falls back to the registry source', $a->getUID(),
+            'DELETE', "/saas/v1/environments/$envB/policies/$key?expectedRevision=1", null, 200,
+            static fn(array $r): bool => hasPolicySource($r, 'default', null));
+        $t->check('self restriction takes effect after ancestor clear', $b->getUID(),
+            'GET', "$workspaceB/policies/me/$key", null, 200,
+            static fn(array $r): bool => hasPolicySource($r, 'user', $b->getUID())
+                && $r['effectiveValue'] === false && $r['blockedBy'] === 'user');
+
+        if ($previousSharing['effectiveValue'] !== true) {
+            $sharingRevision = policyCheck('enable invitations in disposable provenance lab', 'PUT',
+                $sharing, ['valueJson' => 'true', 'expectedRevision' => $previousSharing['revision']], 200)['revision'];
+        }
+        $t->check('workspace attributes inherited sharing to the instance', $a->getUID(),
+            'GET', "$workspaceA/policies/externalSharing.enabled", null, 200,
+            static fn(array $r): bool => hasPolicySource($r, 'instance', 'instance')
+                && $r['effectiveValue'] === true && $r['inherited'] === true);
+        $invitations = "$workspaceA/invitations";
+        $invite = $t->check('create invitation for an actor outside the environment', $a->getUID(),
+            'POST', $invitations, ['recipientUid' => 'synthetictestadmin', 'role' => 'viewer',
+                'expiresAt' => time() + 3600, 'expectedRevision' => 0], 201);
+        policyCheck('pending invitation cannot read policy', 'GET', "$workspaceA/policies/$key", null, 404,
+            static fn(array $r): bool => $r === ['error' => 'space_not_found']);
+        policyCheck('accept exact synthetic external invitation', 'POST',
+            "$invitations/{$invite['id']}/accept", ['expectedRevision' => 1], 200);
+        foreach (["$workspaceA/policies/$key", "$workspaceA/policies/me/$key"] as $path) {
+            policyCheck('external policy read conceals the environment UUID at ' . $path, 'GET', $path, null, 200,
+                static fn(array $r): bool => hasPolicySource($r, 'environment', null)
+                    && $r['effectiveValue'] === false && $r['blockedBy'] === 'environment'
+                    && $r['editableByCurrentActor'] === false
+                    && !str_contains(json_encode($r, JSON_THROW_ON_ERROR), $envA));
+        }
+        foreach (["$workspaceA/policies/effective", "$workspaceA/policies/me/effective"] as $path) {
+            policyCheck('external effective list conceals the environment UUID at ' . $path, 'GET',
+                $path, null, 200, static function (array $r) use ($key, $envA): bool {
+                    $policies = array_column($r['policies'] ?? [], null, 'key');
+                    return hasPolicySource($policies[$key] ?? [], 'environment', null)
+                        && !str_contains(json_encode($r, JSON_THROW_ON_ERROR), $envA);
+                });
+        }
+        policyCheck('external invitation grants no environment policy access', 'GET',
+            "/saas/v1/environments/$envA/policies/$key", null, 404,
+            static fn(array $r): bool => $r === ['error' => 'environment_not_found']);
+        policyCheck('external invitation cannot read another workspace policy', 'GET',
+            "$workspaceB/policies/$key", null, 404,
+            static fn(array $r): bool => $r === ['error' => 'space_not_found']);
+        $t->check('revoke the synthetic external invitation', $a->getUID(), 'DELETE',
+            "$invitations/{$invite['id']}?expectedRevision=2", null, 200);
+        policyCheck('revoked invitation cannot read policy provenance', 'GET',
+            "$workspaceA/policies/$key", null, 404,
+            static fn(array $r): bool => $r === ['error' => 'space_not_found']);
+    } finally {
+        try {
+            if ($sharingRevision !== null) {
+                if ($previousSharing['inherited']) {
+                    policyCheck('restore inherited sharing policy', 'DELETE',
+                        "$sharing?expectedRevision=$sharingRevision", null, 200);
+                } else {
+                    policyCheck('restore explicit sharing policy', 'PUT', $sharing,
+                        ['valueJson' => 'false', 'expectedRevision' => $sharingRevision], 200);
+                }
+            }
+        } finally {
+            try {
+                foreach ($createdGroups as $group) {
+                    $group->delete();
+                }
+            } finally {
+                policyCheck('restore original managed mode', 'PUT', $governance, ['managed' => $managed], 200);
+            }
+        }
+    }
+}
+
+if (in_array('--provenance', $argv, true)) {
+    // Bootstrap before printing anything, as required by the Nextcloud CLI.
+    require_once dirname(__DIR__, 4) . '/lib/base.php';
+    \OC_App::loadApp('librefinance');
+    $t = new TestHarness();
+    checkScopedPolicySources($t);
+    echo "PASS: $checks synthetic administrator and external policy assertions\n";
+    $t->finish();
+    exit;
+}
+
 $t = new TestHarness();
 $key = '/saas/v1/admin/policies/environments.enabled';
 policyCheck('instance admin can list typed registry', 'GET',
@@ -82,7 +252,7 @@ policyCheck('instance admin can list typed registry', 'GET',
 policyCheck('instance policies inherit enabled SaaS feature under separately disabled managed mode', 'GET',
     $key, null, 200, static fn(array $r): bool =>
         ($r['effectiveValue'] ?? null) === true && ($r['revision'] ?? null) === 0
-        && ($r['inherited'] ?? null) === true);
+        && ($r['inherited'] ?? null) === true && hasPolicySource($r, 'default', null));
 policyCheck('unknown policy does not fall back to permissive default', 'GET',
     '/saas/v1/admin/policies/unknown.key', null, 404);
 policyCheck('instance cannot configure unsupported statement format', 'PUT',
@@ -100,7 +270,8 @@ $t->check('ordinary finance operator cannot set privileged instance policy',
 policyCheck('instance admin sets a typed boolean at expected revision zero',
     'PUT', $key, ['valueJson' => 'false', 'expectedRevision' => 0], 200,
     static fn(array $r): bool => ($r['effectiveValue'] ?? null) === false
-        && ($r['revision'] ?? null) === 1 && ($r['sourceScope'] ?? null) === 'instance');
+        && ($r['revision'] ?? null) === 1 && hasPolicySource($r, 'instance', 'instance')
+        && ($r['blockedBy'] ?? null) === 'instance');
 policyCheck('stale revision cannot overwrite policy',
     'PUT', $key, ['valueJson' => 'true', 'expectedRevision' => 0], 409,
     static fn(array $r): bool => ($r['error'] ?? '') === 'revision_conflict');
@@ -125,7 +296,7 @@ policyCheck('revision-guarded clear restores default', 'DELETE',
         && ($r['effectiveValue'] ?? null) === true);
 policyCheck('cleared environment feature inherits compatibility default', 'GET', $key, null, 200,
     static fn(array $r): bool => ($r['effectiveValue'] ?? null) === true
-        && ($r['sourceScope'] ?? null) === 'default');
+        && hasPolicySource($r, 'default', null));
 policyCheck('instance admin reads append-only typed policy history', 'GET',
     '/saas/v1/policy-audit/instance', null, 200,
     static fn(array $r): bool =>

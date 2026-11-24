@@ -48,6 +48,7 @@ $result = $resolver->resolve($external, [
 ]);
 result('child cannot bypass parent false', $result['effectiveValue'], false);
 result('child denial is attributed', $result['blockedBy'], 'environment');
+result('denial still identifies the effective environment source', $result['sourceScope'], 'environment');
 result('effective bool denies all enable values', $result['allowedValues'], [false]);
 result('UI is never authoritative for editability', $result['editableByCurrentActor'], false);
 
@@ -59,6 +60,7 @@ result('bool still can be disabled', $result['allowedValues'], [false, true]);
 $result = $resolver->resolve($external, [layer('environment', true)]);
 result('missing instance opt-in stays denied', $result['effectiveValue'], false);
 result('missing instance cannot be circumvented', $result['blockedBy'], 'default');
+result('ineffective override retains the registry source', $result['sourceScope'], 'default');
 
 denied('instance-only policy rejects environment', fn() => $resolver->resolve($enable, [
     layer('instance', true), layer('environment', true),
@@ -111,10 +113,18 @@ $result = $resolver->resolve($set, [
 result('set only intersects', $result['effectiveValue'], ['PT']);
 result('set narrowed at workspace', $result['sourceScope'], 'workspace');
 $result = $resolver->resolve($set, [
+    layer('instance', ['BR', 'PT', 'US']),
+    layer('environment', ['BR', 'PT']),
+    layer('workspace', ['PT', 'BR']),
+]);
+result('equal intersection preserves ancestor order', $result['effectiveValue'], ['BR', 'PT']);
+result('equal intersection retains the environment source', $result['sourceScope'], 'environment');
+$result = $resolver->resolve($set, [
     layer('instance', ['BR']), layer('environment', ['US']),
 ]);
 result('empty intersection denies', $result['effectiveValue'], []);
 result('empty set blocker', $result['blockedBy'], 'environment');
+result('empty intersection has the narrowing scope as source', $result['sourceScope'], 'environment');
 denied('set duplicate rejected', fn() => $resolver->resolve($set, [
     layer('instance', ['BR', 'BR']),
 ]), 'invalid_policy_value');
@@ -209,6 +219,7 @@ $result = $resolver->resolve($dashboard, [
 ]);
 result('user cannot bypass workspace hide', $result['effectiveValue'], false);
 result('workspace ancestor is the blocking source', $result['blockedBy'], 'workspace');
+result('ineffective user override retains the workspace source', $result['sourceScope'], 'workspace');
 denied('user scope cannot change external sharing policy',
     fn() => $resolver->resolve($external, [
         layer('instance', true), layer('user', true),
