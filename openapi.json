@@ -2,7 +2,7 @@
     "openapi": "3.1.0",
     "info": {
         "title": "LibreFinance — native Nextcloud application APIs",
-        "version": "0.18.9",
+        "version": "0.18.10",
         "description": "Original AGPL application contracts. Structural response schemas are provisional and require full OCS/OpenAPI extractor adoption. Every route enforces Nextcloud identity and per-space roles. MCP is read-only; AI is consented."
     },
     "servers": [
@@ -1628,7 +1628,7 @@
                     "librefinance"
                 ],
                 "summary": "saasWorkspace create",
-                "description": "Qualified current group manager. Atomically create an independent ledger with an explicit financial owner, idempotency and restrictive quota.",
+                "description": "Qualified current group manager. Atomically create an independent ledger with an explicit financial owner, idempotency and restrictive quota. Optional legalName, companyCountry and companyTaxId create one linked legal identity in the SAME transaction; no automatic fiscal registration.",
                 "parameters": [
                     {
                         "name": "environmentId",
@@ -1691,6 +1691,15 @@
                                         "type": "string"
                                     },
                                     "color": {
+                                        "type": "string"
+                                    },
+                                    "legalName": {
+                                        "type": "string"
+                                    },
+                                    "companyCountry": {
+                                        "type": "string"
+                                    },
+                                    "companyTaxId": {
                                         "type": "string"
                                     }
                                 },

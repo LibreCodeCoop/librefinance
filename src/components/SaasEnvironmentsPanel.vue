@@ -7,6 +7,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
+import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
@@ -32,6 +33,10 @@ const workspacesError = ref('')
 const name = ref('')
 const ownerUid = ref('')
 const kind = ref('organization')
+const withCompany = ref(false)
+const legalName = ref('')
+const companyCountry = ref('BR')
+const companyTaxId = ref('')
 const pending = ref(null)
 const creating = ref(false)
 const claims = createWorkspaceClaimKeys()
@@ -108,7 +113,14 @@ watch(selectedId, () => {
   name.value = ''
   ownerUid.value = ''
   kind.value = 'organization'
+  withCompany.value = false
+  legalName.value = ''
+  companyCountry.value = 'BR'
+  companyTaxId.value = ''
   loadWorkspaces()
+})
+watch(kind, value => {
+  if (value !== 'organization') withCompany.value = false
 })
 
 async function reload() {
@@ -161,6 +173,11 @@ async function activate(environment) {
 
 function reviewNewWorkspace() {
   if (!selected.value || !name.value.trim() || !ownerUid.value.trim() || creating.value) return
+  if (withCompany.value && (!legalName.value.trim()
+    || !/^[A-Za-z]{2}$/.test(companyCountry.value.trim()))) {
+    workspacesError.value = 'Informe a razão social e o país ISO de duas letras.'
+    return
+  }
   pending.value = {
     environmentId: selected.value.id,
     environmentName: selected.value.name,
@@ -169,6 +186,11 @@ function reviewNewWorkspace() {
     kind: kind.value,
     currency: 'BRL',
     color: '#64748B',
+    ...(withCompany.value && kind.value === 'organization' ? {
+      legalName: legalName.value.trim(),
+      companyCountry: companyCountry.value.trim().toUpperCase(),
+      companyTaxId: companyTaxId.value.trim() || null,
+    } : {}),
   }
   workspacesError.value = ''
 }
@@ -192,6 +214,11 @@ async function createWorkspace() {
       kind: request.kind,
       currency: request.currency,
       color: request.color,
+      ...(request.legalName ? {
+        legalName: request.legalName,
+        companyCountry: request.companyCountry,
+        companyTaxId: request.companyTaxId,
+      } : {}),
       idempotencyKey,
     })
     claims.clear(request.environmentId, request)
@@ -200,8 +227,14 @@ async function createWorkspace() {
     name.value = ''
     ownerUid.value = ''
     kind.value = 'organization'
+    withCompany.value = false
+    legalName.value = ''
+    companyCountry.value = 'BR'
+    companyTaxId.value = ''
     await loadWorkspaces()
-    notice.value = 'Gestão financeira independente criada para o proprietário informado.'
+    notice.value = request.legalName
+      ? 'Gestão e empresa criadas juntas, com livro e contas independentes.'
+      : 'Gestão financeira independente criada para o proprietário informado.'
   } catch (error) {
     if (mounted && selectedId.value === request.environmentId) {
       if ([403, 404, 423].includes(error?.response?.status)) {
@@ -309,6 +342,21 @@ onBeforeUnmount(() => {
             required maxlength="64" />
           <LfSelect id="lf-saas-new-kind" v-model="kind"
             label="Tipo da gestão" :options="kindOptions" />
+          <NcCheckboxRadioSwitch v-if="kind==='organization'"
+            v-model="withCompany" type="checkbox">
+            Cadastrar empresa jurídica junto com o novo livro
+          </NcCheckboxRadioSwitch>
+          <template v-if="kind==='organization' && withCompany">
+            <NcTextField v-model="legalName" label="Razão social" required maxlength="180" />
+            <NcTextField v-model="companyCountry" label="País da empresa (ISO 3166-1, duas letras)"
+              required maxlength="2" />
+            <NcTextField v-model="companyTaxId" label="Identificador fiscal (opcional)"
+              maxlength="40" />
+            <NcNoteCard type="info">
+              Empresa e livro serão criados na mesma transação. Nenhum cadastro fiscal
+              externo será emitido ou validado automaticamente.
+            </NcNoteCard>
+          </template>
           <NcButton variant="primary" type="submit"
             :disabled="creating || workspacesLoading || !name.trim() || !ownerUid.trim()">
             Revisar criação
@@ -327,6 +375,8 @@ onBeforeUnmount(() => {
         <p><strong>Ambiente:</strong> {{ pending?.environmentName }}</p>
         <p><strong>Gestão:</strong> {{ pending?.name }}</p>
         <p><strong>Proprietário:</strong> {{ pending?.ownerUid }}</p>
+        <p v-if="pending?.legalName"><strong>Empresa:</strong>
+          {{ pending.legalName }} ({{ pending.companyCountry }})</p>
         <NcNoteCard v-if="workspacesError" type="error" role="alert">
           {{ workspacesError }}
         </NcNoteCard>
@@ -335,7 +385,7 @@ onBeforeUnmount(() => {
             Cancelar
           </NcButton>
           <NcButton variant="primary" :disabled="creating" @click="createWorkspace">
-            Criar gestão independente
+            {{ pending?.legalName ? 'Criar empresa e gestão' : 'Criar gestão independente' }}
           </NcButton>
         </div>
       </div>

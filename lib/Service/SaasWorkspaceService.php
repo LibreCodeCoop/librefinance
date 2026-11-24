@@ -35,7 +35,8 @@ final class SaasWorkspaceService {
     /** @return array{id:int,name:string,kind:string,currency:string,ownerUid:string,environmentId:string} */
     public function create(string $environmentUuid, string $name, string $kind,
         string $currency, string $ownerUid, string $idempotencyKey,
-        string $color = '#64748B'): array {
+        string $color = '#64748B', ?string $legalName = null,
+        string $companyCountry = 'BR', ?string $companyTaxId = null): array {
         $environment = $this->environments->requireActiveManager($environmentUuid);
         $actor = $this->access->uid();
         $gid = $environment['groupGid'];
@@ -67,9 +68,24 @@ final class SaasWorkspaceService {
             throw new DomainException('invalid_idempotency_key');
         }
 
-        $fingerprint = hash('sha256', json_encode([
-            $name, $kind, $currency, $color, $ownerUid,
-        ], JSON_THROW_ON_ERROR));
+        // A legal company is optional, including for non-business contexts.
+        // When supplied it must be created with its ledger in ONE transaction.
+        // Never allow a claimed workspace to silently gain a different company.
+        $company = null;
+        if ($legalName !== null) {
+            if ($kind !== 'organization') {
+                throw new DomainException('invalid_company_kind');
+            }
+            $company = CompanyService::initialIdentity($legalName, $companyCountry,
+                $companyTaxId, $color);
+        } elseif ($companyTaxId !== null || strtoupper(trim($companyCountry)) !== 'BR') {
+            throw new DomainException('invalid_company_name');
+        }
+        $fingerprintInput = [$name, $kind, $currency, $color, $ownerUid];
+        if ($company !== null) {
+            $fingerprintInput[] = $company;
+        }
+        $fingerprint = hash('sha256', json_encode($fingerprintInput, JSON_THROW_ON_ERROR));
         $existing = $this->claim((int)$environment['id'], $idempotencyKey);
         if ($existing !== null) {
             return $this->existing($existing, $fingerprint, $environmentUuid);
@@ -110,6 +126,25 @@ final class SaasWorkspaceService {
                 'review_state' => 'confirmed',
                 'created_at' => $now,
             ]);
+            $companyId = null;
+            if ($company !== null) {
+                $this->writer->insert('lf_companies', [
+                    'space_id' => $spaceId, ...$company,
+                    'active' => 1, 'created_at' => $now, 'updated_at' => $now,
+                ]);
+                $companyId = (int)$this->db->lastInsertId('*PREFIX*lf_companies');
+                $this->writer->insert('lf_saas_company_workspaces', [
+                    'space_id' => $spaceId,
+                    'company_id' => $companyId,
+                    'linked_by' => $actor,
+                    'linked_at' => $now,
+                ]);
+                $this->writer->insert('lf_audit', [
+                    'space_id' => $spaceId, 'actor_uid' => $actor,
+                    'action' => 'company.saas_created', 'entity' => 'company',
+                    'entity_id' => $companyId, 'occurred_at' => $now,
+                ]);
+            }
             foreach ([
                 ['1000', 'Caixa', 'asset', true],
                 ['3000', 'Patrimônio líquido', 'equity', false],
@@ -174,6 +209,7 @@ final class SaasWorkspaceService {
                 'id' => $spaceId, 'name' => $name, 'kind' => $kind,
                 'currency' => $currency, 'ownerUid' => $ownerUid,
                 'environmentId' => $environmentUuid,
+                ...($companyId === null ? [] : ['companyId' => $companyId]),
             ];
         } catch (DatabaseException $e) {
             $this->db->rollBack();
@@ -295,6 +331,11 @@ final class SaasWorkspaceService {
         if ($row === false) {
             throw new DomainException('concurrent_change');
         }
+        $q = $this->db->getQueryBuilder();
+        $q->select('company_id')->from('lf_saas_company_workspaces')
+            ->where($q->expr()->eq('space_id',
+                $q->createNamedParameter($id, IQueryBuilder::PARAM_INT)));
+        $companyId = $q->executeQuery()->fetchOne();
         return [
             'id' => (int)$row['id'],
             'name' => (string)$row['name'],
@@ -302,6 +343,7 @@ final class SaasWorkspaceService {
             'currency' => (string)$row['currency'],
             'ownerUid' => (string)$row['owner_uid'],
             'environmentId' => $environmentUuid,
+            ...($companyId === false ? [] : ['companyId' => (int)$companyId]),
         ];
     }
 }

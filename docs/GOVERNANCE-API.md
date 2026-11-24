@@ -144,13 +144,19 @@ criação de um novo livro contábil independente. Para criar:
 2. Informe o nome da gestão e o **UID Nextcloud de outro participante daquele
    grupo**, que será o proprietário financeiro. A interface não concede ao
    administrador do grupo direitos contábeis.
-3. Escolha o tipo (organização, coletivo ou pessoal) e confira ambiente,
-   proprietário e separação de dados na confirmação.
-4. Confirme a criação. A aplicação chama
-   `POST /api/saas/v1/environments/{environmentId}/workspaces` com
-   `name`, `ownerUid`, `kind`, `currency`, `color` e `idempotencyKey`.
-   A mesma chave é reutilizada se a resposta HTTP falhar ou for perdida e
-   a intenção original for reenviada; alterações no pedido usam uma nova chave.
+3. Escolha o tipo (organização, coletivo ou pessoal). Para uma organização
+   com identidade jurídica, marque **Cadastrar empresa jurídica junto com
+   o novo livro** e informe razão social, país ISO 3166-1 de duas letras
+   e, opcionalmente, identificador fiscal. Gestões pessoais ou de
+   coletivos não precisam de cadastro de empresa.
+4. Confira ambiente, proprietário e empresa antes de confirmar. A aplicação
+   chama `POST /api/saas/v1/environments/{environmentId}/workspaces`
+   com `name`, `ownerUid`, `kind`, `currency`, `color` e
+   `idempotencyKey`. Quando houver empresa, inclui `legalName`,
+   `companyCountry` (padrão BR) e `companyTaxId` opcional.
+   A mesma chave é reutilizada se a resposta HTTP falhar ou se perder.
+   Nome, proprietário, ambiente ou identidade jurídica diferentes mudam a
+   chave; uma chave já usada não pode vincular outra empresa.
 
 O backend exige autorização de administração do ambiente ativo, participação
 atual do proprietário no grupo e exclusão da autopromoção administrativa.
@@ -172,12 +178,18 @@ saldos ou conteúdos de outras organizações. Se o acesso administrativo for
 revogado ou o ambiente suspenso, a próxima solicitação protegida é negada,
 e a interface descarta dados carregados daquele contexto.
 
-**Diferença importante:** uma empresa cadastrada em uma mesma gestão
-compartilha seu livro com as demais empresas daquela gestão. Para ter caixa,
-saldos, lançamentos e papéis separados por empresa, crie uma **nova gestão
-independente**; o proprietário cadastra depois a identidade legal em Dados
-da organização. A criação de gestão não configura banco externo, emissão
-fiscal certificada nem compartilhamento externo.
+**Diferença importante:** livros e contas são independentes por gestão;
+a empresa é uma identidade jurídica associada ao livro, não outro livro.
+A criação de uma gestão SaaS de organização **com empresa** grava livro,
+contas, identidade jurídica, associação única e auditoria em uma única
+transação do banco. Se qualquer parte falhar, a operação inteira é revertida.
+O retorno inclui `companyId`, também no replay da mesma chave. Uma gestão
+pessoal ou não empresarial continua sem empresa e pode ser criada normalmente.
+O contrato legado de `POST /api/spaces/{spaceId}/companies` permanece para
+associar uma primeira identidade jurídica a uma gestão já existente, mas uma
+segunda empresa dentro do mesmo livro SaaS é rejeitada. Cadastros legados
+compartilhados não são divididos automaticamente. Nenhuma dessas ações
+configura banco externo, emissão fiscal certificada ou compartilhamento externo.
 
 A administração por ambiente exige uma instalação Nextcloud com o LibreFinance
 habilitado, grupo ativo, subadministrador ou delegado autorizado, e usuários

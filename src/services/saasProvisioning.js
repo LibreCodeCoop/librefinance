@@ -30,6 +30,11 @@ export function createWorkspaceClaimKeys(generate = () => globalThis.crypto?.ran
     draft.kind,
     draft.currency || 'BRL',
     draft.color || '#64748B',
+    ...(draft.legalName !== undefined && draft.legalName !== null ? [
+      String(draft.legalName).trim(),
+      String(draft.companyCountry || 'BR').trim().toUpperCase(),
+      String(draft.companyTaxId || '').trim(),
+    ] : []),
   ])
   return {
     get(environmentId, draft) {
