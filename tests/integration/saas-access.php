@@ -170,11 +170,44 @@ try {
         'DELETE', '/saas/v1/admin/policies/workspaces.maxCount?expectedRevision=1',
         null, 200, static fn(array $r): bool =>
             ($r['inherited'] ?? null) === true);
-    $secondA = $t->check('same environment provisions a second independent ledger', $b,
+    $t->check('invalid foreign company country cannot create an orphan ledger', $b,
+        'POST', $pathA,
+        ['name' => 'Invalid standalone company', 'ownerUid' => $a,
+            'idempotencyKey' => 'synthetic-invalid-legal-company',
+            'legalName' => 'Invalid Country', 'companyCountry' => 'ZZ'], 422,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'invalid_company_country');
+    $t->check('failed company validation left no separate accounting book', $b,
+        'GET', $pathA, null, 200,
+        static fn(array $r): bool => !in_array('Invalid standalone company',
+            array_column($r['workspaces'] ?? [], 'name'), true));
+    $t->check('legal identity cannot be slipped into a personal workspace', $b,
+        'POST', $pathA,
+        ['name' => 'Invalid personal company', 'ownerUid' => $a,
+            'kind' => 'personal', 'idempotencyKey' => 'synthetic-invalid-personal-company',
+            'legalName' => 'Unauthorised legal identity'], 422,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'invalid_company_kind');
+    $secondA = $t->check('same environment creates A2 ledger and PT company atomically', $b,
         'POST', $pathA,
         ['name' => 'Isolated A2', 'ownerUid' => $a,
-            'idempotencyKey' => 'synthetic-workspace-A2-allowed'], 201);
+            'idempotencyKey' => 'synthetic-workspace-A2-allowed',
+            'legalName' => 'Synthetic Example A2', 'companyCountry' => 'PT'], 201,
+        static fn(array $r): bool => (int)($r['id'] ?? 0) > 0
+            && (int)($r['companyId'] ?? 0) > 0);
     $spaceA2 = (int)$secondA['id'];
+    $companyA2 = (int)$secondA['companyId'];
+    $t->check('atomic company bootstrap replay retains the original identity', $b,
+        'POST', $pathA,
+        ['name' => 'Isolated A2', 'ownerUid' => $a,
+            'idempotencyKey' => 'synthetic-workspace-A2-allowed',
+            'legalName' => 'Synthetic Example A2', 'companyCountry' => 'PT'], 201,
+        static fn(array $r): bool => (int)($r['id'] ?? 0) === $spaceA2
+            && (int)($r['companyId'] ?? 0) === $companyA2);
+    $t->check('same claim key cannot silently replace the legal identity', $b,
+        'POST', $pathA,
+        ['name' => 'Isolated A2', 'ownerUid' => $a,
+            'idempotencyKey' => 'synthetic-workspace-A2-allowed',
+            'legalName' => 'Replacement Company', 'companyCountry' => 'PT'], 409,
+        static fn(array $r): bool => ($r['error'] ?? null) === 'idempotency_conflict');
     saasCheck('both ledgers in A and the ledger in B have unique IDs',
         $spaceA2 > 0 && $spaceA2 !== $spaceA && $spaceA2 !== $spaceB);
 
@@ -749,9 +782,13 @@ try {
     $t->check('A1 cannot house a second unrelated legal company', $a, 'POST',
         '/spaces/' . $spaceA . '/companies',
         ['legalName' => 'Synthetic Example B', 'country' => 'BR'], 409);
-    $t->check('A registers a separate legal company in A2', $a, 'POST',
+    $t->check('A2 company is already present from atomic workspace provisioning', $a,
+        'GET', '/spaces/' . $spaceA2 . '/companies', null, 200,
+        static fn(array $r): bool => count($r['companies'] ?? []) === 1
+            && (int)($r['companies'][0]['id'] ?? 0) === $companyA2);
+    $t->check('A2 rejects second company after atomic creation', $a, 'POST',
         '/spaces/' . $spaceA2 . '/companies',
-        ['legalName' => 'Synthetic Example A2', 'country' => 'PT'], 201);
+        ['legalName' => 'Second Legal Company', 'country' => 'PT'], 409);
     $t->check('A1 lists only its own company identity', $a, 'GET',
         '/spaces/' . $spaceA . '/companies', null, 200,
         static fn(array $r): bool => count($r['companies'] ?? []) === 1

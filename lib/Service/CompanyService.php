@@ -157,6 +157,20 @@ final class CompanyService {
             && in_array($country, explode(' ', self::COUNTRIES), true);
     }
 
+    /**
+     * Validated legal identity for an independent SaaS workspace bootstrap.
+     * Reuse the existing company validation so neither registration path
+     * can accept a different country, tax identifier or legal name.
+     * @return array<string,string|null>
+     */
+    public static function initialIdentity(string $legalName, string $country,
+        ?string $taxId, string $color): array {
+        return [
+            ...self::fields($legalName, $country, $taxId, null, null, null),
+            ...self::profileFields(['brandColor' => $color]),
+        ];
+    }
+
     /** @return array<string,string|null> */
     private static function fields(string $legalName, string $country, ?string $taxId,
         ?string $tradeName, ?string $municipalRegistration,

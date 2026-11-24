@@ -32,9 +32,12 @@ final class SaasWorkspaceController extends ApiController {
     #[FrontpageRoute(verb: 'POST', url: '/api/saas/v1/environments/{environmentId}/workspaces')]
     public function create(string $environmentId, string $name, string $ownerUid,
         string $idempotencyKey, string $kind = 'organization',
-        string $currency = 'BRL', string $color = '#64748B'): JSONResponse {
+        string $currency = 'BRL', string $color = '#64748B',
+        ?string $legalName = null, string $companyCountry = 'BR',
+        ?string $companyTaxId = null): JSONResponse {
         return $this->respond(fn(): array =>
             $this->workspaces->create($environmentId, $name, $kind,
-                $currency, $ownerUid, $idempotencyKey, $color), 201);
+                $currency, $ownerUid, $idempotencyKey, $color,
+                $legalName, $companyCountry, $companyTaxId), 201);
     }
 }

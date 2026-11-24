@@ -40,6 +40,21 @@ test('idempotency key is stable for safe retry and rotates with target or data',
   assert.equal(next, 4)
 })
 
+test('optional legal company identity participates in workspace idempotency', () => {
+  let next = 0
+  const claims = createWorkspaceClaimKeys(() => `company-key-${++next}-2026`)
+  const base = { name: 'Financeiro independente', ownerUid: 'ownerA',
+    kind: 'organization', currency: 'BRL', color: '#64748B' }
+  const plain = claims.get(a.id, base)
+  const withCompany = { ...base, legalName: 'Empresa A', companyCountry: 'PT' }
+  const first = claims.get(a.id, withCompany)
+  assert.notEqual(plain, first)
+  assert.equal(claims.get(a.id, { ...withCompany, legalName: ' Empresa A ',
+    companyCountry: 'pt' }), first)
+  assert.notEqual(claims.get(a.id, { ...withCompany, legalName: 'Empresa B' }), first)
+  assert.notEqual(claims.get(a.id, { ...withCompany, companyTaxId: 'PT12345' }), first)
+})
+
 test('pending claims remain stable across environment switches until success', () => {
   let next = 0
   const claims = createWorkspaceClaimKeys(() => `stable-key-${++next}-2026`)
