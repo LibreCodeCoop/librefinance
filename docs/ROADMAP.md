@@ -33,6 +33,9 @@ This document records user-visible gaps without claiming that an unimplemented f
 
 ## Native financial journeys
 
+See the [native journey audit and component wireframes](NATIVE-FINANCE-JOURNEYS.md)
+for the observed synthetic runtime baseline, priorities and implementation acceptance states.
+
 - Preserve the selected workspace and account across movements, accounts,
   statements and linked documents; present the booked balance separately
   from unreviewed statement amounts. Keep one payment and reconciliation
