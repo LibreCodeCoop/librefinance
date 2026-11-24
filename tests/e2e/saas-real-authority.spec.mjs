@@ -126,6 +126,29 @@ test('real SaaS browser sessions isolate roles, forged IDs and immediate revocat
     await call(b, 'POST', ledger(a2) + '/members', 403,
       { uid: users.b, role: 'manager', expectedRevision: 1 })
 
+    // Real financial owner B has independent roles in two environments.
+    // Group names are presentation metadata only for authorized internal books.
+    const listing = await call(b, 'GET', '/spaces', 200)
+    expect(listing.spaces.find(s => s.id === a1.id).financialEnvironment.id).toBe(envA)
+    expect(listing.spaces.find(s => s.id === a2.id).financialEnvironment.id).toBe(envA)
+    expect(listing.spaces.find(s => s.id === b1.id).financialEnvironment.id).toBe(envB)
+    await b.page.goto(app)
+    await expect(b.page.getByRole('note', { name: 'Selecione um ambiente financeiro', exact: true })).toBeVisible()
+    await expect(b.page.locator('.lf-context-identity')).toHaveCount(0)
+    const environmentSelect = b.page.locator('#lf-environment-select')
+    await environmentSelect.click()
+    await b.page.getByRole('option').filter({ hasText: listing.spaces.find(s => s.id === a1.id).financialEnvironment.name }).click()
+    await expect(b.page.locator('.lf-context-identity')).toContainText(a1.name)
+    const bookSelect = b.page.locator('#lf-space-select')
+    await bookSelect.click()
+    await expect(b.page.getByRole('option').filter({ hasText: a2.name })).toBeVisible()
+    await expect(b.page.getByRole('option').filter({ hasText: b1.name })).toHaveCount(0)
+    await b.page.keyboard.press('Escape')
+    await environmentSelect.click()
+    await b.page.getByRole('option').filter({ hasText: listing.spaces.find(s => s.id === b1.id).financialEnvironment.name }).click()
+    await expect(b.page.locator('.lf-context-identity')).toContainText(b1.name)
+    await expect(b.page.locator('#lf-space-select')).toHaveCount(0)
+
     await selectLedger(b, a1, allowed.memo)
     await expect(b.page.getByRole('button', { name: 'Registrar entrada ou saída', exact: true })).toBeVisible()
     await expect(b.page.locator('.lf-view')).not.toContainText(owner.memo)
@@ -145,7 +168,11 @@ test('real SaaS browser sessions isolate roles, forged IDs and immediate revocat
     await call(b, 'GET', ledger(a2) + '/journals', 200)
     await b.page.goto(app + '?spaceId=' + a1.id + '&view=transactions')
     await expect(b.page.locator('[data-testid="librefinance-workspace"]')).toBeVisible()
-    await expect(b.page.locator('.lf-context-identity')).not.toContainText(a1.name)
+    await expect(b.page.getByRole('note', { name: 'Selecione um ambiente financeiro', exact: true })).toBeVisible()
+    await expect(b.page.locator('.lf-context-identity')).toHaveCount(0)
+    await expect(b.page.getByText(allowed.memo, { exact: true })).toHaveCount(0)
+    await selectLedger(b, a2, owner.memo)
+    await expect(b.page.locator('.lf-context-identity')).toContainText(a2.name)
     await expect(b.page.locator('.lf-view')).not.toContainText(allowed.memo)
     // Revocation changes authority, not the original posted journal.
     const preserved = await call(a, 'GET', ledger(a1) + '/journals', 200)

@@ -174,3 +174,14 @@ a cleanup job.
 ## Compatibility and validation boundary
 
 Existing `/api/spaces` identifiers, audit history, posted balances, URLs and optional module entry points remain compatibility requirements. Adoption is phased; there is no silent permission elevation or automatic legacy ledger splitting. The synthetic lab installs and tests SQLite, PostgreSQL and MariaDB, including dedicated historical Import preservation, while SaaS policies, group lifecycle and financial isolation are covered by real Nextcloud negative suites. **A green job validates only its exact tested SHA and scenarios**; it does not certify full historic SaaS migration, manual usability/accessibility, production operations or independent human review. See `docs/TESTING.md` and the final acceptance gate in #11. No production deployment is authorized by this contract.
+
+### Explicit financial environment selection
+
+The authorized workspace list includes financialEnvironment (public ID and
+name) only for internal financial members of an active managed environment.
+An accepted external invitation has no environment metadata. The native
+shell partitions authorized books by that identifier, keeping legacy and
+externally shared books separate. Without a valid workspace deep link, a
+user with multiple contexts selects a context before a book is opened.
+Selecting one context never alters grants or authorizes another book. The
+server continues checking the exact workspace on every request.

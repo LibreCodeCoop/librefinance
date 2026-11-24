@@ -815,6 +815,7 @@ try {
             count(array_filter($r['spaces'] ?? [],
                 static fn(array $s): bool => (int)$s['id'] === $spaceA
                     && ($s['externalInvitation'] ?? false) === true
+                    && !array_key_exists('financialEnvironment', $s)
                     && ($s['role'] ?? null) === 'auditor')) === 1
             && !in_array($spaceA2, array_column($r['spaces'] ?? [], 'id'), true)
             && !in_array($spaceB, array_column($r['spaces'] ?? [], 'id'), true));

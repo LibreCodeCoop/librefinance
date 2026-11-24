@@ -6,6 +6,7 @@ import { t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { formatLedgerMoney, toMinorUnits } from '../money.js'
+import { authorizedInitialWorkspace } from '../financialContexts.js'
 
 export function useFinanceWorkspace() {
 
@@ -122,7 +123,7 @@ async function refreshSpaces() {
     }
   }
   if (!spaces.value.some((s) => Number(s.id) === Number(activeId.value))) {
-    activeId.value = spaces.value.length ? Number(spaces.value[0].id) : 0
+    activeId.value = authorizedInitialWorkspace(spaces.value)
   }
 }
 async function refreshCurrent(options = {}) {
