@@ -379,6 +379,21 @@ grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$saas_delete_output" || {
   exit 1
 }
 
+# Exercise the public Nextcloud ISubAdmin contract and current membership.
+if ! native_subadmin_output="$(compose exec -T \
+  -e LF_SYNTHETIC_SAAS_NATIVE_SUBADMIN=yes \
+  -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
+  -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud \
+  php /var/www/html/custom_apps/librefinance/tests/integration/saas-native-subadmin.php 2>&1)"; then
+  printf '%s\n' "$native_subadmin_output" >&2
+  exit 1
+fi
+printf '%s\n' "$native_subadmin_output"
+grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$native_subadmin_output" || {
+  echo 'FAIL: native SaaS subadmin assertions did not complete' >&2
+  exit 1
+}
+
 if [ "${LF_RUN_BEHAT:-1}" = 1 ]; then
   test -x tests/behat/vendor/bin/behat || {
     echo "Behat dependencies missing. Run composer install in tests/behat before the smoke suite." >&2
