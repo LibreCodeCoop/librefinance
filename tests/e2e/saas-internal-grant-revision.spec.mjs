@@ -78,19 +78,23 @@ test('SaaS member buttons follow the server-authorized management capability', a
     const request = route.request()
     if (request.method() !== 'GET'
       || !new URL(request.url()).pathname.endsWith('/members')) return route.continue()
-    const response = await route.fetch()
-    const payload = await response.json()
-    return route.fulfill({ response, json: {
-      ...payload, grantRevision: 5, canManageMembers: authorized,
+    // Synthetic API contract is enough for presentation testing. Avoid
+    // a real fetch surviving the teardown of the Playwright route.
+    return route.fulfill({ status: 200, json: {
+      grantRevision: 5,
+      canManageMembers: authorized,
+      members: [{ uid: 'synthetic-list-loaded', role: 'owner' }],
     } })
   })
   await page.reload()
   await goToView(page, 'Acessos e compartilhamento')
+  await expect(page.getByText('synthetic-list-loaded', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Usuário', exact: true })).toHaveCount(0)
   await expect(page.getByText('Apenas quem possui permissão financeira para gerenciar papéis', { exact: false })).toBeVisible()
 
   authorized = true
   await page.reload()
   await goToView(page, 'Acessos e compartilhamento')
+  await expect(page.getByText('synthetic-list-loaded', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Usuário', exact: true })).toBeVisible()
 })
