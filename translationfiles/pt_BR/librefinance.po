@@ -72,11 +72,11 @@ msgstr "Participante"
 msgid "Select a workspace"
 msgstr "Selecione uma área"
 
-#: specialVueFakeDummyForL10nScript.js:266 /app/src/navigation.js:48
+#: specialVueFakeDummyForL10nScript.js:266 src/navigation.js:48
 msgid "Finance"
 msgstr "Financeiro"
 
-#: specialVueFakeDummyForL10nScript.js:267 /app/src/navigation.js:58
+#: specialVueFakeDummyForL10nScript.js:267 src/navigation.js:58
 msgid "Manage"
 msgstr "Gerenciar"
 
@@ -206,6 +206,7 @@ msgid "Not enabled"
 msgstr "Não habilitado"
 
 #: specialVueFakeDummyForL10nScript.js:465
+#: specialVueFakeDummyForL10nScript.js:1391
 msgid "Awaiting administrator"
 msgstr "Aguardando administrador"
 
@@ -214,6 +215,7 @@ msgid "Active environment"
 msgstr "Ambiente ativo"
 
 #: specialVueFakeDummyForL10nScript.js:467
+#: specialVueFakeDummyForL10nScript.js:1393
 msgid "Suspended"
 msgstr "Suspenso"
 
@@ -361,7 +363,9 @@ msgid "View audit history for {name}"
 msgstr "Ver histórico de auditoria de {name}"
 
 #. TRANSLATORS n/AdminPage.vue:290
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:182
 #: specialVueFakeDummyForL10nScript.js:703
+#: specialVueFakeDummyForL10nScript.js:1841
 msgid "Audit"
 msgstr "Auditoria"
 
@@ -402,7 +406,9 @@ msgid "Revoke delegation for {name}"
 msgstr "Revogar delegação de {name}"
 
 #. TRANSLATORS n/AdminPage.vue:314
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:193
 #: specialVueFakeDummyForL10nScript.js:717
+#: specialVueFakeDummyForL10nScript.js:1851
 msgid "Revoke"
 msgstr "Revogar"
 
@@ -522,7 +528,7 @@ msgstr "Ainda não há eventos registrados."
 #. TRANSLATORS n/AdminPage.vue:396
 #. TRANSLATORS onents/SaasPolicyEditor.vue:290
 #: specialVueFakeDummyForL10nScript.js:775
-#: specialVueFakeDummyForL10nScript.js:1995
+#: specialVueFakeDummyForL10nScript.js:2114
 msgid "Load earlier events"
 msgstr "Carregar eventos anteriores"
 
@@ -550,8 +556,10 @@ msgid "Suspend {name}?"
 msgstr "Suspender {name}?"
 
 #. TRANSLATORS n/AdminPage.vue:409
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:376
 #: specialVueFakeDummyForL10nScript.js:785
 #: specialVueFakeDummyForL10nScript.js:799
+#: specialVueFakeDummyForL10nScript.js:1668
 msgid "Cancel"
 msgstr "Cancelar"
 
@@ -594,188 +602,592 @@ msgstr "Escolha o motivo da recuperação"
 msgid "Confirm recovery"
 msgstr "Confirmar recuperação"
 
-#: specialVueFakeDummyForL10nScript.js:1809
-msgid "Enable SaaS environments"
-msgstr "Habilitar os ambientes SaaS"
+#: specialVueFakeDummyForL10nScript.js:1375
+msgid "Business or organization"
+msgstr "Negócio ou organização"
 
-#: specialVueFakeDummyForL10nScript.js:1810
-msgid "External sharing"
-msgstr "Compartilhamento externo"
+#: specialVueFakeDummyForL10nScript.js:1376
+msgid "Group or collective"
+msgstr "Grupo ou coletivo"
 
-#: specialVueFakeDummyForL10nScript.js:1811
-msgid "Data import"
-msgstr "Importação de dados"
+#: specialVueFakeDummyForL10nScript.js:1377
+msgid "Personal or household"
+msgstr "Pessoal ou da casa"
 
-#: specialVueFakeDummyForL10nScript.js:1812
-msgid "Allowed bank statement formats (CSV or OFX)"
-msgstr "Formatos de extrato bancário permitidos (CSV ou OFX)"
+#: specialVueFakeDummyForL10nScript.js:1392
+msgid "Active"
+msgstr "Ativo"
 
-#: specialVueFakeDummyForL10nScript.js:1813
-msgid "Financial reports"
-msgstr "Relatórios financeiros"
-
-#: specialVueFakeDummyForL10nScript.js:1814
-msgid "NFS-e drafts (optional integration)"
-msgstr "Rascunhos de NFS-e (integração opcional)"
-
-#: specialVueFakeDummyForL10nScript.js:1815
-msgid "Workspace limit per environment"
-msgstr "Limite de gestões por ambiente"
-
-#: specialVueFakeDummyForL10nScript.js:1816
-msgid "Show summary indicators on the dashboard"
-msgstr "Exibir indicadores resumidos no painel"
-
-#: specialVueFakeDummyForL10nScript.js:1819
-msgid "Application default"
-msgstr "Padrão do aplicativo"
-
-#: specialVueFakeDummyForL10nScript.js:1819
-msgid "Nextcloud instance"
-msgstr "Instância Nextcloud"
-
-#: specialVueFakeDummyForL10nScript.js:1820
-msgid "Environment"
-msgstr "Ambiente"
-
-#: specialVueFakeDummyForL10nScript.js:1820
-msgid "Workspace"
-msgstr "Gestão"
-
-#: specialVueFakeDummyForL10nScript.js:1820
-msgid "User"
-msgstr "Usuário"
-
-#: specialVueFakeDummyForL10nScript.js:1821
+#: specialVueFakeDummyForL10nScript.js:1394
+#: specialVueFakeDummyForL10nScript.js:1714
+#: specialVueFakeDummyForL10nScript.js:1940
 msgid "Unavailable"
 msgstr "Indisponível"
 
+#: specialVueFakeDummyForL10nScript.js:1497
+msgid "Environment activated. Financial access is defined separately."
+msgstr "Ambiente ativado. Os acessos financeiros são definidos separadamente."
+
+#: specialVueFakeDummyForL10nScript.js:1509
+msgid "Enter the legal name and the two-letter ISO country code."
+msgstr "Informe a razão social e o país ISO de duas letras."
+
+#: specialVueFakeDummyForL10nScript.js:1567
+msgid ""
+"Workspace and company created together, with independent ledger and accounts."
+msgstr "Gestão e empresa criadas juntas, com livro e contas independentes."
+
+#: specialVueFakeDummyForL10nScript.js:1568
+msgid "Independent financial workspace created for the specified owner."
+msgstr "Gestão financeira independente criada para o proprietário informado."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:267
+#: specialVueFakeDummyForL10nScript.js:1592
+msgid "LibreFinance environments"
+msgstr "Ambientes LibreFinance"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:268
+#: specialVueFakeDummyForL10nScript.js:1594
+msgid ""
+"Nextcloud groups enabled for LibreFinance SaaS. Each environment has "
+"independent administration. Being a member or administrator of the group "
+"does not grant access to financial ledgers."
+msgstr "Grupos Nextcloud habilitados para o LibreFinance SaaS. Cada ambiente tem administração independente. Ser membro ou administrador do grupo não concede acesso aos livros financeiros."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:275
+#: specialVueFakeDummyForL10nScript.js:1596
+msgid ""
+"No SaaS environment is available for this account. An instance administrator "
+"must enable the Nextcloud group; a group administrator or delegate can then "
+"activate it. Existing personal workspaces remain independent."
+msgstr "Nenhum ambiente SaaS está disponível para esta conta. Um administrador da instância precisa habilitar o grupo Nextcloud; depois, um subadministrador ou delegado poderá ativá-lo. As gestões pessoais existentes continuam independentes."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:279
+#: specialVueFakeDummyForL10nScript.js:1598
+msgid "Available SaaS environments"
+msgstr "Ambientes SaaS disponíveis"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:284
+#: specialVueFakeDummyForL10nScript.js:1600
+msgid "State: {state}"
+msgstr "Estado: {state}"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:288
+#: specialVueFakeDummyForL10nScript.js:1602
+msgid "Activate environment {name}"
+msgstr "Ativar ambiente {name}"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:290
+#: specialVueFakeDummyForL10nScript.js:1604
+msgid "Activate environment"
+msgstr "Ativar ambiente"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:293
+#: specialVueFakeDummyForL10nScript.js:1606
+msgid "Reactivation requires administrative recovery."
+msgstr "Reativação somente após recuperação administrativa."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:296
+#: specialVueFakeDummyForL10nScript.js:1608
+msgid "Awaiting an enabled group administrator or delegate."
+msgstr "Aguarda subadministrador ou delegado habilitado."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:303
+#: specialVueFakeDummyForL10nScript.js:1610
+msgid "Manage workspaces by environment"
+msgstr "Gerenciar gestões por ambiente"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:304
+#: specialVueFakeDummyForL10nScript.js:1612
+msgid ""
+"Choose one environment. Workspaces and permissions are never combined across "
+"groups."
+msgstr "Escolha um único ambiente. Gestões e permissões nunca são combinadas entre grupos."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:306
+#: specialVueFakeDummyForL10nScript.js:1614
+msgid "Administrative environment"
+msgstr "Ambiente administrativo"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:307
+#: specialVueFakeDummyForL10nScript.js:1616
+msgid "Select the environment"
+msgstr "Selecione o ambiente"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:309
+#: specialVueFakeDummyForL10nScript.js:1618
+msgid ""
+"If you manage multiple groups, explicitly select the environment you want to "
+"manage."
+msgstr "Se você administra vários grupos, selecione explicitamente qual ambiente deseja gerenciar."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:312
+#: specialVueFakeDummyForL10nScript.js:1620
+msgid "Policies for this environment"
+msgstr "Políticas deste ambiente"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:313
+#: specialVueFakeDummyForL10nScript.js:1622
+msgid ""
+"Restrict the environment without extending instance limits or gaining access "
+"to accounting ledgers."
+msgstr "Restrinja o ambiente sem ampliar os limites da instância nem adquirir acesso a livros contábeis."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:315
+#: specialVueFakeDummyForL10nScript.js:1624
+msgid "Workspaces of environment {name}"
+msgstr "Gestões do ambiente {name}"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:318
+#: specialVueFakeDummyForL10nScript.js:1626
+msgid "Administrative workspaces in the environment"
+msgstr "Gestões administrativas do ambiente"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:321
+#: specialVueFakeDummyForL10nScript.js:1628
+msgid "{kind} · Owner: {owner}"
+msgstr "{kind} · Proprietário: {owner}"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:326
+#: specialVueFakeDummyForL10nScript.js:1630
+msgid "Load more workspaces"
+msgstr "Carregar mais gestões"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:328
+#: specialVueFakeDummyForL10nScript.js:1632
+msgid ""
+"No independent financial workspace has been created in this environment."
+msgstr "Nenhuma gestão financeira independente foi criada neste ambiente."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:331
+#: specialVueFakeDummyForL10nScript.js:1634
+msgid "New independent workspace"
+msgstr "Nova gestão independente"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:332
+#: specialVueFakeDummyForL10nScript.js:1636
+msgid ""
+"The workspace will have separate accounts and an accounting ledger. The "
+"group administrator does not receive financial access. The owner must be "
+"another member of the Nextcloud group."
+msgstr "A gestão terá contas e livro contábil separados. O administrador do grupo não recebe acesso financeiro. O proprietário precisa ser outro participante do grupo Nextcloud."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:333
+#: specialVueFakeDummyForL10nScript.js:1638
+msgid "Workspace name"
+msgstr "Nome da gestão"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:334
+#: specialVueFakeDummyForL10nScript.js:1640
+msgid "Nextcloud username of the owner"
+msgstr "Usuário Nextcloud do proprietário"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:337
+#: specialVueFakeDummyForL10nScript.js:1642
+msgid "Workspace type"
+msgstr "Tipo da gestão"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:340
+#: specialVueFakeDummyForL10nScript.js:1644
+msgid "Register a legal entity together with the new ledger"
+msgstr "Cadastrar empresa jurídica junto com o novo livro"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:343
+#: specialVueFakeDummyForL10nScript.js:1646
+msgid "Legal name"
+msgstr "Razão social"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:344
+#: specialVueFakeDummyForL10nScript.js:1648
+msgid "Company country (ISO 3166-1, two letters)"
+msgstr "País da empresa (ISO 3166-1, duas letras)"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:346
+#: specialVueFakeDummyForL10nScript.js:1650
+msgid "Tax identifier (optional)"
+msgstr "Identificador fiscal (opcional)"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:349
+#: specialVueFakeDummyForL10nScript.js:1652
+msgid ""
+"The company and ledger will be created in the same transaction. No external "
+"tax registration will be issued or validated automatically."
+msgstr "Empresa e livro serão criados na mesma transação. Nenhum cadastro fiscal externo será emitido ou validado automaticamente."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:354
+#: specialVueFakeDummyForL10nScript.js:1654
+msgid "Review creation"
+msgstr "Revisar criação"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:360
+#: specialVueFakeDummyForL10nScript.js:1656
+msgid "Confirm independent financial workspace"
+msgstr "Confirmar gestão financeira independente"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:364
+#: specialVueFakeDummyForL10nScript.js:1658
+msgid ""
+"Creating a new workspace separates the accounting ledger and does not grant "
+"you any financial role. Confirm the environment and owner."
+msgstr "Criar uma nova gestão separa o livro contábil e não concede a você nenhum papel financeiro. Confirme ambiente e proprietário."
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:366
+#: specialVueFakeDummyForL10nScript.js:1660
+msgid "Environment:"
+msgstr "Ambiente:"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:367
+#: specialVueFakeDummyForL10nScript.js:1662
+msgid "Workspace:"
+msgstr "Gestão:"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:368
+#: specialVueFakeDummyForL10nScript.js:1664
+msgid "Owner:"
+msgstr "Proprietário:"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:369
+#: specialVueFakeDummyForL10nScript.js:1666
+msgid "Company:"
+msgstr "Empresa:"
+
+#. TRANSLATORS onents/SaasEnvironmentsPanel.vue:379
+#: specialVueFakeDummyForL10nScript.js:1670
+msgid "Create company and workspace"
+msgstr "Criar empresa e gestão"
+
+#: specialVueFakeDummyForL10nScript.js:1670
+msgid "Create independent workspace"
+msgstr "Criar gestão independente"
+
+#: specialVueFakeDummyForL10nScript.js:1698
+msgid "Financial read access"
+msgstr "Leitura financeira"
+
+#: specialVueFakeDummyForL10nScript.js:1699
+msgid "Audit and export (read-only)"
+msgstr "Auditoria e exportação (sem escrita)"
+
+#: specialVueFakeDummyForL10nScript.js:1712
+msgid "Expired"
+msgstr "Expirado"
+
+#: specialVueFakeDummyForL10nScript.js:1713
+msgid "Awaiting acceptance"
+msgstr "Aguardando aceite"
+
+#: specialVueFakeDummyForL10nScript.js:1713
+msgid "Accepted"
+msgstr "Aceito"
+
+#: specialVueFakeDummyForL10nScript.js:1713
+msgid "Revoked"
+msgstr "Revogado"
+
+#: specialVueFakeDummyForL10nScript.js:1755
+msgid "Enter a validity period of 1 to 30 days."
+msgstr "Informe uma validade de 1 a 30 dias."
+
+#: specialVueFakeDummyForL10nScript.js:1778
+msgid ""
+"The invitation was updated in another session. Review the current state."
+msgstr "O convite foi atualizado em outra sessão. Revise o estado atual."
+
+#: specialVueFakeDummyForL10nScript.js:1791
+msgid "Enter a Nextcloud user identifier."
+msgstr "Informe um identificador de usuário Nextcloud."
+
+#: specialVueFakeDummyForL10nScript.js:1798
+msgid "Invitation created. The recipient must accept it in their account."
+msgstr "Convite criado. O destinatário precisa aceitá-lo em sua conta."
+
+#: specialVueFakeDummyForL10nScript.js:1807
+msgid "New invitation issued. The recipient must accept it again."
+msgstr "Novo convite emitido. O destinatário deverá aceitar novamente."
+
+#: specialVueFakeDummyForL10nScript.js:1812
+msgid "External permission has been revoked for the next request."
+msgstr "A permissão externa foi revogada para a próxima requisição."
+
+#: specialVueFakeDummyForL10nScript.js:1818
+msgid ""
+"Invitation accepted. The workspace can now appear among your workspaces."
+msgstr "Convite aceito. A gestão já pode aparecer entre as suas áreas."
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:159
 #: specialVueFakeDummyForL10nScript.js:1823
+msgid "External financial grants"
+msgstr "Concessões financeiras externas"
+
+#: specialVueFakeDummyForL10nScript.js:1823
+#: specialVueFakeDummyForL10nScript.js:1825
+msgid "Received financial invitations"
+msgstr "Convites financeiros recebidos"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:160
+#: specialVueFakeDummyForL10nScript.js:1825
+msgid "Invitations for external access"
+msgstr "Convites para acesso externo"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:161
+#: specialVueFakeDummyForL10nScript.js:1827
+msgid ""
+"Invitations are limited to the specified financial ledger, with expiry and "
+"revocation. They do not grant membership in Nextcloud groups or write access."
+msgstr "Convites limitados ao livro financeiro indicado, com validade e revogação. Não concedem participação em grupos Nextcloud nem acesso de escrita."
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:166
+#: specialVueFakeDummyForL10nScript.js:1829
+msgid "Nextcloud user identifier"
+msgstr "Identificador do usuário Nextcloud"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:167
+#: specialVueFakeDummyForL10nScript.js:1831
+msgid "Existing account outside the environment group"
+msgstr "Conta existente fora do grupo do ambiente"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:170
+#: specialVueFakeDummyForL10nScript.js:1833
+msgid "External permission"
+msgstr "Permissão externa"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:171
+#: specialVueFakeDummyForL10nScript.js:1835
+msgid "Validity in days (1 to 30)"
+msgstr "Validade em dias (1 a 30)"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:174
+#: specialVueFakeDummyForL10nScript.js:1837
+msgid "Invite external account"
+msgstr "Convidar conta externa"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:181
+#: specialVueFakeDummyForL10nScript.js:1839
+msgid "Workspace {id}"
+msgstr "Gestão {id}"
+
+#: specialVueFakeDummyForL10nScript.js:1841
+msgid "Read access"
+msgstr "Leitura"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:183
+#: specialVueFakeDummyForL10nScript.js:1843
+msgid "Valid until {date} · Revision {revision}"
+msgstr "Válido até {date} · Revisão {revision}"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:188
+#: specialVueFakeDummyForL10nScript.js:1845
+msgid "Accept invitation for workspace {id}"
+msgstr "Aceitar convite da gestão {id}"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:189
+#: specialVueFakeDummyForL10nScript.js:1847
+msgid "Accept invitation"
+msgstr "Aceitar convite"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:192
+#: specialVueFakeDummyForL10nScript.js:1849
+msgid "Revoke access for {name}"
+msgstr "Revogar acesso de {name}"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:197
+#: specialVueFakeDummyForL10nScript.js:1853
+msgid "Renew invitation for {name}"
+msgstr "Renovar convite para {name}"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:198
+#: specialVueFakeDummyForL10nScript.js:1855
+msgid "Invite again"
+msgstr "Convidar novamente"
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:202
+#: specialVueFakeDummyForL10nScript.js:1857
+msgid "No external invitation registered."
+msgstr "Nenhum convite externo cadastrado."
+
+#. TRANSLATORS onents/SaasInvitationsPanel.vue:204
+#: specialVueFakeDummyForL10nScript.js:1859
+msgid "Load more invitations"
+msgstr "Carregar mais convites"
+
+#: specialVueFakeDummyForL10nScript.js:1928
+msgid "Enable SaaS environments"
+msgstr "Habilitar os ambientes SaaS"
+
+#: specialVueFakeDummyForL10nScript.js:1929
+msgid "External sharing"
+msgstr "Compartilhamento externo"
+
+#: specialVueFakeDummyForL10nScript.js:1930
+msgid "Data import"
+msgstr "Importação de dados"
+
+#: specialVueFakeDummyForL10nScript.js:1931
+msgid "Allowed bank statement formats (CSV or OFX)"
+msgstr "Formatos de extrato bancário permitidos (CSV ou OFX)"
+
+#: specialVueFakeDummyForL10nScript.js:1932
+msgid "Financial reports"
+msgstr "Relatórios financeiros"
+
+#: specialVueFakeDummyForL10nScript.js:1933
+msgid "NFS-e drafts (optional integration)"
+msgstr "Rascunhos de NFS-e (integração opcional)"
+
+#: specialVueFakeDummyForL10nScript.js:1934
+msgid "Workspace limit per environment"
+msgstr "Limite de gestões por ambiente"
+
+#: specialVueFakeDummyForL10nScript.js:1935
+msgid "Show summary indicators on the dashboard"
+msgstr "Exibir indicadores resumidos no painel"
+
+#: specialVueFakeDummyForL10nScript.js:1938
+msgid "Application default"
+msgstr "Padrão do aplicativo"
+
+#: specialVueFakeDummyForL10nScript.js:1938
+msgid "Nextcloud instance"
+msgstr "Instância Nextcloud"
+
+#: specialVueFakeDummyForL10nScript.js:1939
+msgid "Environment"
+msgstr "Ambiente"
+
+#: specialVueFakeDummyForL10nScript.js:1939
+msgid "Workspace"
+msgstr "Gestão"
+
+#: specialVueFakeDummyForL10nScript.js:1939
+msgid "User"
+msgstr "Usuário"
+
+#: specialVueFakeDummyForL10nScript.js:1942
 msgid "Inherited"
 msgstr "Herdado"
 
-#: specialVueFakeDummyForL10nScript.js:1931
+#: specialVueFakeDummyForL10nScript.js:2050
 msgid "Local restriction removed. The inherited policy remains in effect."
 msgstr "Restrição local removida. A política herdada permanece em vigor."
 
-#: specialVueFakeDummyForL10nScript.js:1932
+#: specialVueFakeDummyForL10nScript.js:2051
 msgid "Restriction applied and audited for this scope."
 msgstr "Restrição aplicada e auditada para este escopo."
 
-#: specialVueFakeDummyForL10nScript.js:1942
+#: specialVueFakeDummyForL10nScript.js:2061
 msgid ""
 "The revision changed. Current values were reloaded; review them before "
 "saving."
 msgstr "A revisão mudou. Os valores atuais foram recarregados; revise antes de salvar."
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:219
-#: specialVueFakeDummyForL10nScript.js:1953
+#: specialVueFakeDummyForL10nScript.js:2072
 msgid "SaaS policies for {scope}"
 msgstr "Políticas SaaS de {scope}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:220
-#: specialVueFakeDummyForL10nScript.js:1955
+#: specialVueFakeDummyForL10nScript.js:2074
 msgid ""
 "These policies restrict operations but do not grant financial permissions. "
 "The server revalidates authority and revision on every change."
 msgstr "Estas políticas restringem operações, mas não concedem permissões financeiras. O servidor revalida a autoridade e a revisão a cada alteração."
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:229
-#: specialVueFakeDummyForL10nScript.js:1957
+#: specialVueFakeDummyForL10nScript.js:2076
 msgid "Effective: {value}"
 msgstr "Efetivo: {value}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:230
-#: specialVueFakeDummyForL10nScript.js:1959
+#: specialVueFakeDummyForL10nScript.js:2078
 msgid "Source: {source}"
 msgstr "Origem: {source}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:231
-#: specialVueFakeDummyForL10nScript.js:1961
+#: specialVueFakeDummyForL10nScript.js:2080
 msgid "Revision: {revision}"
 msgstr "Revisão: {revision}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:233
-#: specialVueFakeDummyForL10nScript.js:1963
+#: specialVueFakeDummyForL10nScript.js:2082
 msgid "Mandatory restriction: {scope}"
 msgstr "Restrição obrigatória: {scope}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:235
-#: specialVueFakeDummyForL10nScript.js:1965
+#: specialVueFakeDummyForL10nScript.js:2084
 msgid "Read-only at this scope; there is no automatic delegation."
 msgstr "Somente leitura neste escopo; não há delegação automática."
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:252
-#: specialVueFakeDummyForL10nScript.js:1971
+#: specialVueFakeDummyForL10nScript.js:2090
 msgid "Allowed values for {policy}"
 msgstr "Valores permitidos para {policy}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:257
-#: specialVueFakeDummyForL10nScript.js:1973
+#: specialVueFakeDummyForL10nScript.js:2092
 msgid "Save restriction {policy}"
 msgstr "Salvar restrição {policy}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:258
-#: specialVueFakeDummyForL10nScript.js:1975
+#: specialVueFakeDummyForL10nScript.js:2094
 msgid "Save restriction"
 msgstr "Salvar restrição"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:260
-#: specialVueFakeDummyForL10nScript.js:1977
+#: specialVueFakeDummyForL10nScript.js:2096
 msgid "Inherit policy {policy}"
 msgstr "Herdar política {policy}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:261
-#: specialVueFakeDummyForL10nScript.js:1979
+#: specialVueFakeDummyForL10nScript.js:2098
 msgid "Inherit value"
 msgstr "Herdar valor"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:266
-#: specialVueFakeDummyForL10nScript.js:1981
+#: specialVueFakeDummyForL10nScript.js:2100
 msgid "No policies available."
 msgstr "Nenhuma política disponível."
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:269
-#: specialVueFakeDummyForL10nScript.js:1983
+#: specialVueFakeDummyForL10nScript.js:2102
 msgid "Hide policy history"
 msgstr "Ocultar histórico de policies"
 
-#: specialVueFakeDummyForL10nScript.js:1983
+#: specialVueFakeDummyForL10nScript.js:2102
 msgid "View policy history"
 msgstr "Ver histórico de policies"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:271
-#: specialVueFakeDummyForL10nScript.js:1985
+#: specialVueFakeDummyForL10nScript.js:2104
 msgid "SaaS policy change history"
 msgstr "Histórico de alterações das policies SaaS"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:279
-#: specialVueFakeDummyForL10nScript.js:1987
+#: specialVueFakeDummyForL10nScript.js:2106
 msgid "{time} · By {actor} · Revision {previous} → {next}"
 msgstr "{time} · Por {actor} · Revisão {previous} → {next}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:281
-#: specialVueFakeDummyForL10nScript.js:1989
+#: specialVueFakeDummyForL10nScript.js:2108
 msgid "Before: {value}"
 msgstr "Antes: {value}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:282
-#: specialVueFakeDummyForL10nScript.js:1991
+#: specialVueFakeDummyForL10nScript.js:2110
 msgid "After: {value}"
 msgstr "Depois: {value}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:286
-#: specialVueFakeDummyForL10nScript.js:1993
+#: specialVueFakeDummyForL10nScript.js:2112
 msgid "No changes recorded for this scope."
 msgstr "Nenhuma alteração registrada neste escopo."
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:247
-#: specialVueFakeDummyForL10nScript.js:1969
+#: specialVueFakeDummyForL10nScript.js:2088
 msgid "Limit for {policy}"
 msgstr "Limite de {policy}"
 
 #. TRANSLATORS onents/SaasPolicyEditor.vue:243
-#: specialVueFakeDummyForL10nScript.js:1967
+#: specialVueFakeDummyForL10nScript.js:2086
 msgid "Allow {policy}"
 msgstr "Permitir {policy}"
 
@@ -803,8 +1215,8 @@ msgstr "Extrato da conta"
 msgid "Accounts and banks"
 msgstr "Contas e bancos"
 
-#: src/navigation.js:13 /app/src/navigation.js:17
-#: src/navigation.js:18 /app/src/navigation.js:21
+#: src/navigation.js:13 src/navigation.js:17
+#: src/navigation.js:18 src/navigation.js:21
 msgid "Financial movements"
 msgstr "Movimentações"
 
@@ -812,12 +1224,12 @@ msgstr "Movimentações"
 msgid "Reports"
 msgstr "Relatórios"
 
-#: src/navigation.js:15 /app/src/navigation.js:16
-#: src/navigation.js:19 /app/src/navigation.js:22
+#: src/navigation.js:15 src/navigation.js:16
+#: src/navigation.js:19 src/navigation.js:22
 msgid "Invoices"
 msgstr "Faturas"
 
-#: src/navigation.js:20 /app/src/navigation.js:59
+#: src/navigation.js:20 src/navigation.js:59
 msgid "Financial workspaces"
 msgstr "Gestões financeiras"
 
@@ -853,7 +1265,7 @@ msgstr "Dados da organização"
 msgid "Financial assistant"
 msgstr "Assistente financeiro"
 
-#: src/navigation.js:31 /app/src/navigation.js:32
+#: src/navigation.js:31 src/navigation.js:32
 msgid "Access and sharing"
 msgstr "Acessos e compartilhamento"
 
@@ -905,8 +1317,8 @@ msgid ""
 "workspaces finance areas create rename archive restore organization personal"
 msgstr "gestoes financeiras areas financeiras espacos areas financas criar renomear arquivar restaurar organizacao pessoal"
 
-#: src/navigation.js:61 /app/src/navigation.js:63
-#: src/navigation.js:65 /app/src/navigation.js:67
+#: src/navigation.js:61 src/navigation.js:63
+#: src/navigation.js:65 src/navigation.js:67
 #: src/navigation.js:70
 msgid "Records"
 msgstr "Cadastros"
@@ -932,8 +1344,8 @@ msgstr "categorias classificacao receitas despesas"
 msgid "accounts banks cash register bank details finance"
 msgstr "contas bancos caixa cadastrar dados bancarios financeiro"
 
-#: src/navigation.js:72 /app/src/navigation.js:74
-#: src/navigation.js:76 /app/src/navigation.js:78
+#: src/navigation.js:72 src/navigation.js:74
+#: src/navigation.js:76 src/navigation.js:78
 #: src/navigation.js:80
 msgid "Finance and tax"
 msgstr "Financeiro e fiscal"
@@ -958,7 +1370,7 @@ msgstr "impostos jurisdicao tributacao aliquotas retencao"
 msgid "service invoice draft national"
 msgstr "nota fiscal servico rascunho nacional"
 
-#: src/navigation.js:83 /app/src/navigation.js:85
+#: src/navigation.js:83 src/navigation.js:85
 msgid "Team and customization"
 msgstr "Equipe e personalização"
 
@@ -970,7 +1382,7 @@ msgstr "acessos equipe permissoes membros usuarios grupos compartilhar pessoas e
 msgid "custom fields forms entities"
 msgstr "campos personalizados customizados formularios entidades"
 
-#: src/navigation.js:88 /app/src/navigation.js:90
+#: src/navigation.js:88 src/navigation.js:90
 #: src/navigation.js:92
 msgid "Features and data"
 msgstr "Recursos e dados"

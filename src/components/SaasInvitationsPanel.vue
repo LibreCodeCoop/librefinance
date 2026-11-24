@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { getLocale, t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -28,8 +29,8 @@ const recipientUid = ref('')
 const role = ref('viewer')
 const days = ref('7')
 const roles = [
-  { value: 'viewer', label: 'Leitura financeira' },
-  { value: 'auditor', label: 'Auditoria e exportação (sem escrita)' },
+  { value: 'viewer', label: t('librefinance', 'Financial read access') },
+  { value: 'auditor', label: t('librefinance', 'Audit and export (read-only)') },
 ]
 const endpoint = computed(() => {
   const root = '/apps/librefinance/api/saas/v1'
@@ -42,12 +43,12 @@ let seq = 0
 let mounted = true
 
 function stateName(item) {
-  if (item.expiresAt <= Math.floor(Date.now() / 1000)) return 'Expirado'
-  return { invited: 'Aguardando aceite', accepted: 'Aceito', revoked: 'Revogado' }[item.status]
-    || 'Indisponível'
+  if (item.expiresAt <= Math.floor(Date.now() / 1000)) return t('librefinance', 'Expired')
+  return { invited: t('librefinance', 'Awaiting acceptance'), accepted: t('librefinance', 'Accepted'), revoked: t('librefinance', 'Revoked') }[item.status]
+    || t('librefinance', 'Unavailable')
 }
 function deadline(value) {
-  return new Date(Number(value) * 1000).toLocaleString('pt-BR')
+  return new Date(Number(value) * 1000).toLocaleString(getLocale()?.replaceAll('_', '-'))
 }
 async function load(more = false) {
   const url = endpoint.value
@@ -85,7 +86,7 @@ onBeforeUnmount(() => { mounted = false; ++seq })
 function expiresAt() {
   const n = Number(days.value)
   if (!Number.isSafeInteger(n) || n < 1 || n > 30) {
-    throw new Error('Informe uma validade de 1 a 30 dias.')
+    throw new Error(t('librefinance', 'Enter a validity period of 1 to 30 days.'))
   }
   return Math.floor(Date.now() / 1000) + n * 86400
 }
@@ -108,11 +109,10 @@ async function mutate(method, uri, data, message) {
     if (cause?.response?.status === 409) {
       await load()
       if (mounted && endpoint.value === current) {
-        error.value = 'O convite foi atualizado em outra sessão. Revise o estado atual.'
+        error.value = t('librefinance', 'The invitation was updated in another session. Review the current state.')
       }
     } else {
-      error.value = cause?.message === 'Informe uma validade de 1 a 30 dias.'
-        ? cause.message : financeError(cause)
+      error.value = financeError(cause)
     }
     return false
   } finally {
@@ -122,14 +122,14 @@ async function mutate(method, uri, data, message) {
 async function create() {
   const uid = recipientUid.value.trim()
   if (!uid) {
-    error.value = 'Informe um identificador de usuário Nextcloud.'
+    error.value = t('librefinance', 'Enter a Nextcloud user identifier.')
     return
   }
   let exp
   try { exp = expiresAt() } catch (cause) { error.value = cause.message; return }
   const created = await mutate('POST', endpoint.value, {
     recipientUid: uid, role: role.value, expiresAt: exp, expectedRevision: 0,
-  }, 'Convite criado. O destinatário precisa aceitá-lo em sua conta.')
+  }, t('librefinance', 'Invitation created. The recipient must accept it in their account.'))
   if (created) recipientUid.value = ''
 }
 async function reinvite(item) {
@@ -138,73 +138,70 @@ async function reinvite(item) {
   await mutate('POST', endpoint.value, {
     recipientUid: item.recipientUid, role: item.role,
     expiresAt: exp, expectedRevision: item.revision,
-  }, 'Novo convite emitido. O destinatário deverá aceitar novamente.')
+  }, t('librefinance', 'New invitation issued. The recipient must accept it again.'))
 }
 async function revoke(item) {
   await mutate('DELETE', endpoint.value + '/' + item.id, {
     expectedRevision: item.revision,
-  }, 'A permissão externa foi revogada para a próxima requisição.')
+  }, t('librefinance', 'External permission has been revoked for the next request.'))
 }
 async function accept(item) {
   const ok = await mutate('POST', generateUrl('/apps/librefinance/api/saas/v1/workspaces/'
     + item.spaceId + '/invitations/' + item.id + '/accept'), {
     expectedRevision: item.revision,
-  }, 'Convite aceito. A gestão já pode aparecer entre as suas áreas.')
+  }, t('librefinance', 'Invitation accepted. The workspace can now appear among your workspaces.'))
   if (ok) emit('accepted')
 }
 </script>
 
 <template>
   <section v-if="isOwner || loading || invitations.length || error"
-    class="lf-invitations" :aria-label="isOwner ? 'Concessões financeiras externas' : 'Convites financeiros recebidos'">
-    <h3>{{ isOwner ? 'Convites para acesso externo' : 'Convites financeiros recebidos' }}</h3>
-    <p class="lf-muted">Convites limitados ao livro financeiro indicado, com
-      validade e revogação. Não concedem participação em grupos Nextcloud
-      nem acesso de escrita.</p>
+    class="lf-invitations" :aria-label="isOwner ? t('librefinance', 'External financial grants') : t('librefinance', 'Received financial invitations')">
+    <h3>{{ isOwner ? t('librefinance', 'Invitations for external access') : t('librefinance', 'Received financial invitations') }}</h3>
+    <p class="lf-muted">{{ t('librefinance', 'Invitations are limited to the specified financial ledger, with expiry and revocation. They do not grant membership in Nextcloud groups or write access.') }}</p>
     <NcNoteCard v-if="error" type="error" role="alert">{{ error }}</NcNoteCard>
     <NcNoteCard v-if="notice" type="success" role="status">{{ notice }}</NcNoteCard>
     <form v-if="isOwner" class="lf-invite-form" @submit.prevent="create">
       <NcTextField v-model="recipientUid"
-        label="Identificador do usuário Nextcloud"
-        placeholder="Conta existente fora do grupo do ambiente"
+        :label="t('librefinance', 'Nextcloud user identifier')"
+        :placeholder="t('librefinance', 'Existing account outside the environment group')"
         :disabled="busy" />
       <LfSelect v-model="role" id="lf-invite-role"
-        label="Permissão externa" :options="roles" :disabled="busy" />
-      <NcTextField v-model="days" label="Validade em dias (1 a 30)"
+        :label="t('librefinance', 'External permission')" :options="roles" :disabled="busy" />
+      <NcTextField v-model="days" :label="t('librefinance', 'Validity in days (1 to 30)')"
         inputmode="numeric" :disabled="busy" />
       <NcButton type="submit" variant="primary" :disabled="busy || !recipientUid.trim()">
-        Convidar conta externa
+        {{ t('librefinance', 'Invite external account') }}
       </NcButton>
     </form>
     <NcLoadingIcon v-if="loading" :size="20" />
     <ul v-if="invitations.length" class="lf-invite-list">
       <li v-for="item in invitations" :key="item.id" class="lf-invite-item">
         <div>
-          <strong>{{ isOwner ? item.recipientUid : 'Gestão ' + item.spaceId }}</strong>
-          <p>{{ item.role === 'auditor' ? 'Auditoria' : 'Leitura' }} · {{ stateName(item) }}</p>
-          <p class="lf-muted">Válido até {{ deadline(item.expiresAt) }}
-            · Revisão {{ item.revision }}</p>
+          <strong>{{ isOwner ? item.recipientUid : t('librefinance', 'Workspace {id}', { id: item.spaceId }, { escape: false, sanitize: false }) }}</strong>
+          <p>{{ item.role === 'auditor' ? t('librefinance', 'Audit') : t('librefinance', 'Read access') }} · {{ stateName(item) }}</p>
+          <p class="lf-muted">{{ t('librefinance', 'Valid until {date} · Revision {revision}', { date: deadline(item.expiresAt), revision: item.revision }, { escape: false, sanitize: false }) }}</p>
         </div>
         <div class="lf-invite-actions">
           <NcButton v-if="!isOwner && item.status === 'invited'"
             variant="primary" :disabled="busy"
-            :aria-label="'Aceitar convite da gestão ' + item.spaceId"
-            @click="accept(item)">Aceitar convite</NcButton>
+            :aria-label="t('librefinance', 'Accept invitation for workspace {id}', { id: item.spaceId }, { escape: false, sanitize: false })"
+            @click="accept(item)">{{ t('librefinance', 'Accept invitation') }}</NcButton>
           <NcButton v-if="isOwner && item.status !== 'revoked'"
             variant="secondary" :disabled="busy"
-            :aria-label="'Revogar acesso de ' + item.recipientUid"
-            @click="revoke(item)">Revogar</NcButton>
+            :aria-label="t('librefinance', 'Revoke access for {name}', { name: item.recipientUid }, { escape: false, sanitize: false })"
+            @click="revoke(item)">{{ t('librefinance', 'Revoke') }}</NcButton>
           <NcButton v-if="isOwner && (item.status === 'revoked'
               || item.expiresAt <= Math.floor(Date.now() / 1000))"
             variant="tertiary" :disabled="busy"
-            :aria-label="'Renovar convite para ' + item.recipientUid"
-            @click="reinvite(item)">Convidar novamente</NcButton>
+            :aria-label="t('librefinance', 'Renew invitation for {name}', { name: item.recipientUid }, { escape: false, sanitize: false })"
+            @click="reinvite(item)">{{ t('librefinance', 'Invite again') }}</NcButton>
         </div>
       </li>
     </ul>
-    <p v-else-if="isOwner && !loading" class="lf-muted">Nenhum convite externo cadastrado.</p>
+    <p v-else-if="isOwner && !loading" class="lf-muted">{{ t('librefinance', 'No external invitation registered.') }}</p>
     <NcButton v-if="nextAfterId !== null" variant="tertiary" :disabled="busy || loading"
-      @click="load(true)">Carregar mais convites</NcButton>
+      @click="load(true)">{{ t('librefinance', 'Load more invitations') }}</NcButton>
   </section>
 </template>
 
