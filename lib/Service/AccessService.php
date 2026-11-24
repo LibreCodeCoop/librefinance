@@ -365,6 +365,7 @@ final class AccessService {
         $ids = array_map('intval', array_keys($spaces));
         $q = $this->db->getQueryBuilder();
         $q->select('es.space_id', 'es.review_state', 'e.status AS environment_status',
+                'e.public_id AS environment_public_id', 'e.name AS environment_name',
                 'g.group_gid', 'g.state AS group_state')
             ->from('lf_environment_spaces', 'es')
             ->leftJoin('es', 'lf_environments', 'e', 'e.id = es.environment_id')
@@ -403,6 +404,13 @@ final class AccessService {
                 // Only current, authorized financial members receive the
                 // marker. It is presentation metadata, not a permission grant.
                 $spaces[$spaceId]['saasManaged'] = true;
+                // A group member with an actual financial role may distinguish
+                // its authorized tenant. External invitation listings never
+                // receive this metadata or enumerate neighboring workspaces.
+                $spaces[$spaceId]['financialEnvironment'] = [
+                    'id' => (string)$binding['environment_public_id'],
+                    'name' => (string)$binding['environment_name'],
+                ];
             }
         }
     }

@@ -28,6 +28,7 @@ import {
   menuEntries, parentOfView, defaultGroupOpen, canonicalView, financeDirectionForView,
 } from './navigation.js'
 import { useFinanceWorkspace } from './state/useFinanceWorkspace.js'
+import { contextKey, financialContexts } from './financialContexts.js'
 import LfSelect from './components/LfSelect.vue'
 import { pageNameForSpace, fieldEntityKind } from './navigation.js'
 import DashboardView from './views/DashboardView.vue'
@@ -243,9 +244,15 @@ const spaceKind = computed(() => ({ personal: t('librefinance', 'Home / personal
 const spaceRole = computed(() => roleNames[space.value?.role] || t('librefinance', 'Participant'))
 const selectedSpace = computed(() => spaces.value.find(s =>
   Number(s.id) === Number(activeId.value))?.name ?? t('librefinance', 'Select a workspace'))
-const spaceOptions = computed(() => spaces.value.map(s => ({
-  value: Number(s.id), label: s.name,
-})))
+const contextOptions = computed(() => financialContexts(spaces.value))
+const activeContext = computed(() => contextKey(space.value))
+const activeContextLabel = computed(() => contextOptions.value.find(c => c.value === activeContext.value)?.label || '')
+const spaceOptions = computed(() => (contextOptions.value.find(c => c.value === activeContext.value)?.spaces || [])
+  .map(s => ({ value: Number(s.id), label: s.name })))
+function selectContext(key) {
+  const context = contextOptions.value.find(c => c.value === key)
+  if (context?.spaces.length && context.value !== activeContext.value) selectSpace(context.spaces[0].id)
+}
 const readyView = computed(() => (
   visibleView(activeTab.value)
     ? canonicalView(activeTab.value)
@@ -401,6 +408,13 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
             <p class="lf-muted">{{space?.kind==='personal'
               ? t('librefinance', 'Household finances') : t('librefinance', 'Personal and organizational finances')}}</p></div>
         </div>
+        <LfSelect v-if="contextOptions.length > 1" id="lf-environment-select"
+          :model-value="activeContext" :options="contextOptions"
+          :label="t('librefinance', 'Current financial environment')"
+          :placeholder="t('librefinance', 'Choose a financial environment')"
+          @update:model-value="selectContext" />
+        <p v-else-if="space?.financialEnvironment" class="lf-space-current"
+          :aria-label="t('librefinance', 'Current financial environment')">{{ activeContextLabel }}</p>
         <LfSelect v-if="spaceOptions.length > 1" id="lf-space-select"
           :model-value="activeId" :options="spaceOptions"
           :label="t('librefinance', 'Current financial workspace')"
@@ -499,6 +513,7 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         <div v-if="space" class="lf-context-bar">
           <div class="lf-context-identity">
             <span class="lf-context-label">{{ activeLocation }} <span aria-hidden="true">/</span> {{ labels[readyView] }}</span>
+            <span v-if="space.financialEnvironment" class="lf-context-label">{{ activeContextLabel }}</span>
             <strong>{{ selectedSpace }}</strong>
           </div>
           <div class="lf-context-actions">
@@ -517,6 +532,9 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         <NcNoteCard v-if="message" type="success" role="status">{{ message }}</NcNoteCard>
 
         <component :is="SpacesView" v-if="!space && readyView==='spaces'" />
+        <NcEmptyContent v-else-if="!space && contextOptions.length > 1"
+          :name="t('librefinance', 'Select a financial environment')"
+          :description="t('librefinance', 'Choose an authorized environment before opening its financial workspaces.')" />
         <NcEmptyContent v-else-if="!space" :name="t('librefinance', 'Start organizing your finances')"
           :description="t('librefinance', 'Activate an authorized SaaS environment, create a personal workspace, or restore an archived workspace. Group administration does not grant financial access.')">
           <template #action>
