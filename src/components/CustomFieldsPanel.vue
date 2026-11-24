@@ -2,6 +2,7 @@
 SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
 import { inject, onMounted, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcTextArea from '@nextcloud/vue/components/NcTextArea'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
@@ -41,8 +42,8 @@ onMounted(load)
 </script>
 <template>
   <div v-if="fields.length || error" class="lf-custom-fields-panel">
-    <h3>Informações adicionais</h3>
-    <p class="lf-muted">Campos definidos para esta gestão financeira. Eles não alteram os cálculos contábeis.</p>
+    <h3>{{ t('librefinance', 'Additional information') }}</h3>
+    <p class="lf-muted">{{ t('librefinance', 'Fields defined for this financial workspace. They do not change accounting calculations.') }}</p>
     <NcNoteCard v-if="error" type="error" role="alert">{{ error }}</NcNoteCard>
     <div class="lf-custom-fields-grid">
       <div v-for="field in fields" :key="field.id" class="lf-field"
@@ -70,9 +71,9 @@ onMounted(load)
           :maxlength="field.type === 'text' ? 500 : 400"
           @update:model-value="setValue(field.id, $event)" />
         <small v-if="w.manager.value && (!field.visible || !field.apiVisible)"
-          class="lf-muted">Dado interno: somente gestores podem consultar e preencher.</small>
+          class="lf-muted">{{ t('librefinance', 'Internal data: only managers can view and fill in this field.') }}</small>
         <small v-if="field.help" class="lf-muted">{{ field.help }}</small>
-        <small v-if="['integer','number'].includes(field.type)" class="lf-muted">Use ponto como separador decimal; não arredondamos valores.</small>
+        <small v-if="['integer','number'].includes(field.type)" class="lf-muted">{{ t('librefinance', 'Use a period as the decimal separator; values are not rounded.') }}</small>
       </div>
     </div>
   </div>
