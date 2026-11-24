@@ -3,19 +3,35 @@
 
 import { getLocale, t } from '@nextcloud/l10n'
 
-/**
- * Convert a positive base-100 amount to exact minor units without binary floating-point
- * arithmetic. The initial ledger uses two-decimal currencies only.
- */
-export function toMinorUnits(value) {
-  const normalized = String(value).trim().replace(',', '.')
-  if (!/^\d{1,12}(\.\d{1,2})?$/.test(normalized)) {
-    throw new Error(t('librefinance', 'Enter a valid amount with up to two decimal places.'))
+const MAX_MINOR = 9000000000000
+
+function limitsError() {
+  return new Error(t('librefinance', 'Amount outside the permitted limits.'))
+}
+
+function validatePrecision(precision) {
+  if (!Number.isInteger(precision) || precision < 0 || precision > 3) {
+    throw limitsError()
   }
-  const [units, cents = ''] = normalized.split('.')
-  const amount = Number(units) * 100 + Number(cents.padEnd(2, '0'))
-  if (!Number.isSafeInteger(amount) || amount <= 0 || amount > 9000000000000) {
-    throw new Error(t('librefinance', 'Amount outside the permitted limits.'))
+}
+
+/** Convert a positive decimal amount to exact minor units at the given precision. */
+export function toMinorUnits(value, precision = 2) {
+  validatePrecision(precision)
+  const match = /^(\d{1,13})(?:[.,](\d{1,3}))?$/.exec(String(value).trim())
+  const [, units, fraction = ''] = match ?? []
+  // Scale zero needs 13 whole digits to reach MAX_MINOR. Base-100 input keeps its 12-digit limit.
+  const maxWholeDigits = precision === 0 ? 13 : 12
+  if (!match || units.length > maxWholeDigits || fraction.length > precision) {
+    if (precision === 2) {
+      throw new Error(t('librefinance', 'Enter a valid amount with up to two decimal places.'))
+    }
+    throw limitsError()
+  }
+  // At most 15 digits, so converting the assembled integer to Number is exact.
+  const amount = Number(units + fraction.padEnd(precision, '0'))
+  if (amount === 0 || amount > MAX_MINOR) {
+    throw limitsError()
   }
   return amount
 }
@@ -30,7 +46,16 @@ export function ledgerLocale(locale = getLocale()) {
   }
 }
 
-/** Presentation only. The current ledger still stores base-100 minor units. */
-export function formatLedgerMoney(minor, currency = 'BRL', locale = getLocale()) {
-  return new Intl.NumberFormat(ledgerLocale(locale), { style: 'currency', currency }).format(Number(minor) / 100)
+/** Present signed minor units at the supplied precision, which defaults to base 100. */
+export function formatLedgerMoney(minor, currency = 'BRL', locale = getLocale(), precision = 2) {
+  validatePrecision(precision)
+  const scale = 10 ** precision
+  // Within ±MAX_MINOR the integer converts exactly, and division error is less
+  // than half a minor unit, so formatting to this precision recovers every digit.
+  return new Intl.NumberFormat(ledgerLocale(locale), {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: precision,
+    maximumFractionDigits: precision,
+  }).format(Number(minor) / scale)
 }
