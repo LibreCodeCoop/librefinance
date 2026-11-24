@@ -22,3 +22,14 @@ Dependências declaradas de produção e suas licenças informadas nos manifests
 Os textos integrais MIT, GPL, AGPL e Apache-2.0 são mantidos em LICENSES/. Os pacotes transitivos devem ser reavaliados a cada alteração do lock de dependências. A existência deste inventário não substitui uma auditoria independente de todas as licenças e avisos dos artefatos gerados.
 
 See [Localization](LOCALIZATION.md) for the native translation workflow.
+
+## Optional WebDAV dependency security maintenance
+
+The optional Nextcloud Files dependency uses WebDAV 5.11.0. The npm override
+scopes minimatch 11.0.1 to WebDAV because its upstream range still resolves
+the vulnerable 9.x series. The matcher and its nonrecursive glob dependency
+use BlueOak-1.0.0; brace-expansion and balanced-match use MIT. The optional
+dependency is exercised under Node 24 (including actual WebDAV path and
+filename filtering); the production bundles are checked under Node 22 and
+24 and contain no changes from this upgrade. Remove or revise the override
+when a compatible upstream WebDAV release includes a patched matcher.
