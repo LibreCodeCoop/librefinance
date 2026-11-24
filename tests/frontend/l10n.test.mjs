@@ -18,7 +18,7 @@ test('generated Nextcloud browser and PHP catalogs match', () => {
   }, { timeout: 1000 })
   assert.deepEqual(registered, catalog)
   assert.ok(Object.keys(catalog.translations).length >= 80)
-  for (const path of ['../../src/navigation.js', '../../src/App.vue', '../../src/money.js', '../../src/admin/AdminPage.vue', '../../src/components/SaasPolicyEditor.vue', '../../src/services/saasPolicyDraft.js', '../../src/services/api.js']) {
+  for (const path of ['../../src/navigation.js', '../../src/App.vue', '../../src/money.js', '../../src/admin/AdminPage.vue', '../../src/components/SaasPolicyEditor.vue', '../../src/components/SaasEnvironmentsPanel.vue', '../../src/components/SaasInvitationsPanel.vue', '../../src/services/saasPolicyDraft.js', '../../src/services/api.js']) {
     const calls = [...read(path).matchAll(/\bt\('librefinance', '([^']+)'(?=[,)])/g)]
     assert.ok(calls.length > 0, path)
     for (const [, key] of calls) {
