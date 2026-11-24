@@ -20,6 +20,7 @@ $id = (int)$space['id'];
 $path = '/spaces/' . $id;
 $assertReport = static fn(array $v): bool => count(array_filter($v['modules'] ?? [],
     static fn(array $m): bool => $m['id'] === $report && $m['enabled'] === true
+        && ($m['contractVersion'] ?? null) === 1
         && ($m['blockedByPolicy'] ?? null) === false)) === 1;
 $t->check('built-in reports discovered by core', $a, 'GET', $path . '/modules', null, 200, $assertReport);
 $t->check('unrelated user cannot list modules', $b, 'GET', $path . '/modules', null, 404);
