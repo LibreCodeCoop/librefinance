@@ -129,6 +129,7 @@ quantidade de rotas como medida de maturidade.
 - Instalação limpa e isolamento em SQLite, PostgreSQL e MariaDB
 - Testes de acesso negativo para empresa, grupo, módulo e perfil
 - Idempotência e condições de corrida para lançamentos, impostos e importações
+- Bootstrap SaaS de empresa jurídica: livro/contas/identidade/vínculo/auditoria na mesma transação; cadastro inválido não deixa livro órfão; replay preserva companyId, alteração da identidade com a mesma chave retorna 409; gestões sem empresa e POST de empresa legado continuam compatíveis
 - Revisão otimista das concessões internas SaaS: duas alterações simultâneas com a mesma versão (uma aceita, outra HTTP 409), falta de precondição (HTTP 428), revogação seguida de regrant obsoleto, segregação entre livros e manutenção do modo legado; migration aditiva validada com rollback em SQLite, PostgreSQL e MariaDB
 - Behat com cenário executado em ambos os shards, sem skips disfarçados
 - Playwright com browser real, teclado, telas móveis e troca rápida de estado
