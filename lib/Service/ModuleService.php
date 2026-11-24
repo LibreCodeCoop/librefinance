@@ -60,7 +60,7 @@ final class ModuleService {
         // A legacy optional app might still be enabled during a developer
         // upgrade. It must never shadow a built-in domain or its permissions.
         $external = array_filter($event->modules(), static fn(ModuleDescriptor $d): bool =>
-            in_array($d->appId, $enabled, true) && !isset($internal[$d->appId]));
+            $d->isCompatible() && in_array($d->appId, $enabled, true) && !isset($internal[$d->appId]));
         return $internal + $external;
     }
 
@@ -78,6 +78,7 @@ final class ModuleService {
                 'name' => $module->name,
                 'description' => $module->description,
                 'requiredRole' => $module->requiredRole,
+                'contractVersion' => $module->contractVersion,
                 'enabled' => $this->enabledInSpace($spaceId, $id, $blockedByPolicy),
                 // This is informational only; requireEnabled re-checks server policy.
                 'blockedByPolicy' => $blockedByPolicy,

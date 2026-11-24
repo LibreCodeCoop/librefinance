@@ -124,3 +124,19 @@ financial authority, installed module minimum, per-space enablement and
 effective policy. Report and import operations additionally require their
 own canonical domain to be enabled, independently of the caller module.
 No unknown role or capability is implicitly a viewer.
+
+### Module descriptor version negotiation
+
+The existing constructor of ModuleDescriptor defaults to contract version 1.
+An extension may pass an explicit contractVersion as the final constructor
+argument. Versions must be positive integers within the supported descriptor
+range (1–65535). A descriptor targeting a newer contract can be registered,
+but is excluded from discovery and all module authorization until the core
+supports that contract. The core currently supports version 1 only.
+
+The authorized module list includes contractVersion. This additive field
+does not change module roles, workspace flags, restrictive policies or native
+route ownership. Incompatible extensions cannot provide navigation URLs or
+gain authorization. Existing NFS-e draft registrations remain compatible.
+This is the module descriptor negotiation boundary, not a promise of
+compatibility for future public service or event versions.
