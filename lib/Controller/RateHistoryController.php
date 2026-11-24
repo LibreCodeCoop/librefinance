@@ -25,6 +25,12 @@ final class RateHistoryController extends ApiController {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/exchange-rates/{rateId}/preview')]
+    public function preview(int $spaceId, int $rateId, mixed $sourceMinor = null): JSONResponse {
+        return $this->respond(fn() => $this->rates->preview($spaceId, $rateId, $sourceMinor));
+    }
+
+    #[NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/exchange-rates')]
     public function record(int $spaceId, string $sourceCurrency, string $targetCurrency,
         mixed $rate, string $effectiveOn, string $sourceType, string $sourceRef): JSONResponse {

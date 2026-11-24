@@ -117,3 +117,14 @@ The read-only table displays the stored exact rate, date, currency pair,
 provenance and actor. A correction adds another immutable record. The
 screen does not change the ledger currency, choose a rate for a posting or
 convert balances. Workspace changes discard in-flight UI results.
+
+GET /spaces/{spaceId}/exchange-rates/{rateId}/preview?sourceMinor=1000
+is an authenticated read-only conversion using one explicitly selected,
+immutable snapshot within the current book. The amount is a canonical
+signed minor-unit integer (including zero); decimal/exponent forms and
+out-of-range input are rejected. Conversion uses the stored source and
+target precisions, never the current currency metadata or locale. The
+result contains the original snapshot, sourceMinor, targetMinor,
+rounding=half_away_from_zero and postingCreated=false. A missing or
+foreign snapshot returns 404, including when the caller may access both
+books. No rate is selected automatically and no accounting state changes.

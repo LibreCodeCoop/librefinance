@@ -154,6 +154,7 @@ $query = [
     'librefinance:company#index' => 'afterId:i',
     'librefinance:paymentMethod#index' => 'afterId:i',
     'librefinance:rateHistory#index' => 'afterId:i',
+    'librefinance:rateHistory#preview' => 'sourceMinor:s!',
     'librefinance:contact#index' => 'afterId:i',
     'librefinance:item#index' => 'afterId:i',
     'librefinance:report#profitLoss' => 'from:date!,through:date!',
@@ -168,6 +169,7 @@ $query = [
     'librefinance_nfse:draft#index' => 'afterId:i',
 ];
 $descriptions = [
+    'librefinance:rateHistory#preview' => 'Read-only conversion of signed minor units using one explicit workspace rate snapshot and its stored precisions; half-away-from-zero rounding, no posting.',
     'librefinance:environment#index' => 'Authenticated group member may discover eligible environments only, without finance data.',
     'librefinance:environment#enable' => 'Instance admin only. Enable or suspend an individual Nextcloud group without granting ledger rights.',
     'librefinance:environment#adminGroups' => 'Instance admin only. Paginated Nextcloud groups with SaaS readiness, without financial metadata.',
