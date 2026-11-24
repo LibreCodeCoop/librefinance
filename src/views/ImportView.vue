@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, onBeforeUnmount, ref } from 'vue'
+import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcTextArea from '@nextcloud/vue/components/NcTextArea'
 import NcCheckboxRadioSwitch from '@nextcloud/vue/components/NcCheckboxRadioSwitch'
@@ -21,15 +22,30 @@ function backToSettings() {
   navigate('modules')
 }
 const kinds = [
-  { id:'catalog', title:'Cadastros e contas', detail:'Empresa, pessoas, categorias e contas financeiras',
+  { id:'catalog', title:t('librefinance', 'Registrations and accounts'), detail:t('librefinance', 'Company, people, categories and financial accounts'),
     preview:'/preview', apply:'/import', size:131072 },
-  { id:'movements', title:'Extratos históricos', detail:'Entradas e saídas aguardando conciliação',
+  { id:'movements', title:t('librefinance', 'Historical statements'), detail:t('librefinance', 'Inflows and outflows awaiting reconciliation'),
     preview:'/movement-preview', apply:'/movement-import', size:131072 },
-  { id:'transfers', title:'Transferências', detail:'Pares de contas sem duplicar movimentos',
+  { id:'transfers', title:t('librefinance', 'Transfers'), detail:t('librefinance', 'Account pairs without duplicating movements'),
     preview:'/transfer-preview', apply:'/transfer-import', size:131072 },
-  { id:'inventory', title:'Auditoria de cobertura', detail:'Compare contagens com mapeamentos e identifique lacunas',
+  { id:'inventory', title:t('librefinance', 'Coverage audit'), detail:t('librefinance', 'Compare counts with mappings and identify gaps'),
     preview:'/inventory-preview', apply:null, size:32768 },
 ]
+const statusLabels = {
+  new: t('librefinance', 'New record'),
+  unchanged: t('librefinance', 'Already present'),
+  conflict: t('librefinance', 'Conflict'),
+  not_required: t('librefinance', 'Not required'),
+  not_implemented: t('librefinance', 'Not implemented'),
+  gap: t('librefinance', 'Coverage gap'),
+  counts_match: t('librefinance', 'Counts match'),
+}
+const kindLabels = {
+  company: t('librefinance', 'Company'),
+  account: t('librefinance', 'Account'),
+  contact: t('librefinance', 'Contact'),
+  category: t('librefinance', 'Category'),
+}
 const step = ref('catalog')
 const selected = computed(() => kinds.find(item => item.id === step.value))
 const sourceText = ref('')
@@ -70,7 +86,7 @@ async function pickFile(event) {
   confirmed.value = false
   error.value = ''
   if (file.size > selected.value.size) {
-    error.value = 'O arquivo excede o limite deste tipo de importação.'
+    error.value = t('librefinance', 'The file exceeds the limit for this import type.')
     return
   }
   try {
@@ -79,7 +95,7 @@ async function pickFile(event) {
     sourceText.value = text
     fileName.value = file.name
   } catch {
-    if (token === generation) error.value = 'Falha ao ler o arquivo selecionado.'
+    if (token === generation) error.value = t('librefinance', 'Failed to read the selected file.')
   }
 }
 async function review() {
@@ -131,8 +147,7 @@ async function apply() {
         await workspace.refreshCurrent({ preserveView: true })
       } catch (refreshFailure) {
         if (token === generation) error.value =
-          'Lote importado; falha ao atualizar os cadastros da interface: '
-          + financeError(refreshFailure)
+          t('librefinance', 'Batch imported; failed to refresh the interface records: {error}', { error: financeError(refreshFailure) }, { escape: false, sanitize: false })
       }
       if (token !== generation) return
     }
@@ -146,7 +161,7 @@ async function apply() {
       if (token === generation) coverage.value = report
     } catch (cause) {
       if (token === generation) error.value =
-        'Importação concluída, mas não foi possível consultar a cobertura: ' + financeError(cause)
+        t('librefinance', 'Import completed, but coverage could not be retrieved: {error}', { error: financeError(cause) }, { escape: false, sanitize: false })
     }
   } catch (cause) {
     if (token === generation) error.value = financeError(cause)
@@ -176,16 +191,14 @@ onBeforeUnmount(() => { ++generation })
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader title="Migração e conferência" eyebrow="CONFIGURAÇÕES / DADOS"
-      description="Importe em etapas e compare a origem com os registros persistidos no Nextcloud.">
-      <template #actions><NcButton variant="secondary" @click="backToSettings">Voltar aos recursos</NcButton></template>
+    <LfPageHeader :title="t('librefinance', 'Migration and review')" :eyebrow="t('librefinance', 'SETTINGS / DATA')"
+      :description="t('librefinance', 'Import in stages and compare the source with records stored in Nextcloud.')">
+      <template #actions><NcButton variant="secondary" @click="backToSettings">{{ t('librefinance', 'Back to features') }}</NcButton></template>
     </LfPageHeader>
     <NcNoteCard type="warning">
-      Importe somente dados normalizados de empresas autorizadas e revise cada
-      prévia antes de confirmar. Os saldos de origem são mantidos como referência;
-      nenhuma importação contabiliza lançamentos automaticamente.
+      {{ t('librefinance', 'Only import normalized data from authorized companies and review each preview before confirming. Source balances are kept for reference; no import posts journal entries automatically.') }}
     </NcNoteCard>
-    <div class="lf-import-progress" aria-label="Fluxos da migração">
+    <div class="lf-import-progress" :aria-label="t('librefinance', 'Migration workflows')">
       <NcButton v-for="item in kinds" :key="item.id"
         :variant="step===item.id?'primary':'tertiary'"
         :pressed="step===item.id" :disabled="busy" @click="switchStep(item.id)">
@@ -196,96 +209,100 @@ onBeforeUnmount(() => { ++generation })
     <section class="lf-surface">
       <div class="lf-section-heading">
         <div><h2>{{selected.title}}</h2><p>{{selected.detail}}</p></div>
-        <span class="lf-state">Arquivo normalizado</span>
+        <span class="lf-state">{{ t('librefinance', 'Normalized file') }}</span>
       </div>
       <p class="lf-muted">
-        {{isInventory?'Manifesto de cobertura, até 32 KiB. Não grava dados.':
-          'Lote de registros, até 128 KiB. Revise conflitos antes de confirmar.'}}
+        {{isInventory?t('librefinance', 'Coverage manifest, up to 32 KiB. Does not write data.'):
+          t('librefinance', 'Batch of records, up to 128 KiB. Review conflicts before confirming.')}}
       </p>
       <input ref="input" class="lf-visually-hidden"
         type="file" accept=".json,application/json" :disabled="busy" @change="pickFile" />
       <div class="lf-import-actions">
         <NcButton variant="secondary" :disabled="busy" @click="input?.click()">
           <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
-          Selecionar arquivo JSON
+          {{ t('librefinance', 'Select JSON file') }}
         </NcButton>
-        <span class="lf-muted">{{fileName||'Nenhum arquivo selecionado'}}</span>
+        <span class="lf-muted">{{fileName||t('librefinance', 'No file selected')}}</span>
       </div>
-      <NcTextArea :model-value="sourceText" label="Ou cole o JSON normalizado"
-        placeholder="Cole um lote com formato, empresa de origem e os dados autorizados"
+      <NcTextArea :model-value="sourceText" :label="t('librefinance', 'Or paste the normalized JSON')"
+        :placeholder="t('librefinance', 'Paste a batch with the format, source company and authorized data')"
         :disabled="busy" @update:model-value="changed" />
       <div class="lf-form-actions">
         <NcButton variant="primary" :disabled="busy||!sourceText.trim()"
-          @click="review">Validar e pré-visualizar</NcButton>
+          @click="review">{{ t('librefinance', 'Validate and preview') }}</NcButton>
       </div>
     </section>
     <section v-if="preview" class="lf-surface">
-      <div class="lf-section-heading"><h2>Resultado da prévia</h2>
+      <div class="lf-section-heading"><h2>{{ t('librefinance', 'Preview result') }}</h2>
         <span :class="preview.ready || isInventory ? 'lf-state lf-state-good' : 'lf-state lf-state-warning'">
-          {{isInventory?'Somente leitura':preview.ready?'Pronto para confirmar':'Conflitos encontrados'}}
+          {{isInventory?t('librefinance', 'Read-only'):preview.ready?t('librefinance', 'Ready to confirm'):t('librefinance', 'Conflicts found')}}
         </span>
       </div>
       <p v-if="preview.source" class="lf-muted">
-        Origem: {{preview.source.system}} · Empresa {{preview.source.companyId}}
+        {{ t('librefinance', 'Source: {system} · Company {company}', { system: preview.source.system, company: preview.source.companyId }, { escape: false, sanitize: false }) }}
       </p>
       <div v-if="!isInventory" class="lf-kpis">
-        <div class="lf-kpi"><span>Novos</span><strong>{{count.new||0}}</strong></div>
-        <div class="lf-kpi"><span>Já existentes</span><strong>{{count.unchanged||0}}</strong></div>
-        <div class="lf-kpi"><span>Conflitos</span><strong>{{count.conflict||0}}</strong></div>
+        <div class="lf-kpi"><span>{{ t('librefinance', 'New records') }}</span>
+          <strong>{{count.new||0}}</strong></div>
+        <div class="lf-kpi"><span>{{ t('librefinance', 'Existing records') }}</span>
+          <strong>{{count.unchanged||0}}</strong></div>
+        <div class="lf-kpi"><span>{{ t('librefinance', 'Conflicts') }}</span>
+          <strong>{{count.conflict||0}}</strong></div>
       </div>
       <div v-else class="lf-kpis">
-        <div class="lf-kpi"><span>Recursos avaliados</span>
+        <div class="lf-kpi"><span>{{ t('librefinance', 'Resources examined') }}</span>
           <strong>{{count.resourcesExamined||0}}</strong></div>
-        <div class="lf-kpi"><span>Recursos não implementados</span>
+        <div class="lf-kpi"><span>{{ t('librefinance', 'Unimplemented resources') }}</span>
           <strong>{{count.resourcesWithUnimplementedImports||0}}</strong></div>
-        <div class="lf-kpi"><span>Referências quebradas</span>
+        <div class="lf-kpi"><span>{{ t('librefinance', 'Broken references') }}</span>
           <strong>{{count.brokenSourceMappings||0}}</strong></div>
       </div>
       <NcNoteCard v-if="preview.issues?.length" type="warning" role="alert">
-        Há {{preview.issues.length}} conflito(s). A importação está bloqueada até resolver.
+        {{ t('librefinance', 'Conflicts: {count}. Import is blocked until they are resolved.', { count: preview.issues.length }, { escape: false, sanitize: false }) }}
       </NcNoteCard>
       <div class="lf-table-scroll"><table class="lf-data-table">
-        <thead v-if="isInventory"><tr><th>Recurso</th><th>Origem</th>
-          <th>Presentes</th><th>Ausentes</th><th>Estado</th></tr></thead>
-        <thead v-else><tr><th>Tipo</th><th>ID na origem</th><th>Estado</th></tr></thead>
+        <thead v-if="isInventory"><tr><th>{{ t('librefinance', 'Resource') }}</th>
+            <th>{{ t('librefinance', 'Source origin') }}</th>
+          <th>{{ t('librefinance', 'Present') }}</th>
+            <th>{{ t('librefinance', 'Missing') }}</th>
+            <th>{{ t('librefinance', 'State') }}</th></tr></thead>
+        <thead v-else><tr><th>{{ t('librefinance', 'Type') }}</th>
+            <th>{{ t('librefinance', 'Source ID') }}</th>
+            <th>{{ t('librefinance', 'State') }}</th></tr></thead>
         <tbody v-if="isInventory"><tr v-for="item in rows" :key="item.resource">
           <td>{{item.resource}}</td><td>{{item.sourceCount}}</td>
           <td>{{item.targetPresent}}</td><td>{{item.missing}}</td>
-          <td>{{item.status}}</td>
+          <td :data-status="item.status">{{ statusLabels[item.status] || item.status }}</td>
         </tr></tbody>
         <tbody v-else><tr v-for="row in rows" :key="row.kind+':'+row.sourceId">
-          <td>{{row.kind || (step==='movements'?'Transação':'Transferência')}}</td>
-          <td class="lf-code">{{row.sourceId}}</td><td>{{row.status}}</td>
+          <td :data-kind="row.kind">{{ kindLabels[row.kind] || row.kind || (step === 'movements' ? t('librefinance', 'Transaction') : t('librefinance', 'Transfer')) }}</td>
+          <td class="lf-code">{{row.sourceId}}</td><td :data-status="row.status">{{ statusLabels[row.status] || row.status }}</td>
         </tr></tbody>
       </table></div>
       <NcNoteCard v-if="isInventory" type="info">
-        Contagens coincidentes não demonstram igualdade de valores, vínculos contábeis,
-        emissão fiscal nem cobertura histórica completa.
+        {{ t('librefinance', 'Matching counts do not demonstrate equality of amounts, accounting links, fiscal issuance or complete historical coverage.') }}
       </NcNoteCard>
       <template v-else-if="preview.ready">
         <NcCheckboxRadioSwitch v-model="confirmed" type="checkbox">
-          Confirmo a empresa de destino e autorizo somente os registros
-          validados nesta prévia, mantendo lançamentos e conciliações pendentes.
+          {{ t('librefinance', 'I confirm the destination company and authorize only the records validated in this preview, leaving journal entries and reconciliations pending.') }}
         </NcCheckboxRadioSwitch>
         <div class="lf-form-actions">
           <NcButton variant="primary" :disabled="!confirmed||busy" @click="apply">
-            Importar lote validado
+            {{ t('librefinance', 'Import validated batch') }}
           </NcButton>
         </div>
       </template>
     </section>
     <section v-if="result" class="lf-surface">
-      <h2>Importação concluída</h2>
+      <h2>{{ t('librefinance', 'Import completed') }}</h2>
       <NcNoteCard type="success" role="status">
-        Novos: {{result.created}}. Existentes: {{result.skipped}}.
-        Nenhuma movimentação foi contabilizada automaticamente.
+        {{ t('librefinance', 'New: {created}. Existing: {skipped}. No movement was posted automatically.', { created: result.created, skipped: result.skipped }, { escape: false, sanitize: false }) }}
       </NcNoteCard>
       <div v-if="coverage" class="lf-table-scroll">
-        <h3>Cobertura no destino</h3>
+        <h3>{{ t('librefinance', 'Destination coverage') }}</h3>
         <pre class="lf-technical-report">{{JSON.stringify(coverage,null,2)}}</pre>
         <p class="lf-muted">
-          Mapeamentos persistidos não comprovam equivalência funcional ou
-          conciliação do saldo da origem.
+          {{ t('librefinance', 'Persisted mappings do not prove functional equivalence or reconciliation of the source balance.') }}
         </p>
       </div>
     </section>
