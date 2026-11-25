@@ -33,14 +33,7 @@ jobs:
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2.40.0
         with:
           php-version: '8.3'
-          extensions: mbstring
           coverage: none
-      - run: php tests/unit/currency-conversion.php
-      - run: php tests/unit/currency-rate-quote.php
-      - run: php tests/unit/module-descriptor.php
-      - run: php tests/unit/ofx-parser.php
-      - run: php tests/unit/saas-financial-capabilities.php
-      - run: php tests/unit/saas-policy.php
       - run: npm ci --include=dev
       - run: npm test
       - run: python3 tests/ci/coverage-inventory.py

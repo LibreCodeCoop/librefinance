@@ -315,36 +315,6 @@ for script in basic personal-finance agenda-search-sort spaces advanced governan
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/$script.php"
 done
 echo "PASS: Native PHP authorization, ledger, group access and concurrency tests on Nextcloud Server master."
-# A malformed OFX statement must be rejected before any bank account write.
-ofx_unit="$(compose exec -T --user www-data nextcloud php   /var/www/html/custom_apps/librefinance/tests/unit/ofx-parser.php)"
-printf '%s\n' "$ofx_unit"
-grep -Eq '^OFX parser: 19 positive and negative assertions passed$' <<< "$ofx_unit" || {
-  echo 'FAIL: OFX parser unit assertions did not complete' >&2
-  exit 1
-}
-# Versioned module descriptors reject malformed contracts and distinguish unsupported future versions.
-module_unit="$(compose exec -T --user www-data nextcloud php /var/www/html/custom_apps/librefinance/tests/unit/module-descriptor.php)"
-printf '%s\n' "$module_unit"
-grep -Eq '^Module descriptor: [1-9][0-9]* assertions passed$' <<< "$module_unit" || {
-  echo 'FAIL: module descriptor assertions did not complete' >&2
-  exit 1
-}
-# Named allow/deny matrix, independently of integration role fixtures.
-capabilities="$(compose exec -T --user www-data nextcloud php   /var/www/html/custom_apps/librefinance/tests/unit/saas-financial-capabilities.php)"
-printf '%s\n' "$capabilities"
-grep -Eq '^SaaS financial capability matrix: [1-9][0-9]* named allow/deny assertions passed$' <<< "$capabilities" || {
-  echo 'FAIL: financial capability matrix incomplete' >&2
-  exit 1
-}
-# Hierarchical policies are not financial ACLs; exercise deny-first and
-# multi-scope invariants independently of DB/frontend behavior.
-policy_unit="$(compose exec -T --user www-data nextcloud php \
-  /var/www/html/custom_apps/librefinance/tests/unit/saas-policy.php)"
-printf '%s\n' "$policy_unit"
-grep -Eq '^SaaS policy resolver: [0-9]+ named restrictive positive and negative assertions passed$' <<< "$policy_unit" || {
-  echo 'FAIL: SaaS policy resolver did not complete' >&2
-  exit 1
-}
 for domain_test in banking obligations invoicing payments reports-cash-flow reports-saved import; do
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/domains/$domain_test.php"
 done

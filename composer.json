@@ -13,6 +13,14 @@
   },
   "scripts": {
     "lint": "find appinfo lib -type f -name '*.php' -print0 | xargs -0 -n 1 php -l",
+    "test:unit": [
+      "@php tests/unit/currency-conversion.php",
+      "@php tests/unit/currency-rate-quote.php",
+      "@php tests/unit/module-descriptor.php",
+      "@php tests/unit/ofx-parser.php",
+      "@php tests/unit/saas-financial-capabilities.php",
+      "@php tests/unit/saas-policy.php"
+    ],
     "openapi": "@php tests/openapi/generate.php",
     "openapi:check": "@php tests/openapi/generate.php --check"
   }

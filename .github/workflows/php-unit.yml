@@ -1,0 +1,72 @@
+# Adapted from the LibreCodeCoop organization PHP workflow templates.
+# https://github.com/LibreCodeCoop/.github/tree/main/workflow-templates
+#
+# SPDX-FileCopyrightText: 2021-2024 Nextcloud GmbH and Nextcloud contributors
+# SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+# SPDX-License-Identifier: MIT
+
+name: PHP unit tests
+
+on: pull_request
+
+permissions:
+  contents: read
+
+concurrency:
+  group: php-unit-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      php-versions: ${{ steps.versions.outputs.php-versions }}
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Get version matrix
+        id: versions
+        uses: nextcloud-libraries/nextcloud-version-matrix@71959de73c244b11ecbf4503b87c41d65b0f64ae # v1.3.4
+
+  unit:
+    runs-on: ubuntu-latest
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        php-versions: ${{ fromJSON(needs.matrix.outputs.php-versions) }}
+
+    name: PHP unit tests (${{ matrix.php-versions }})
+
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2.40.0
+        with:
+          php-version: ${{ matrix.php-versions }}
+          extensions: mbstring
+          coverage: none
+          ini-file: development
+
+      - name: Unit tests
+        run: composer run test:unit
+
+  summary:
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    needs: [matrix, unit]
+    if: always()
+    name: php-unit-summary
+    steps:
+      - name: Summary status
+        run: |
+          test "${{ needs.matrix.result }}" = 'success'
+          test "${{ needs.unit.result }}" = 'success'
