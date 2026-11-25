@@ -29,18 +29,6 @@ limites com outros trabalhos da máquina. Em falhas, o script registra o estado
 dos contêineres e sinais de OOM antes da limpeza; não oferece repetição
 automática de requisições financeiras.
 
-## Testes unitários PHP independentes
-
-Execute `bash tests/ci/run-unit.sh` na raiz do repositório, com PHP 8.3
-e a extensão `mbstring`. O executor valida as seis suítes de domínio em
-processos separados, incluindo o resultado final de cada suíte, sem
-instalar o Nextcloud. O job de contratos executa esse gate antes de
-instalar as dependências do frontend. Execute também
-`python3 tests/ci/test-run-unit.py` para testar a rejeição de suítes ausentes,
-incompletas ou com falhas, usando arquivos PHP sintéticos descartáveis.
-Essas verificações não substituem os testes de integração no Nextcloud
-instalado nem a matriz de bancos de dados.
-
 ## API: PHPUnit/integração e Behat por shards
 
 O laboratório executa suites nativas PHP HTTP separadas por regras e
