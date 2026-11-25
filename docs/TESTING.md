@@ -32,6 +32,9 @@ automática de requisições financeiras.
 ## Testes unitários PHP
 
 Na raiz do repositório, execute `composer install` e `composer test:unit`.
+O plugin `bamarni/composer-bin-plugin` instala as dependências de teste
+isoladamente em `vendor-bin/phpunit/`, com seu próprio `composer.lock`
+e sem misturá-las às dependências de produção.
 A configuração `phpunit.xml` descobre as classes em `tests/php/Unit/`, sem
 instalar o Nextcloud. O workflow `php-unit.yml` executa essa suíte na matriz
 de versões PHP suportadas pelo aplicativo.
