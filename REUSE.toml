@@ -1,0 +1,53 @@
+# SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+version = 1
+SPDX-PackageName = "librefinance"
+SPDX-PackageSupplier = "LibreCode <contact@librecode.coop>"
+SPDX-PackageDownloadLocation = "https://github.com/LibreCodeCoop/librefinance/"
+
+[[annotations]]
+path = [
+    ".l10nignore",
+    "composer.json",
+    "composer.lock",
+    "docs/evidence/ux/*.png",
+    "l10n/*.js",
+    "l10n/*.json",
+    "openapi.json",
+    "package.json",
+    "package-lock.json",
+    "schemas/financial-interchange-v1.schema.json",
+    "tests/acceptance/restricted-funding/workflow-cases.json",
+    "tests/behat/composer.json",
+    "tests/behat/composer.lock",
+    "tests/ci/routes-expected.json",
+    "tests/e2e/fixtures/logo.png",
+    "tests/import/fixtures/interchange-v1/*.json",
+    "tests/import/fixtures/interchange-v1/evidence-a.txt",
+    "tests/integration/fixtures/logo-valid.b64",
+    "vendor-bin/**/composer.json",
+    "vendor-bin/**/composer.lock"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 LibreCode Coop and contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# Generated bundles are not committed, but the release archive includes them,
+# these annotations, LICENSES/ and the existing attribution notices in docs/.
+[[annotations]]
+path = ["js/main.js", "js/admin.js"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+    "2026 LibreCode Coop and contributors",
+    "Original authors of bundled third-party packages (see docs/THIRD-PARTY.md)"
+]
+SPDX-License-Identifier = "AGPL-3.0-or-later AND GPL-3.0-or-later AND MIT AND Apache-2.0"
+
+[[annotations]]
+path = ["css/main.css", "css/admin.css"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+    "2026 LibreCode Coop and contributors",
+    "Original authors of bundled third-party dependencies (see docs/THIRD-PARTY.md)"
+]
+SPDX-License-Identifier = "AGPL-3.0-or-later AND GPL-3.0-or-later AND MIT"

@@ -15,11 +15,11 @@ ARCHIVE = ROOT / "build/artifacts" / (APP + ".tar.gz")
 RUNTIME = (
     "appinfo", "lib", "templates", "l10n", "img", "schemas", "docs",
     "LICENSE", "LICENSES", "README.md", "SECURITY.md", "composer.json",
-    "composer.json.license", "openapi.json", "openapi.json.license",
+    "REUSE.toml", "openapi.json",
 )
 REQUIRED_ASSETS = (
-    "js/main.js", "js/main.js.license", "js/admin.js", "js/admin.js.license",
-    "css/main.css", "css/main.css.license", "css/admin.css", "css/admin.css.license",
+    "js/main.js", "js/admin.js",
+    "css/main.css", "css/admin.css",
 )
 
 
