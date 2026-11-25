@@ -129,24 +129,41 @@ final class ModuleService {
         if (!isset($this->discover()[$id])) {
             throw new DomainException('module_not_found');
         }
-        $q = $this->db->getQueryBuilder();
-        $q->select('id')->from('lf_module_flags')
-            ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
-            ->andWhere($q->expr()->eq('module_id', $q->createNamedParameter($id)));
-        $existing = $q->executeQuery()->fetchOne();
-        if ($existing === false) {
-            $this->write->insert('lf_module_flags', [
-                'space_id' => $spaceId, 'module_id' => $id, 'enabled' => $enabled ? 1 : 0,
-            ]);
+        $key = ['space_id' => $spaceId, 'module_id' => $id];
+        $values = ['enabled' => $enabled ? 1 : 0];
+        if ($this->flagExists($spaceId, $id)) {
+            $this->write->update('lf_module_flags', $values, $key);
         } else {
-            $this->write->update('lf_module_flags',
-                ['enabled' => $enabled ? 1 : 0], ['space_id' => $spaceId, 'module_id' => $id]);
+            try {
+                $this->write->insert('lf_module_flags', $key + $values);
+            } catch (\OCP\DB\Exception $e) {
+                // Another request may have created the same unique flag after
+                // our read. Only recover when the precise scoped row exists;
+                // preserve unrelated database errors and recheck authority.
+                if ($e->getReason() !== \OCP\DB\Exception::REASON_UNIQUE_CONSTRAINT_VIOLATION
+                    || !$this->flagExists($spaceId, $id)) {
+                    throw $e;
+                }
+                $this->access->requireFinancialCapability($spaceId, 'modules.configure');
+                if (!isset($this->discover()[$id])) {
+                    throw new DomainException('module_not_found');
+                }
+                $this->write->update('lf_module_flags', $values, $key);
+            }
         }
         // Return the effective state, not a misleading 'enabled' response
         // when an ancestor policy still prohibits the module.
         $blockedByPolicy = $this->blockedByPolicy($spaceId, $id);
         return ['id' => $id, 'enabled' => $this->enabledInSpace($spaceId, $id, $blockedByPolicy),
             'blockedByPolicy' => $blockedByPolicy];
+    }
+
+    private function flagExists(int $spaceId, string $id): bool {
+        $q = $this->db->getQueryBuilder();
+        $q->select('id')->from('lf_module_flags')
+            ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('module_id', $q->createNamedParameter($id)));
+        return $q->executeQuery()->fetchOne() !== false;
     }
 
     /** Does not grant access or reveal a parent's confidential settings. */
