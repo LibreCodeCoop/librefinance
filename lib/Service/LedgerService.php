@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace OCA\LibreFinance\Service;
 
 use DomainException;
+use OCP\DB\Exception as DatabaseException;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
@@ -411,24 +412,74 @@ final class LedgerService {
 
     /** @return array<string,mixed> */
     public function reverse(int $spaceId, int $journalId): array {
-        $this->access->requireFinancialCapability($spaceId, 'ledger.reverse');
+        $sqlite = $this->db->getDatabaseProvider() === IDBConnection::PLATFORM_SQLITE;
+        $retriedKeyConflict = false;
+        for ($lockRetries = 0; ; ) {
+            $this->access->requireFinancialCapability($spaceId, 'ledger.reverse');
+            try {
+                return $this->reverseOnce($spaceId, $journalId, $sqlite);
+            } catch (DatabaseException $e) {
+                // An ordinary posting can take the legacy key after our lookup.
+                $reason = $e->getReason();
+                if (!$retriedKeyConflict && $reason === DatabaseException::REASON_UNIQUE_CONSTRAINT_VIOLATION) {
+                    $retriedKeyConflict = true;
+                    continue;
+                }
+                // SQLite can reject promotion of a read snapshot to a writer.
+                // Retry from a new transaction so both linkage and claims are rechecked.
+                $message = strtolower($e->getMessage());
+                $sqliteBusy = $sqlite && (str_contains($message, 'database is locked')
+                    || str_contains($message, 'database is busy'));
+                if (!$sqliteBusy && $reason !== DatabaseException::REASON_DEADLOCK
+                    && $reason !== DatabaseException::REASON_LOCK_WAIT_TIMEOUT) {
+                    throw $e;
+                }
+                if ((!$sqlite && $reason === DatabaseException::REASON_LOCK_WAIT_TIMEOUT) || $lockRetries >= 19) {
+                    throw new DomainException('concurrent_change', previous: $e);
+                }
+                ++$lockRetries;
+                usleep(30000);
+            }
+        }
+    }
+
+    /** @return array<string,mixed> */
+    private function reverseOnce(int $spaceId, int $journalId, bool $sqlite): array {
         $this->db->beginTransaction();
         try {
             $q = $this->db->getQueryBuilder();
-            $q->select('*')->from('lf_journals')
+            $q->select('memo', 'category_id', 'status', 'reversed_journal_id')->from('lf_journals')
                 ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
                 ->andWhere($q->expr()->eq('id', $q->createNamedParameter($journalId, IQueryBuilder::PARAM_INT)));
+            // Lock before any snapshot reads, including the claim check. On
+            // MariaDB an earlier consistent read could miss a waiting writer's commit.
+            if (!$sqlite) {
+                $q->forUpdate();
+            }
             $original = $q->executeQuery()->fetchAssociative();
-            if (!$original || $original['reversed_journal_id'] !== null) {
+            if (!$original || $original['status'] !== 'posted' || $original['reversed_journal_id'] !== null) {
                 throw new DomainException('journal_not_found');
             }
             // Preserve cross-module claims even when the claiming app is disabled.
             $this->claims->assertReversible($spaceId, $journalId);
-            $key = 'reverse:' . $journalId;
-            $existing = $this->findByKey($spaceId, $key);
-            if ($existing !== null) {
+
+            $q = $this->db->getQueryBuilder();
+            $q->select('id')->from('lf_journals')
+                ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('reversed_journal_id', $q->createNamedParameter($journalId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($q->expr()->eq('status', $q->createNamedParameter('posted')))
+                ->orderBy('id', 'ASC')->setMaxResults(1);
+            $existingId = $q->executeQuery()->fetchOne();
+            if ($existingId !== false) {
                 $this->db->commit();
-                return ['id' => (int)$existing['id'], 'replayed' => true];
+                return ['id' => (int)$existingId, 'replayed' => true];
+            }
+
+            $key = 'reverse:' . $journalId;
+            if ($this->findByKey($spaceId, $key) !== null) {
+                // The legacy key belongs to another journal. A slash is outside
+                // the ordinary journal key alphabet, so no client key is reserved.
+                $key = 'reverse/' . $journalId;
             }
             $q = $this->db->getQueryBuilder();
             $q->select('account_id', 'amount_minor', 'currency')->from('lf_postings')

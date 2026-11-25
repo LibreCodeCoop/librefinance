@@ -12,6 +12,10 @@ require_once __DIR__ . '/TestHarness.php';
 use LibreFinance\Tests\Integration\TestHarness;
 
 $t = new TestHarness();
+// Bootstrap the installed server before assertion output for the reversal fixture.
+require_once dirname(__DIR__, 4) . '/lib/base.php';
+\OC_App::loadApp('librefinance');
+
 $a = 'lfmaintestA';
 $b = 'lfmaintestB';
 $today = (new DateTimeImmutable('today'))->format('Y-m-d');
@@ -116,4 +120,8 @@ $t->check('B denied after revocation', $b, 'GET', $base . '/accounts', null, 404
     static fn(array $v): bool => ($v['error'] ?? null) === 'space_not_found');
 $t->check('B cannot post after revocation', $b, 'POST', $base . '/journals',
     array_replace($income, ['externalKey' => 'php:synthetic:revoked-denied']), 404);
+
+(static function (TestHarness $t): void {
+    require __DIR__ . '/journal-reversal.php';
+})($t);
 $t->finish();
