@@ -294,8 +294,10 @@ compose exec -T --user www-data nextcloud php occ group:adduser lf_synth_finance
 # a real completion marker and no failure marker from every integration suite.
 assert_integration_complete() {
   local script="$1"
+  shift
   local output
-  if ! output="$(compose exec -T -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS"     -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud     php "$script" 2>&1)"; then
+  if ! output="$(compose exec -T "$@" -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" \
+    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud php "$script" 2>&1)"; then
     printf '%s\n' "$output" >&2
     echo "FAIL: PHP integration $script exited nonzero" >&2
     exit 1
@@ -438,6 +440,9 @@ grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$native_subadmin_output" || {
   echo 'FAIL: native SaaS subadmin assertions did not complete' >&2
   exit 1
 }
+
+assert_integration_complete /var/www/html/custom_apps/librefinance/tests/integration/saas-image-responses.php \
+  -e LF_SYNTHETIC_SAAS_IMAGES=yes
 
 if [ "${LF_RUN_BEHAT:-1}" = 1 ]; then
   test -x tests/behat/vendor/bin/behat || {

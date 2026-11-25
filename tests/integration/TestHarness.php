@@ -42,6 +42,34 @@ final class TestHarness {
         return $this->decode($handle);
     }
 
+    /** @return array{code:int,body:string,contentType:string,cacheControl:list<string>} */
+    public function requestImage(string $user, string $path): array {
+        if (!in_array($user, ['lfmaintestA', 'lfmaintestB'], true)) {
+            throw new \InvalidArgumentException('Only synthetic test identities are allowed');
+        }
+        $handle = $this->prepareCurl($user, 'GET', $path, accept: 'image/png, application/json');
+        $cacheControl = [];
+        curl_setopt($handle, CURLOPT_HEADERFUNCTION, static function (\CurlHandle $handle, string $line)
+            use (&$cacheControl): int {
+            if (str_starts_with($line, 'HTTP/')) {
+                $cacheControl = [];
+            } elseif (stripos($line, 'Cache-Control:') === 0) {
+                $cacheControl[] = trim(substr($line, strlen('Cache-Control:')));
+            }
+            return strlen($line);
+        });
+        $body = curl_exec($handle);
+        if (!is_string($body)) {
+            throw new \RuntimeException('Test image request failed: ' . curl_error($handle));
+        }
+        return [
+            'code' => (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE),
+            'body' => $body,
+            'contentType' => (string)curl_getinfo($handle, CURLINFO_CONTENT_TYPE),
+            'cacheControl' => $cacheControl,
+        ];
+    }
+
     /** @return array{code:int,body:array<string,mixed>} */
     public function requestModule(string $user, string $appId, string $method, string $path, ?array $data = null): array {
         if (!in_array($user, ['lfmaintestA', 'lfmaintestB'], true)) {
@@ -61,7 +89,8 @@ final class TestHarness {
     }
 
     /** @return \CurlHandle */
-    private function prepareCurl(string $user, string $method, string $path, ?array $data = null, ?string $appId = null): \CurlHandle {
+    private function prepareCurl(string $user, string $method, string $path, ?array $data = null,
+        ?string $appId = null, string $accept = 'application/json'): \CurlHandle {
         if (!str_starts_with($path, '/') || str_contains($path, '//') || str_contains($path, '..')) {
             throw new \InvalidArgumentException('Invalid test route');
         }
@@ -82,7 +111,7 @@ final class TestHarness {
         if ($handle === false) {
             throw new \RuntimeException('curl_init failed');
         }
-        $headers = ['OCS-APIREQUEST: true', 'Accept: application/json'];
+        $headers = ['OCS-APIREQUEST: true', 'Accept: ' . $accept];
         if ($path === '/mcp') {
             $headers[] = 'MCP-Protocol-Version: 2025-06-18';
             $headers[1] = 'Accept: application/json, text/event-stream';
