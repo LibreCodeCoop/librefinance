@@ -10,8 +10,10 @@ namespace OCA\LibreFinance\Service;
 use DomainException;
 use OCP\DB\Exception as DatabaseException;
 use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\Group\ISubAdmin;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
+use OCP\IUserManager;
 use OCP\IUserSession;
 
 /**
@@ -29,6 +31,8 @@ final class EnvironmentService {
         private IGroupManager $groups,
         private IUserSession $session,
         private SaasPolicyRuntimeGate $policies,
+        private ISubAdmin $subAdmins,
+        private IUserManager $users,
     ) {}
 
     /**
@@ -59,18 +63,13 @@ final class EnvironmentService {
             $byGid[(string)$row['group_gid']] = $row;
         }
         return [
-            'groups' => array_map(static function (array $group) use ($byGid): array {
+            'groups' => array_map(function (array $group) use ($byGid): array {
                 $gid = (string)$group['id'];
                 $stored = $byGid[$gid] ?? null;
-                $state = $stored === null ? 'disabled' : (string)$stored['state'];
-                if ($stored !== null && $stored['state'] !== $stored['status']) {
-                    // Inconsistent lifecycle state must never display as active.
-                    $state = 'suspended';
-                }
                 return [
                     'id' => $gid,
                     'name' => (string)$group['name'],
-                    'state' => $state,
+                    'state' => $stored === null ? 'disabled' : $this->readinessState($stored),
                     'environmentId' => $stored === null ? null : (string)$stored['public_id'],
                 ];
             }, $groups),
@@ -194,10 +193,10 @@ final class EnvironmentService {
         $gid = $row['group_gid'];
         // A Nextcloud instance admin never implicitly becomes a financial
         // environment operator or a qualified group subadministrator.
-        if (!$this->governance->isDelegatedManager($gid)) {
+        if (!$this->isCurrentManager($gid)) {
             throw new DomainException('environment_not_found');
         }
-        if ($row['state'] === 'suspended') {
+        if ($row['state'] !== $row['status'] || $row['state'] === 'suspended') {
             throw new DomainException('environment_suspended');
         }
         if ($row['state'] === 'active') {
@@ -239,7 +238,7 @@ final class EnvironmentService {
             throw $e;
         }
         $fresh = $this->requireByPublicId($publicId);
-        if ($fresh['state'] !== 'active') {
+        if ($fresh['state'] !== 'active' || $fresh['status'] !== 'active') {
             throw new DomainException('concurrent_change');
         }
         return $this->publicRow($fresh, true);
@@ -257,7 +256,7 @@ final class EnvironmentService {
         }
         $this->policies->requireInstanceEnabled('environments.enabled');
         $row = $this->requireByPublicId($publicId);
-        if (!$this->governance->isDelegatedManager((string)$row['group_gid'])) {
+        if (!$this->isCurrentManager((string)$row['group_gid'])) {
             throw new DomainException('environment_not_found');
         }
         if ((string)$row['state'] !== 'active' || (string)$row['status'] !== 'active') {
@@ -461,9 +460,10 @@ final class EnvironmentService {
         if ($user === null) {
             throw new DomainException('authentication_required');
         }
+        $delegatedGroups = $user->isEnabled() ? $this->governance->delegatedGroups() : [];
         $groupIds = array_unique(array_merge(
             $this->groups->getUserGroupIds($user),
-            $this->governance->delegatedGroups(),
+            $delegatedGroups,
         ));
         if ($groupIds === []) {
             return [];
@@ -481,7 +481,7 @@ final class EnvironmentService {
                 continue;
             }
             $items[] = $this->publicRow($row,
-                $this->governance->isDelegatedManager((string)$row['group_gid']));
+                in_array((string)$row['group_gid'], $delegatedGroups, true));
         }
         return $items;
     }
@@ -524,9 +524,53 @@ final class EnvironmentService {
         return [
             'id' => (string)$row['public_id'],
             'name' => (string)$row['name'],
-            'state' => (string)$row['state'],
+            'state' => $this->readinessState($row),
             'canManage' => $canManage,
         ];
+    }
+
+    /**
+     * SaaS v1 readiness also uses enabled_pending_admin for an activated
+     * environment whose group has lost its last qualified administrator.
+     * Returning this value leaves persisted financial admission in force.
+     *
+     * @param array<string,mixed> $row
+     */
+    private function readinessState(array $row): string {
+        if ($row['state'] !== $row['status']) {
+            return 'suspended';
+        }
+        if ($row['state'] !== 'active') {
+            return (string)$row['state'];
+        }
+        return $this->hasQualifiedAdmin((string)$row['group_gid']) ? 'active' : 'enabled_pending_admin';
+    }
+
+    private function isCurrentManager(string $gid): bool {
+        return $this->session->getUser()?->isEnabled() === true
+            && $this->governance->isDelegatedManager($gid);
+    }
+
+    private function hasQualifiedAdmin(string $gid): bool {
+        $group = $this->groups->get($gid);
+        if ($group === null) {
+            return false;
+        }
+        foreach ($this->subAdmins->getGroupsSubAdmins($group) as $user) {
+            if ($user->isEnabled() && $this->groups->isInGroup($user->getUID(), $gid)) {
+                return true;
+            }
+        }
+        $q = $this->db->getQueryBuilder();
+        $q->select('uid')->from('lf_governance_delegates')
+            ->where($q->expr()->eq('group_gid', $q->createNamedParameter($gid)));
+        foreach ($q->executeQuery()->fetchFirstColumn() as $uid) {
+            if ($this->groups->isInGroup((string)$uid, $gid)
+                && $this->users->get((string)$uid)?->isEnabled() === true) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static function uuid(): string {
