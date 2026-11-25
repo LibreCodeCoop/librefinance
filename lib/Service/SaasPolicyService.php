@@ -17,10 +17,7 @@ use OCP\IDBConnection;
 use OCP\IUserSession;
 
 /**
- * Instance policy persistence. Environment/workspace/user policy administration
- * requires the later server-authenticated environment ownership contracts.
- *
- * Policy writes never create financial grants or bypass financial ACL.
+ * Typed policy persistence and effective metadata for authorized actors.
  */
 final class SaasPolicyService {
     public function __construct(
@@ -52,6 +49,7 @@ final class SaasPolicyService {
             'allowChildOverride' => $definition->allowChildOverride,
             'effectiveValue' => $effective['effectiveValue'],
             'sourceScope' => $effective['sourceScope'],
+            'sourceIdentifier' => $effective['sourceScope'] === 'instance' ? 'instance' : null,
             'blockedBy' => $effective['blockedBy'],
             'allowedValues' => $definition->type === 'boolean'
                 ? [false, true] : $effective['allowedValues'],
@@ -111,6 +109,11 @@ final class SaasPolicyService {
             'allowChildOverride' => $definition->allowChildOverride,
             'effectiveValue' => $resolved['effectiveValue'],
             'sourceScope' => $resolved['sourceScope'],
+            'sourceIdentifier' => match ($resolved['sourceScope']) {
+                'instance' => 'instance',
+                'environment' => $environment['publicId'],
+                default => null,
+            },
             'blockedBy' => $resolved['blockedBy'],
             'allowedValues' => $definition->type === 'boolean'
                 ? ($parent['effectiveValue'] === false ? [false] : [false, true])
@@ -195,6 +198,8 @@ final class SaasPolicyService {
             'allowChildOverride' => $definition->allowChildOverride,
             'effectiveValue' => $resolved['effectiveValue'],
             'sourceScope' => $resolved['sourceScope'],
+            'sourceIdentifier' => $this->workspaceSourceIdentifier(
+                $resolved['sourceScope'], $spaceId, $environmentId),
             'blockedBy' => $resolved['blockedBy'],
             'allowedValues' => $definition->type === 'boolean'
                 ? ($parent['effectiveValue'] === false ? [false] : [false, true])
@@ -257,7 +262,7 @@ final class SaasPolicyService {
      * @return array<string,mixed>
      */
     public function getUser(int $spaceId, string $key): array {
-        $this->workspaceContext($spaceId, 'workspace.read');
+        [$environmentId] = $this->workspaceContext($spaceId, 'workspace.read');
         $definition = $this->registry->get($key);
         if (!$definition->supports('user')) {
             throw new DomainException('unsupported_scope');
@@ -268,12 +273,7 @@ final class SaasPolicyService {
         $parent = $this->runtime->workspace($spaceId, $key);
         // External viewers can read their display policy, but do not gain
         // editing authority merely through an accepted read-only invitation.
-        $internal = true;
-        try {
-            $this->access->requireSaasRecipientGroupMember($spaceId, $uid);
-        } catch (DomainException) {
-            $internal = false;
-        }
+        $internal = $this->isInternalWorkspaceMember($spaceId, $uid);
         return [
             'key' => $definition->key,
             'type' => $definition->type,
@@ -282,6 +282,8 @@ final class SaasPolicyService {
             'allowChildOverride' => $definition->allowChildOverride,
             'effectiveValue' => $resolved['effectiveValue'],
             'sourceScope' => $resolved['sourceScope'],
+            'sourceIdentifier' => $this->workspaceSourceIdentifier(
+                $resolved['sourceScope'], $spaceId, $environmentId, $uid, $internal),
             'blockedBy' => $resolved['blockedBy'],
             'allowedValues' => $definition->type === 'boolean'
                 ? ($parent['effectiveValue'] === false ? [false] : [false, true])
@@ -351,6 +353,41 @@ final class SaasPolicyService {
             throw new DomainException('invalid_policy_scope');
         }
         return 'user:' . $uid . ':workspace:' . $spaceId;
+    }
+
+    private function isInternalWorkspaceMember(int $spaceId, string $uid): bool {
+        try {
+            $this->access->requireSaasRecipientGroupMember($spaceId, $uid);
+            return true;
+        } catch (DomainException) {
+            return false;
+        }
+    }
+
+    /**
+     * Project the resolver's winning scope into the authorized API identity.
+     * The caller has verified workspace access and may already know whether
+     * the actor is a current internal member entitled to its environment ID.
+     */
+    private function workspaceSourceIdentifier(string $sourceScope, int $spaceId,
+        int $environmentId, ?string $uid = null, ?bool $internal = null): ?string {
+        return match ($sourceScope) {
+            'instance' => 'instance',
+            'workspace' => (string)$spaceId,
+            'user' => $uid,
+            'environment' => ($internal ?? $this->isInternalWorkspaceMember($spaceId, $this->access->uid()))
+                ? $this->environmentPublicId($environmentId) : null,
+            default => null,
+        };
+    }
+
+    private function environmentPublicId(int $environmentId): ?string {
+        $q = $this->db->getQueryBuilder();
+        $q->select('public_id')->from('lf_environments')
+            ->where($q->expr()->eq('id',
+                $q->createNamedParameter($environmentId, IQueryBuilder::PARAM_INT)));
+        $publicId = $q->executeQuery()->fetchOne();
+        return is_string($publicId) ? $publicId : null;
     }
 
     /**
