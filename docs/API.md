@@ -42,7 +42,16 @@ Resposta 201: `{"id":1,"replayed":false}`. A segunda submissão com a mesma chav
 O débito registra `+amountMinor`, o crédito registra `-amountMinor`; a soma é zero. A API é deliberadamente restrita a um par de contas neste marco. Lançamentos multi-linha exigirão contrato versionado.
 
 `GET /spaces/1/journals?beforeId=100` devolve até 50 registros, com `nextBeforeId` para paginação autorizada.
-`POST /spaces/1/journals/10/reverse` cria lançamento oposto, não exclui histórico.
+`POST /spaces/1/journals/10/reverse` cria um lançamento oposto vinculado ao original
+no mesmo espaço e preserva o histórico. A primeira chamada retorna HTTP 200 com
+o ID do estorno e `replayed: false`. Uma nova chamada autorizada retorna o mesmo
+ID com `replayed: true` quando já existe um estorno vinculado. Uma chave de
+idempotência igual à chave histórica de estorno pode pertencer a um lançamento
+comum. Nesse caso, o estorno e a repetição do lançamento comum retornam seus
+respectivos IDs. As restrições de acesso e de vínculos com módulos também se
+aplicam às repetições do estorno. Se a disputa pela gravação persistir, a API
+pode retornar HTTP 409 com `{"error":"concurrent_change"}`. O cliente pode
+repetir a mesma chamada de estorno.
 
 ## Contatos de clientes e fornecedores
 
