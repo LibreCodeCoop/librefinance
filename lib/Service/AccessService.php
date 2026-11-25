@@ -174,6 +174,11 @@ final class AccessService {
                 throw new DomainException('space_not_found');
             }
             $isMember = in_array($gid, $this->groups->getUserGroupIds($user), true);
+            // External recipients never receive the environment ID. Compare
+            // against their access mode even if they supply the actual ID.
+            $this->requireRequestContext($isMember
+                ? (string)$saasScope['environment_public_id']
+                : 'external');
             if ($isMember) {
                 $q = $this->db->getQueryBuilder();
                 $q->select('role')->from('lf_members')
@@ -205,6 +210,7 @@ final class AccessService {
             }
             return $role;
         }
+        $this->requireRequestContext('legacy');
         if ($this->governance->isInstanceAdmin() && $this->governance->enabled()) {
             return 'owner';
         }
@@ -319,6 +325,15 @@ final class AccessService {
         return $role;
     }
 
+    private function requireRequestContext(string $expected): void {
+        // IRequest returns an empty string for an absent header. Keep the
+        // existing ACL contract for clients that have yet to opt in.
+        $presented = $this->request->getHeader('X-LibreFinance-Context');
+        if ($presented !== '' && $presented !== $expected) {
+            throw new DomainException('space_not_found');
+        }
+    }
+
     /**
      * Internal SaaS role grants are only for current Nextcloud group members.
      * An out-of-group recipient must use a separate, explicit, audited external
@@ -340,7 +355,7 @@ final class AccessService {
     private function saasScope(int $spaceId): ?array {
         $q = $this->db->getQueryBuilder();
         $q->select('es.space_id', 'es.review_state', 'e.status AS environment_status',
-                'g.group_gid', 'g.state AS group_state')
+                'e.public_id AS environment_public_id', 'g.group_gid', 'g.state AS group_state')
             ->from('lf_environment_spaces', 'es')
             ->leftJoin('es', 'lf_environments', 'e', 'e.id = es.environment_id')
             ->leftJoin('es', 'lf_environment_groups', 'g', 'g.environment_id = es.environment_id')
