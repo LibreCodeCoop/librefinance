@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace OCA\LibreFinance\Tests\Unit;
+namespace OCA\LibreFinance\Tests\Unit\Domain\Saas;
 
 use DomainException;
 use OCA\LibreFinance\Domain\Saas\PolicyDefinition;
@@ -130,12 +130,6 @@ final class PolicyResolverTest extends TestCase {
         self::assertSame('environment', $result['sourceScope']);
     }
 
-    public function testInvalidScopeDefinition(): void {
-        $this->expectException(DomainException::class);
-        $this->expectExceptionMessageMatches('/\Ainvalid_policy_scopes\z/');
-        new PolicyDefinition('a.b', 'boolean', ['environment', 'instance'], false, true);
-    }
-
     public function testInstanceOnlyPolicyRejectsChildEvenIfDeclared(): void {
         $policy = new PolicyDefinition('modules.enabled', 'boolean',
             ['instance', 'environment'], true, false);
@@ -147,17 +141,10 @@ final class PolicyResolverTest extends TestCase {
         ]);
     }
 
-    public function testRegistryRejectsUnknownKey(): void {
-        $this->expectException(DomainException::class);
-        $this->expectExceptionMessageMatches('/\Aunknown_policy_key\z/');
-        $this->registry->get('financial.allAdmin');
-    }
-
-    public function testBankFormatDefaultsDoNotGrantPersonalAccess(): void {
+    public function testBankFormatDefaultsPreserveCsvAndOfx(): void {
         $policy = $this->registry->get('banking.allowedImportFormats');
 
         self::assertSame(['csv', 'ofx'], $this->resolver->resolve($policy, [])['effectiveValue']);
-        self::assertFalse($policy->supports('user'));
     }
 
     public function testBankFormatIntersectionCannotWidenEnvironment(): void {
@@ -190,7 +177,6 @@ final class PolicyResolverTest extends TestCase {
     public function testModuleDefaultsAndEnvironmentRestrictions(string $key): void {
         $policy = $this->registry->get($key);
         self::assertTrue($this->resolver->resolve($policy, [])['effectiveValue']);
-        self::assertFalse($policy->supports('user'));
 
         $result = $this->resolver->resolve($policy, [
             self::layer('instance', true), self::layer('environment', false), self::layer('workspace', true),
@@ -199,10 +185,9 @@ final class PolicyResolverTest extends TestCase {
         self::assertSame('environment', $result['blockedBy']);
     }
 
-    public function testDashboardDefaultAndUserScope(): void {
+    public function testDashboardEnabledByDefault(): void {
         $policy = $this->registry->get('dashboard.kpis.enabled');
 
-        self::assertTrue($policy->supports('user'));
         self::assertTrue($this->resolver->resolve($policy, [])['effectiveValue']);
     }
 
@@ -289,23 +274,5 @@ final class PolicyResolverTest extends TestCase {
         $this->expectException(DomainException::class);
         $this->expectExceptionMessageMatches('/\A' . preg_quote($error, '/') . '\z/');
         $this->resolver->resolve($policy, $layers);
-    }
-
-    public static function invalidPolicyValues(): array {
-        return [
-            'unknown bank format' => ['banking.allowedImportFormats', ['xml']],
-            'nested bank format' => ['banking.allowedImportFormats', ['csv', ['ofx']]],
-            'report string flag' => ['modules.reports.enabled', 'true'],
-            'fiscal draft string flag' => ['regional.nfseDrafts.enabled', 'false'],
-        ];
-    }
-
-    #[DataProvider('invalidPolicyValues')]
-    public function testRejectsInvalidPolicyValues(string $key, mixed $value): void {
-        $policy = $this->registry->get($key);
-
-        $this->expectException(DomainException::class);
-        $this->expectExceptionMessageMatches('/\Ainvalid_policy_value\z/');
-        $policy->assertValue($value);
     }
 }

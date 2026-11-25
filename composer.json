@@ -22,7 +22,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "OCA\\LibreFinance\\Tests\\Unit\\": "tests/unit/"
+      "OCA\\LibreFinance\\Tests\\Unit\\": "tests/php/Unit/"
     }
   },
   "scripts": {

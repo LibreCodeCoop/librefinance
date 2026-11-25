@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace OCA\LibreFinance\Tests\Unit;
+namespace OCA\LibreFinance\Tests\Unit\Domain\Saas;
 
 use DomainException;
 use OCA\LibreFinance\Domain\Saas\FinancialCapabilities as Access;

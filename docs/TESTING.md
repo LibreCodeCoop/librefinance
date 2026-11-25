@@ -32,9 +32,15 @@ automática de requisições financeiras.
 ## Testes unitários PHP
 
 Na raiz do repositório, execute `composer install` e `composer test:unit`.
-A configuração `phpunit.xml` descobre as classes em `tests/unit/`, sem
+A configuração `phpunit.xml` descobre as classes em `tests/php/Unit/`, sem
 instalar o Nextcloud. O workflow `php-unit.yml` executa essa suíte na matriz
 de versões PHP suportadas pelo aplicativo.
+
+Os testes unitários espelham o caminho e o namespace de uma classe existente
+em `lib/`. Por exemplo, `lib/Domain/Currency/ExactConversion.php` corresponde
+a `tests/php/Unit/Domain/Currency/ExactConversionTest.php`, no namespace
+`OCA\\LibreFinance\\Tests\\Unit\\Domain\\Currency`. Não crie classes de teste
+genéricas ou sem uma classe de produção correspondente.
 
 ## API: PHPUnit/integração e Behat por shards
 

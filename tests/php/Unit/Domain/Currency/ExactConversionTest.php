@@ -7,7 +7,7 @@
 
 declare(strict_types=1);
 
-namespace OCA\LibreFinance\Tests\Unit;
+namespace OCA\LibreFinance\Tests\Unit\Domain\Currency;
 
 use DomainException;
 use OCA\LibreFinance\Domain\Currency\ExactConversion;

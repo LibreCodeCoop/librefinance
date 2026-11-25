@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace OCA\LibreFinance\Tests\Unit;
+namespace OCA\LibreFinance\Tests\Unit\PublicAPI;
 
 use InvalidArgumentException;
 use OCA\LibreFinance\PublicAPI\ModuleDescriptor;
