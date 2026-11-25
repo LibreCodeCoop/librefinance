@@ -178,7 +178,6 @@ if (!is_array($spec) || ($spec["openapi"] ?? "") !== "3.1.0"
 echo "PASS: installed application-root OpenAPI is discoverable and valid\n";
 '
 compose exec -T --user www-data nextcloud php occ app:enable librefinance
-compose exec -T nextcloud php /var/www/html/custom_apps/librefinance/tests/import/source-system.php
 discovery_output="$(compose exec -T nextcloud php /var/www/html/custom_apps/librefinance/tests/import/discovery-inventory.php)"
 printf '%s\n' "$discovery_output"
 grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$' <<< "$discovery_output" || {
