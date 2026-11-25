@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { computed, inject, nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
+import { computed, inject, nextTick, onMounted, onBeforeUnmount, ref, watch } from 'vue'
 import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcDialog from '@nextcloud/vue/components/NcDialog'
@@ -86,6 +86,9 @@ function openSpace(event, space) {
   navigate('dashboard')
 }
 let requestSeq = 0
+let viewMounted = true
+let creationDialogRevision = 0
+watch(creating, () => { ++creationDialogRevision }, { flush: 'sync' })
 async function refreshArchived() {
   const token = ++requestSeq
   loading.value = true
@@ -99,7 +102,7 @@ async function refreshArchived() {
   }
 }
 onMounted(() => { refreshArchived(); loadCreationPolicy() })
-onBeforeUnmount(() => { ++requestSeq })
+onBeforeUnmount(() => { ++requestSeq; viewMounted = false })
 function startEdit(space) {
   problem.value = ''
   editing.value = space
@@ -159,29 +162,53 @@ async function restore(space) {
 }
 async function create() {
   if (!newName.value.trim() || loading.value) return
+  const originId = Number(w.activeId.value)
+  const submittedKind = newKind.value
+  let dialogRevision = creationDialogRevision
+  const ownsView = () => viewMounted && creationDialogRevision === dialogRevision
+    && Number(w.activeId.value) === originId && w.activeTab.value === 'spaces'
   loading.value = true
   problem.value = ''
   try {
     const created = await w.call('POST', '/api/spaces', {
-      name: newName.value.trim(), kind: newKind.value, currency: 'BRL',
-      color: newKind.value === 'organization' ? '#64748B' : newColor.value,
+      name: newName.value.trim(), kind: submittedKind, currency: 'BRL',
+      color: submittedKind === 'organization' ? '#64748B' : newColor.value,
     })
-    creating.value = false
-    newName.value = ''
-    newColor.value = '#64748B'
+    const ownsCompletion = ownsView() && creating.value
+    if (ownsCompletion) {
+      creating.value = false
+      dialogRevision = creationDialogRevision
+      newName.value = ''
+      newColor.value = '#64748B'
+    }
+
+    // The server may have committed the workspace after the user left or
+    // dismissed this dialog. Refresh the authorized list, but do not let
+    // that obsolete UI action take over another screen or workspace.
     await w.refreshSpaces()
-    w.activeId.value = Number(created.id)
+    const createdId = Number(created.id)
+    // On the first run, refreshing the list can select the new workspace
+    // and remount this view. That is part of this still-owned creation.
+    const initialSelection = originId === 0
+      && Number(w.activeId.value) === createdId
+      && w.activeTab.value === 'spaces'
+      && creationDialogRevision === dialogRevision
+    if (!ownsCompletion || (!ownsView() && !initialSelection)
+        || !w.spaces.value.some(s => Number(s.id) === createdId)) return
+
+    w.activeId.value = createdId
     // Wait until activeId watchers have reset navigation before opening onboarding.
     await nextTick()
+    if (Number(w.activeId.value) !== createdId || w.activeTab.value !== 'spaces') return
     notice.value = t('librefinance', 'Independent workspace created.')
-    if (newKind.value === 'organization') {
+    if (submittedKind === 'organization') {
       onboarding.value = true
       navigate('companies')
     } else {
       navigate('dashboard')
     }
   } catch (error) {
-    problem.value = financeError(error)
+    if (ownsView()) problem.value = financeError(error)
   } finally {
     loading.value = false
   }
