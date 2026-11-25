@@ -3,6 +3,53 @@
 import { test, expect } from '@playwright/test'
 import { login, makeSpace, goToView, openFinanceAction, selectFinanceSpace } from './helpers.mjs'
 
+for (const viewport of ['desktop', 'mobile']) {
+  test(`Escape clears a menu search and keeps keyboard focus on ${viewport}`, async ({ page }) => {
+    await login(page)
+    await makeSpace(page, 'personal')
+    const mobile = viewport === 'mobile'
+    if (mobile) await page.setViewportSize({ width: 390, height: 844 })
+    const url = new URL(page.url())
+    url.searchParams.set('view', 'dashboard')
+    url.searchParams.set('forceLanguage', 'en')
+    await page.goto(url.href)
+
+    const navigation = page.getByRole('navigation', { name: 'LibreFinance navigation' })
+    const toggle = page.locator('button[aria-controls="app-navigation-vue"]')
+    if (mobile) {
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+      await toggle.click()
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    }
+
+    const search = navigation.getByRole('searchbox', { name: 'Search the menu' })
+    await search.fill('no-matching-feature')
+    const empty = navigation.getByText('No features found', { exact: true })
+    await expect(empty).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    if (mobile) await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    await expect(search).toHaveValue('')
+    await expect(empty).toBeHidden()
+    await expect(search).toBeFocused()
+    if (process.env.LF_NAVIGATION_REVIEW_CAPTURE === '1') {
+      await navigation.screenshot({ path: `test-results/menu-escape-${viewport}.png` })
+    }
+
+    await page.keyboard.type('Overview')
+    await expect(search).toHaveValue('Overview')
+    await expect(navigation.getByRole('link', { name: 'Overview', exact: true })).toBeVisible()
+
+    if (mobile) {
+      await search.fill('')
+      await expect(search).toBeFocused()
+      await page.keyboard.press('Escape')
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+      await expect(navigation).toBeHidden()
+    }
+  })
+}
+
 test('dashboard widgets can be reordered, resized, hidden, and restored after reload', async ({ page }) => {
   await login(page)
   await makeSpace(page)
