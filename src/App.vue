@@ -205,10 +205,10 @@ function clearSearch() {
   searchQuery.value = ''
 }
 function searchKeydown(event) {
-  if (event.key === 'Escape') {
+  if (event.key === 'Escape' && searchQuery.value) {
     event.preventDefault()
+    event.stopPropagation()
     clearSearch()
-    event.currentTarget?.blur()
   } else if (event.key === 'Enter' && searchResults.value.length === 1) {
     event.preventDefault()
     navigate(searchResults.value[0].id)
