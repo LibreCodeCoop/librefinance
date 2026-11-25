@@ -33,7 +33,12 @@ jobs:
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2.40.0
         with:
           php-version: '8.3'
+          extensions: mbstring
           coverage: none
+      - name: Verify standalone PHP gate rejects incomplete runs
+        run: PYTHONDONTWRITEBYTECODE=1 python3 tests/ci/test-run-unit.py
+      - name: Verify standalone PHP domain tests
+        run: bash tests/ci/run-unit.sh
       - run: npm ci --include=dev
       - run: npm test
       - run: python3 tests/ci/coverage-inventory.py
@@ -41,10 +46,6 @@ jobs:
         run: PYTHONDONTWRITEBYTECODE=1 python3 tests/ci/test-report-timing.py
       - name: Verify synthetic restricted-funding acceptance fixtures (not runtime)
         run: python3 tests/acceptance/restricted-funding/verify-fixtures.py
-      - name: Verify exact currency arithmetic (no ledger mutation)
-        run: |
-          php tests/unit/currency-conversion.php
-          php tests/unit/currency-rate-quote.php
       - run: php tests/openapi/generate.php --check
       - run: npm run test:openapi
       - run: npm run build
