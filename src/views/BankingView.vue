@@ -4,6 +4,7 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import NcButton from '@nextcloud/vue/components/NcButton'
@@ -21,6 +22,7 @@ import LfSortableHeader from '../components/LfSortableHeader.vue'
 import { useLoadedSort } from '../composables/useLoadedSort.js'
 import LfSelect from '../components/LfSelect.vue'
 import { financeApi, financeError } from '../services/api.js'
+import { formatLedgerDate } from '../date.js'
 const props=defineProps({ embedded:{type:Boolean,default:false} })
 const w=inject('lfWorkspace')
 const navigate=inject('lfNavigate')
@@ -54,9 +56,12 @@ const importError=ref('')
 const importAccount=ref(0)
 const statementFile=ref(null)
 const importFormat=ref('csv')
+const csvDescription = (description) => /[",\r\n]/.test(description)
+  ? '"' + description.replaceAll('"', '""') + '"' : description
 const csvExample='data:text/csv;charset=utf-8,'+encodeURIComponent(
-  'id,date,amount,description\nexemplo-001,2026-11-22,-25.90,Pagamento de exemplo\n'
-  + 'exemplo-002,2026-11-22,150.00,Recebimento de exemplo\n')
+  'id,date,amount,description\n'
+  + 'exemplo-001,2026-11-22,-25.90,' + csvDescription(t('librefinance', 'Example payment')) + '\n'
+  + 'exemplo-002,2026-11-22,150.00,' + csvDescription(t('librefinance', 'Example receipt')) + '\n')
 const allowedFormats=ref([])
 const formatPolicyLoading=ref(true)
 let formatPolicySequence=0
@@ -76,20 +81,25 @@ const journalCandidates=computed(()=>{
     Number(post.accountId) === Number(target.bank_account_id)
       && Number(post.amountMinor) === Number(target.amount_minor)))
     .map(entry => ({ value: entry.id,
-      label: entry.effective_on + ' · ' + entry.memo + ' (#' + entry.id + ')' }))
+      label: t('librefinance', '{date} · {description} (#{id})', {
+        date: formatLedgerDate(entry.effective_on), description: String(entry.memo), id: entry.id,
+      }, { escape: false, sanitize: false }) }))
 })
-const bankChoices=computed(()=>[{value:0,label:'Todas as contas'},
+const bankChoices=computed(()=>[{value:0,label:t('librefinance', 'All accounts')},
   ...banks.value.map(a=>({value:a.id,label:a.name}))])
 const importChoices=computed(()=>banks.value.map(a=>({value:a.id,label:a.name})))
 const formatChoices=computed(()=>allowedFormats.value.map(value=>({
-  value, label:value === 'ofx' ? 'OFX (Open Financial Exchange)' : 'CSV (valores separados por vírgula)',
+  value, label:value === 'ofx' ? t('librefinance', 'OFX (Open Financial Exchange)') : t('librefinance', 'CSV (comma-separated values)'),
 })))
 const statuses=[
-  {value:'all',label:'Todas as situações'},
-  {value:'pending',label:'Pendentes'},
-  {value:'matched',label:'Conciliadas'},
+  {value:'all',label:t('librefinance', 'All statuses')},
+  {value:'pending',label:t('librefinance', 'Pending movements')},
+  {value:'matched',label:t('librefinance', 'Reconciled movements')},
 ]
-function bankName(id) {return banks.value.find(a=>a.id===Number(id))?.name||('Conta #'+id)}
+function bankName(id) {
+  return banks.value.find(a=>a.id===Number(id))?.name
+    || t('librefinance', 'Account #{id}', { id: String(id) }, { escape: false, sanitize: false })
+}
 function chooseReconciliation(row) {
   reconcile.value = row
   journalId.value = 0
@@ -155,7 +165,7 @@ async function load() {
     transfers.value=transferResult.status==='fulfilled' ? transferResult.value.transfers : []
     transferCursor.value=transferResult.status==='fulfilled' ? transferResult.value.nextAfterId : null
     if (providerResult.status==='rejected' || transferResult.status==='rejected') {
-      error.value='Algumas consultas bancárias estão indisponíveis. Os extratos carregados permanecem visíveis.'
+      error.value=t('librefinance', 'Some banking queries are unavailable. Loaded statements remain visible.')
     }
   }catch(e){if(token===generation)error.value=financeError(e)}
   finally{if(token===generation)busy.value=false}
@@ -207,18 +217,18 @@ function pickFile(files) {
   importError.value = ''
   if (!Array.isArray(files) || files.length !== 1) {
     statementFile.value = null
-    importError.value = 'Selecione apenas um arquivo.'
+    importError.value = t('librefinance', 'Select only one file.')
     return
   }
   const file = files[0]
   if (!file.name.toLowerCase().endsWith('.' + importFormat.value)) {
     statementFile.value = null
-    importError.value = 'Selecione um arquivo ' + importFormat.value.toUpperCase() + '.'
+    importError.value = t('librefinance', 'Select a {format} file.', { format: importFormat.value.toUpperCase() }, { escape: false, sanitize: false })
     return
   }
   if (!file.size || file.size > 262144) {
     statementFile.value = null
-    importError.value = 'O arquivo deve ter até 256 KiB e não pode estar vazio.'
+    importError.value = t('librefinance', 'The file must not be empty or exceed 256 KiB.')
     return
   }
   statementFile.value = file
@@ -234,7 +244,7 @@ async function importStatement() {
   busy.value = true; error.value = ''; success.value = ''; importError.value = ''
   try {
     if (file.size > 262144) {
-      throw new Error('Arquivo acima de 256 KiB')
+      throw new Error(t('librefinance', 'File exceeds the 256 KiB limit.'))
     }
     // A UTF-8 File.text() decode would corrupt OFX using legacy Windows-1252.
     const bytes = new Uint8Array(await file.arrayBuffer())
@@ -245,8 +255,8 @@ async function importStatement() {
       const xml = header.match(/<\?xml[^>]*encoding=['"]([^'"]+)['"]/i)?.[1]?.toLowerCase()
       if (numeric === '1252' || ['windows-1252', 'cp1252'].includes(xml)) charset = 'windows-1252'
       else if (numeric === '8859' || ['iso-8859-1', 'latin1'].includes(xml)) charset = 'iso-8859-1'
-      else if (numeric && numeric !== '65001') throw new Error('Codificação OFX desconhecida: ' + numeric)
-      else if (xml && !['utf-8', 'utf8'].includes(xml)) throw new Error('Codificação OFX desconhecida: ' + xml)
+      else if (numeric && numeric !== '65001') throw new Error(t('librefinance', 'Unknown OFX encoding: {encoding}', { encoding: numeric }, { escape: false, sanitize: false }))
+      else if (xml && !['utf-8', 'utf8'].includes(xml)) throw new Error(t('librefinance', 'Unknown OFX encoding: {encoding}', { encoding: xml }, { escape: false, sanitize: false }))
     }
     const content = new TextDecoder(charset, { fatal: true }).decode(bytes)
     if (token !== generation || Number(activeId.value) !== target || !canImport.value
@@ -259,7 +269,7 @@ async function importStatement() {
     else params.csv = content
     const out = await financeApi('librefinance_banking', target, '/imports', 'POST', params)
     if (token !== generation || Number(activeId.value) !== target) return
-    success.value = out.imported + ' movimentações importadas; ' + out.skipped + ' já existentes.'
+    success.value = t('librefinance', 'Imported movements: {imported}; already present: {skipped}.', { imported: out.imported, skipped: out.skipped }, { escape: false, sanitize: false })
     closeImportDialog()
     await load()
   } catch (e) {
@@ -272,7 +282,8 @@ async function match() {
   if(!reconcile.value||busy.value)return
   const id=Number(journalId.value)
   if(!Number.isSafeInteger(id)||id<1||!journalCandidates.value.some(j=>j.value===id)){
-    reconciliationError.value='Selecione um lançamento compatível para concluir a conciliação.';return
+    reconciliationError.value=t('librefinance', 'Select a compatible journal entry to complete reconciliation.')
+    return
   }
   const token=++generation
   busy.value=true;error.value='';success.value='';reconciliationError.value=''
@@ -281,7 +292,7 @@ async function match() {
       '/transactions/'+reconcile.value.id+'/match','POST',{journalId:id})
     if(token!==generation)return
     closeReconciliation()
-    success.value='Movimentação vinculada ao lançamento existente.'
+    success.value=t('librefinance', 'Movement linked to the existing journal entry.')
     await load()
   }catch(e){if(token===generation)reconciliationError.value=financeError(e)}
   finally{if(token===generation)busy.value=false}
@@ -324,31 +335,26 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
 </script>
 <template>
   <div class="lf-view">
-    <LfPageHeader v-if="!embedded" title="Bancos e caixa" eyebrow="FINANCEIRO"
-      description="Confira extratos e concilie movimentações sem contar transferências internas duas vezes.">
+    <LfPageHeader v-if="!embedded" :title="t('librefinance', 'Banks and cash')" :eyebrow="t('librefinance', 'FINANCE')"
+      :description="t('librefinance', 'Review statements and reconcile movements without counting internal transfers twice.')">
       <template #actions>
         <NcButton v-if="canImport && rows.length"
           variant="primary" :disabled="busy || formatPolicyLoading"
           @click="openImportDialog">
           <template #icon><NcIconSvgWrapper :path="mdiFileUploadOutline" :size="20" /></template>
-          Importar extrato
+          {{ t('librefinance', 'Import statement') }}
         </NcButton>
-        <NcButton variant="tertiary" aria-label="Atualizar extratos" :disabled="busy" @click="load">
+        <NcButton variant="tertiary" :aria-label="t('librefinance', 'Refresh statements')" :disabled="busy" @click="load">
           <template #icon><NcIconSvgWrapper :path="mdiRefresh" :size="20" /></template>
         </NcButton>
       </template>
     </LfPageHeader>
     <p v-if="embedded" class="lf-muted lf-bank-intro">
-      Confira o que apareceu no banco. Se o dinheiro já foi registrado, basta conferir:
-      ele não será lançado duas vezes.
+      {{ t('librefinance', 'Review what appeared in the bank statement. If the money has already been recorded, just review it. It will not be posted twice.') }}
     </p>
     <details v-if="rows.length || transfers.length" class="lf-finance-explanation">
-      <summary>Como funciona a conciliação?</summary>
-      <p>Movimentos importados não alteram o saldo contábil até serem conciliados.
-        1. Importe um extrato CSV ou OFX para revisão. 2. Localize uma movimentação pendente.
-        3. Vincule-a a um lançamento contábil da mesma conta e valor.
-        Transferências históricas exigem a conferência das duas pontas.
-        Não existe sincronização bancária em tempo real homologada aqui.</p>
+      <summary>{{ t('librefinance', 'How does reconciliation work?') }}</summary>
+      <p>{{ t('librefinance', 'Imported movements do not change the ledger balance until they are reconciled. 1. Import a CSV or OFX statement for review. 2. Find a pending movement. 3. Link it to a journal entry with the same account and amount. Review both sides of historical transfers. Real-time bank synchronization is not supported here.') }}</p>
     </details>
     <NcNoteCard v-if="error" type="error" role="alert">{{error}}</NcNoteCard>
     <NcNoteCard v-if="success" type="success" role="status">{{success}}</NcNoteCard>
@@ -361,10 +367,10 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
             <template #trigger>
               <NcButton id="lf-bank-filter" variant="tertiary" :pressed="chosenAccount !== 0">
                 <template #icon><NcIconSvgWrapper :path="mdiFilterVariant" :size="20" /></template>
-                Conta: {{ bankChoices.find(option=>Number(option.value)===Number(chosenAccount))?.label }}
+                {{ t('librefinance', 'Account: {account}', { account: bankChoices.find(option => Number(option.value) === Number(chosenAccount))?.label ?? '' }, { escape: false, sanitize: false }) }}
               </NcButton>
             </template>
-            <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar por conta financeira">
+            <div class="lf-agenda-filter-content" role="group" :aria-label="t('librefinance', 'Filter by financial account')">
               <NcButton v-for="choice in bankChoices" :key="choice.value"
                 variant="tertiary" :aria-pressed="Number(chosenAccount)===Number(choice.value)"
                 @click="chosenAccount=Number(choice.value)">{{choice.label}}</NcButton>
@@ -374,10 +380,10 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
             <template #trigger>
               <NcButton id="lf-bank-status" variant="tertiary" :pressed="filter!=='all'">
                 <template #icon><NcIconSvgWrapper :path="mdiFilterVariant" :size="20" /></template>
-                Situação: {{ statuses.find(option=>option.value===filter)?.label }}
+                {{ t('librefinance', 'Status: {status}', { status: statuses.find(option => option.value === filter)?.label ?? '' }, { escape: false, sanitize: false }) }}
               </NcButton>
             </template>
-            <div class="lf-agenda-filter-content" role="group" aria-label="Filtrar movimentações por situação">
+            <div class="lf-agenda-filter-content" role="group" :aria-label="t('librefinance', 'Filter movements by status')">
               <NcButton v-for="choice in statuses" :key="choice.value"
                 variant="tertiary" :aria-pressed="filter===choice.value"
                 @click="filter=choice.value">{{choice.label}}</NcButton>
@@ -386,162 +392,158 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
         </div>
       </div>
       <p v-if="rows.length" class="lf-dialog-help">
-        {{rows.length}} movimentação(ões) carregada(s) neste filtro{{next ? '; há outras páginas disponíveis' : ''}}.
-        Os totais de um extrato completo não são estimados a partir desta lista.
+        {{ next
+          ? t('librefinance', 'Movements loaded for this filter: {count}. More pages are available.', { count: rows.length }, { escape: false, sanitize: false })
+          : t('librefinance', 'Movements loaded for this filter: {count}.', { count: rows.length }, { escape: false, sanitize: false }) }}
+        {{ t('librefinance', 'This list is not used to estimate full statement totals.') }}
       </p>
       <div v-if="busy && !rows.length"
         class="lf-loading" role="status">
-        <NcLoadingIcon :size="44" /> Carregando dados bancários…
+        <NcLoadingIcon :size="44" /> {{ t('librefinance', 'Loading banking data…') }}
       </div>
       <NcEmptyContent v-else-if="!banks.length"
-        name="Nenhuma conta bancária ou caixa cadastrada"
-        description="Cadastre onde o dinheiro fica antes de importar um extrato. O cadastro não exige conectar um banco.">
+        :name="t('librefinance', 'No bank or cash account registered')"
+        :description="t('librefinance', 'Register where your money is held before importing a statement. Registration does not require connecting a bank.')">
         <template v-if="writable" #action>
-          <NcButton variant="primary" @click="navigate('bankAccounts')">Cadastrar banco ou caixa</NcButton>
+          <NcButton variant="primary" @click="navigate('bankAccounts')">{{ t('librefinance', 'Register a bank or cash account') }}</NcButton>
         </template>
       </NcEmptyContent>
       <NcEmptyContent v-else-if="!rows.length"
-        :name="chosenAccount || filter!=='all' ? 'Nenhuma movimentação neste filtro' : 'Nenhuma movimentação importada'"
-        description="Importe um extrato CSV ou OFX para conferir movimentos, sem alterar o saldo contábil.">
+        :name="chosenAccount || filter!=='all' ? t('librefinance', 'No movements match this filter') : t('librefinance', 'No movements imported')"
+        :description="t('librefinance', 'Import a CSV or OFX statement to review movements without changing the ledger balance.')">
         <template #action>
-          <NcButton v-if="chosenAccount || filter!=='all'" @click="chosenAccount=0;filter='all'">Limpar filtros</NcButton>
+          <NcButton v-if="chosenAccount || filter!=='all'" @click="chosenAccount=0;filter='all'">{{ t('librefinance', 'Clear filters') }}</NcButton>
           <NcButton v-else-if="canImport && !embedded"
-            variant="primary" @click="openImportDialog">Importar extrato</NcButton>
+            variant="primary" @click="openImportDialog">{{ t('librefinance', 'Import statement') }}</NcButton>
         </template>
       </NcEmptyContent>
       <div v-else class="lf-table-scroll">
         <table class="lf-data-table">
           <thead><tr>
             <th v-for="col in [
-              {key:'booking_date',label:'Data'}, {key:'bank_account_id',label:'Conta'},
-              {key:'description',label:'Descrição'}, {key:'amount_minor',label:'Valor'},
-              {key:'status',label:'Estado'}]" :key="col.key"
+              {key:'booking_date',label:t('librefinance', 'Date')}, {key:'bank_account_id',label:t('librefinance', 'Account')},
+              {key:'description',label:t('librefinance', 'Description')}, {key:'amount_minor',label:t('librefinance', 'Amount')},
+              {key:'status',label:t('librefinance', 'State')}]" :key="col.key"
               :class="{'lf-numeric':col.key==='amount_minor'}"
               :aria-sort="localSort.ariaSort(col.key)">
               <LfSortableHeader :label="col.label" :column="col.key"
                 :active-column="localSort.column.value" :direction="localSort.direction.value"
                 scope="loaded" @sort="localSort.sort" />
-            </th><th v-if="writable">Ações</th>
+            </th><th v-if="writable">{{ t('librefinance', 'Actions') }}</th>
           </tr></thead>
           <tbody><tr v-for="row in orderedRows" :key="row.id">
-            <td>{{row.booking_date}}</td>
+            <td><time :datetime="row.booking_date">{{ formatLedgerDate(row.booking_date) }}</time></td>
             <td>{{bankName(row.bank_account_id)}}</td>
             <td><strong>{{row.description}}</strong></td>
             <td class="lf-numeric">{{money(row.amount_minor)}}</td>
             <td><span :class="row.status==='matched'?'lf-state lf-state-good':'lf-state lf-state-warning'">
-              {{row.status==='matched'?'Conciliada':'Pendente'}}</span></td>
+              {{row.status==='matched'?t('librefinance', 'Reconciled'):t('librefinance', 'Pending')}}</span></td>
             <td v-if="writable"><NcButton v-if="row.status==='pending'"
-              variant="tertiary" :aria-label="'Conciliar movimento '+row.id"
+              variant="tertiary" :aria-label="t('librefinance', 'Reconcile movement {id}', { id: row.id }, { escape: false, sanitize: false })"
               @click="chooseReconciliation(row)">
               <template #icon><NcIconSvgWrapper :path="mdiLinkVariant" :size="20" /></template>
-              Conciliar
+              {{ t('librefinance', 'Reconcile') }}
             </NcButton></td>
           </tr></tbody>
         </table>
       </div>
       <details v-if="transfers.length" class="lf-finance-explanation lf-transfer-history">
-        <summary>Transferências entre contas ({{transfers.length}}{{transferCursor ? '+' : ''}})</summary>
-        <p class="lf-muted">Confira as duas pontas nos extratos. Transferências entre
-          contas próprias não representam receita ou despesa.</p>
+        <summary>{{ t('librefinance', 'Transfers between accounts ({count})', { count: transferCursor ? transfers.length + '+' : transfers.length }, { escape: false, sanitize: false }) }}</summary>
+        <p class="lf-muted">{{ t('librefinance', 'Review both sides in the statements. Transfers between your own accounts do not represent income or expenses.') }}</p>
         <div class="lf-table-scroll"><table class="lf-data-table">
           <thead><tr>
             <th v-for="col in [
-              {key:'booking_date',label:'Data'}, {key:'fromAccountId',label:'Conta de origem'},
-              {key:'toAccountId',label:'Conta de destino'}, {key:'amount_minor',label:'Valor'}]"
+              {key:'booking_date',label:t('librefinance', 'Date')}, {key:'fromAccountId',label:t('librefinance', 'Source account')},
+              {key:'toAccountId',label:t('librefinance', 'Destination account')}, {key:'amount_minor',label:t('librefinance', 'Amount')}]"
               :key="col.key" :class="{'lf-numeric':col.key==='amount_minor'}"
               :aria-sort="transferSort.ariaSort(col.key)">
               <LfSortableHeader :label="col.label" :column="col.key"
                 :active-column="transferSort.column.value" :direction="transferSort.direction.value"
                 scope="loaded" @sort="transferSort.sort" />
-            </th><th>Situação</th>
+            </th><th>{{ t('librefinance', 'Status') }}</th>
           </tr></thead>
           <tbody><tr v-for="item in orderedTransfers" :key="item.id">
-            <td>{{item.bookingDate}}</td><td>{{bankName(item.fromAccountId)}}</td>
+            <td><time :datetime="item.bookingDate">{{ formatLedgerDate(item.bookingDate) }}</time></td><td>{{bankName(item.fromAccountId)}}</td>
             <td>{{bankName(item.toAccountId)}}</td>
             <td class="lf-numeric">{{money(item.amountMinor)}}</td>
-            <td><span class="lf-state lf-state-warning">Aguardando conferência</span></td>
+            <td><span class="lf-state lf-state-warning">{{ t('librefinance', 'Awaiting review') }}</span></td>
           </tr></tbody>
         </table></div>
         <NcButton v-if="transferCursor" :disabled="busy" @click="moreTransfers">
-          Carregar mais transferências
+          {{ t('librefinance', 'Load more transfers') }}
         </NcButton>
       </details>
       <p v-if="localSort.column.value && next" class="lf-muted">
-        Ordenação aplicada somente às movimentações carregadas.</p>
+        {{ t('librefinance', 'Sorting applies only to loaded movements.') }}</p>
       <div v-if="next" class="lf-table-footer">
-        <NcButton :disabled="busy" @click="more">Carregar mais movimentações</NcButton>
+        <NcButton :disabled="busy" @click="more">{{ t('librefinance', 'Load more movements') }}</NcButton>
       </div>
     </section>
-    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="importDialog" name="Importar extrato bancário"
+    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="importDialog" :name="t('librefinance', 'Import bank statement')"
       @update:open="!$event && closeImportDialog()">
       <form class="lf-dialog-form" @submit.prevent="importStatement">
-        <p>Importe os movimentos para revisão. O arquivo será analisado e
-          nenhum lançamento contábil será criado automaticamente.</p>
+        <p>{{ t('librefinance', 'Import movements for review. The file will be analyzed and no journal entries will be created automatically.') }}</p>
         <NcNoteCard v-if="importError" type="error" role="alert">{{ importError }}</NcNoteCard>
-        <LfSelect id="lf-import-bank" v-model="importAccount" label="Conta de destino"
+        <LfSelect id="lf-import-bank" v-model="importAccount" :label="t('librefinance', 'Destination account')"
           :options="importChoices" :disabled="busy" />
-        <LfSelect id="lf-import-format" v-model="importFormat" label="Formato do extrato"
+        <LfSelect id="lf-import-format" v-model="importFormat" :label="t('librefinance', 'Statement format')"
           :options="formatChoices" :disabled="busy || formatPolicyLoading" />
         <NcFilePicker :key="importFormat" :disabled="busy || !allowedFormats.includes(importFormat)"
-          :label="'Selecionar arquivo ' + importFormat.toUpperCase()" variant="secondary"
+          :label="t('librefinance', 'Select {format} file', { format: importFormat.toUpperCase() }, { escape: false, sanitize: false })" variant="secondary"
           :accept="importFormat === 'ofx' ? ['.ofx','application/x-ofx'] : ['.csv','text/csv']"
           @pick="pickFile" />
-        <p class="lf-muted">{{statementFile?.name || 'Nenhum arquivo selecionado'}}</p>
+        <p class="lf-muted">{{statementFile?.name || t('librefinance', 'No file selected')}}</p>
         <details v-if="importFormat === 'csv'" class="lf-finance-explanation">
-          <summary>Formato esperado do CSV</summary>
-          <p>Use as colunas <code>id,date,amount,description</code>, nesta ordem.
-            Exemplo: <code>mov-001,2026-11-20,-25.90,Pagamento de teste</code>.
-            Utilize ponto como separador decimal e sinal negativo para saídas.
-            O limite é 256 KiB por arquivo.</p>
+          <summary>{{ t('librefinance', 'Expected CSV format') }}</summary>
+          <p>{{ t('librefinance', 'Use the columns {columns} in this order. Example: {example}. Use a decimal point and a negative sign for outflows. The limit is 256 KiB per file.', {
+            columns: 'id,date,amount,description',
+            example: 'mov-001,2026-11-20,-25.90,' + csvDescription(t('librefinance', 'Test payment')),
+          }, { escape: false, sanitize: false }) }}</p>
           <NcButton variant="tertiary" :href="csvExample" download="exemplo-extrato.csv">
-            Baixar exemplo de CSV
+            {{ t('librefinance', 'Download CSV example') }}
           </NcButton>
         </details>
-        <p v-else class="lf-muted">Utilize um extrato bancário OFX com identificadores
-          FITID, datas e valores de movimentação. Limite de 256 KiB.</p>
+        <p v-else class="lf-muted">{{ t('librefinance', 'Use an OFX bank statement with FITID identifiers, movement dates and amounts. Limit: 256 KiB.') }}</p>
         <div class="lf-form-actions">
-          <NcButton variant="tertiary" type="button" @click="closeImportDialog">Cancelar</NcButton>
+          <NcButton variant="tertiary" type="button" @click="closeImportDialog">{{ t('librefinance', 'Cancel') }}</NcButton>
           <NcButton variant="primary" type="submit"
             :disabled="busy || !canImport || !statementFile || !importAccount || !allowedFormats.includes(importFormat)">
-            Importar para revisão
+            {{ t('librefinance', 'Import for review') }}
           </NcButton>
         </div>
       </form>
     </NcDialog>
-    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="Boolean(reconcile)" name="Conciliar movimentação"
+    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="Boolean(reconcile)" :name="t('librefinance', 'Reconcile movement')"
       @update:open="!$event && closeReconciliation()">
       <form class="lf-dialog-form" @submit.prevent="match">
-        <p>Confira a movimentação selecionada antes de vinculá-la a um registro contábil.
-          Esta etapa não registra nova receita nem nova despesa.</p>
+        <p>{{ t('librefinance', 'Review the selected movement before linking it to a journal entry. This step does not record new income or expenses.') }}</p>
         <NcNoteCard v-if="reconciliationError" type="error" role="alert">{{ reconciliationError }}</NcNoteCard>
         <div v-if="reconcile" class="lf-dialog-summary">
           <strong>{{ reconcile.description }}</strong>
           <div class="lf-reconciliation-details">
-            <span>Data</span><strong>{{ reconcile.booking_date }}</strong>
-            <span>Conta financeira</span><strong>{{ bankName(reconcile.bank_account_id) }}</strong>
-            <span>Movimento</span><strong>{{ Number(reconcile.amount_minor) >= 0 ? 'Entrada' : 'Saída' }}</strong>
-            <span>Valor no extrato</span><strong>{{ money(reconcile.amount_minor) }}</strong>
+            <span>{{ t('librefinance', 'Date') }}</span><strong><time :datetime="reconcile.booking_date">{{ formatLedgerDate(reconcile.booking_date) }}</time></strong>
+            <span>{{ t('librefinance', 'Financial account') }}</span><strong>{{ bankName(reconcile.bank_account_id) }}</strong>
+            <span>{{ t('librefinance', 'Movement') }}</span><strong>{{ Number(reconcile.amount_minor) >= 0 ? t('librefinance', 'Inflow') : t('librefinance', 'Outflow') }}</strong>
+            <span>{{ t('librefinance', 'Statement amount') }}</span><strong>{{ money(reconcile.amount_minor) }}</strong>
           </div>
-          <small>Em revisão. O lançamento correspondente deve usar a mesma conta e valor.</small>
+          <small>{{ t('librefinance', 'In review. The corresponding journal entry must use the same account and amount.') }}</small>
         </div>
         <LfSelect id="lf-bank-journal" v-model="journalId"
-          label="Selecionar lançamento já contabilizado" :options="journalCandidates"
-          placeholder="Escolha pela data e descrição" />
+          :label="t('librefinance', 'Select a posted journal entry')" :options="journalCandidates"
+          :placeholder="t('librefinance', 'Select by date and description')" />
         <NcNoteCard v-if="journalCandidates.length===0" type="info">
-          Nenhum lançamento compatível foi encontrado nos registros carregados.
-          Confira a conta e o valor. Não crie um lançamento duplicado para forçar a conciliação.
+          {{ t('librefinance', 'No compatible journal entry was found among loaded records. Check the account and amount. Do not create a duplicate journal entry to force reconciliation.') }}
         </NcNoteCard>
         <NcButton v-if="nextBeforeId" variant="tertiary" :disabled="busy"
-          @click="loadMoreJournals">Procurar em lançamentos mais antigos</NcButton>
+          @click="loadMoreJournals">{{ t('librefinance', 'Search older journal entries') }}</NcButton>
         <p v-else-if="journalCandidates.length===0" class="lf-dialog-help">
-          Se não houver lançamento correspondente, registre o dinheiro recebido ou pago
-          uma vez em Lançamentos contábeis e depois volte para conciliar.
+          {{ t('librefinance', 'If there is no corresponding journal entry, record the money received or paid once in Accounting journals, then return to reconcile it.') }}
         </p>
         <div class="lf-form-actions">
-          <NcButton variant="tertiary" @click="closeReconciliation">Cancelar</NcButton>
+          <NcButton variant="tertiary" @click="closeReconciliation">{{ t('librefinance', 'Cancel') }}</NcButton>
           <NcButton variant="primary" type="submit"
             :disabled="busy||!journalCandidates.some(j=>j.value===Number(journalId))">
-            Confirmar conciliação
+            {{ t('librefinance', 'Confirm reconciliation') }}
           </NcButton>
         </div>
       </form>

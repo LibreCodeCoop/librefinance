@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Nextcloud 3.14159\n"
 "Report-Msgid-Bugs-To: translations\\@example.com\n"
-"POT-Creation-Date: 2026-11-24 22:30+0000\n"
+"POT-Creation-Date: 2026-11-24 23:31+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -31,37 +31,37 @@ msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:258
 #: specialVueFakeDummyForL10nScript.js:236
-#: specialVueFakeDummyForL10nScript.js:6904
-#: specialVueFakeDummyForL10nScript.js:7067
-#: specialVueFakeDummyForL10nScript.js:7235
+#: specialVueFakeDummyForL10nScript.js:7201
+#: specialVueFakeDummyForL10nScript.js:7364
+#: specialVueFakeDummyForL10nScript.js:7532
 msgid "Owner"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:236
-#: specialVueFakeDummyForL10nScript.js:6905
-#: specialVueFakeDummyForL10nScript.js:6913
-#: specialVueFakeDummyForL10nScript.js:7068
+#: specialVueFakeDummyForL10nScript.js:7202
+#: specialVueFakeDummyForL10nScript.js:7210
+#: specialVueFakeDummyForL10nScript.js:7365
 msgid "Manager"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:236
-#: specialVueFakeDummyForL10nScript.js:6906
-#: specialVueFakeDummyForL10nScript.js:6912
-#: specialVueFakeDummyForL10nScript.js:7069
+#: specialVueFakeDummyForL10nScript.js:7203
+#: specialVueFakeDummyForL10nScript.js:7209
+#: specialVueFakeDummyForL10nScript.js:7366
 msgid "Operator"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:237
-#: specialVueFakeDummyForL10nScript.js:6907
-#: specialVueFakeDummyForL10nScript.js:6911
-#: specialVueFakeDummyForL10nScript.js:7070
+#: specialVueFakeDummyForL10nScript.js:7204
+#: specialVueFakeDummyForL10nScript.js:7208
+#: specialVueFakeDummyForL10nScript.js:7367
 msgid "Auditor"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:237
-#: specialVueFakeDummyForL10nScript.js:6908
-#: specialVueFakeDummyForL10nScript.js:6911
-#: specialVueFakeDummyForL10nScript.js:7071
+#: specialVueFakeDummyForL10nScript.js:7205
+#: specialVueFakeDummyForL10nScript.js:7208
+#: specialVueFakeDummyForL10nScript.js:7368
 msgid "Viewer"
 msgstr ""
 
@@ -91,7 +91,7 @@ msgid "Select a workspace"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:273
-#: specialVueFakeDummyForL10nScript.js:3129 /app/src/navigation.js:49
+#: specialVueFakeDummyForL10nScript.js:3270 /app/src/navigation.js:49
 msgid "Finance"
 msgstr ""
 
@@ -276,8 +276,8 @@ msgstr ""
 #. TRANSLATORS s/SettingsView.vue:138
 #: specialVueFakeDummyForL10nScript.js:487
 #: specialVueFakeDummyForL10nScript.js:749
-#: specialVueFakeDummyForL10nScript.js:6954
-#: specialVueFakeDummyForL10nScript.js:6972
+#: specialVueFakeDummyForL10nScript.js:7251
+#: specialVueFakeDummyForL10nScript.js:7269
 msgid "Group"
 msgstr ""
 
@@ -492,16 +492,16 @@ msgstr ""
 #. TRANSLATORS s/SettingsView.vue:149
 #: specialVueFakeDummyForL10nScript.js:745
 #: specialVueFakeDummyForL10nScript.js:1520
-#: specialVueFakeDummyForL10nScript.js:3311
-#: specialVueFakeDummyForL10nScript.js:3418
-#: specialVueFakeDummyForL10nScript.js:3926
-#: specialVueFakeDummyForL10nScript.js:3936
-#: specialVueFakeDummyForL10nScript.js:3974
-#: specialVueFakeDummyForL10nScript.js:4846
-#: specialVueFakeDummyForL10nScript.js:5212
-#: specialVueFakeDummyForL10nScript.js:5240
-#: specialVueFakeDummyForL10nScript.js:5941
-#: specialVueFakeDummyForL10nScript.js:6960
+#: specialVueFakeDummyForL10nScript.js:3452
+#: specialVueFakeDummyForL10nScript.js:3559
+#: specialVueFakeDummyForL10nScript.js:4067
+#: specialVueFakeDummyForL10nScript.js:4077
+#: specialVueFakeDummyForL10nScript.js:4115
+#: specialVueFakeDummyForL10nScript.js:4987
+#: specialVueFakeDummyForL10nScript.js:5353
+#: specialVueFakeDummyForL10nScript.js:5381
+#: specialVueFakeDummyForL10nScript.js:6082
+#: specialVueFakeDummyForL10nScript.js:7257
 msgid "Type"
 msgstr ""
 
@@ -509,7 +509,7 @@ msgstr ""
 #. TRANSLATORS s/SettingsView.vue:209
 #: specialVueFakeDummyForL10nScript.js:753
 #: specialVueFakeDummyForL10nScript.js:773
-#: specialVueFakeDummyForL10nScript.js:6998
+#: specialVueFakeDummyForL10nScript.js:7295
 msgid "Nextcloud group"
 msgstr ""
 
@@ -541,7 +541,7 @@ msgstr ""
 #. TRANSLATORS n/AdminPage.vue:356
 #. TRANSLATORS s/SpacesView.vue:291
 #: specialVueFakeDummyForL10nScript.js:767
-#: specialVueFakeDummyForL10nScript.js:7255
+#: specialVueFakeDummyForL10nScript.js:7552
 msgid "Restore"
 msgstr ""
 
@@ -630,6 +630,7 @@ msgstr ""
 #. TRANSLATORS onents/PaymentMethodsManager.vue:175
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:376
 #. TRANSLATORS s/AccountsView.vue:373
+#. TRANSLATORS s/BankingView.vue:508
 #. TRANSLATORS s/CategoriesView.vue:157
 #. TRANSLATORS s/CompaniesView.vue:328
 #. TRANSLATORS s/ContactsView.vue:270
@@ -638,6 +639,7 @@ msgstr ""
 #. TRANSLATORS s/InvoicesView.vue:438
 #. TRANSLATORS s/MovementsView.vue:715
 #. TRANSLATORS s/NfseView.vue:176
+#. TRANSLATORS s/ObligationsView.vue:516
 #. TRANSLATORS s/ReportsView.vue:353
 #. TRANSLATORS s/SettingsView.vue:213
 #. TRANSLATORS s/SpacesView.vue:344
@@ -651,29 +653,33 @@ msgstr ""
 #: specialVueFakeDummyForL10nScript.js:1564
 #: specialVueFakeDummyForL10nScript.js:1900
 #: specialVueFakeDummyForL10nScript.js:2669
-#: specialVueFakeDummyForL10nScript.js:3458
-#: specialVueFakeDummyForL10nScript.js:3476
-#: specialVueFakeDummyForL10nScript.js:3751
-#: specialVueFakeDummyForL10nScript.js:3982
-#: specialVueFakeDummyForL10nScript.js:4255
-#: specialVueFakeDummyForL10nScript.js:4599
-#: specialVueFakeDummyForL10nScript.js:5268
-#: specialVueFakeDummyForL10nScript.js:5302
-#: specialVueFakeDummyForL10nScript.js:5328
-#: specialVueFakeDummyForL10nScript.js:5989
-#: specialVueFakeDummyForL10nScript.js:6011
-#: specialVueFakeDummyForL10nScript.js:6057
-#: specialVueFakeDummyForL10nScript.js:6075
-#: specialVueFakeDummyForL10nScript.js:6234
-#: specialVueFakeDummyForL10nScript.js:6803
-#: specialVueFakeDummyForL10nScript.js:6813
-#: specialVueFakeDummyForL10nScript.js:6821
-#: specialVueFakeDummyForL10nScript.js:7002
-#: specialVueFakeDummyForL10nScript.js:7010
-#: specialVueFakeDummyForL10nScript.js:7291
-#: specialVueFakeDummyForL10nScript.js:7305
-#: specialVueFakeDummyForL10nScript.js:7315
-#: specialVueFakeDummyForL10nScript.js:7541
+#: specialVueFakeDummyForL10nScript.js:3183
+#: specialVueFakeDummyForL10nScript.js:3211
+#: specialVueFakeDummyForL10nScript.js:3599
+#: specialVueFakeDummyForL10nScript.js:3617
+#: specialVueFakeDummyForL10nScript.js:3892
+#: specialVueFakeDummyForL10nScript.js:4123
+#: specialVueFakeDummyForL10nScript.js:4396
+#: specialVueFakeDummyForL10nScript.js:4740
+#: specialVueFakeDummyForL10nScript.js:5409
+#: specialVueFakeDummyForL10nScript.js:5443
+#: specialVueFakeDummyForL10nScript.js:5469
+#: specialVueFakeDummyForL10nScript.js:6130
+#: specialVueFakeDummyForL10nScript.js:6152
+#: specialVueFakeDummyForL10nScript.js:6198
+#: specialVueFakeDummyForL10nScript.js:6216
+#: specialVueFakeDummyForL10nScript.js:6375
+#: specialVueFakeDummyForL10nScript.js:6776
+#: specialVueFakeDummyForL10nScript.js:6792
+#: specialVueFakeDummyForL10nScript.js:7100
+#: specialVueFakeDummyForL10nScript.js:7110
+#: specialVueFakeDummyForL10nScript.js:7118
+#: specialVueFakeDummyForL10nScript.js:7299
+#: specialVueFakeDummyForL10nScript.js:7307
+#: specialVueFakeDummyForL10nScript.js:7588
+#: specialVueFakeDummyForL10nScript.js:7602
+#: specialVueFakeDummyForL10nScript.js:7612
+#: specialVueFakeDummyForL10nScript.js:7838
 msgid "Cancel"
 msgstr ""
 
@@ -727,13 +733,13 @@ msgstr ""
 
 #. TRANSLATORS onents/CashPaymentDialog.vue:140
 #: specialVueFakeDummyForL10nScript.js:953
-#: specialVueFakeDummyForL10nScript.js:5352
+#: specialVueFakeDummyForL10nScript.js:5493
 msgid "Record receipt"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:537
 #: specialVueFakeDummyForL10nScript.js:953
-#: specialVueFakeDummyForL10nScript.js:5352
+#: specialVueFakeDummyForL10nScript.js:5493
 msgid "Record payment"
 msgstr ""
 
@@ -772,7 +778,9 @@ msgid "Choose the movement type corresponding to the payment or receipt."
 msgstr ""
 
 #. TRANSLATORS onents/CashPaymentDialog.vue:159
+#. TRANSLATORS s/ObligationsView.vue:525
 #: specialVueFakeDummyForL10nScript.js:965
+#: specialVueFakeDummyForL10nScript.js:6782
 msgid "Outstanding: {amount}"
 msgstr ""
 
@@ -801,7 +809,7 @@ msgstr ""
 #. TRANSLATORS onents/CashPaymentDialog.vue:173
 #. TRANSLATORS s/InvoicesView.vue:557
 #: specialVueFakeDummyForL10nScript.js:975
-#: specialVueFakeDummyForL10nScript.js:5366
+#: specialVueFakeDummyForL10nScript.js:5507
 msgid "Load earlier entries"
 msgstr ""
 
@@ -868,7 +876,7 @@ msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:190
 #: specialVueFakeDummyForL10nScript.js:1052
-#: specialVueFakeDummyForL10nScript.js:3928
+#: specialVueFakeDummyForL10nScript.js:4069
 msgid "Email"
 msgstr ""
 
@@ -884,14 +892,22 @@ msgstr ""
 msgid "Exact decimal"
 msgstr ""
 
+#. TRANSLATORS s/BankingView.vue:424
+#. TRANSLATORS s/BankingView.vue:456
+#. TRANSLATORS s/BankingView.vue:524
 #. TRANSLATORS s/CashflowView.vue:271
 #. TRANSLATORS s/MovementsView.vue:636
+#. TRANSLATORS s/ObligationsView.vue:531
 #. TRANSLATORS s/TransactionsView.vue:166
 #: specialVueFakeDummyForL10nScript.js:1054
-#: specialVueFakeDummyForL10nScript.js:3309
-#: specialVueFakeDummyForL10nScript.js:5937
-#: specialVueFakeDummyForL10nScript.js:5997
-#: specialVueFakeDummyForL10nScript.js:7473
+#: specialVueFakeDummyForL10nScript.js:3129
+#: specialVueFakeDummyForL10nScript.js:3147
+#: specialVueFakeDummyForL10nScript.js:3191
+#: specialVueFakeDummyForL10nScript.js:3450
+#: specialVueFakeDummyForL10nScript.js:6078
+#: specialVueFakeDummyForL10nScript.js:6138
+#: specialVueFakeDummyForL10nScript.js:6788
+#: specialVueFakeDummyForL10nScript.js:7770
 msgid "Date"
 msgstr ""
 
@@ -916,7 +932,7 @@ msgid "People and establishments"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:1060
-#: specialVueFakeDummyForL10nScript.js:3782 /app/src/navigation.js:26
+#: specialVueFakeDummyForL10nScript.js:3923 /app/src/navigation.js:26
 msgid "Customers and suppliers"
 msgstr ""
 
@@ -925,7 +941,7 @@ msgid "Additional information about registered contacts"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:1062
-#: specialVueFakeDummyForL10nScript.js:3781 /app/src/navigation.js:27
+#: specialVueFakeDummyForL10nScript.js:3922 /app/src/navigation.js:27
 msgid "Products and services"
 msgstr ""
 
@@ -934,7 +950,7 @@ msgid "Item catalog information"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:1063
-#: specialVueFakeDummyForL10nScript.js:5194
+#: specialVueFakeDummyForL10nScript.js:5335
 msgid "Sales invoices"
 msgstr ""
 
@@ -998,14 +1014,14 @@ msgstr ""
 #. TRANSLATORS s/ContactsView.vue:224
 #: specialVueFakeDummyForL10nScript.js:1187
 #: specialVueFakeDummyForL10nScript.js:1624
-#: specialVueFakeDummyForL10nScript.js:3942
-#: specialVueFakeDummyForL10nScript.js:3948
+#: specialVueFakeDummyForL10nScript.js:4083
+#: specialVueFakeDummyForL10nScript.js:4089
 msgid "Active"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:1187
-#: specialVueFakeDummyForL10nScript.js:3942
-#: specialVueFakeDummyForL10nScript.js:3948
+#: specialVueFakeDummyForL10nScript.js:4083
+#: specialVueFakeDummyForL10nScript.js:4089
 msgid "Inactive"
 msgstr ""
 
@@ -1016,10 +1032,10 @@ msgstr ""
 #. TRANSLATORS s/ContactsView.vue:215
 #: specialVueFakeDummyForL10nScript.js:1189
 #: specialVueFakeDummyForL10nScript.js:2619
-#: specialVueFakeDummyForL10nScript.js:3430
-#: specialVueFakeDummyForL10nScript.js:3665
-#: specialVueFakeDummyForL10nScript.js:3944
-#: specialVueFakeDummyForL10nScript.js:3950
+#: specialVueFakeDummyForL10nScript.js:3571
+#: specialVueFakeDummyForL10nScript.js:3806
+#: specialVueFakeDummyForL10nScript.js:4085
+#: specialVueFakeDummyForL10nScript.js:4091
 msgid "Edit {name}"
 msgstr ""
 
@@ -1028,7 +1044,7 @@ msgstr ""
 #. TRANSLATORS s/ReportsView.vue:258
 #: specialVueFakeDummyForL10nScript.js:1191
 #: specialVueFakeDummyForL10nScript.js:1532
-#: specialVueFakeDummyForL10nScript.js:6735
+#: specialVueFakeDummyForL10nScript.js:7032
 msgid "Edit"
 msgstr ""
 
@@ -1182,8 +1198,8 @@ msgstr ""
 #. TRANSLATORS s/MovementsView.vue:826
 #. TRANSLATORS s/MovementsView.vue:853
 #: specialVueFakeDummyForL10nScript.js:1249
-#: specialVueFakeDummyForL10nScript.js:6059
-#: specialVueFakeDummyForL10nScript.js:6077
+#: specialVueFakeDummyForL10nScript.js:6200
+#: specialVueFakeDummyForL10nScript.js:6218
 msgid "Saving…"
 msgstr ""
 
@@ -1351,9 +1367,9 @@ msgstr ""
 #. TRANSLATORS s/ContactsView.vue:250
 #. TRANSLATORS s/InvoicesView.vue:484
 #: specialVueFakeDummyForL10nScript.js:1520
-#: specialVueFakeDummyForL10nScript.js:3934
-#: specialVueFakeDummyForL10nScript.js:3964
-#: specialVueFakeDummyForL10nScript.js:5310
+#: specialVueFakeDummyForL10nScript.js:4075
+#: specialVueFakeDummyForL10nScript.js:4105
+#: specialVueFakeDummyForL10nScript.js:5451
 msgid "Name"
 msgstr ""
 
@@ -1363,23 +1379,26 @@ msgid "Associated account"
 msgstr ""
 
 #. TRANSLATORS s/AccountsView.vue:276
+#. TRANSLATORS s/BankingView.vue:463
 #. TRANSLATORS s/CashflowView.vue:275
 #. TRANSLATORS s/ContactsView.vue:191
 #. TRANSLATORS s/InvoicesView.vue:363
 #. TRANSLATORS s/MovementsView.vue:640
 #: specialVueFakeDummyForL10nScript.js:1522
 #: specialVueFakeDummyForL10nScript.js:2605
-#: specialVueFakeDummyForL10nScript.js:3317
-#: specialVueFakeDummyForL10nScript.js:3655
-#: specialVueFakeDummyForL10nScript.js:3930
-#: specialVueFakeDummyForL10nScript.js:3938
-#: specialVueFakeDummyForL10nScript.js:5214
-#: specialVueFakeDummyForL10nScript.js:5945
+#: specialVueFakeDummyForL10nScript.js:3151
+#: specialVueFakeDummyForL10nScript.js:3458
+#: specialVueFakeDummyForL10nScript.js:3796
+#: specialVueFakeDummyForL10nScript.js:4071
+#: specialVueFakeDummyForL10nScript.js:4079
+#: specialVueFakeDummyForL10nScript.js:5355
+#: specialVueFakeDummyForL10nScript.js:6086
 msgid "Status"
 msgstr ""
 
 #. TRANSLATORS onents/PaymentMethodsManager.vue:132
 #. TRANSLATORS s/AccountsView.vue:283
+#. TRANSLATORS s/BankingView.vue:432
 #. TRANSLATORS s/CategoriesView.vue:114
 #. TRANSLATORS s/CompaniesView.vue:196
 #. TRANSLATORS s/ContactsView.vue:196
@@ -1388,13 +1407,15 @@ msgstr ""
 #. TRANSLATORS s/SettingsView.vue:152
 #: specialVueFakeDummyForL10nScript.js:1524
 #: specialVueFakeDummyForL10nScript.js:2609
-#: specialVueFakeDummyForL10nScript.js:3422
-#: specialVueFakeDummyForL10nScript.js:3657
-#: specialVueFakeDummyForL10nScript.js:3932
-#: specialVueFakeDummyForL10nScript.js:3940
-#: specialVueFakeDummyForL10nScript.js:5218
-#: specialVueFakeDummyForL10nScript.js:5949
-#: specialVueFakeDummyForL10nScript.js:6966
+#: specialVueFakeDummyForL10nScript.js:3135
+#: specialVueFakeDummyForL10nScript.js:3563
+#: specialVueFakeDummyForL10nScript.js:3798
+#: specialVueFakeDummyForL10nScript.js:4073
+#: specialVueFakeDummyForL10nScript.js:4081
+#: specialVueFakeDummyForL10nScript.js:5359
+#: specialVueFakeDummyForL10nScript.js:6090
+#: specialVueFakeDummyForL10nScript.js:6704
+#: specialVueFakeDummyForL10nScript.js:7263
 msgid "Actions"
 msgstr ""
 
@@ -1420,7 +1441,7 @@ msgstr ""
 #. TRANSLATORS onents/PaymentMethodsManager.vue:146
 #. TRANSLATORS s/ReportsView.vue:264
 #: specialVueFakeDummyForL10nScript.js:1534
-#: specialVueFakeDummyForL10nScript.js:6739
+#: specialVueFakeDummyForL10nScript.js:7036
 msgid "Delete"
 msgstr ""
 
@@ -1503,17 +1524,17 @@ msgid "Remove payment method"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:1607
-#: specialVueFakeDummyForL10nScript.js:7064
+#: specialVueFakeDummyForL10nScript.js:7361
 msgid "Business or organization"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:1608
-#: specialVueFakeDummyForL10nScript.js:7063
+#: specialVueFakeDummyForL10nScript.js:7360
 msgid "Group or collective"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:1609
-#: specialVueFakeDummyForL10nScript.js:7062
+#: specialVueFakeDummyForL10nScript.js:7359
 msgid "Personal or household"
 msgstr ""
 
@@ -1674,8 +1695,8 @@ msgstr ""
 #. TRANSLATORS onents/SaasEnvironmentsPanel.vue:333
 #. TRANSLATORS s/SpacesView.vue:329
 #: specialVueFakeDummyForL10nScript.js:1870
-#: specialVueFakeDummyForL10nScript.js:7279
-#: specialVueFakeDummyForL10nScript.js:7297
+#: specialVueFakeDummyForL10nScript.js:7576
+#: specialVueFakeDummyForL10nScript.js:7594
 msgid "Workspace name"
 msgstr ""
 
@@ -1760,7 +1781,7 @@ msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:345
 #: specialVueFakeDummyForL10nScript.js:1902
-#: specialVueFakeDummyForL10nScript.js:7293
+#: specialVueFakeDummyForL10nScript.js:7590
 msgid "Create independent workspace"
 msgstr ""
 
@@ -1892,7 +1913,7 @@ msgstr ""
 #. TRANSLATORS onents/SaasInvitationsPanel.vue:192
 #. TRANSLATORS s/SettingsView.vue:157
 #: specialVueFakeDummyForL10nScript.js:2081
-#: specialVueFakeDummyForL10nScript.js:6970
+#: specialVueFakeDummyForL10nScript.js:7267
 msgid "Revoke access for {name}"
 msgstr ""
 
@@ -1933,7 +1954,7 @@ msgid "Allowed bank statement formats (CSV or OFX)"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:2164
-#: specialVueFakeDummyForL10nScript.js:6868
+#: specialVueFakeDummyForL10nScript.js:7165
 msgid "Financial reports"
 msgstr ""
 
@@ -1967,8 +1988,8 @@ msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:136
 #: specialVueFakeDummyForL10nScript.js:2171
-#: specialVueFakeDummyForL10nScript.js:6952
-#: specialVueFakeDummyForL10nScript.js:6968
+#: specialVueFakeDummyForL10nScript.js:7249
+#: specialVueFakeDummyForL10nScript.js:7265
 msgid "User"
 msgstr ""
 
@@ -2168,25 +2189,25 @@ msgid "Failed to read the image."
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:2482
-#: specialVueFakeDummyForL10nScript.js:6565
+#: specialVueFakeDummyForL10nScript.js:6862
 msgid "All classes"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:2483
 #: specialVueFakeDummyForL10nScript.js:2488
-#: specialVueFakeDummyForL10nScript.js:6555
+#: specialVueFakeDummyForL10nScript.js:6852
 msgid "Asset"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:2483
 #: specialVueFakeDummyForL10nScript.js:2489
-#: specialVueFakeDummyForL10nScript.js:6555
+#: specialVueFakeDummyForL10nScript.js:6852
 msgid "Liability"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:2484
 #: specialVueFakeDummyForL10nScript.js:2490
-#: specialVueFakeDummyForL10nScript.js:6555
+#: specialVueFakeDummyForL10nScript.js:6852
 msgid "Equity"
 msgstr ""
 
@@ -2195,20 +2216,20 @@ msgstr ""
 #. TRANSLATORS s/TransactionsView.vue:215
 #: specialVueFakeDummyForL10nScript.js:2484
 #: specialVueFakeDummyForL10nScript.js:2491
-#: specialVueFakeDummyForL10nScript.js:3424
-#: specialVueFakeDummyForL10nScript.js:3446
-#: specialVueFakeDummyForL10nScript.js:6556
-#: specialVueFakeDummyForL10nScript.js:7507
+#: specialVueFakeDummyForL10nScript.js:3565
+#: specialVueFakeDummyForL10nScript.js:3587
+#: specialVueFakeDummyForL10nScript.js:6853
+#: specialVueFakeDummyForL10nScript.js:7804
 msgid "Revenue"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:209
 #: specialVueFakeDummyForL10nScript.js:2485
 #: specialVueFakeDummyForL10nScript.js:2492
-#: specialVueFakeDummyForL10nScript.js:3424
-#: specialVueFakeDummyForL10nScript.js:3446
-#: specialVueFakeDummyForL10nScript.js:6556
-#: specialVueFakeDummyForL10nScript.js:7503
+#: specialVueFakeDummyForL10nScript.js:3565
+#: specialVueFakeDummyForL10nScript.js:3587
+#: specialVueFakeDummyForL10nScript.js:6853
+#: specialVueFakeDummyForL10nScript.js:7800
 msgid "Expense"
 msgstr ""
 
@@ -2248,15 +2269,17 @@ msgstr ""
 #. TRANSLATORS s/AccountsView.vue:223
 #. TRANSLATORS s/CashflowView.vue:219
 #: specialVueFakeDummyForL10nScript.js:2567
-#: specialVueFakeDummyForL10nScript.js:3285
-#: specialVueFakeDummyForL10nScript.js:4406
-#: specialVueFakeDummyForL10nScript.js:5889
-#: specialVueFakeDummyForL10nScript.js:7457
+#: specialVueFakeDummyForL10nScript.js:3085
+#: specialVueFakeDummyForL10nScript.js:3426
+#: specialVueFakeDummyForL10nScript.js:4547
+#: specialVueFakeDummyForL10nScript.js:6030
+#: specialVueFakeDummyForL10nScript.js:6656
+#: specialVueFakeDummyForL10nScript.js:7754
 msgid "FINANCE"
 msgstr ""
 
 #: specialVueFakeDummyForL10nScript.js:2567
-#: specialVueFakeDummyForL10nScript.js:3406
+#: specialVueFakeDummyForL10nScript.js:3547
 msgid "ACCOUNTING"
 msgstr ""
 
@@ -2277,7 +2300,7 @@ msgstr ""
 #. TRANSLATORS s/AccountsView.vue:229
 #. TRANSLATORS s/MovementsView.vue:520
 #: specialVueFakeDummyForL10nScript.js:2573
-#: specialVueFakeDummyForL10nScript.js:5889 /app/src/navigation.js:13
+#: specialVueFakeDummyForL10nScript.js:6030 /app/src/navigation.js:13
 #: src/navigation.js:17 /app/src/navigation.js:18
 #: src/navigation.js:21
 msgid "Financial movements"
@@ -2285,7 +2308,7 @@ msgstr ""
 
 #. TRANSLATORS s/AccountsView.vue:232
 #: specialVueFakeDummyForL10nScript.js:2575
-#: specialVueFakeDummyForL10nScript.js:6856 /app/src/navigation.js:35
+#: specialVueFakeDummyForL10nScript.js:7153 /app/src/navigation.js:35
 msgid "Payment methods"
 msgstr ""
 
@@ -2366,28 +2389,29 @@ msgstr ""
 #. TRANSLATORS s/InvoicesView.vue:400
 #. TRANSLATORS s/InvoicesView.vue:483
 #: specialVueFakeDummyForL10nScript.js:2599
-#: specialVueFakeDummyForL10nScript.js:3416
-#: specialVueFakeDummyForL10nScript.js:3438
-#: specialVueFakeDummyForL10nScript.js:3934
-#: specialVueFakeDummyForL10nScript.js:5236
-#: specialVueFakeDummyForL10nScript.js:5308
+#: specialVueFakeDummyForL10nScript.js:3557
+#: specialVueFakeDummyForL10nScript.js:3579
+#: specialVueFakeDummyForL10nScript.js:4075
+#: specialVueFakeDummyForL10nScript.js:5377
+#: specialVueFakeDummyForL10nScript.js:5449
 msgid "Code"
 msgstr ""
 
 #. TRANSLATORS s/AccountsView.vue:274
 #. TRANSLATORS s/MovementsView.vue:639
 #: specialVueFakeDummyForL10nScript.js:2601
-#: specialVueFakeDummyForL10nScript.js:4642
-#: specialVueFakeDummyForL10nScript.js:5943
-#: specialVueFakeDummyForL10nScript.js:5999
+#: specialVueFakeDummyForL10nScript.js:3129
+#: specialVueFakeDummyForL10nScript.js:4783
+#: specialVueFakeDummyForL10nScript.js:6084
+#: specialVueFakeDummyForL10nScript.js:6140
 msgid "Account"
 msgstr ""
 
 #. TRANSLATORS s/AccountsView.vue:275
 #. TRANSLATORS s/CategoriesView.vue:142
 #: specialVueFakeDummyForL10nScript.js:2603
-#: specialVueFakeDummyForL10nScript.js:3444
-#: specialVueFakeDummyForL10nScript.js:6560
+#: specialVueFakeDummyForL10nScript.js:3585
+#: specialVueFakeDummyForL10nScript.js:6857
 msgid "Account nature"
 msgstr ""
 
@@ -2399,7 +2423,7 @@ msgstr ""
 #. TRANSLATORS s/AccountsView.vue:289
 #. TRANSLATORS s/CompaniesView.vue:204
 #: specialVueFakeDummyForL10nScript.js:2611
-#: specialVueFakeDummyForL10nScript.js:3659
+#: specialVueFakeDummyForL10nScript.js:3800
 msgid "Logo of {name}"
 msgstr ""
 
@@ -2428,13 +2452,15 @@ msgid "Delete {name}"
 msgstr ""
 
 #. TRANSLATORS s/AccountsView.vue:319
+#. TRANSLATORS s/BankingView.vue:405
 #: specialVueFakeDummyForL10nScript.js:2623
+#: specialVueFakeDummyForL10nScript.js:3115
 msgid "No bank or cash account registered"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:317
 #: specialVueFakeDummyForL10nScript.js:2623
-#: specialVueFakeDummyForL10nScript.js:6775
+#: specialVueFakeDummyForL10nScript.js:7072
 msgid "No account found"
 msgstr ""
 
@@ -2478,13 +2504,13 @@ msgstr ""
 
 #. TRANSLATORS s/AccountsView.vue:340
 #: specialVueFakeDummyForL10nScript.js:2639
-#: specialVueFakeDummyForL10nScript.js:6559
+#: specialVueFakeDummyForL10nScript.js:6856
 msgid "Account name"
 msgstr ""
 
 #. TRANSLATORS s/AccountsView.vue:342
 #: specialVueFakeDummyForL10nScript.js:2641
-#: specialVueFakeDummyForL10nScript.js:6558
+#: specialVueFakeDummyForL10nScript.js:6855
 msgid "Accounting code"
 msgstr ""
 
@@ -2543,7 +2569,7 @@ msgstr ""
 #. TRANSLATORS s/AccountsView.vue:365
 #. TRANSLATORS s/CompaniesView.vue:311
 #: specialVueFakeDummyForL10nScript.js:2663
-#: specialVueFakeDummyForL10nScript.js:3741
+#: specialVueFakeDummyForL10nScript.js:3882
 msgid "Remove logo"
 msgstr ""
 
@@ -2703,26 +2729,26 @@ msgstr ""
 #. TRANSLATORS s/AiView.vue:52
 #. TRANSLATORS s/ReportsView.vue:277
 #: specialVueFakeDummyForL10nScript.js:2736
-#: specialVueFakeDummyForL10nScript.js:3365
-#: specialVueFakeDummyForL10nScript.js:4096
-#: specialVueFakeDummyForL10nScript.js:6751
+#: specialVueFakeDummyForL10nScript.js:3506
+#: specialVueFakeDummyForL10nScript.js:4237
+#: specialVueFakeDummyForL10nScript.js:7048
 msgid "Income"
 msgstr ""
 
 #. TRANSLATORS s/AiView.vue:54
 #. TRANSLATORS s/ReportsView.vue:278
 #: specialVueFakeDummyForL10nScript.js:2738
-#: specialVueFakeDummyForL10nScript.js:3366
-#: specialVueFakeDummyForL10nScript.js:4101
-#: specialVueFakeDummyForL10nScript.js:6753
+#: specialVueFakeDummyForL10nScript.js:3507
+#: specialVueFakeDummyForL10nScript.js:4242
+#: specialVueFakeDummyForL10nScript.js:7050
 msgid "Expenses"
 msgstr ""
 
 #. TRANSLATORS s/AiView.vue:56
 #. TRANSLATORS s/ReportsView.vue:279
 #: specialVueFakeDummyForL10nScript.js:2740
-#: specialVueFakeDummyForL10nScript.js:4106
-#: specialVueFakeDummyForL10nScript.js:6755
+#: specialVueFakeDummyForL10nScript.js:4247
+#: specialVueFakeDummyForL10nScript.js:7052
 msgid "Result"
 msgstr ""
 
@@ -2758,156 +2784,239 @@ msgstr ""
 msgid "Identifier {id}"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3127
-#: specialVueFakeDummyForL10nScript.js:4138
-#: specialVueFakeDummyForL10nScript.js:6866
-msgid "Payables and receivables"
+#: specialVueFakeDummyForL10nScript.js:2811
+msgid "Example payment"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3127
-#: specialVueFakeDummyForL10nScript.js:4379
-msgid "Sales"
+#: specialVueFakeDummyForL10nScript.js:2812
+msgid "Example receipt"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3127
-#: specialVueFakeDummyForL10nScript.js:4380
-msgid "Purchases"
+#: specialVueFakeDummyForL10nScript.js:2832
+msgid "{date} · {description} (#{id})"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3128 /app/src/navigation.js:11
-msgid "Account statement"
+#. TRANSLATORS s/MovementsView.vue:574
+#: specialVueFakeDummyForL10nScript.js:2836
+#: specialVueFakeDummyForL10nScript.js:6054
+#: specialVueFakeDummyForL10nScript.js:6058
+msgid "All accounts"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3131
+#: specialVueFakeDummyForL10nScript.js:2840
+msgid "OFX (Open Financial Exchange)"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:2840
+msgid "CSV (comma-separated values)"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:2843
+msgid "All statuses"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:2844
+msgid "Pending movements"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:2845
+msgid "Reconciled movements"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:2849
+msgid "Account #{id}"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:2916
+msgid "Some banking queries are unavailable. Loaded statements remain visible."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:2968
+#: specialVueFakeDummyForL10nScript.js:5722
+msgid "Select only one file."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:2974
+#: specialVueFakeDummyForL10nScript.js:5728
+msgid "Select a {format} file."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:2979
+#: specialVueFakeDummyForL10nScript.js:5733
+msgid "The file must not be empty or exceed 256 KiB."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:2995
+#: specialVueFakeDummyForL10nScript.js:5748
+msgid "File exceeds the 256 KiB limit."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3006
+#: specialVueFakeDummyForL10nScript.js:3007
+#: specialVueFakeDummyForL10nScript.js:5761
+#: specialVueFakeDummyForL10nScript.js:5763
+msgid "Unknown OFX encoding: {encoding}"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3020
+msgid "Imported movements: {imported}; already present: {skipped}."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3033
+msgid "Select a compatible journal entry to complete reconciliation."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3043
+msgid "Movement linked to the existing journal entry."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:338
+#: specialVueFakeDummyForL10nScript.js:3085
+msgid "Banks and cash"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:339
+#: specialVueFakeDummyForL10nScript.js:3087
 msgid ""
-"A list of bills and collections, with inflows, outflows, due dates and "
-"status. Filter to show only payables or receivables."
+"Review statements and reconcile movements without counting internal "
+"transfers twice."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3132
-msgid ""
-"Record sales with items and amounts. On confirmation, the receivable appears "
-"automatically in Payables and receivables."
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3133
-msgid ""
-"Record purchases with items and amounts. On confirmation, the payable "
-"appears automatically in Payables and receivables."
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3134
-msgid ""
-"Review the movements reported by the bank. Existing entries do not need to "
-"be registered again."
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3146
-msgid "Purchase document"
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3147
-msgid "Sales document"
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3148
-msgid "Unlinked historical document"
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3149
-msgid "Statement inflow"
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3150
-msgid "Statement outflow"
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3153
-msgid "To confirm"
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3154
-msgid "Review link"
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3155
-msgid "To reconcile"
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3186
-msgid "Draft documents could not be retrieved."
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:3192
-msgid "Pending movements could not be retrieved."
-msgstr ""
-
-#. TRANSLATORS s/CashflowView.vue:223
-#: specialVueFakeDummyForL10nScript.js:3287
-msgid "Money already came in or went out"
-msgstr ""
-
-#. TRANSLATORS s/CashflowView.vue:228
-#: specialVueFakeDummyForL10nScript.js:3289
-msgid "New bill or collection"
-msgstr ""
-
-#. TRANSLATORS s/CashflowView.vue:233
-#: specialVueFakeDummyForL10nScript.js:3291
-msgid "New sale"
-msgstr ""
-
-#. TRANSLATORS s/CashflowView.vue:238
-#: specialVueFakeDummyForL10nScript.js:3293
-msgid "New purchase"
-msgstr ""
-
-#. TRANSLATORS s/CashflowView.vue:241
-#: specialVueFakeDummyForL10nScript.js:3295
-msgid "Back to transactions"
-msgstr ""
-
+#. TRANSLATORS s/BankingView.vue:345
 #. TRANSLATORS s/CashflowView.vue:246
 #. TRANSLATORS s/MovementsView.vue:524
-#: specialVueFakeDummyForL10nScript.js:3297
-#: specialVueFakeDummyForL10nScript.js:5893
+#: specialVueFakeDummyForL10nScript.js:3089
+#: specialVueFakeDummyForL10nScript.js:3127
+#: specialVueFakeDummyForL10nScript.js:3438
+#: specialVueFakeDummyForL10nScript.js:6034
 msgid "Import statement"
 msgstr ""
 
-#. TRANSLATORS s/CashflowView.vue:254
-#. TRANSLATORS s/CashflowView.vue:257
-#: specialVueFakeDummyForL10nScript.js:3299
-#: specialVueFakeDummyForL10nScript.js:3301
-msgid "Pending items to review"
+#. TRANSLATORS s/BankingView.vue:347
+#: specialVueFakeDummyForL10nScript.js:3091
+msgid "Refresh statements"
 msgstr ""
 
-#. TRANSLATORS s/CashflowView.vue:258
-#: specialVueFakeDummyForL10nScript.js:3303
+#. TRANSLATORS s/BankingView.vue:353
+#: specialVueFakeDummyForL10nScript.js:3093
 msgid ""
-"Drafts are not yet receivables; imported movements are not yet payments."
+"Review what appeared in the bank statement. If the money has already been "
+"recorded, just review it. It will not be posted twice."
 msgstr ""
 
-#. TRANSLATORS s/CashflowView.vue:260
-#: specialVueFakeDummyForL10nScript.js:3305
-msgid "Refresh pending tasks"
+#. TRANSLATORS s/BankingView.vue:356
+#: specialVueFakeDummyForL10nScript.js:3095
+msgid "How does reconciliation work?"
 msgstr ""
 
-#. TRANSLATORS s/CashflowView.vue:267
-#: specialVueFakeDummyForL10nScript.js:3307
-msgid "Loading pending items…"
+#. TRANSLATORS s/BankingView.vue:357
+#: specialVueFakeDummyForL10nScript.js:3097
+msgid ""
+"Imported movements do not change the ledger balance until they are "
+"reconciled. 1. Import a CSV or OFX statement for review. 2. Find a pending "
+"movement. 3. Link it to a journal entry with the same account and amount. "
+"Review both sides of historical transfers. Real-time bank synchronization is "
+"not supported here."
 msgstr ""
 
+#. TRANSLATORS s/BankingView.vue:370
+#. TRANSLATORS s/MovementsView.vue:698
+#: specialVueFakeDummyForL10nScript.js:3099
+#: specialVueFakeDummyForL10nScript.js:6116
+msgid "Account: {account}"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:373
+#: specialVueFakeDummyForL10nScript.js:3101
+msgid "Filter by financial account"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:383
+#. TRANSLATORS s/InvoicesView.vue:513
+#: specialVueFakeDummyForL10nScript.js:3103
+#: specialVueFakeDummyForL10nScript.js:5475
+#: specialVueFakeDummyForL10nScript.js:6537
+msgid "Status: {status}"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:386
+#: specialVueFakeDummyForL10nScript.js:3105
+msgid "Filter movements by status"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:396
+#: specialVueFakeDummyForL10nScript.js:3107
+msgid "Movements loaded for this filter: {count}. More pages are available."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:397
+#: specialVueFakeDummyForL10nScript.js:3109
+msgid "Movements loaded for this filter: {count}."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:398
+#: specialVueFakeDummyForL10nScript.js:3111
+msgid "This list is not used to estimate full statement totals."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:402
+#: specialVueFakeDummyForL10nScript.js:3113
+msgid "Loading banking data…"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:406
+#: specialVueFakeDummyForL10nScript.js:3117
+msgid ""
+"Register where your money is held before importing a statement. Registration "
+"does not require connecting a bank."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:408
+#: specialVueFakeDummyForL10nScript.js:3119
+msgid "Register a bank or cash account"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:412
+#: specialVueFakeDummyForL10nScript.js:3121
+msgid "No movements match this filter"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3121
+msgid "No movements imported"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:413
+#: specialVueFakeDummyForL10nScript.js:3123
+msgid ""
+"Import a CSV or OFX statement to review movements without changing the "
+"ledger balance."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:415
+#. TRANSLATORS s/MovementsView.vue:617
+#. TRANSLATORS s/ObligationsView.vue:370
+#: specialVueFakeDummyForL10nScript.js:3125
+#: specialVueFakeDummyForL10nScript.js:6066
+#: specialVueFakeDummyForL10nScript.js:6688
+msgid "Clear filters"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:425
 #. TRANSLATORS s/CashflowView.vue:273
 #. TRANSLATORS s/MovementsView.vue:637
 #. TRANSLATORS s/MovementsView.vue:796
 #. TRANSLATORS s/NfseView.vue:139
+#. TRANSLATORS s/ObligationsView.vue:384
 #. TRANSLATORS s/TransactionsView.vue:167
-#: specialVueFakeDummyForL10nScript.js:3313
-#: specialVueFakeDummyForL10nScript.js:5939
-#: specialVueFakeDummyForL10nScript.js:6037
-#: specialVueFakeDummyForL10nScript.js:6073
-#: specialVueFakeDummyForL10nScript.js:6204
-#: specialVueFakeDummyForL10nScript.js:7475
+#: specialVueFakeDummyForL10nScript.js:3131
+#: specialVueFakeDummyForL10nScript.js:3454
+#: specialVueFakeDummyForL10nScript.js:6080
+#: specialVueFakeDummyForL10nScript.js:6178
+#: specialVueFakeDummyForL10nScript.js:6214
+#: specialVueFakeDummyForL10nScript.js:6345
+#: specialVueFakeDummyForL10nScript.js:6694
+#: specialVueFakeDummyForL10nScript.js:6762
+#: specialVueFakeDummyForL10nScript.js:7772
 msgid "Description"
 msgstr ""
 
@@ -2915,259 +3024,613 @@ msgstr ""
 #. TRANSLATORS s/MovementsView.vue:641
 #. TRANSLATORS s/MovementsView.vue:798
 #. TRANSLATORS s/NfseView.vue:140
+#. TRANSLATORS s/ObligationsView.vue:505
 #. TRANSLATORS s/TransactionsView.vue:171
 #. TRANSLATORS s/TransactionsView.vue:230
-#: specialVueFakeDummyForL10nScript.js:3315
-#: specialVueFakeDummyForL10nScript.js:5947
-#: specialVueFakeDummyForL10nScript.js:6001
-#: specialVueFakeDummyForL10nScript.js:6041
-#: specialVueFakeDummyForL10nScript.js:6069
-#: specialVueFakeDummyForL10nScript.js:6206
-#: specialVueFakeDummyForL10nScript.js:7483
-#: specialVueFakeDummyForL10nScript.js:7521
+#: specialVueFakeDummyForL10nScript.js:3131
+#: specialVueFakeDummyForL10nScript.js:3149
+#: specialVueFakeDummyForL10nScript.js:3456
+#: specialVueFakeDummyForL10nScript.js:6088
+#: specialVueFakeDummyForL10nScript.js:6142
+#: specialVueFakeDummyForL10nScript.js:6182
+#: specialVueFakeDummyForL10nScript.js:6210
+#: specialVueFakeDummyForL10nScript.js:6347
+#: specialVueFakeDummyForL10nScript.js:6766
+#: specialVueFakeDummyForL10nScript.js:7780
+#: specialVueFakeDummyForL10nScript.js:7818
 msgid "Amount"
 msgstr ""
 
-#. TRANSLATORS s/CashflowView.vue:276
-#: specialVueFakeDummyForL10nScript.js:3319
-msgid "Action"
+#. TRANSLATORS s/BankingView.vue:426
+#. TRANSLATORS s/ImportView.vue:268
+#. TRANSLATORS s/NfseView.vue:141
+#: specialVueFakeDummyForL10nScript.js:3133
+#: specialVueFakeDummyForL10nScript.js:4985
+#: specialVueFakeDummyForL10nScript.js:4991
+#: specialVueFakeDummyForL10nScript.js:6349
+msgid "State"
 msgstr ""
 
+#. TRANSLATORS s/BankingView.vue:440
+#: specialVueFakeDummyForL10nScript.js:3137
+msgid "Reconciled"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3137
+msgid "Pending"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:442
+#: specialVueFakeDummyForL10nScript.js:3139
+msgid "Reconcile movement {id}"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:445
 #. TRANSLATORS s/CashflowView.vue:286
-#: specialVueFakeDummyForL10nScript.js:3321
+#: specialVueFakeDummyForL10nScript.js:3141
+#: specialVueFakeDummyForL10nScript.js:3462
 msgid "Reconcile"
 msgstr ""
 
+#. TRANSLATORS s/BankingView.vue:451
+#: specialVueFakeDummyForL10nScript.js:3143
+msgid "Transfers between accounts ({count})"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:452
+#: specialVueFakeDummyForL10nScript.js:3145
+msgid ""
+"Review both sides in the statements. Transfers between your own accounts do "
+"not represent income or expenses."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3147
+msgid "Source account"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:457
+#. TRANSLATORS s/BankingView.vue:487
+#: specialVueFakeDummyForL10nScript.js:3149
+#: specialVueFakeDummyForL10nScript.js:3165
+msgid "Destination account"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:469
+#: specialVueFakeDummyForL10nScript.js:3153
+msgid "Awaiting review"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:473
+#: specialVueFakeDummyForL10nScript.js:3155
+msgid "Load more transfers"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:477
+#: specialVueFakeDummyForL10nScript.js:3157
+msgid "Sorting applies only to loaded movements."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:479
+#. TRANSLATORS s/MovementsView.vue:681
+#: specialVueFakeDummyForL10nScript.js:3159
+#: specialVueFakeDummyForL10nScript.js:6106
+msgid "Load more movements"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:482
+#. TRANSLATORS s/MovementsView.vue:525
+#: specialVueFakeDummyForL10nScript.js:3161
+#: specialVueFakeDummyForL10nScript.js:6036
+msgid "Import bank statement"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:485
+#: specialVueFakeDummyForL10nScript.js:3163
+msgid ""
+"Import movements for review. The file will be analyzed and no journal "
+"entries will be created automatically."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:489
+#: specialVueFakeDummyForL10nScript.js:3167
+msgid "Statement format"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:492
+#. TRANSLATORS s/MovementsView.vue:701
+#: specialVueFakeDummyForL10nScript.js:3169
+#: specialVueFakeDummyForL10nScript.js:6118
+msgid "Select {format} file"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:495
+#. TRANSLATORS s/ImportView.vue:225
+#. TRANSLATORS s/MovementsView.vue:704
+#: specialVueFakeDummyForL10nScript.js:3171
+#: specialVueFakeDummyForL10nScript.js:4949
+#: specialVueFakeDummyForL10nScript.js:6120
+msgid "No file selected"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:497
+#: specialVueFakeDummyForL10nScript.js:3173
+msgid "Expected CSV format"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:498
+#: specialVueFakeDummyForL10nScript.js:3175
+msgid ""
+"Use the columns {columns} in this order. Example: {example}. Use a decimal "
+"point and a negative sign for outflows. The limit is 256 KiB per file."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:500
+#: specialVueFakeDummyForL10nScript.js:3177
+msgid "Test payment"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:503
+#. TRANSLATORS s/MovementsView.vue:708
+#: specialVueFakeDummyForL10nScript.js:3179
+#: specialVueFakeDummyForL10nScript.js:6124
+msgid "Download CSV example"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:506
+#: specialVueFakeDummyForL10nScript.js:3181
+msgid ""
+"Use an OFX bank statement with FITID identifiers, movement dates and "
+"amounts. Limit: 256 KiB."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:511
+#: specialVueFakeDummyForL10nScript.js:3185
+msgid "Import for review"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:516
+#: specialVueFakeDummyForL10nScript.js:3187
+msgid "Reconcile movement"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:519
+#: specialVueFakeDummyForL10nScript.js:3189
+msgid ""
+"Review the selected movement before linking it to a journal entry. This step "
+"does not record new income or expenses."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:525
+#. TRANSLATORS s/InvoicesView.vue:547
+#: specialVueFakeDummyForL10nScript.js:3193
+#: specialVueFakeDummyForL10nScript.js:5499
+msgid "Financial account"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:526
+#: specialVueFakeDummyForL10nScript.js:3195
+#: specialVueFakeDummyForL10nScript.js:5670
+msgid "Movement"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3197
+msgid "Statement amount"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:529
+#: specialVueFakeDummyForL10nScript.js:3199
+msgid ""
+"In review. The corresponding journal entry must use the same account and "
+"amount."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:532
+#: specialVueFakeDummyForL10nScript.js:3201
+msgid "Select a posted journal entry"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:533
+#. TRANSLATORS s/MovementsView.vue:745
+#: specialVueFakeDummyForL10nScript.js:3203
+#: specialVueFakeDummyForL10nScript.js:6146
+msgid "Select by date and description"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:535
+#: specialVueFakeDummyForL10nScript.js:3205
+msgid ""
+"No compatible journal entry was found among loaded records. Check the "
+"account and amount. Do not create a duplicate journal entry to force "
+"reconciliation."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:538
+#: specialVueFakeDummyForL10nScript.js:3207
+msgid "Search older journal entries"
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:540
+#: specialVueFakeDummyForL10nScript.js:3209
+msgid ""
+"If there is no corresponding journal entry, record the money received or "
+"paid once in Accounting journals, then return to reconcile it."
+msgstr ""
+
+#. TRANSLATORS s/BankingView.vue:546
+#: specialVueFakeDummyForL10nScript.js:3213
+msgid "Confirm reconciliation"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:284
+#: specialVueFakeDummyForL10nScript.js:3268
+#: specialVueFakeDummyForL10nScript.js:4279
+#: specialVueFakeDummyForL10nScript.js:6656
+#: specialVueFakeDummyForL10nScript.js:7163
+msgid "Payables and receivables"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3268
+#: specialVueFakeDummyForL10nScript.js:4520
+msgid "Sales"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3268
+#: specialVueFakeDummyForL10nScript.js:4521
+msgid "Purchases"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3269 /app/src/navigation.js:11
+msgid "Account statement"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3272
+msgid ""
+"A list of bills and collections, with inflows, outflows, due dates and "
+"status. Filter to show only payables or receivables."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3273
+msgid ""
+"Record sales with items and amounts. On confirmation, the receivable appears "
+"automatically in Payables and receivables."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3274
+msgid ""
+"Record purchases with items and amounts. On confirmation, the payable "
+"appears automatically in Payables and receivables."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3275
+msgid ""
+"Review the movements reported by the bank. Existing entries do not need to "
+"be registered again."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3287
+msgid "Purchase document"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3288
+msgid "Sales document"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3289
+msgid "Unlinked historical document"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3290
+msgid "Statement inflow"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3291
+msgid "Statement outflow"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3294
+msgid "To confirm"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3295
+msgid "Review link"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3296
+msgid "To reconcile"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3327
+msgid "Draft documents could not be retrieved."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:3333
+msgid "Pending movements could not be retrieved."
+msgstr ""
+
+#. TRANSLATORS s/CashflowView.vue:223
+#: specialVueFakeDummyForL10nScript.js:3428
+msgid "Money already came in or went out"
+msgstr ""
+
+#. TRANSLATORS s/CashflowView.vue:228
+#: specialVueFakeDummyForL10nScript.js:3430
+#: specialVueFakeDummyForL10nScript.js:6746
+msgid "New bill or collection"
+msgstr ""
+
+#. TRANSLATORS s/CashflowView.vue:233
+#: specialVueFakeDummyForL10nScript.js:3432
+msgid "New sale"
+msgstr ""
+
+#. TRANSLATORS s/CashflowView.vue:238
+#: specialVueFakeDummyForL10nScript.js:3434
+msgid "New purchase"
+msgstr ""
+
+#. TRANSLATORS s/CashflowView.vue:241
+#: specialVueFakeDummyForL10nScript.js:3436
+msgid "Back to transactions"
+msgstr ""
+
+#. TRANSLATORS s/CashflowView.vue:254
+#. TRANSLATORS s/CashflowView.vue:257
+#: specialVueFakeDummyForL10nScript.js:3440
+#: specialVueFakeDummyForL10nScript.js:3442
+msgid "Pending items to review"
+msgstr ""
+
+#. TRANSLATORS s/CashflowView.vue:258
+#: specialVueFakeDummyForL10nScript.js:3444
+msgid ""
+"Drafts are not yet receivables; imported movements are not yet payments."
+msgstr ""
+
+#. TRANSLATORS s/CashflowView.vue:260
+#: specialVueFakeDummyForL10nScript.js:3446
+msgid "Refresh pending tasks"
+msgstr ""
+
+#. TRANSLATORS s/CashflowView.vue:267
+#: specialVueFakeDummyForL10nScript.js:3448
+msgid "Loading pending items…"
+msgstr ""
+
+#. TRANSLATORS s/CashflowView.vue:276
+#: specialVueFakeDummyForL10nScript.js:3460
+msgid "Action"
+msgstr ""
+
 #. TRANSLATORS s/CashflowView.vue:287
-#: specialVueFakeDummyForL10nScript.js:3323
+#: specialVueFakeDummyForL10nScript.js:3464
 msgid "Review document"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3323
+#: specialVueFakeDummyForL10nScript.js:3464
 msgid "Continue document"
 msgstr ""
 
 #. TRANSLATORS s/CashflowView.vue:295
-#: specialVueFakeDummyForL10nScript.js:3325
+#: specialVueFakeDummyForL10nScript.js:3466
 msgid "No draft documents or bank movements awaiting reconciliation."
 msgstr ""
 
 #. TRANSLATORS s/CashflowView.vue:298
-#: specialVueFakeDummyForL10nScript.js:3327
+#: specialVueFakeDummyForL10nScript.js:3468
 msgid "Load more drafts"
 msgstr ""
 
 #. TRANSLATORS s/CashflowView.vue:299
-#: specialVueFakeDummyForL10nScript.js:3329
+#: specialVueFakeDummyForL10nScript.js:3470
 msgid "Load more bank movements"
 msgstr ""
 
 #. TRANSLATORS s/CashflowView.vue:306
-#: specialVueFakeDummyForL10nScript.js:3331
+#: specialVueFakeDummyForL10nScript.js:3472
 msgid "Feature unavailable in this workspace"
 msgstr ""
 
 #. TRANSLATORS s/CashflowView.vue:307
-#: specialVueFakeDummyForL10nScript.js:3333
+#: specialVueFakeDummyForL10nScript.js:3474
 msgid "This feature is not enabled for the selected workspace."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3364
+#: specialVueFakeDummyForL10nScript.js:3505
 msgid "All categories"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3373
+#: specialVueFakeDummyForL10nScript.js:3514
 msgid "No parent category"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3376
+#: specialVueFakeDummyForL10nScript.js:3517
 msgid "Inherit from parent category"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:78
-#: specialVueFakeDummyForL10nScript.js:3406 /app/src/navigation.js:28
+#: specialVueFakeDummyForL10nScript.js:3547 /app/src/navigation.js:28
 msgid "Categories"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:79
-#: specialVueFakeDummyForL10nScript.js:3408
+#: specialVueFakeDummyForL10nScript.js:3549
 msgid "Hierarchical classifications of income and expenses."
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:83
-#: specialVueFakeDummyForL10nScript.js:3410
+#: specialVueFakeDummyForL10nScript.js:3551
 msgid "New category"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:93
 #. TRANSLATORS s/DocumentsView.vue:65
-#: specialVueFakeDummyForL10nScript.js:3412
-#: specialVueFakeDummyForL10nScript.js:4410
+#: specialVueFakeDummyForL10nScript.js:3553
+#: specialVueFakeDummyForL10nScript.js:4551
 msgid "Type: {type}"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:96
-#: specialVueFakeDummyForL10nScript.js:3414
+#: specialVueFakeDummyForL10nScript.js:3555
 msgid "Filter categories by type"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:813
-#: specialVueFakeDummyForL10nScript.js:3416
-#: specialVueFakeDummyForL10nScript.js:4644
-#: specialVueFakeDummyForL10nScript.js:6053
+#: specialVueFakeDummyForL10nScript.js:3557
+#: specialVueFakeDummyForL10nScript.js:4785
+#: specialVueFakeDummyForL10nScript.js:6194
 msgid "Category"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:144
-#: specialVueFakeDummyForL10nScript.js:3418
-#: specialVueFakeDummyForL10nScript.js:3448
+#: specialVueFakeDummyForL10nScript.js:3559
+#: specialVueFakeDummyForL10nScript.js:3589
 msgid "Parent category"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:108
-#: specialVueFakeDummyForL10nScript.js:3420
+#: specialVueFakeDummyForL10nScript.js:3561
 msgid "Linked account"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:121
-#: specialVueFakeDummyForL10nScript.js:3426
+#: specialVueFakeDummyForL10nScript.js:3567
 msgid "Root"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:124
-#: specialVueFakeDummyForL10nScript.js:3428
+#: specialVueFakeDummyForL10nScript.js:3569
 msgid "Not defined"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:132
-#: specialVueFakeDummyForL10nScript.js:3432
+#: specialVueFakeDummyForL10nScript.js:3573
 msgid "No categories registered"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:134
-#: specialVueFakeDummyForL10nScript.js:3434
+#: specialVueFakeDummyForL10nScript.js:3575
 msgid "More categories"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:137
-#: specialVueFakeDummyForL10nScript.js:3436
+#: specialVueFakeDummyForL10nScript.js:3577
 msgid "Register category"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:140
-#: specialVueFakeDummyForL10nScript.js:3440
+#: specialVueFakeDummyForL10nScript.js:3581
 msgid "E.G. CONSULTING"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:141
-#: specialVueFakeDummyForL10nScript.js:3442
-#: specialVueFakeDummyForL10nScript.js:3464
+#: specialVueFakeDummyForL10nScript.js:3583
+#: specialVueFakeDummyForL10nScript.js:3605
 msgid "Category name"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:146
-#: specialVueFakeDummyForL10nScript.js:3450
+#: specialVueFakeDummyForL10nScript.js:3591
 msgid "Ledger account"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:148
-#: specialVueFakeDummyForL10nScript.js:3452
-#: specialVueFakeDummyForL10nScript.js:3466
+#: specialVueFakeDummyForL10nScript.js:3593
+#: specialVueFakeDummyForL10nScript.js:3607
 msgid "Category color"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:150
-#: specialVueFakeDummyForL10nScript.js:3454
+#: specialVueFakeDummyForL10nScript.js:3595
 msgid "Choose category color"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:152
 #. TRANSLATORS s/SpacesView.vue:336
-#: specialVueFakeDummyForL10nScript.js:3456
-#: specialVueFakeDummyForL10nScript.js:3470
-#: specialVueFakeDummyForL10nScript.js:7287
-#: specialVueFakeDummyForL10nScript.js:7303
+#: specialVueFakeDummyForL10nScript.js:3597
+#: specialVueFakeDummyForL10nScript.js:3611
+#: specialVueFakeDummyForL10nScript.js:7584
+#: specialVueFakeDummyForL10nScript.js:7600
 msgid "Select color"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:158
-#: specialVueFakeDummyForL10nScript.js:3460
+#: specialVueFakeDummyForL10nScript.js:3601
 msgid "Save category"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:163
-#: specialVueFakeDummyForL10nScript.js:3462
+#: specialVueFakeDummyForL10nScript.js:3603
 msgid "Edit category"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:169
-#: specialVueFakeDummyForL10nScript.js:3468
+#: specialVueFakeDummyForL10nScript.js:3609
 msgid "Choose new category color"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:175
-#: specialVueFakeDummyForL10nScript.js:3472
+#: specialVueFakeDummyForL10nScript.js:3613
 msgid "Active category"
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:176
-#: specialVueFakeDummyForL10nScript.js:3474
+#: specialVueFakeDummyForL10nScript.js:3615
 msgid ""
 "The code, accounting nature and hierarchy remain unchanged to protect "
 "previous entries."
 msgstr ""
 
 #. TRANSLATORS s/CategoriesView.vue:178
-#: specialVueFakeDummyForL10nScript.js:3478
+#: specialVueFakeDummyForL10nScript.js:3619
 msgid "Save changes"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3558
+#: specialVueFakeDummyForL10nScript.js:3699
 msgid "Invalid image."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3572
+#: specialVueFakeDummyForL10nScript.js:3713
 msgid "Choose a PNG, JPG or WebP image up to 512 KB."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3579
+#: specialVueFakeDummyForL10nScript.js:3720
 msgid "Failed to read image."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3621
+#: specialVueFakeDummyForL10nScript.js:3762
 msgid "Enter the legal name and two-letter country code (ISO 3166-1)."
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:160
-#: specialVueFakeDummyForL10nScript.js:3633 /app/src/navigation.js:30
+#: specialVueFakeDummyForL10nScript.js:3774 /app/src/navigation.js:30
 msgid "Organization details"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3633
+#: specialVueFakeDummyForL10nScript.js:3774
 msgid "IDENTITY AND REGISTRATION"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:162
-#: specialVueFakeDummyForL10nScript.js:3635
+#: specialVueFakeDummyForL10nScript.js:3776
 msgid ""
 "Optional: your money and household accounts work without a company or tax ID."
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:163
-#: specialVueFakeDummyForL10nScript.js:3637
+#: specialVueFakeDummyForL10nScript.js:3778
 msgid ""
 "Register companies or fiscal issuers linked to the current financial area. A "
 "fiscal registration does not create another area or mix balances."
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:168
-#: specialVueFakeDummyForL10nScript.js:3639
-#: specialVueFakeDummyForL10nScript.js:3679
+#: specialVueFakeDummyForL10nScript.js:3780
+#: specialVueFakeDummyForL10nScript.js:3820
 msgid "Register company"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:173
-#: specialVueFakeDummyForL10nScript.js:3641
+#: specialVueFakeDummyForL10nScript.js:3782
 msgid ""
 "This workspace has no registered company yet. Internal entries can be "
 "organized, but legal details and fiscal issuance depend on identifying an "
@@ -3175,12 +3638,12 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:177
-#: specialVueFakeDummyForL10nScript.js:3643
+#: specialVueFakeDummyForL10nScript.js:3784
 msgid "Companies in this workspace"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:178
-#: specialVueFakeDummyForL10nScript.js:3645
+#: specialVueFakeDummyForL10nScript.js:3786
 msgid ""
 "Legal registration and visual identity (including color and logo). Companies "
 "in this workspace share the ledger, cash and access rights; there is no "
@@ -3189,95 +3652,95 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:179
-#: specialVueFakeDummyForL10nScript.js:3647
+#: specialVueFakeDummyForL10nScript.js:3788
 msgid "Search companies"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:180
-#: specialVueFakeDummyForL10nScript.js:3649
+#: specialVueFakeDummyForL10nScript.js:3790
 msgid "Search all companies"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:184
-#: specialVueFakeDummyForL10nScript.js:3651
+#: specialVueFakeDummyForL10nScript.js:3792
 msgid "Searching companies…"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:189
 #. TRANSLATORS s/CompaniesView.vue:241
-#: specialVueFakeDummyForL10nScript.js:3653
-#: specialVueFakeDummyForL10nScript.js:3685
+#: specialVueFakeDummyForL10nScript.js:3794
+#: specialVueFakeDummyForL10nScript.js:3826
 msgid "Legal entity name"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3653
+#: specialVueFakeDummyForL10nScript.js:3794
 msgid "Country"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:190
-#: specialVueFakeDummyForL10nScript.js:3655
+#: specialVueFakeDummyForL10nScript.js:3796
 msgid "Tax identifier"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:209
-#: specialVueFakeDummyForL10nScript.js:3661
+#: specialVueFakeDummyForL10nScript.js:3802
 msgid "Not provided"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:211
-#: specialVueFakeDummyForL10nScript.js:3663
+#: specialVueFakeDummyForL10nScript.js:3804
 msgid "Active company"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3663
+#: specialVueFakeDummyForL10nScript.js:3804
 msgid "Inactive company"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:220
-#: specialVueFakeDummyForL10nScript.js:3667
+#: specialVueFakeDummyForL10nScript.js:3808
 msgid "No company found"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3667
+#: specialVueFakeDummyForL10nScript.js:3808
 msgid "No companies registered"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:221
-#: specialVueFakeDummyForL10nScript.js:3669
+#: specialVueFakeDummyForL10nScript.js:3810
 msgid "Change the search to find other companies."
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:222
-#: specialVueFakeDummyForL10nScript.js:3671
+#: specialVueFakeDummyForL10nScript.js:3812
 msgid ""
 "Use Register company to record the legal identity, address, contacts and "
 "fiscal details without creating another cash account."
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:224
-#: specialVueFakeDummyForL10nScript.js:3673
+#: specialVueFakeDummyForL10nScript.js:3814
 msgid "Sorting applies only to the records already loaded."
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:226
-#: specialVueFakeDummyForL10nScript.js:3675
+#: specialVueFakeDummyForL10nScript.js:3816
 msgid "Load more companies"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:228
 #. TRANSLATORS s/ContactsView.vue:237
-#: specialVueFakeDummyForL10nScript.js:3677
-#: specialVueFakeDummyForL10nScript.js:3956
+#: specialVueFakeDummyForL10nScript.js:3818
+#: specialVueFakeDummyForL10nScript.js:4097
 msgid "More results"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:232
-#: specialVueFakeDummyForL10nScript.js:3679
+#: specialVueFakeDummyForL10nScript.js:3820
 msgid "Edit company"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:235
-#: specialVueFakeDummyForL10nScript.js:3681
+#: specialVueFakeDummyForL10nScript.js:3822
 msgid ""
 "This registration identifies the company in documents. Accounts, balances, "
 "history and access rights remain in the current financial workspace. To "
@@ -3286,728 +3749,728 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:239
-#: specialVueFakeDummyForL10nScript.js:3683
-#: specialVueFakeDummyForL10nScript.js:3928
+#: specialVueFakeDummyForL10nScript.js:3824
+#: specialVueFakeDummyForL10nScript.js:4069
 msgid "Identification"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:242
-#: specialVueFakeDummyForL10nScript.js:3687
+#: specialVueFakeDummyForL10nScript.js:3828
 msgid "Trade name"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:245
-#: specialVueFakeDummyForL10nScript.js:3689
+#: specialVueFakeDummyForL10nScript.js:3830
 msgid "Country of registration"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:246
-#: specialVueFakeDummyForL10nScript.js:3691
+#: specialVueFakeDummyForL10nScript.js:3832
 msgid "Select the country"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:247
-#: specialVueFakeDummyForL10nScript.js:3693
+#: specialVueFakeDummyForL10nScript.js:3834
 msgid "Local tax identifier"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:253
-#: specialVueFakeDummyForL10nScript.js:3695
+#: specialVueFakeDummyForL10nScript.js:3836
 msgid "Other information (optional)"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:254
-#: specialVueFakeDummyForL10nScript.js:3697
+#: specialVueFakeDummyForL10nScript.js:3838
 msgid ""
 "Additional fiscal registrations and records. Country-specific tax validation "
 "belongs to the corresponding fiscal feature."
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:257
-#: specialVueFakeDummyForL10nScript.js:3699
+#: specialVueFakeDummyForL10nScript.js:3840
 msgid "State or regional registration"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:259
-#: specialVueFakeDummyForL10nScript.js:3701
+#: specialVueFakeDummyForL10nScript.js:3842
 msgid "Municipal or local registration"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:264
-#: specialVueFakeDummyForL10nScript.js:3703
+#: specialVueFakeDummyForL10nScript.js:3844
 msgid "Contact and online presence"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:266
-#: specialVueFakeDummyForL10nScript.js:3705
+#: specialVueFakeDummyForL10nScript.js:3846
 msgid "Company email"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:268
-#: specialVueFakeDummyForL10nScript.js:3707
+#: specialVueFakeDummyForL10nScript.js:3848
 msgid "Company telephone"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:271
-#: specialVueFakeDummyForL10nScript.js:3709
+#: specialVueFakeDummyForL10nScript.js:3850
 msgid "Company website (URL)"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:272
-#: specialVueFakeDummyForL10nScript.js:3711
+#: specialVueFakeDummyForL10nScript.js:3852
 msgid "https://example.org"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:276
-#: specialVueFakeDummyForL10nScript.js:3713
+#: specialVueFakeDummyForL10nScript.js:3854
 msgid "Company address"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:278
-#: specialVueFakeDummyForL10nScript.js:3715
+#: specialVueFakeDummyForL10nScript.js:3856
 msgid "Address (street and number)"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:280
-#: specialVueFakeDummyForL10nScript.js:3717
+#: specialVueFakeDummyForL10nScript.js:3858
 msgid "Address complement"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:282
-#: specialVueFakeDummyForL10nScript.js:3719
+#: specialVueFakeDummyForL10nScript.js:3860
 msgid "City"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:283
-#: specialVueFakeDummyForL10nScript.js:3721
+#: specialVueFakeDummyForL10nScript.js:3862
 msgid "State, province or region"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:287
-#: specialVueFakeDummyForL10nScript.js:3723
+#: specialVueFakeDummyForL10nScript.js:3864
 msgid "Postal code"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:291
-#: specialVueFakeDummyForL10nScript.js:3725
+#: specialVueFakeDummyForL10nScript.js:3866
 msgid "Visual identity"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:293
-#: specialVueFakeDummyForL10nScript.js:3727
+#: specialVueFakeDummyForL10nScript.js:3868
 msgid "Identification color"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:295
-#: specialVueFakeDummyForL10nScript.js:3729
+#: specialVueFakeDummyForL10nScript.js:3870
 msgid "Choose organization color"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:297
-#: specialVueFakeDummyForL10nScript.js:3731
+#: specialVueFakeDummyForL10nScript.js:3872
 msgid "Choose color"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:302
-#: specialVueFakeDummyForL10nScript.js:3733
+#: specialVueFakeDummyForL10nScript.js:3874
 msgid "Company logo"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:305
-#: specialVueFakeDummyForL10nScript.js:3735
+#: specialVueFakeDummyForL10nScript.js:3876
 msgid "Current company logo"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:307
-#: specialVueFakeDummyForL10nScript.js:3737
+#: specialVueFakeDummyForL10nScript.js:3878
 msgid "Select company logo"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:309
-#: specialVueFakeDummyForL10nScript.js:3739
+#: specialVueFakeDummyForL10nScript.js:3880
 msgid ""
 "PNG, JPG or WebP, up to 512 KB. Stored privately, without automatic "
 "publication."
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:313
-#: specialVueFakeDummyForL10nScript.js:3743
+#: specialVueFakeDummyForL10nScript.js:3884
 msgid "Save the company to add its logo."
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:319
-#: specialVueFakeDummyForL10nScript.js:3745
+#: specialVueFakeDummyForL10nScript.js:3886
 msgid "Specific additional data"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:320
-#: specialVueFakeDummyForL10nScript.js:3747
+#: specialVueFakeDummyForL10nScript.js:3888
 msgid ""
 "Custom fields defined in Manage → Custom fields for the Company entity "
 "appear below. Each company has its own values."
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:325
-#: specialVueFakeDummyForL10nScript.js:3749
+#: specialVueFakeDummyForL10nScript.js:3890
 msgid "Active registration"
 msgstr ""
 
 #. TRANSLATORS s/CompaniesView.vue:329
-#: specialVueFakeDummyForL10nScript.js:3753
+#: specialVueFakeDummyForL10nScript.js:3894
 msgid "Save company"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3782 /app/src/navigation.js:104
+#: specialVueFakeDummyForL10nScript.js:3923 /app/src/navigation.js:104
 msgid "People and businesses"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3793
+#: specialVueFakeDummyForL10nScript.js:3934
 msgid "People I receive money from"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3794
+#: specialVueFakeDummyForL10nScript.js:3935
 msgid "People I pay"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3795
+#: specialVueFakeDummyForL10nScript.js:3936
 msgid "Pay and receive"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3797
+#: specialVueFakeDummyForL10nScript.js:3938
 msgid "Customer"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3798
+#: specialVueFakeDummyForL10nScript.js:3939
 msgid "Supplier"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3799
+#: specialVueFakeDummyForL10nScript.js:3940
 msgid "Customer and supplier"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:222
-#: specialVueFakeDummyForL10nScript.js:3801
-#: specialVueFakeDummyForL10nScript.js:3946
+#: specialVueFakeDummyForL10nScript.js:3942
+#: specialVueFakeDummyForL10nScript.js:4087
 msgid "Service"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3801
-#: specialVueFakeDummyForL10nScript.js:3946
+#: specialVueFakeDummyForL10nScript.js:3942
+#: specialVueFakeDummyForL10nScript.js:4087
 msgid "Product"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:157
-#: specialVueFakeDummyForL10nScript.js:3904
+#: specialVueFakeDummyForL10nScript.js:4045
 msgid "RECORDS"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:160
-#: specialVueFakeDummyForL10nScript.js:3906
+#: specialVueFakeDummyForL10nScript.js:4047
 msgid ""
 "Record the people and businesses you receive money from or pay in your "
 "personal finances."
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:161
-#: specialVueFakeDummyForL10nScript.js:3908
+#: specialVueFakeDummyForL10nScript.js:4049
 msgid "Organize your customers, suppliers and their contact details."
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:163
-#: specialVueFakeDummyForL10nScript.js:3910
+#: specialVueFakeDummyForL10nScript.js:4051
 msgid "Optional items for detailing household purchases and services."
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:164
-#: specialVueFakeDummyForL10nScript.js:3912
+#: specialVueFakeDummyForL10nScript.js:4053
 msgid "Manage the products and services used in sales and purchases."
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:169
-#: specialVueFakeDummyForL10nScript.js:3914
-#: specialVueFakeDummyForL10nScript.js:3962
+#: specialVueFakeDummyForL10nScript.js:4055
+#: specialVueFakeDummyForL10nScript.js:4103
 msgid "New contact"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3914
-#: specialVueFakeDummyForL10nScript.js:3962
+#: specialVueFakeDummyForL10nScript.js:4055
+#: specialVueFakeDummyForL10nScript.js:4103
 msgid "New product or service"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:176
-#: specialVueFakeDummyForL10nScript.js:3916
+#: specialVueFakeDummyForL10nScript.js:4057
 msgid "Personal contacts"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3916
+#: specialVueFakeDummyForL10nScript.js:4057
 msgid "People and organizations"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:177
-#: specialVueFakeDummyForL10nScript.js:3918
+#: specialVueFakeDummyForL10nScript.js:4059
 msgid "Item catalog"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:179
-#: specialVueFakeDummyForL10nScript.js:3920
+#: specialVueFakeDummyForL10nScript.js:4061
 msgid "Search contacts"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3920
+#: specialVueFakeDummyForL10nScript.js:4061
 msgid "Search products and services"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:180
-#: specialVueFakeDummyForL10nScript.js:3922
+#: specialVueFakeDummyForL10nScript.js:4063
 msgid "Search all records"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:184
-#: specialVueFakeDummyForL10nScript.js:3924
+#: specialVueFakeDummyForL10nScript.js:4065
 msgid "Searching all records…"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:189
-#: specialVueFakeDummyForL10nScript.js:3926
-#: specialVueFakeDummyForL10nScript.js:4643
+#: specialVueFakeDummyForL10nScript.js:4067
+#: specialVueFakeDummyForL10nScript.js:4784
 msgid "Contact"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3936
+#: specialVueFakeDummyForL10nScript.js:4077
 msgid "Price"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:233
-#: specialVueFakeDummyForL10nScript.js:3952
+#: specialVueFakeDummyForL10nScript.js:4093
 msgid "No contact found"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3952
+#: specialVueFakeDummyForL10nScript.js:4093
 msgid "No product or service found"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:234
-#: specialVueFakeDummyForL10nScript.js:3954
+#: specialVueFakeDummyForL10nScript.js:4095
 msgid "Change your search to see other results."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3954
+#: specialVueFakeDummyForL10nScript.js:4095
 msgid "Records will appear here after they are created."
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:239
-#: specialVueFakeDummyForL10nScript.js:3958
+#: specialVueFakeDummyForL10nScript.js:4099
 msgid "More contacts"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:241
-#: specialVueFakeDummyForL10nScript.js:3960
+#: specialVueFakeDummyForL10nScript.js:4101
 msgid "More products and services"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:246
-#: specialVueFakeDummyForL10nScript.js:3962
+#: specialVueFakeDummyForL10nScript.js:4103
 msgid "Edit product or service"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:3962
+#: specialVueFakeDummyForL10nScript.js:4103
 msgid "Edit contact"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:252
-#: specialVueFakeDummyForL10nScript.js:3966
+#: specialVueFakeDummyForL10nScript.js:4107
 msgid "Contact type"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:254
-#: specialVueFakeDummyForL10nScript.js:3968
+#: specialVueFakeDummyForL10nScript.js:4109
 msgid "Email (optional)"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:255
-#: specialVueFakeDummyForL10nScript.js:3970
+#: specialVueFakeDummyForL10nScript.js:4111
 msgid "CPF/CNPJ or identification (optional)"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:258
-#: specialVueFakeDummyForL10nScript.js:3972
+#: specialVueFakeDummyForL10nScript.js:4113
 msgid "Code/SKU"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:260
 #. TRANSLATORS s/InvoicesView.vue:462
-#: specialVueFakeDummyForL10nScript.js:3976
-#: specialVueFakeDummyForL10nScript.js:5294
+#: specialVueFakeDummyForL10nScript.js:4117
+#: specialVueFakeDummyForL10nScript.js:5435
 msgid "Unit price"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:262
-#: specialVueFakeDummyForL10nScript.js:3978
+#: specialVueFakeDummyForL10nScript.js:4119
 msgid "Additional description"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:267
-#: specialVueFakeDummyForL10nScript.js:3980
+#: specialVueFakeDummyForL10nScript.js:4121
 msgid "Active record"
 msgstr ""
 
 #. TRANSLATORS s/ContactsView.vue:272
-#: specialVueFakeDummyForL10nScript.js:3984
+#: specialVueFakeDummyForL10nScript.js:4125
 msgid "Save record"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4090
+#: specialVueFakeDummyForL10nScript.js:4231
 msgid "Cash balance"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4092
+#: specialVueFakeDummyForL10nScript.js:4233
 msgid "Posted balance, not statement balance"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4098
-#: specialVueFakeDummyForL10nScript.js:4103
+#: specialVueFakeDummyForL10nScript.js:4239
+#: specialVueFakeDummyForL10nScript.js:4244
 msgid "Accumulated in the period"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4108
+#: specialVueFakeDummyForL10nScript.js:4249
 msgid "Income minus expenses"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4134
+#: specialVueFakeDummyForL10nScript.js:4275
 msgid "Bank reconciliation"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4135
+#: specialVueFakeDummyForL10nScript.js:4276
 msgid "Review statements and journal entries"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4139
+#: specialVueFakeDummyForL10nScript.js:4280
 msgid "Expected inflows and outflows in one schedule"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4142
+#: specialVueFakeDummyForL10nScript.js:4283
 msgid "Full reports"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4143
+#: specialVueFakeDummyForL10nScript.js:4284
 msgid "Explore the trial balance and cash flow"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4160
+#: specialVueFakeDummyForL10nScript.js:4301
 msgid "Financial summary"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:373
-#: specialVueFakeDummyForL10nScript.js:4160
-#: specialVueFakeDummyForL10nScript.js:4305
+#: specialVueFakeDummyForL10nScript.js:4301
+#: specialVueFakeDummyForL10nScript.js:4446
 msgid "Cash movement"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:410
-#: specialVueFakeDummyForL10nScript.js:4161
-#: specialVueFakeDummyForL10nScript.js:4321
+#: specialVueFakeDummyForL10nScript.js:4302
+#: specialVueFakeDummyForL10nScript.js:4462
 msgid "Financial accounts"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:431
-#: specialVueFakeDummyForL10nScript.js:4161
-#: specialVueFakeDummyForL10nScript.js:4335
+#: specialVueFakeDummyForL10nScript.js:4302
+#: specialVueFakeDummyForL10nScript.js:4476
 msgid "Recent activity"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:451
-#: specialVueFakeDummyForL10nScript.js:4162
-#: specialVueFakeDummyForL10nScript.js:4349
+#: specialVueFakeDummyForL10nScript.js:4303
+#: specialVueFakeDummyForL10nScript.js:4490
 msgid "Quick access"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:269
-#: specialVueFakeDummyForL10nScript.js:4247 /app/src/navigation.js:9
+#: specialVueFakeDummyForL10nScript.js:4388 /app/src/navigation.js:9
 msgid "Overview"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4247
+#: specialVueFakeDummyForL10nScript.js:4388
 msgid "FINANCIAL DASHBOARD"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:271
-#: specialVueFakeDummyForL10nScript.js:4249
+#: specialVueFakeDummyForL10nScript.js:4390
 msgid ""
 "Track actual household inflows and outflows. Future bills appear in Payables "
 "and receivables."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:272
-#: specialVueFakeDummyForL10nScript.js:4251
+#: specialVueFakeDummyForL10nScript.js:4392
 msgid "A clear view of the financial position and recorded transactions."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:275
-#: specialVueFakeDummyForL10nScript.js:4253
+#: specialVueFakeDummyForL10nScript.js:4394
 msgid "Customize dashboard"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:279
-#: specialVueFakeDummyForL10nScript.js:4257
+#: specialVueFakeDummyForL10nScript.js:4398
 msgid "Restore defaults"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:280
-#: specialVueFakeDummyForL10nScript.js:4259
+#: specialVueFakeDummyForL10nScript.js:4400
 msgid "Finish editing"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:282
-#: specialVueFakeDummyForL10nScript.js:4261
+#: specialVueFakeDummyForL10nScript.js:4402
 msgid "Indicator period"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:285
-#: specialVueFakeDummyForL10nScript.js:4263
+#: specialVueFakeDummyForL10nScript.js:4404
 msgid "This month"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:287
-#: specialVueFakeDummyForL10nScript.js:4265
+#: specialVueFakeDummyForL10nScript.js:4406
 msgid "This year"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:299
-#: specialVueFakeDummyForL10nScript.js:4267
+#: specialVueFakeDummyForL10nScript.js:4408
 msgid "Your household workspace is ready"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4267
+#: specialVueFakeDummyForL10nScript.js:4408
 msgid "Your financial workspace is ready"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:302
-#: specialVueFakeDummyForL10nScript.js:4269
+#: specialVueFakeDummyForL10nScript.js:4410
 msgid ""
 "Start with a paid household expense. There is no need to register a company."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:303
-#: specialVueFakeDummyForL10nScript.js:4271
+#: specialVueFakeDummyForL10nScript.js:4412
 msgid "Start by recording a paid expense or received income."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:304
-#: specialVueFakeDummyForL10nScript.js:4273
+#: specialVueFakeDummyForL10nScript.js:4414
 msgid ""
 "Before the first entry, register a financial account in the chart of "
 "accounts."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:306
-#: specialVueFakeDummyForL10nScript.js:4275
+#: specialVueFakeDummyForL10nScript.js:4416
 msgid "Record first expense"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:307
-#: specialVueFakeDummyForL10nScript.js:4277
+#: specialVueFakeDummyForL10nScript.js:4418
 msgid "Register financial account"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:311
-#: specialVueFakeDummyForL10nScript.js:4279
+#: specialVueFakeDummyForL10nScript.js:4420
 msgid "Your finances in perspective"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:312
-#: specialVueFakeDummyForL10nScript.js:4281
+#: specialVueFakeDummyForL10nScript.js:4422
 msgid "Consolidated ledger indicators"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:315
-#: specialVueFakeDummyForL10nScript.js:4283
+#: specialVueFakeDummyForL10nScript.js:4424
 msgid "Updating indicators"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4283
+#: specialVueFakeDummyForL10nScript.js:4424
 msgid "Posted data"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:321
-#: specialVueFakeDummyForL10nScript.js:4285
+#: specialVueFakeDummyForL10nScript.js:4426
 msgid "Indicators could not be retrieved: {error}. No balance was estimated."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:324
-#: specialVueFakeDummyForL10nScript.js:4287
+#: specialVueFakeDummyForL10nScript.js:4428
 msgid ""
 "Enable Reports under Manage → Installed features to view totals and cash "
 "trends. Pending statements are not part of posted balances."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:328
-#: specialVueFakeDummyForL10nScript.js:4289
+#: specialVueFakeDummyForL10nScript.js:4430
 msgid ""
 "Drag widgets or use the arrows to reorder them. Adjust their width and "
 "choose which appear for you in this workspace."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:341
-#: specialVueFakeDummyForL10nScript.js:4291
+#: specialVueFakeDummyForL10nScript.js:4432
 msgid "Move {widget} up"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:344
-#: specialVueFakeDummyForL10nScript.js:4293
+#: specialVueFakeDummyForL10nScript.js:4434
 msgid "Move {widget} down"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:347
-#: specialVueFakeDummyForL10nScript.js:4295
+#: specialVueFakeDummyForL10nScript.js:4436
 msgid "Normal width"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4295
+#: specialVueFakeDummyForL10nScript.js:4436
 msgid "Double width"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:349
-#: specialVueFakeDummyForL10nScript.js:4297
+#: specialVueFakeDummyForL10nScript.js:4438
 msgid "Hide"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4297
+#: specialVueFakeDummyForL10nScript.js:4438
 msgid "Show"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:354
-#: specialVueFakeDummyForL10nScript.js:4299
+#: specialVueFakeDummyForL10nScript.js:4440
 msgid "Financial indicators for the month"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4299
+#: specialVueFakeDummyForL10nScript.js:4440
 msgid "Financial indicators for the year"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:366
-#: specialVueFakeDummyForL10nScript.js:4301
+#: specialVueFakeDummyForL10nScript.js:4442
 msgid "Summary indicators hidden by presentation policy."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:367
-#: specialVueFakeDummyForL10nScript.js:4303
+#: specialVueFakeDummyForL10nScript.js:4444
 msgid "Financial permissions and other reports remain unchanged."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:374
-#: specialVueFakeDummyForL10nScript.js:4307
+#: specialVueFakeDummyForL10nScript.js:4448
 msgid "Monthly net change in posted bank entries"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:376
-#: specialVueFakeDummyForL10nScript.js:4309
+#: specialVueFakeDummyForL10nScript.js:4450
 msgid "View analysis"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:399
-#: specialVueFakeDummyForL10nScript.js:4313
+#: specialVueFakeDummyForL10nScript.js:4454
 msgid "Loading cash flow…"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4313
+#: specialVueFakeDummyForL10nScript.js:4454
 msgid "No cash change in this period"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:400
-#: specialVueFakeDummyForL10nScript.js:4315
+#: specialVueFakeDummyForL10nScript.js:4456
 msgid "The chart includes only posted entries affecting bank or cash accounts."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:402
-#: specialVueFakeDummyForL10nScript.js:4317
+#: specialVueFakeDummyForL10nScript.js:4458
 msgid "Positive change"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:403
-#: specialVueFakeDummyForL10nScript.js:4319
+#: specialVueFakeDummyForL10nScript.js:4460
 msgid "Negative change"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:411
-#: specialVueFakeDummyForL10nScript.js:4323
+#: specialVueFakeDummyForL10nScript.js:4464
 msgid "Ledger balance by account"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:412
-#: specialVueFakeDummyForL10nScript.js:4325
+#: specialVueFakeDummyForL10nScript.js:4466
 msgid "View chart of accounts"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:417
-#: specialVueFakeDummyForL10nScript.js:4327
+#: specialVueFakeDummyForL10nScript.js:4468
 msgid "Account {code}"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:421
-#: specialVueFakeDummyForL10nScript.js:4329
+#: specialVueFakeDummyForL10nScript.js:4470
 msgid "No cash account registered"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:422
-#: specialVueFakeDummyForL10nScript.js:4331
+#: specialVueFakeDummyForL10nScript.js:4472
 msgid ""
 "Balances appear after accounts are registered and transactions are posted."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:424
-#: specialVueFakeDummyForL10nScript.js:4333
+#: specialVueFakeDummyForL10nScript.js:4474
 msgid "Open bank reconciliation"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:432
-#: specialVueFakeDummyForL10nScript.js:4337
+#: specialVueFakeDummyForL10nScript.js:4478
 msgid "Latest ledger entries"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:433
-#: specialVueFakeDummyForL10nScript.js:4339
+#: specialVueFakeDummyForL10nScript.js:4480
 msgid "All journal entries"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:438
-#: specialVueFakeDummyForL10nScript.js:4341
+#: specialVueFakeDummyForL10nScript.js:4482
 msgid "Journal entry"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:439
-#: specialVueFakeDummyForL10nScript.js:4343
+#: specialVueFakeDummyForL10nScript.js:4484
 msgid "Postings: {count}"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:443
-#: specialVueFakeDummyForL10nScript.js:4345
+#: specialVueFakeDummyForL10nScript.js:4486
 msgid "No journal entries recorded"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:444
-#: specialVueFakeDummyForL10nScript.js:4347
+#: specialVueFakeDummyForL10nScript.js:4488
 msgid "This list will be populated when transactions are posted."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:452
-#: specialVueFakeDummyForL10nScript.js:4351
+#: specialVueFakeDummyForL10nScript.js:4492
 msgid "Continue with the work you need"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:463
-#: specialVueFakeDummyForL10nScript.js:4353
+#: specialVueFakeDummyForL10nScript.js:4494
 msgid ""
 "Enable features under Manage → Installed features to access other activities "
 "here."
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:470
-#: specialVueFakeDummyForL10nScript.js:4355
+#: specialVueFakeDummyForL10nScript.js:4496
 msgid "Understand the displayed figures"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:471
-#: specialVueFakeDummyForL10nScript.js:4357
+#: specialVueFakeDummyForL10nScript.js:4498
 msgid ""
 "Cash balance, income, expenses and result are calculated from the workspace "
 "ledger. Imports, unreconciled statements and fiscal drafts do not "
@@ -4015,83 +4478,84 @@ msgid ""
 "forecasts."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4379
-#: specialVueFakeDummyForL10nScript.js:5429
-#: specialVueFakeDummyForL10nScript.js:5433
+#: specialVueFakeDummyForL10nScript.js:4520
+#: specialVueFakeDummyForL10nScript.js:5570
+#: specialVueFakeDummyForL10nScript.js:5574
+#: specialVueFakeDummyForL10nScript.js:6528
 msgid "All"
 msgstr ""
 
 #. TRANSLATORS s/DocumentsView.vue:54
-#: specialVueFakeDummyForL10nScript.js:4406 /app/src/navigation.js:15
+#: specialVueFakeDummyForL10nScript.js:4547 /app/src/navigation.js:15
 #: src/navigation.js:16 /app/src/navigation.js:19
 #: src/navigation.js:22
 msgid "Invoices"
 msgstr ""
 
 #. TRANSLATORS s/DocumentsView.vue:55
-#: specialVueFakeDummyForL10nScript.js:4408
+#: specialVueFakeDummyForL10nScript.js:4549
 msgid ""
 "To itemize products or services, record a sale or purchase here. Amounts "
 "receivable or payable automatically appear in Financial movements."
 msgstr ""
 
 #. TRANSLATORS s/DocumentsView.vue:68
-#: specialVueFakeDummyForL10nScript.js:4412
+#: specialVueFakeDummyForL10nScript.js:4553
 msgid "Filter invoices by type"
 msgstr ""
 
 #. TRANSLATORS s/DocumentsView.vue:76
 #. TRANSLATORS s/InvoicesView.vue:421
-#: specialVueFakeDummyForL10nScript.js:4414
-#: specialVueFakeDummyForL10nScript.js:5256
+#: specialVueFakeDummyForL10nScript.js:4555
+#: specialVueFakeDummyForL10nScript.js:5397
 msgid "New invoice"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4457
+#: specialVueFakeDummyForL10nScript.js:4598
 msgid "Manual rate"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4458
+#: specialVueFakeDummyForL10nScript.js:4599
 msgid "Imported rate evidence"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4472
+#: specialVueFakeDummyForL10nScript.js:4613
 msgid "Enter a positive decimal exchange rate."
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:202
-#: specialVueFakeDummyForL10nScript.js:4473
-#: specialVueFakeDummyForL10nScript.js:4597
+#: specialVueFakeDummyForL10nScript.js:4614
+#: specialVueFakeDummyForL10nScript.js:4738
 msgid "Enter a reference identifier, not a URL or credential."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4474
+#: specialVueFakeDummyForL10nScript.js:4615
 msgid "Choose two different currencies."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4475
+#: specialVueFakeDummyForL10nScript.js:4616
 msgid "Enter a valid date."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4494
+#: specialVueFakeDummyForL10nScript.js:4635
 msgid "Unsupported exchange-rate history version."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4530
+#: specialVueFakeDummyForL10nScript.js:4671
 msgid "This exact rate was already recorded."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4531
+#: specialVueFakeDummyForL10nScript.js:4672
 msgid "Exchange rate recorded."
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:141
-#: specialVueFakeDummyForL10nScript.js:4549 /app/src/navigation.js:24
+#: specialVueFakeDummyForL10nScript.js:4690 /app/src/navigation.js:24
 msgid "Exchange rates"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:142
-#: specialVueFakeDummyForL10nScript.js:4551 /app/src/navigation.js:73
+#: specialVueFakeDummyForL10nScript.js:4692 /app/src/navigation.js:73
 #: src/navigation.js:75 /app/src/navigation.js:77
 #: src/navigation.js:79 /app/src/navigation.js:81
 #: src/navigation.js:83
@@ -4099,212 +4563,212 @@ msgid "Finance and tax"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:143
-#: specialVueFakeDummyForL10nScript.js:4553
+#: specialVueFakeDummyForL10nScript.js:4694
 msgid "Record and review exact historical exchange rates."
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:146
 #. TRANSLATORS s/ExchangeRatesView.vue:185
-#: specialVueFakeDummyForL10nScript.js:4555
-#: specialVueFakeDummyForL10nScript.js:4581
+#: specialVueFakeDummyForL10nScript.js:4696
+#: specialVueFakeDummyForL10nScript.js:4722
 msgid "Record exchange rate"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:151
-#: specialVueFakeDummyForL10nScript.js:4557
+#: specialVueFakeDummyForL10nScript.js:4698
 msgid ""
 "Recorded rates are historical evidence. They do not convert balances or post "
 "transactions."
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:156
-#: specialVueFakeDummyForL10nScript.js:4559
+#: specialVueFakeDummyForL10nScript.js:4700
 msgid "Exchange-rate history"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:160
 #. TRANSLATORS s/ExchangeRatesView.vue:190
-#: specialVueFakeDummyForL10nScript.js:4561
-#: specialVueFakeDummyForL10nScript.js:4583
+#: specialVueFakeDummyForL10nScript.js:4702
+#: specialVueFakeDummyForL10nScript.js:4724
 msgid "Source currency"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:161
 #. TRANSLATORS s/ExchangeRatesView.vue:192
-#: specialVueFakeDummyForL10nScript.js:4563
-#: specialVueFakeDummyForL10nScript.js:4585
+#: specialVueFakeDummyForL10nScript.js:4704
+#: specialVueFakeDummyForL10nScript.js:4726
 msgid "Target currency"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:162
 #. TRANSLATORS s/ExchangeRatesView.vue:193
-#: specialVueFakeDummyForL10nScript.js:4565
-#: specialVueFakeDummyForL10nScript.js:4587
+#: specialVueFakeDummyForL10nScript.js:4706
+#: specialVueFakeDummyForL10nScript.js:4728
 msgid "Exchange rate"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:163
 #. TRANSLATORS s/ExchangeRatesView.vue:197
-#: specialVueFakeDummyForL10nScript.js:4567
-#: specialVueFakeDummyForL10nScript.js:4591
+#: specialVueFakeDummyForL10nScript.js:4708
+#: specialVueFakeDummyForL10nScript.js:4732
 msgid "Effective date"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:164
 #. TRANSLATORS s/ExchangeRatesView.vue:199
 #. TRANSLATORS s/InvoicesView.vue:405
-#: specialVueFakeDummyForL10nScript.js:4569
-#: specialVueFakeDummyForL10nScript.js:4593
-#: specialVueFakeDummyForL10nScript.js:5246
+#: specialVueFakeDummyForL10nScript.js:4710
+#: specialVueFakeDummyForL10nScript.js:4734
+#: specialVueFakeDummyForL10nScript.js:5387
 msgid "Source"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:165
 #. TRANSLATORS s/ExchangeRatesView.vue:200
-#: specialVueFakeDummyForL10nScript.js:4571
-#: specialVueFakeDummyForL10nScript.js:4595
+#: specialVueFakeDummyForL10nScript.js:4712
+#: specialVueFakeDummyForL10nScript.js:4736
 msgid "Source reference"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:166
-#: specialVueFakeDummyForL10nScript.js:4573
+#: specialVueFakeDummyForL10nScript.js:4714
 msgid "Recorded by"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:178
-#: specialVueFakeDummyForL10nScript.js:4575
+#: specialVueFakeDummyForL10nScript.js:4716
 msgid "No exchange rates recorded"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:180
 #. TRANSLATORS s/InvoicesView.vue:394
 #. TRANSLATORS s/NfseView.vue:156
-#: specialVueFakeDummyForL10nScript.js:4577
-#: specialVueFakeDummyForL10nScript.js:5232
-#: specialVueFakeDummyForL10nScript.js:6216
+#: specialVueFakeDummyForL10nScript.js:4718
+#: specialVueFakeDummyForL10nScript.js:5373
+#: specialVueFakeDummyForL10nScript.js:6357
 msgid "Load more"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:181
-#: specialVueFakeDummyForL10nScript.js:4579
+#: specialVueFakeDummyForL10nScript.js:4720
 msgid "Try again"
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:195
-#: specialVueFakeDummyForL10nScript.js:4589
+#: specialVueFakeDummyForL10nScript.js:4730
 msgid ""
 "Enter target major units per one source major unit, without thousands "
 "separators."
 msgstr ""
 
 #. TRANSLATORS s/ExchangeRatesView.vue:206
-#: specialVueFakeDummyForL10nScript.js:4601
-#: specialVueFakeDummyForL10nScript.js:6059
+#: specialVueFakeDummyForL10nScript.js:4742
+#: specialVueFakeDummyForL10nScript.js:6200
 msgid "Save"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4622
+#: specialVueFakeDummyForL10nScript.js:4763
 msgid "Registrations and accounts"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4622
+#: specialVueFakeDummyForL10nScript.js:4763
 msgid "Company, people, categories and financial accounts"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4624
+#: specialVueFakeDummyForL10nScript.js:4765
 msgid "Historical statements"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4624
+#: specialVueFakeDummyForL10nScript.js:4765
 msgid "Inflows and outflows awaiting reconciliation"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4626
+#: specialVueFakeDummyForL10nScript.js:4767
 msgid "Transfers"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4626
+#: specialVueFakeDummyForL10nScript.js:4767
 msgid "Account pairs without duplicating movements"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4628
+#: specialVueFakeDummyForL10nScript.js:4769
 msgid "Coverage audit"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4628
+#: specialVueFakeDummyForL10nScript.js:4769
 msgid "Compare counts with mappings and identify gaps"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4632
+#: specialVueFakeDummyForL10nScript.js:4773
 msgid "New record"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4633
+#: specialVueFakeDummyForL10nScript.js:4774
 msgid "Already present"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4634
+#: specialVueFakeDummyForL10nScript.js:4775
 msgid "Conflict"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4635
+#: specialVueFakeDummyForL10nScript.js:4776
 msgid "Not required"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4636
+#: specialVueFakeDummyForL10nScript.js:4777
 msgid "Not implemented"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4637
+#: specialVueFakeDummyForL10nScript.js:4778
 msgid "Coverage gap"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4638
+#: specialVueFakeDummyForL10nScript.js:4779
 msgid "Counts match"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4641
+#: specialVueFakeDummyForL10nScript.js:4782
 msgid "Company"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4686
+#: specialVueFakeDummyForL10nScript.js:4827
 msgid "The file exceeds the limit for this import type."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4695
+#: specialVueFakeDummyForL10nScript.js:4836
 msgid "Failed to read the selected file."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4747
+#: specialVueFakeDummyForL10nScript.js:4888
 msgid "Batch imported; failed to refresh the interface records: {error}"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4761
+#: specialVueFakeDummyForL10nScript.js:4902
 msgid "Import completed, but coverage could not be retrieved: {error}"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:194
-#: specialVueFakeDummyForL10nScript.js:4790
+#: specialVueFakeDummyForL10nScript.js:4931
 msgid "Migration and review"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4790
+#: specialVueFakeDummyForL10nScript.js:4931
 msgid "SETTINGS / DATA"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:195
-#: specialVueFakeDummyForL10nScript.js:4792
+#: specialVueFakeDummyForL10nScript.js:4933
 msgid ""
 "Import in stages and compare the source with records stored in Nextcloud."
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:196
-#: specialVueFakeDummyForL10nScript.js:4794
+#: specialVueFakeDummyForL10nScript.js:4935
 msgid "Back to features"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:199
-#: specialVueFakeDummyForL10nScript.js:4796
+#: specialVueFakeDummyForL10nScript.js:4937
 msgid ""
 "Only import normalized data from authorized companies and review each "
 "preview before confirming. Source balances are kept for reference; no import "
@@ -4312,683 +4776,671 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:201
-#: specialVueFakeDummyForL10nScript.js:4798
+#: specialVueFakeDummyForL10nScript.js:4939
 msgid "Migration workflows"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:212
-#: specialVueFakeDummyForL10nScript.js:4800
+#: specialVueFakeDummyForL10nScript.js:4941
 msgid "Normalized file"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:215
-#: specialVueFakeDummyForL10nScript.js:4802
+#: specialVueFakeDummyForL10nScript.js:4943
 msgid "Coverage manifest, up to 32 KiB. Does not write data."
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:216
-#: specialVueFakeDummyForL10nScript.js:4804
+#: specialVueFakeDummyForL10nScript.js:4945
 msgid "Batch of records, up to 128 KiB. Review conflicts before confirming."
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:223
-#: specialVueFakeDummyForL10nScript.js:4806
+#: specialVueFakeDummyForL10nScript.js:4947
 msgid "Select JSON file"
 msgstr ""
 
-#. TRANSLATORS s/ImportView.vue:225
-#. TRANSLATORS s/MovementsView.vue:704
-#: specialVueFakeDummyForL10nScript.js:4808
-#: specialVueFakeDummyForL10nScript.js:5979
-msgid "No file selected"
-msgstr ""
-
 #. TRANSLATORS s/ImportView.vue:227
-#: specialVueFakeDummyForL10nScript.js:4810
+#: specialVueFakeDummyForL10nScript.js:4951
 msgid "Or paste the normalized JSON"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:228
-#: specialVueFakeDummyForL10nScript.js:4812
+#: specialVueFakeDummyForL10nScript.js:4953
 msgid "Paste a batch with the format, source company and authorized data"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:232
-#: specialVueFakeDummyForL10nScript.js:4814
+#: specialVueFakeDummyForL10nScript.js:4955
 msgid "Validate and preview"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:236
-#: specialVueFakeDummyForL10nScript.js:4816
+#: specialVueFakeDummyForL10nScript.js:4957
 msgid "Preview result"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:238
-#: specialVueFakeDummyForL10nScript.js:4818
+#: specialVueFakeDummyForL10nScript.js:4959
 msgid "Read-only"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4818
+#: specialVueFakeDummyForL10nScript.js:4959
 msgid "Ready to confirm"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4818
+#: specialVueFakeDummyForL10nScript.js:4959
 msgid "Conflicts found"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:242
-#: specialVueFakeDummyForL10nScript.js:4820
+#: specialVueFakeDummyForL10nScript.js:4961
 msgid "Source: {system} · Company {company}"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:245
-#: specialVueFakeDummyForL10nScript.js:4822
+#: specialVueFakeDummyForL10nScript.js:4963
 msgid "New records"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:247
-#: specialVueFakeDummyForL10nScript.js:4824
+#: specialVueFakeDummyForL10nScript.js:4965
 msgid "Existing records"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:249
-#: specialVueFakeDummyForL10nScript.js:4826
+#: specialVueFakeDummyForL10nScript.js:4967
 msgid "Conflicts"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:253
-#: specialVueFakeDummyForL10nScript.js:4828
+#: specialVueFakeDummyForL10nScript.js:4969
 msgid "Resources examined"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:255
-#: specialVueFakeDummyForL10nScript.js:4830
+#: specialVueFakeDummyForL10nScript.js:4971
 msgid "Unimplemented resources"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:257
-#: specialVueFakeDummyForL10nScript.js:4832
+#: specialVueFakeDummyForL10nScript.js:4973
 msgid "Broken references"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:261
-#: specialVueFakeDummyForL10nScript.js:4834
+#: specialVueFakeDummyForL10nScript.js:4975
 msgid "Conflicts: {count}. Import is blocked until they are resolved."
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:264
-#: specialVueFakeDummyForL10nScript.js:4836
+#: specialVueFakeDummyForL10nScript.js:4977
 msgid "Resource"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:265
-#: specialVueFakeDummyForL10nScript.js:4838
+#: specialVueFakeDummyForL10nScript.js:4979
 msgid "Source origin"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:266
-#: specialVueFakeDummyForL10nScript.js:4840
+#: specialVueFakeDummyForL10nScript.js:4981
 msgid "Present"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:267
-#: specialVueFakeDummyForL10nScript.js:4842
+#: specialVueFakeDummyForL10nScript.js:4983
 msgid "Missing"
 msgstr ""
 
-#. TRANSLATORS s/ImportView.vue:268
-#. TRANSLATORS s/NfseView.vue:141
-#: specialVueFakeDummyForL10nScript.js:4844
-#: specialVueFakeDummyForL10nScript.js:4850
-#: specialVueFakeDummyForL10nScript.js:6208
-msgid "State"
-msgstr ""
-
 #. TRANSLATORS s/ImportView.vue:270
-#: specialVueFakeDummyForL10nScript.js:4848
+#: specialVueFakeDummyForL10nScript.js:4989
 msgid "Source ID"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:278
-#: specialVueFakeDummyForL10nScript.js:4852
+#: specialVueFakeDummyForL10nScript.js:4993
 msgid "Transaction"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4852
-#: specialVueFakeDummyForL10nScript.js:5884
+#: specialVueFakeDummyForL10nScript.js:4993
+#: specialVueFakeDummyForL10nScript.js:6025
 msgid "Transfer"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:283
-#: specialVueFakeDummyForL10nScript.js:4854
+#: specialVueFakeDummyForL10nScript.js:4995
 msgid ""
 "Matching counts do not demonstrate equality of amounts, accounting links, "
 "fiscal issuance or complete historical coverage."
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:287
-#: specialVueFakeDummyForL10nScript.js:4856
+#: specialVueFakeDummyForL10nScript.js:4997
 msgid ""
 "I confirm the destination company and authorize only the records validated "
 "in this preview, leaving journal entries and reconciliations pending."
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:291
-#: specialVueFakeDummyForL10nScript.js:4858
+#: specialVueFakeDummyForL10nScript.js:4999
 msgid "Import validated batch"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:297
-#: specialVueFakeDummyForL10nScript.js:4860
+#: specialVueFakeDummyForL10nScript.js:5001
 msgid "Import completed"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:299
-#: specialVueFakeDummyForL10nScript.js:4862
+#: specialVueFakeDummyForL10nScript.js:5003
 msgid ""
 "New: {created}. Existing: {skipped}. No movement was posted automatically."
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:302
-#: specialVueFakeDummyForL10nScript.js:4864
+#: specialVueFakeDummyForL10nScript.js:5005
 msgid "Destination coverage"
 msgstr ""
 
 #. TRANSLATORS s/ImportView.vue:305
-#: specialVueFakeDummyForL10nScript.js:4866
+#: specialVueFakeDummyForL10nScript.js:5007
 msgid ""
 "Persisted mappings do not prove functional equivalence or reconciliation of "
 "the source balance."
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:149
-#: specialVueFakeDummyForL10nScript.js:4908
-#: specialVueFakeDummyForL10nScript.js:6210
+#: specialVueFakeDummyForL10nScript.js:5049
+#: specialVueFakeDummyForL10nScript.js:6351
 msgid "Draft"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4909
+#: specialVueFakeDummyForL10nScript.js:5050
 msgid "Confirmed purchase"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4909
+#: specialVueFakeDummyForL10nScript.js:5050
 msgid "Confirmed sale"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4910
+#: specialVueFakeDummyForL10nScript.js:5051
 msgid "Partial payment"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4910
+#: specialVueFakeDummyForL10nScript.js:5051
 msgid "Partial receipt"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4911
+#. TRANSLATORS s/ObligationsView.vue:438
+#: specialVueFakeDummyForL10nScript.js:5052
+#: specialVueFakeDummyForL10nScript.js:6726
 msgid "Settled by journal entry"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4946
+#: specialVueFakeDummyForL10nScript.js:5087
 msgid "Receipt or payment recorded without duplication. Journal entry #{id}."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4972
+#: specialVueFakeDummyForL10nScript.js:5113
 msgid "Entry"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4990
+#: specialVueFakeDummyForL10nScript.js:5131
 msgid "No tax"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4993
+#: specialVueFakeDummyForL10nScript.js:5134
 msgid "VAT"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4993
+#: specialVueFakeDummyForL10nScript.js:5134
 msgid "Sales tax"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4994
+#: specialVueFakeDummyForL10nScript.js:5135
 msgid "Withholding"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:4994
+#: specialVueFakeDummyForL10nScript.js:5135
 msgid "Other tax"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5000
+#: specialVueFakeDummyForL10nScript.js:5141
 msgid "Invalid tax rate"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5002
+#: specialVueFakeDummyForL10nScript.js:5143
 msgid "Tax rate exceeds the 1000% limit"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5065
+#: specialVueFakeDummyForL10nScript.js:5206
 msgid "Maximum of 20 invoice lines"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5072
+#: specialVueFakeDummyForL10nScript.js:5213
 msgid "Review line descriptions and quantities."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5088
+#: specialVueFakeDummyForL10nScript.js:5229
 msgid "Purchase invoice saved as draft, without bank movements."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5089
+#: specialVueFakeDummyForL10nScript.js:5230
 msgid "Sales invoice saved as draft, without fiscal issuance."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5105
+#: specialVueFakeDummyForL10nScript.js:5246
 msgid "Rule registered as an immutable version; legal compliance not verified."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5127
+#: specialVueFakeDummyForL10nScript.js:5268
 msgid ""
 "Document confirmed. Linked obligation created; no fiscal invoice was issued."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5133
+#: specialVueFakeDummyForL10nScript.js:5274
 msgid "Select a posted journal entry matching the account and amount."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5142
+#: specialVueFakeDummyForL10nScript.js:5283
 msgid "Existing journal entry associated; no transfer created."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:331
-#: specialVueFakeDummyForL10nScript.js:5192 /app/src/navigation.js:23
+#: specialVueFakeDummyForL10nScript.js:5333 /app/src/navigation.js:23
 msgid "Tax rules"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:332
-#: specialVueFakeDummyForL10nScript.js:5194
+#: specialVueFakeDummyForL10nScript.js:5335
 msgid "Purchase documents"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:333
-#: specialVueFakeDummyForL10nScript.js:5196
+#: specialVueFakeDummyForL10nScript.js:5337
 msgid "TAX CONFIGURATION"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5196
+#: specialVueFakeDummyForL10nScript.js:5337
 msgid "INVOICES"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:335
-#: specialVueFakeDummyForL10nScript.js:5198
+#: specialVueFakeDummyForL10nScript.js:5339
 msgid ""
 "Configure calculation rules, jurisdiction and validity. This section does "
 "not issue fiscal documents."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:336
-#: specialVueFakeDummyForL10nScript.js:5200
+#: specialVueFakeDummyForL10nScript.js:5341
 msgid ""
 "Register sales and purchases with items and taxes. When confirmed, the "
 "amount appears in Financial movements."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:341
-#: specialVueFakeDummyForL10nScript.js:5202
+#: specialVueFakeDummyForL10nScript.js:5343
 msgid "New rule"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5202
+#: specialVueFakeDummyForL10nScript.js:5343
 msgid "New purchase invoice"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5202
+#: specialVueFakeDummyForL10nScript.js:5343
 msgid "New sales invoice"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:346
-#: specialVueFakeDummyForL10nScript.js:5204
+#: specialVueFakeDummyForL10nScript.js:5345
 msgid ""
 "Configured rules are tax parameters; they do not represent fiscal "
 "qualification."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:352
-#: specialVueFakeDummyForL10nScript.js:5206
+#: specialVueFakeDummyForL10nScript.js:5347
 msgid "Registered invoices"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:353
-#: specialVueFakeDummyForL10nScript.js:5208
+#: specialVueFakeDummyForL10nScript.js:5349
 msgid "Registered purchases"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5208
+#: specialVueFakeDummyForL10nScript.js:5349
 msgid "Registered sales"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:356
-#: specialVueFakeDummyForL10nScript.js:5210
+#: specialVueFakeDummyForL10nScript.js:5351
 msgid "Loading invoices…"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:362
 #. TRANSLATORS s/InvoicesView.vue:446
-#: specialVueFakeDummyForL10nScript.js:5212
-#: specialVueFakeDummyForL10nScript.js:5272
+#: specialVueFakeDummyForL10nScript.js:5353
+#: specialVueFakeDummyForL10nScript.js:5413
 msgid "Number"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:455
-#: specialVueFakeDummyForL10nScript.js:5214
-#: specialVueFakeDummyForL10nScript.js:5286
+#. TRANSLATORS s/ObligationsView.vue:389
+#: specialVueFakeDummyForL10nScript.js:5355
+#: specialVueFakeDummyForL10nScript.js:5427
+#: specialVueFakeDummyForL10nScript.js:6698
+#: specialVueFakeDummyForL10nScript.js:6770
 msgid "Due date"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:364
 #. TRANSLATORS s/InvoicesView.vue:524
-#: specialVueFakeDummyForL10nScript.js:5216
-#: specialVueFakeDummyForL10nScript.js:5344
+#: specialVueFakeDummyForL10nScript.js:5357
+#: specialVueFakeDummyForL10nScript.js:5485
 msgid "Total"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5216
+#: specialVueFakeDummyForL10nScript.js:5357
 msgid "Settled"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:375
 #. TRANSLATORS s/InvoicesView.vue:428
-#: specialVueFakeDummyForL10nScript.js:5220
-#: specialVueFakeDummyForL10nScript.js:5260
+#: specialVueFakeDummyForL10nScript.js:5361
+#: specialVueFakeDummyForL10nScript.js:5401
 msgid "Sale"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:432
-#: specialVueFakeDummyForL10nScript.js:5220
-#: specialVueFakeDummyForL10nScript.js:5264
+#: specialVueFakeDummyForL10nScript.js:5361
+#: specialVueFakeDummyForL10nScript.js:5405
 msgid "Purchase"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:381
-#: specialVueFakeDummyForL10nScript.js:5222
+#: specialVueFakeDummyForL10nScript.js:5363
 msgid "Details"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:387
-#: specialVueFakeDummyForL10nScript.js:5224
+#: specialVueFakeDummyForL10nScript.js:5365
 msgid "No invoices match this filter"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5224
+#: specialVueFakeDummyForL10nScript.js:5365
 msgid "No invoices registered"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:389
-#: specialVueFakeDummyForL10nScript.js:5226
+#: specialVueFakeDummyForL10nScript.js:5367
 msgid "Use the Type filter and choose All to view the other records."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:390
-#: specialVueFakeDummyForL10nScript.js:5228
+#: specialVueFakeDummyForL10nScript.js:5369
 msgid ""
 "Use New invoice to record a sale or purchase. Confirming the invoice creates "
 "the corresponding amount in Financial movements."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:392
-#: specialVueFakeDummyForL10nScript.js:5230
+#: specialVueFakeDummyForL10nScript.js:5371
 msgid "Sorting applies only to loaded documents."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:398
-#: specialVueFakeDummyForL10nScript.js:5234
+#: specialVueFakeDummyForL10nScript.js:5375
 msgid "Tax calculation rules"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:401
-#: specialVueFakeDummyForL10nScript.js:5238
+#: specialVueFakeDummyForL10nScript.js:5379
 msgid "Jurisdiction"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:403
-#: specialVueFakeDummyForL10nScript.js:5242
+#: specialVueFakeDummyForL10nScript.js:5383
 msgid "Tax rate"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:404
-#: specialVueFakeDummyForL10nScript.js:5244
+#: specialVueFakeDummyForL10nScript.js:5385
 msgid "Validity"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:409
-#: specialVueFakeDummyForL10nScript.js:5248
+#: specialVueFakeDummyForL10nScript.js:5389
 msgid "(included)"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:410
-#: specialVueFakeDummyForL10nScript.js:5250
+#: specialVueFakeDummyForL10nScript.js:5391
 msgid "indefinite"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:414
-#: specialVueFakeDummyForL10nScript.js:5252
+#: specialVueFakeDummyForL10nScript.js:5393
 msgid "No rules registered"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:416
-#: specialVueFakeDummyForL10nScript.js:5254
+#: specialVueFakeDummyForL10nScript.js:5395
 msgid "Load more rules"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:425
-#: specialVueFakeDummyForL10nScript.js:5258
+#: specialVueFakeDummyForL10nScript.js:5399
 msgid "What would you like to record?"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:429
-#: specialVueFakeDummyForL10nScript.js:5262
+#: specialVueFakeDummyForL10nScript.js:5403
 msgid "I will charge for products or services"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:433
-#: specialVueFakeDummyForL10nScript.js:5266
+#: specialVueFakeDummyForL10nScript.js:5407
 msgid "I will pay a supplier"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:443
-#: specialVueFakeDummyForL10nScript.js:5270
+#: specialVueFakeDummyForL10nScript.js:5411
 msgid "Purchase · Change type"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5270
+#: specialVueFakeDummyForL10nScript.js:5411
 msgid "Sale · Change type"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:448
-#: specialVueFakeDummyForL10nScript.js:5274
+#: specialVueFakeDummyForL10nScript.js:5415
 msgid ""
 "Describe what you purchased. When confirmed, the amount appears in Accounts "
 "payable."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:449
-#: specialVueFakeDummyForL10nScript.js:5276
+#: specialVueFakeDummyForL10nScript.js:5417
 msgid ""
 "Describe what you sold. When confirmed, the amount appears in Accounts "
 "receivable."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:451
-#: specialVueFakeDummyForL10nScript.js:5278
+#: specialVueFakeDummyForL10nScript.js:5419
 msgid "Customer or supplier"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:452
-#: specialVueFakeDummyForL10nScript.js:5280
+#: specialVueFakeDummyForL10nScript.js:5421
 msgid "Country (ISO 2, required)"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:453
-#: specialVueFakeDummyForL10nScript.js:5282
+#: specialVueFakeDummyForL10nScript.js:5423
 msgid "Region (optional)"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:454
-#: specialVueFakeDummyForL10nScript.js:5284
+#. TRANSLATORS s/ObligationsView.vue:508
+#: specialVueFakeDummyForL10nScript.js:5425
+#: specialVueFakeDummyForL10nScript.js:6768
 msgid "Issue date"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:457
-#: specialVueFakeDummyForL10nScript.js:5288
+#: specialVueFakeDummyForL10nScript.js:5429
 msgid "Purchase items"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5288
+#: specialVueFakeDummyForL10nScript.js:5429
 msgid "Sale items"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:459
-#: specialVueFakeDummyForL10nScript.js:5290
+#: specialVueFakeDummyForL10nScript.js:5431
 msgid "Line {index} description"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:461
-#: specialVueFakeDummyForL10nScript.js:5292
+#: specialVueFakeDummyForL10nScript.js:5433
 msgid "Quantity"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:465
-#: specialVueFakeDummyForL10nScript.js:5296
+#: specialVueFakeDummyForL10nScript.js:5437
 msgid "Tax"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:467
-#: specialVueFakeDummyForL10nScript.js:5298
+#: specialVueFakeDummyForL10nScript.js:5439
 msgid "Remove line"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:470
-#: specialVueFakeDummyForL10nScript.js:5300
+#: specialVueFakeDummyForL10nScript.js:5441
 msgid "Add line"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:476
 #. TRANSLATORS s/NfseView.vue:178
-#: specialVueFakeDummyForL10nScript.js:5304
-#: specialVueFakeDummyForL10nScript.js:6236
+#: specialVueFakeDummyForL10nScript.js:5445
+#: specialVueFakeDummyForL10nScript.js:6377
 msgid "Save draft"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:480
-#: specialVueFakeDummyForL10nScript.js:5306
+#: specialVueFakeDummyForL10nScript.js:5447
 msgid "New tax rule"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:485
-#: specialVueFakeDummyForL10nScript.js:5312
+#: specialVueFakeDummyForL10nScript.js:5453
 msgid "Country (ISO 2)"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:486
-#: specialVueFakeDummyForL10nScript.js:5314
+#: specialVueFakeDummyForL10nScript.js:5455
 msgid "Optional region"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:487
-#: specialVueFakeDummyForL10nScript.js:5316
+#: specialVueFakeDummyForL10nScript.js:5457
 msgid "Nature"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:488
-#: specialVueFakeDummyForL10nScript.js:5318
+#: specialVueFakeDummyForL10nScript.js:5459
 msgid "Tax rate (%)"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:491
-#: specialVueFakeDummyForL10nScript.js:5320
+#: specialVueFakeDummyForL10nScript.js:5461
 msgid "Included in price"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:493
-#: specialVueFakeDummyForL10nScript.js:5322
+#: specialVueFakeDummyForL10nScript.js:5463
 msgid "Start"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:494
-#: specialVueFakeDummyForL10nScript.js:5324
+#: specialVueFakeDummyForL10nScript.js:5465
 msgid "End (optional)"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:496
-#: specialVueFakeDummyForL10nScript.js:5326
+#: specialVueFakeDummyForL10nScript.js:5467
 msgid "Regulatory source"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:500
-#: specialVueFakeDummyForL10nScript.js:5330
+#: specialVueFakeDummyForL10nScript.js:5471
 msgid "Register version"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:509
-#: specialVueFakeDummyForL10nScript.js:5332
+#: specialVueFakeDummyForL10nScript.js:5473
 msgid "Invoice details"
 msgstr ""
 
-#. TRANSLATORS s/InvoicesView.vue:513
-#: specialVueFakeDummyForL10nScript.js:5334
-msgid "Status: {status}"
-msgstr ""
-
 #. TRANSLATORS s/InvoicesView.vue:515
-#: specialVueFakeDummyForL10nScript.js:5336
+#: specialVueFakeDummyForL10nScript.js:5477
 msgid ""
 "Confirming this document creates a planned outflow in Financial movements. "
 "It does not record a payment or issue a fiscal invoice."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5336
+#: specialVueFakeDummyForL10nScript.js:5477
 msgid ""
 "Confirming this document creates a planned inflow in Financial movements. It "
 "does not record a receipt or issue a fiscal invoice."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:517
-#: specialVueFakeDummyForL10nScript.js:5338
+#: specialVueFakeDummyForL10nScript.js:5479
 msgid ""
 "Linked payable #{id}. Associating payment requires a valid journal entry; it "
 "does not create a second movement."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5338
+#: specialVueFakeDummyForL10nScript.js:5479
 msgid ""
 "Linked receivable #{id}. Associating receipt requires a valid journal entry; "
 "it does not create a second movement."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:519
-#: specialVueFakeDummyForL10nScript.js:5340
+#: specialVueFakeDummyForL10nScript.js:5481
 msgid "View linked obligation"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:521
-#: specialVueFakeDummyForL10nScript.js:5342
+#: specialVueFakeDummyForL10nScript.js:5483
 msgid ""
 "Historical invoice without a reconciled obligation. Payment associations "
 "require explicit reconciliation before continuing."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:526
-#: specialVueFakeDummyForL10nScript.js:5346
+#: specialVueFakeDummyForL10nScript.js:5487
+#: specialVueFakeDummyForL10nScript.js:6529
 msgid "Outstanding"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:530
-#: specialVueFakeDummyForL10nScript.js:5348
+#: specialVueFakeDummyForL10nScript.js:5489
 msgid "Confirm purchase"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5348
+#: specialVueFakeDummyForL10nScript.js:5489
 msgid "Confirm sale"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:534
-#: specialVueFakeDummyForL10nScript.js:5350
+#: specialVueFakeDummyForL10nScript.js:5491
 msgid ""
 "This document contains taxes or withholdings. It is not safe to post the "
 "gross total as income or expense. Record the correct tax entries in "
@@ -4996,422 +5448,354 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:540
-#: specialVueFakeDummyForL10nScript.js:5354
+#: specialVueFakeDummyForL10nScript.js:5495
 msgid "Link previously recorded movement"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:544
-#: specialVueFakeDummyForL10nScript.js:5356
+#: specialVueFakeDummyForL10nScript.js:5497
 msgid ""
 "Select a posted movement with the same amount and financial account. The "
 "association does not move money again."
 msgstr ""
 
-#. TRANSLATORS s/InvoicesView.vue:547
-#: specialVueFakeDummyForL10nScript.js:5358
-msgid "Financial account"
-msgstr ""
-
 #. TRANSLATORS s/InvoicesView.vue:548
-#: specialVueFakeDummyForL10nScript.js:5360
+#: specialVueFakeDummyForL10nScript.js:5501
 msgid "Movement amount"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:551
-#: specialVueFakeDummyForL10nScript.js:5362
+#: specialVueFakeDummyForL10nScript.js:5503
 msgid "Posted journal entry"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:553
-#: specialVueFakeDummyForL10nScript.js:5364
+#: specialVueFakeDummyForL10nScript.js:5505
 msgid ""
 "No matching entry on loaded pages. If payment has not been posted, record it "
 "in Accounting journals and return to this document."
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:559
-#: specialVueFakeDummyForL10nScript.js:5368
+#: specialVueFakeDummyForL10nScript.js:5509
 msgid "Open accounting journals"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:563
-#: specialVueFakeDummyForL10nScript.js:5370
+#: specialVueFakeDummyForL10nScript.js:5511
 msgid "Associate without duplicating movement"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:569
-#: specialVueFakeDummyForL10nScript.js:5372
+#: specialVueFakeDummyForL10nScript.js:5513
 msgid "Close details"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5429
+#: specialVueFakeDummyForL10nScript.js:5570
 msgid "Inflows"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5430
+#: specialVueFakeDummyForL10nScript.js:5571
 msgid "Outflows"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5433
+#: specialVueFakeDummyForL10nScript.js:5574
 msgid "Posted movements"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5434
+#: specialVueFakeDummyForL10nScript.js:5575
 msgid "Planned movements"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5434
-#: specialVueFakeDummyForL10nScript.js:5882
+#: specialVueFakeDummyForL10nScript.js:5575
+#: specialVueFakeDummyForL10nScript.js:6023
 msgid "Pending review"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5529
-msgid "Movement"
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:5581
-msgid "Select only one file."
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:5587
-msgid "Select a {format} file."
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:5592
-msgid "The file must not be empty or exceed 256 KiB."
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:5607
-msgid "File exceeds the 256 KiB limit."
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:5620
-#: specialVueFakeDummyForL10nScript.js:5622
-msgid "Unknown OFX encoding: {encoding}"
-msgstr ""
-
-#: specialVueFakeDummyForL10nScript.js:5633
+#: specialVueFakeDummyForL10nScript.js:5774
 msgid ""
 "Imported movements: {imported}; already present: {skipped}. Review pending "
 "items in the list."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5662
+#: specialVueFakeDummyForL10nScript.js:5803
 msgid "Select the matching movement to review."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5676
+#: specialVueFakeDummyForL10nScript.js:5817
 msgid "Movement reviewed. No new payment was recorded."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5718
-#: specialVueFakeDummyForL10nScript.js:5792
+#: specialVueFakeDummyForL10nScript.js:5859
+#: specialVueFakeDummyForL10nScript.js:5933
 msgid "Movement recorded."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5762
+#: specialVueFakeDummyForL10nScript.js:5903
 msgid "Enter a description and an amount greater than zero."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5766
+#: specialVueFakeDummyForL10nScript.js:5907
 msgid "Select where the money was received or paid and the category."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5770
+#: specialVueFakeDummyForL10nScript.js:5911
 msgid "Scheduling is not available in this workspace."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5811
-#: specialVueFakeDummyForL10nScript.js:5835
+#: specialVueFakeDummyForL10nScript.js:5952
+#: specialVueFakeDummyForL10nScript.js:5976
 msgid "Transfer between my accounts"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5828
+#: specialVueFakeDummyForL10nScript.js:5969
 msgid "Choose two different accounts and enter the amount."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5840
+#: specialVueFakeDummyForL10nScript.js:5981
 msgid ""
 "Transfer recorded between your accounts. No operation was sent to the bank."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5881
+#: specialVueFakeDummyForL10nScript.js:6022
 msgid "Planned movement"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5881
+#: specialVueFakeDummyForL10nScript.js:6022
 msgid "Reversal"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5881
+#: specialVueFakeDummyForL10nScript.js:6022
 msgid "Posted movement"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:771
-#: specialVueFakeDummyForL10nScript.js:5885
-#: specialVueFakeDummyForL10nScript.js:6019
+#: specialVueFakeDummyForL10nScript.js:6026
+#: specialVueFakeDummyForL10nScript.js:6160
 msgid "Inflow"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:776
-#: specialVueFakeDummyForL10nScript.js:5885
-#: specialVueFakeDummyForL10nScript.js:6023
+#: specialVueFakeDummyForL10nScript.js:6026
+#: specialVueFakeDummyForL10nScript.js:6164
 msgid "Outflow"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:521
-#: specialVueFakeDummyForL10nScript.js:5891
+#: specialVueFakeDummyForL10nScript.js:6032
 msgid ""
 "All expected and completed inflows and outflows in one list. Bank entries "
 "requiring review are identified."
 msgstr ""
 
-#. TRANSLATORS s/MovementsView.vue:525
-#: specialVueFakeDummyForL10nScript.js:5895
-msgid "Import bank statement"
-msgstr ""
-
 #. TRANSLATORS s/MovementsView.vue:529
-#: specialVueFakeDummyForL10nScript.js:5897
+#: specialVueFakeDummyForL10nScript.js:6038
 msgid "CSV file"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:533
-#: specialVueFakeDummyForL10nScript.js:5899
+#: specialVueFakeDummyForL10nScript.js:6040
 msgid "OFX file"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:539
-#: specialVueFakeDummyForL10nScript.js:5901
+#: specialVueFakeDummyForL10nScript.js:6042
 msgid "More actions"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:541
-#: specialVueFakeDummyForL10nScript.js:5903
+#: specialVueFakeDummyForL10nScript.js:6044
 msgid "Other financial actions"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:543
 #. TRANSLATORS s/MovementsView.vue:832
-#: specialVueFakeDummyForL10nScript.js:5905
-#: specialVueFakeDummyForL10nScript.js:6061
+#: specialVueFakeDummyForL10nScript.js:6046
+#: specialVueFakeDummyForL10nScript.js:6202
 msgid "Transfer between accounts"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:549
-#: specialVueFakeDummyForL10nScript.js:5907
+#: specialVueFakeDummyForL10nScript.js:6048
 msgid "Record"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:560
-#: specialVueFakeDummyForL10nScript.js:5909
+#: specialVueFakeDummyForL10nScript.js:6050
 msgid "Add bank or cash account"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:566
-#: specialVueFakeDummyForL10nScript.js:5911
+#: specialVueFakeDummyForL10nScript.js:6052
 msgid "Search movements"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5911
+#: specialVueFakeDummyForL10nScript.js:6052
 msgid "Search by description"
 msgstr ""
 
-#. TRANSLATORS s/MovementsView.vue:574
-#: specialVueFakeDummyForL10nScript.js:5913
-#: specialVueFakeDummyForL10nScript.js:5917
-msgid "All accounts"
-msgstr ""
-
 #. TRANSLATORS s/MovementsView.vue:577
-#: specialVueFakeDummyForL10nScript.js:5915
+#: specialVueFakeDummyForL10nScript.js:6056
 msgid "Filter by account"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:584
-#: specialVueFakeDummyForL10nScript.js:5919
+#: specialVueFakeDummyForL10nScript.js:6060
 msgid "Manage accounts"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:596
-#: specialVueFakeDummyForL10nScript.js:5921
+#: specialVueFakeDummyForL10nScript.js:6062
 msgid "Filter inflows and outflows"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:610
-#: specialVueFakeDummyForL10nScript.js:5923
+#: specialVueFakeDummyForL10nScript.js:6064
 msgid "Filter financial status"
 msgstr ""
 
-#. TRANSLATORS s/MovementsView.vue:617
-#: specialVueFakeDummyForL10nScript.js:5925
-msgid "Clear filters"
-msgstr ""
-
 #. TRANSLATORS s/MovementsView.vue:621
-#: specialVueFakeDummyForL10nScript.js:5927
+#: specialVueFakeDummyForL10nScript.js:6068
 msgid "Recorded balance in {account}:"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:626
-#: specialVueFakeDummyForL10nScript.js:5929
+#: specialVueFakeDummyForL10nScript.js:6070
 msgid "Loading movements…"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:629
-#: specialVueFakeDummyForL10nScript.js:5931
+#: specialVueFakeDummyForL10nScript.js:6072
 msgid "No movements match these filters"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5931
+#: specialVueFakeDummyForL10nScript.js:6072
 msgid "No movements recorded"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:631
-#: specialVueFakeDummyForL10nScript.js:5933
+#: specialVueFakeDummyForL10nScript.js:6074
 msgid "Change the filters to view other movements."
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:632
-#: specialVueFakeDummyForL10nScript.js:5935
+#: specialVueFakeDummyForL10nScript.js:6076
 msgid "Record your first actual or planned movement."
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:649
-#: specialVueFakeDummyForL10nScript.js:5951
+#: specialVueFakeDummyForL10nScript.js:6092
 msgid "Statement not yet reviewed; does not change the balance."
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:651
-#: specialVueFakeDummyForL10nScript.js:5953
+#: specialVueFakeDummyForL10nScript.js:6094
 msgid "Linked to invoice"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:653
-#: specialVueFakeDummyForL10nScript.js:5955
+#: specialVueFakeDummyForL10nScript.js:6096
 msgid "Between own accounts · neither income nor expense"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:667
-#: specialVueFakeDummyForL10nScript.js:5957
+#. TRANSLATORS s/ObligationsView.vue:445
+#: specialVueFakeDummyForL10nScript.js:6098
+#: specialVueFakeDummyForL10nScript.js:6730
 msgid "Receive"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5957
+#: specialVueFakeDummyForL10nScript.js:6098
+#: specialVueFakeDummyForL10nScript.js:6730
 msgid "Pay"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:670
-#: specialVueFakeDummyForL10nScript.js:5959
+#: specialVueFakeDummyForL10nScript.js:6100
 msgid "Invoice"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:673
-#: specialVueFakeDummyForL10nScript.js:5961
+#: specialVueFakeDummyForL10nScript.js:6102
 msgid "Review"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:674
-#: specialVueFakeDummyForL10nScript.js:5963
+#: specialVueFakeDummyForL10nScript.js:6104
 msgid "Recorded movement"
 msgstr ""
 
-#. TRANSLATORS s/MovementsView.vue:681
-#: specialVueFakeDummyForL10nScript.js:5965
-msgid "Load more movements"
-msgstr ""
-
 #. TRANSLATORS s/MovementsView.vue:685
-#: specialVueFakeDummyForL10nScript.js:5967
+#: specialVueFakeDummyForL10nScript.js:6108
 msgid "Refresh"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:689
-#: specialVueFakeDummyForL10nScript.js:5969
+#: specialVueFakeDummyForL10nScript.js:6110
 msgid "Import {format} statement"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:692
-#: specialVueFakeDummyForL10nScript.js:5971
+#: specialVueFakeDummyForL10nScript.js:6112
 msgid ""
 "Import the {format} bank statement. Movements will appear here as Pending "
 "review, without duplicating payments."
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:695
-#: specialVueFakeDummyForL10nScript.js:5973
+#: specialVueFakeDummyForL10nScript.js:6114
 msgid "Statement account"
 msgstr ""
 
-#. TRANSLATORS s/MovementsView.vue:698
-#: specialVueFakeDummyForL10nScript.js:5975
-msgid "Account: {account}"
-msgstr ""
-
-#. TRANSLATORS s/MovementsView.vue:701
-#: specialVueFakeDummyForL10nScript.js:5977
-msgid "Select {format} file"
-msgstr ""
-
 #. TRANSLATORS s/MovementsView.vue:706
-#: specialVueFakeDummyForL10nScript.js:5981
+#: specialVueFakeDummyForL10nScript.js:6122
 msgid ""
 "CSV: columns {columns}, with a decimal point and negative amounts for "
 "outflows."
 msgstr ""
 
-#. TRANSLATORS s/MovementsView.vue:708
-#: specialVueFakeDummyForL10nScript.js:5983
-msgid "Download CSV example"
-msgstr ""
-
 #. TRANSLATORS s/MovementsView.vue:711
-#: specialVueFakeDummyForL10nScript.js:5985
+#: specialVueFakeDummyForL10nScript.js:6126
 msgid ""
 "OFX: bank statement with FITID identifiers, date and amount. OFX 1.x and 2.x "
 "are accepted, one statement per file."
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:712
-#: specialVueFakeDummyForL10nScript.js:5987
+#: specialVueFakeDummyForL10nScript.js:6128
 msgid ""
 "The file is read only for import; it is not stored in Files. Limit: 256 KiB "
 "and 500 movements."
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:718
-#: specialVueFakeDummyForL10nScript.js:5991
+#: specialVueFakeDummyForL10nScript.js:6132
 msgid "Importing…"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:5991
+#: specialVueFakeDummyForL10nScript.js:6132
 msgid "Import {format} for review"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:725
-#: specialVueFakeDummyForL10nScript.js:5993
+#: specialVueFakeDummyForL10nScript.js:6134
 msgid "Review movement"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:728
-#: specialVueFakeDummyForL10nScript.js:5995
+#: specialVueFakeDummyForL10nScript.js:6136
 msgid ""
 "This amount came from the statement. Match it with money already recorded, "
 "without creating another payment or receipt."
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:744
-#: specialVueFakeDummyForL10nScript.js:6003
+#: specialVueFakeDummyForL10nScript.js:6144
 msgid "Matching movement"
 msgstr ""
 
-#. TRANSLATORS s/MovementsView.vue:745
-#: specialVueFakeDummyForL10nScript.js:6005
-msgid "Select by date and description"
-msgstr ""
-
 #. TRANSLATORS s/MovementsView.vue:747
-#: specialVueFakeDummyForL10nScript.js:6007
+#: specialVueFakeDummyForL10nScript.js:6148
 msgid ""
 "No matching movement was found among the loaded records. Check whether you "
 "already recorded this money; do not create another operation just to review "
@@ -5419,462 +5803,869 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:750
-#: specialVueFakeDummyForL10nScript.js:6009
+#: specialVueFakeDummyForL10nScript.js:6150
 msgid "Search older movements"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:756
-#: specialVueFakeDummyForL10nScript.js:6013
+#: specialVueFakeDummyForL10nScript.js:6154
 msgid "Reviewing…"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6013
+#: specialVueFakeDummyForL10nScript.js:6154
 msgid "Confirm review"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:763
-#: specialVueFakeDummyForL10nScript.js:6015
+#: specialVueFakeDummyForL10nScript.js:6156
 msgid "Record movement"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:767
-#: specialVueFakeDummyForL10nScript.js:6017
+#: specialVueFakeDummyForL10nScript.js:6158
 msgid "Will money come in or go out?"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:772
-#: specialVueFakeDummyForL10nScript.js:6021
+#: specialVueFakeDummyForL10nScript.js:6162
 msgid "Money I receive"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:777
-#: specialVueFakeDummyForL10nScript.js:6025
+#: specialVueFakeDummyForL10nScript.js:6166
 msgid "Money I pay"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:782
 #. TRANSLATORS s/MovementsView.vue:844
-#: specialVueFakeDummyForL10nScript.js:6027
-#: specialVueFakeDummyForL10nScript.js:6071
+#: specialVueFakeDummyForL10nScript.js:6168
+#: specialVueFakeDummyForL10nScript.js:6212
 msgid "When?"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:786
-#: specialVueFakeDummyForL10nScript.js:6029
+#: specialVueFakeDummyForL10nScript.js:6170
 msgid "Already happened"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:787
-#: specialVueFakeDummyForL10nScript.js:6031
+#: specialVueFakeDummyForL10nScript.js:6172
 msgid "I recorded the money"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:791
-#: specialVueFakeDummyForL10nScript.js:6033
+#: specialVueFakeDummyForL10nScript.js:6174
 msgid "Will happen"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:792
-#: specialVueFakeDummyForL10nScript.js:6035
+#: specialVueFakeDummyForL10nScript.js:6176
 msgid "I will pay or receive"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:797
-#: specialVueFakeDummyForL10nScript.js:6039
+#: specialVueFakeDummyForL10nScript.js:6180
 msgid "E.g. electricity bill or customer payment"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:801
-#: specialVueFakeDummyForL10nScript.js:6043
+#: specialVueFakeDummyForL10nScript.js:6184
 msgid "When is it due?"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:803
-#: specialVueFakeDummyForL10nScript.js:6045
+#: specialVueFakeDummyForL10nScript.js:6186
 msgid "When did it happen?"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:805
-#: specialVueFakeDummyForL10nScript.js:6047
+#: specialVueFakeDummyForL10nScript.js:6188
 msgid "Which account?"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:807
-#: specialVueFakeDummyForL10nScript.js:6049
+#: specialVueFakeDummyForL10nScript.js:6190
 msgid ""
 "First register the bank or cash account where the money was received or paid."
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:809
-#: specialVueFakeDummyForL10nScript.js:6051
+#: specialVueFakeDummyForL10nScript.js:6192
 msgid "Add account"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:815
-#: specialVueFakeDummyForL10nScript.js:6055
+#: specialVueFakeDummyForL10nScript.js:6196
 msgid ""
 "No income category is configured yet. Configure one in Manage to record this "
 "movement."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6055
+#: specialVueFakeDummyForL10nScript.js:6196
 msgid ""
 "No expense category is configured yet. Configure one in Manage to record "
 "this movement."
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:836
-#: specialVueFakeDummyForL10nScript.js:6063
+#: specialVueFakeDummyForL10nScript.js:6204
 msgid ""
 "Record a transfer you made between your accounts. No money will be sent by "
 "the application."
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:838
-#: specialVueFakeDummyForL10nScript.js:6065
+#: specialVueFakeDummyForL10nScript.js:6206
 msgid "From account"
 msgstr ""
 
 #. TRANSLATORS s/MovementsView.vue:840
-#: specialVueFakeDummyForL10nScript.js:6067
+#: specialVueFakeDummyForL10nScript.js:6208
 msgid "To account"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6077
+#: specialVueFakeDummyForL10nScript.js:6218
 msgid "Record transfer"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6148
+#: specialVueFakeDummyForL10nScript.js:6289
 msgid "Select a service provider company with a registered CNPJ."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6167
+#: specialVueFakeDummyForL10nScript.js:6308
 msgid "Draft saved. No DPS was submitted and no fiscal invoice was issued."
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:110
-#: specialVueFakeDummyForL10nScript.js:6182 /app/src/navigation.js:25
+#: specialVueFakeDummyForL10nScript.js:6323 /app/src/navigation.js:25
 msgid "Brazilian NFS-e"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6182
+#: specialVueFakeDummyForL10nScript.js:6323
 msgid "FISCAL EXTENSION"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:111
-#: specialVueFakeDummyForL10nScript.js:6184
+#: specialVueFakeDummyForL10nScript.js:6325
 msgid "Preparation of service tax information. Issuance is not yet qualified."
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:116
-#: specialVueFakeDummyForL10nScript.js:6186
+#: specialVueFakeDummyForL10nScript.js:6327
 msgid "New draft"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:121
-#: specialVueFakeDummyForL10nScript.js:6188
+#: specialVueFakeDummyForL10nScript.js:6329
 msgid ""
 "This application does NOT yet sign XML, submit DPS or issue NFS-e. No record "
 "here can be treated as an authorized fiscal invoice."
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:124
-#: specialVueFakeDummyForL10nScript.js:6190
+#: specialVueFakeDummyForL10nScript.js:6331
 msgid ""
 "To create drafts, register a Brazilian company with a valid CNPJ in "
 "Companies."
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:130
-#: specialVueFakeDummyForL10nScript.js:6192
+#: specialVueFakeDummyForL10nScript.js:6333
 msgid "Service drafts"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:131
-#: specialVueFakeDummyForL10nScript.js:6194
+#: specialVueFakeDummyForL10nScript.js:6335
 msgid "Documents not yet transmitted"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:135
 #. TRANSLATORS s/SettingsView.vue:150
-#: specialVueFakeDummyForL10nScript.js:6196
-#: specialVueFakeDummyForL10nScript.js:6962
+#: specialVueFakeDummyForL10nScript.js:6337
+#: specialVueFakeDummyForL10nScript.js:7259
 msgid "Identifier"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:136
-#: specialVueFakeDummyForL10nScript.js:6198
+#: specialVueFakeDummyForL10nScript.js:6339
 msgid "Service provider"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:137
 #. TRANSLATORS s/NfseView.vue:168
-#: specialVueFakeDummyForL10nScript.js:6200
-#: specialVueFakeDummyForL10nScript.js:6226
+#: specialVueFakeDummyForL10nScript.js:6341
+#: specialVueFakeDummyForL10nScript.js:6367
 msgid "Tax competence date"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:138
-#: specialVueFakeDummyForL10nScript.js:6202
+#: specialVueFakeDummyForL10nScript.js:6343
 msgid "Service code"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:153
-#: specialVueFakeDummyForL10nScript.js:6212
+#: specialVueFakeDummyForL10nScript.js:6353
 msgid "No service drafts"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:154
-#: specialVueFakeDummyForL10nScript.js:6214
+#: specialVueFakeDummyForL10nScript.js:6355
 msgid ""
 "Create a draft using the button above, without submitting a fiscal invoice."
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:159
-#: specialVueFakeDummyForL10nScript.js:6218
+#: specialVueFakeDummyForL10nScript.js:6359
 msgid "Prepare service for NFS-e"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:162
-#: specialVueFakeDummyForL10nScript.js:6220
+#: specialVueFakeDummyForL10nScript.js:6361
 msgid "This action saves a draft without submission."
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:164
-#: specialVueFakeDummyForL10nScript.js:6222
+#: specialVueFakeDummyForL10nScript.js:6363
 msgid "Service provider company"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:165
-#: specialVueFakeDummyForL10nScript.js:6224
+#: specialVueFakeDummyForL10nScript.js:6365
 msgid "IBGE municipality code"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:169
-#: specialVueFakeDummyForL10nScript.js:6228
+#: specialVueFakeDummyForL10nScript.js:6369
 msgid "Service tax code"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:171
-#: specialVueFakeDummyForL10nScript.js:6230
+#: specialVueFakeDummyForL10nScript.js:6371
 msgid "Service description"
 msgstr ""
 
 #. TRANSLATORS s/NfseView.vue:173
-#: specialVueFakeDummyForL10nScript.js:6232
+#: specialVueFakeDummyForL10nScript.js:6373
 msgid "Amount (BRL)"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6527
+#: specialVueFakeDummyForL10nScript.js:6426
+msgid "No bills to pay"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6427
+msgid "No collections to receive"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6428
+msgid "Nothing to pay or receive"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6430
+msgid "All directions"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6431
+msgid "Receivables"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6432
+msgid "Payables"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6462
+msgid "All dates"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6463
+msgid "Overdue obligations"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6464
+msgid "Next 7 days"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6477
+msgid ""
+"Existing journal entry #{id} linked to the obligation without recording a "
+"new movement."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6482
+msgid "Movement and obligation updated together. Journal entry #{id}."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6530
+msgid "Partially settled obligations"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6531
+msgid "Settled obligations"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6532
+msgid "Cancelled obligations"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6534
+msgid "Direction: {direction}"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6540
+msgid "Due date: {range}"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6544
+msgid "No contact"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6605
+msgid "Obligation recorded."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6625
+msgid "Administrative settlement recorded. No journal entry was posted."
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6632
+msgid "Obligation cancelled."
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:285
+#: specialVueFakeDummyForL10nScript.js:6658
+msgid ""
+"Track due dates and outstanding obligations. Confirmed invoices "
+"automatically create the linked obligation."
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:289
+#: specialVueFakeDummyForL10nScript.js:6660
+#: specialVueFakeDummyForL10nScript.js:6690
+msgid "New obligation"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:294
+#: specialVueFakeDummyForL10nScript.js:6662
+msgid ""
+"A confirmed sale or purchase already appears in this list. Do not register "
+"the same bill again. A settlement without a movement does not affect the "
+"bank account. For actual payments, use Pay or Receive."
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:300
+#: specialVueFakeDummyForL10nScript.js:6664
+msgid "Selected record: {description} · {amount} outstanding."
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:304
+#: specialVueFakeDummyForL10nScript.js:6666
+msgid "Expected payments"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:305
+#: specialVueFakeDummyForL10nScript.js:6668
+msgid "Expected receipts"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6668
+msgid "Bills and collections"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:306
+#: specialVueFakeDummyForL10nScript.js:6670
+msgid ""
+"Amounts you need to pay or receive. Bank statements are reviewed separately."
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:310
+#: specialVueFakeDummyForL10nScript.js:6672
+msgid "Search the schedule"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6672
+msgid "Description or reference"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:321
+#: specialVueFakeDummyForL10nScript.js:6674
+msgid "Filter by direction"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:336
+#: specialVueFakeDummyForL10nScript.js:6676
+msgid "Filter by status"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:351
+#: specialVueFakeDummyForL10nScript.js:6678
+msgid "Filter by due date"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:361
+#: specialVueFakeDummyForL10nScript.js:6680
+msgid "Loading financial obligations…"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:365
+#: specialVueFakeDummyForL10nScript.js:6682
+msgid "No results match these filters"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:367
+#: specialVueFakeDummyForL10nScript.js:6684
+msgid "Change the filters or search to see other records."
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:368
+#: specialVueFakeDummyForL10nScript.js:6686
+msgid ""
+"Register a bill or collection. Confirmed sales and purchases appear here "
+"automatically."
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:380
+#: specialVueFakeDummyForL10nScript.js:6692
+msgid "Reference"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:387
+#: specialVueFakeDummyForL10nScript.js:6696
+msgid "Direction"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:393
+#: specialVueFakeDummyForL10nScript.js:6700
+msgid "Expected amount"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:396
+#: specialVueFakeDummyForL10nScript.js:6702
+msgid "Expected balance"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:405
+#: specialVueFakeDummyForL10nScript.js:6706
+msgid "Expected inflow"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6706
+msgid "Expected outflow"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:409
+#: specialVueFakeDummyForL10nScript.js:6708
+msgid "Invoice #{id}"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:411
+#: specialVueFakeDummyForL10nScript.js:6710
+msgid "Open invoice"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:412
+#: specialVueFakeDummyForL10nScript.js:6712
+msgid "Document access unavailable"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:414
+#: specialVueFakeDummyForL10nScript.js:6714
+msgid "Bill or collection"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:426
+#: specialVueFakeDummyForL10nScript.js:6716
+msgid "Posted: {amount}"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:429
+#: specialVueFakeDummyForL10nScript.js:6718
+msgid "Settlement without movement: {amount}"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:433
+#: specialVueFakeDummyForL10nScript.js:6720
+msgid "Overdue"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:434
+#: specialVueFakeDummyForL10nScript.js:6722
+msgid "Open obligation"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6722
+msgid "Partial"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:436
+#: specialVueFakeDummyForL10nScript.js:6724
+msgid "Settled by movement and administrative settlement"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6726
+msgid "Settled administratively"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:439
+#: specialVueFakeDummyForL10nScript.js:6728
+msgid "Cancelled obligation"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:447
+#: specialVueFakeDummyForL10nScript.js:6732
+msgid "More actions for {description}"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:451
+#: specialVueFakeDummyForL10nScript.js:6734
+msgid "Link existing journal entry"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:455
+#: specialVueFakeDummyForL10nScript.js:6736
+msgid "Settlement without movement"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:460
+#. TRANSLATORS s/ObligationsView.vue:549
+#: specialVueFakeDummyForL10nScript.js:6738
+#: specialVueFakeDummyForL10nScript.js:6796
+msgid "Cancel obligation"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:464
+#: specialVueFakeDummyForL10nScript.js:6740
+msgid "Settlement through the source document"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:471
+#: specialVueFakeDummyForL10nScript.js:6742
+msgid "Load more obligations"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:475
+#: specialVueFakeDummyForL10nScript.js:6744
+msgid "New collection"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:476
+#: specialVueFakeDummyForL10nScript.js:6746
+msgid "New payable"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:480
+#: specialVueFakeDummyForL10nScript.js:6748
+msgid ""
+"Use this form for bills or collections without a corresponding confirmed "
+"sale or purchase with details. Confirmed sales and purchases appear here "
+"automatically. Do not register them twice."
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:483
+#: specialVueFakeDummyForL10nScript.js:6750
+msgid "What will happen?"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:488
+#: specialVueFakeDummyForL10nScript.js:6752
+msgid "I will pay"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:489
+#: specialVueFakeDummyForL10nScript.js:6754
+msgid "Money will go out"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:494
+#: specialVueFakeDummyForL10nScript.js:6756
+msgid "I will receive"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:495
+#: specialVueFakeDummyForL10nScript.js:6758
+msgid "Money will come in"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:500
+#: specialVueFakeDummyForL10nScript.js:6760
+msgid "Simple collection"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6760
+msgid "Simple bill"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:503
+#: specialVueFakeDummyForL10nScript.js:6764
+msgid "Reference (optional)"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:512
+#: specialVueFakeDummyForL10nScript.js:6772
+msgid "Contact (optional)"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:514
+#: specialVueFakeDummyForL10nScript.js:6774
+msgid "Load more contacts"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:517
+#: specialVueFakeDummyForL10nScript.js:6778
+msgid "Save bill or collection"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:521
+#: specialVueFakeDummyForL10nScript.js:6780
+msgid "Record administrative settlement (without bank movement)"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:527
+#: specialVueFakeDummyForL10nScript.js:6784
+msgid ""
+"This settlement only updates the obligation. It does not record a bank "
+"inflow or outflow. Posting and reconciliation are separate steps."
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:529
+#: specialVueFakeDummyForL10nScript.js:6786
+msgid "Settlement amount"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:532
+#: specialVueFakeDummyForL10nScript.js:6790
+msgid "Note"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:536
+#: specialVueFakeDummyForL10nScript.js:6794
+msgid "Record settlement"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:552
+#: specialVueFakeDummyForL10nScript.js:6798
+msgid "Cancel {description}? Its history will be preserved."
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:554
+#: specialVueFakeDummyForL10nScript.js:6800
+msgid "Keep obligation"
+msgstr ""
+
+#. TRANSLATORS s/ObligationsView.vue:555
+#: specialVueFakeDummyForL10nScript.js:6802
+msgid "Confirm cancellation"
+msgstr ""
+
+#: specialVueFakeDummyForL10nScript.js:6824
 msgid "Profit and loss for the period"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6527
+#: specialVueFakeDummyForL10nScript.js:6824
 msgid "Income, expenses and result by period"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6528
+#: specialVueFakeDummyForL10nScript.js:6825
 msgid "Actual cash flow"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6528
+#: specialVueFakeDummyForL10nScript.js:6825
 msgid "Cash inflows, outflows and ledger balance"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6529
+#: specialVueFakeDummyForL10nScript.js:6826
 msgid "Trial balance"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6529
+#: specialVueFakeDummyForL10nScript.js:6826
 msgid "Ledger balance by account and class"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6561
+#: specialVueFakeDummyForL10nScript.js:6858
 msgid "Ledger balance"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6660
+#: specialVueFakeDummyForL10nScript.js:6957
 msgid "Enter a name for the report."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6679
+#: specialVueFakeDummyForL10nScript.js:6976
 msgid "Report updated."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6679
+#: specialVueFakeDummyForL10nScript.js:6976
 msgid "Report registered in this workspace."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6692
+#: specialVueFakeDummyForL10nScript.js:6989
 msgid "Report archived; no ledger entries were deleted."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6707
+#: specialVueFakeDummyForL10nScript.js:7004
 msgid "Configuration deleted. No ledger entries were changed."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:215
-#: specialVueFakeDummyForL10nScript.js:6715 /app/src/navigation.js:14
+#: specialVueFakeDummyForL10nScript.js:7012 /app/src/navigation.js:14
 msgid "Reports"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6715
+#: specialVueFakeDummyForL10nScript.js:7012
 msgid "FINANCIAL ANALYSIS"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:216
-#: specialVueFakeDummyForL10nScript.js:6717
+#: specialVueFakeDummyForL10nScript.js:7014
 msgid ""
 "Choose a report, adjust its period and save configurations for future use."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:220
-#: specialVueFakeDummyForL10nScript.js:6719
-#: specialVueFakeDummyForL10nScript.js:6783
+#: specialVueFakeDummyForL10nScript.js:7016
+#: specialVueFakeDummyForL10nScript.js:7080
 msgid "New report"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:227
-#: specialVueFakeDummyForL10nScript.js:6721
+#: specialVueFakeDummyForL10nScript.js:7018
 msgid "Report catalog"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:228
-#: specialVueFakeDummyForL10nScript.js:6723
+#: specialVueFakeDummyForL10nScript.js:7020
 msgid "Available templates"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:229
-#: specialVueFakeDummyForL10nScript.js:6725
+#: specialVueFakeDummyForL10nScript.js:7022
 msgid "Reports based on posted accounting data."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:238
-#: specialVueFakeDummyForL10nScript.js:6727
+#: specialVueFakeDummyForL10nScript.js:7024
 msgid "My reports"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:239
-#: specialVueFakeDummyForL10nScript.js:6729
+#: specialVueFakeDummyForL10nScript.js:7026
 msgid "Add"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:240
-#: specialVueFakeDummyForL10nScript.js:6731
+#: specialVueFakeDummyForL10nScript.js:7028
 msgid "No custom report has been registered."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:251
-#: specialVueFakeDummyForL10nScript.js:6733
+#: specialVueFakeDummyForL10nScript.js:7030
 msgid "Load more templates"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:261
 #. TRANSLATORS s/SpacesView.vue:271
-#: specialVueFakeDummyForL10nScript.js:6737
-#: specialVueFakeDummyForL10nScript.js:7241
+#: specialVueFakeDummyForL10nScript.js:7034
+#: specialVueFakeDummyForL10nScript.js:7538
 msgid "Archive"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:269
-#: specialVueFakeDummyForL10nScript.js:6741
-#: specialVueFakeDummyForL10nScript.js:6791
+#: specialVueFakeDummyForL10nScript.js:7038
+#: specialVueFakeDummyForL10nScript.js:7088
 msgid "From"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:270
-#: specialVueFakeDummyForL10nScript.js:6743
-#: specialVueFakeDummyForL10nScript.js:6793
+#: specialVueFakeDummyForL10nScript.js:7040
+#: specialVueFakeDummyForL10nScript.js:7090
 msgid "Through"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:337
-#: specialVueFakeDummyForL10nScript.js:6743
-#: specialVueFakeDummyForL10nScript.js:6793
+#: specialVueFakeDummyForL10nScript.js:7040
+#: specialVueFakeDummyForL10nScript.js:7090
 msgid "Reference date"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:271
-#: specialVueFakeDummyForL10nScript.js:6745
+#: specialVueFakeDummyForL10nScript.js:7042
 msgid "Apply period"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:273
-#: specialVueFakeDummyForL10nScript.js:6747
+#: specialVueFakeDummyForL10nScript.js:7044
 msgid ""
 "Saved template with an initial period. You can view other dates without "
 "changing the template."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6747
+#: specialVueFakeDummyForL10nScript.js:7044
 msgid "Standard template available in all authorized workspaces."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:274
-#: specialVueFakeDummyForL10nScript.js:6749
+#: specialVueFakeDummyForL10nScript.js:7046
 msgid "Calculating report…"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:281
-#: specialVueFakeDummyForL10nScript.js:6757
+#: specialVueFakeDummyForL10nScript.js:7054
 msgid ""
 "Actual result for the period. Excludes forecasts and pending bank statements."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:285
-#: specialVueFakeDummyForL10nScript.js:6759
+#: specialVueFakeDummyForL10nScript.js:7056
 msgid "Opening balance"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:286
-#: specialVueFakeDummyForL10nScript.js:6761
+#: specialVueFakeDummyForL10nScript.js:7058
 msgid "Change"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:287
-#: specialVueFakeDummyForL10nScript.js:6763
+#: specialVueFakeDummyForL10nScript.js:7060
 msgid "Closing balance"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:289
-#: specialVueFakeDummyForL10nScript.js:6765
+#: specialVueFakeDummyForL10nScript.js:7062
 msgid "Movements by month"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:292
-#: specialVueFakeDummyForL10nScript.js:6767
+#: specialVueFakeDummyForL10nScript.js:7064
 msgid "Month"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:293
-#: specialVueFakeDummyForL10nScript.js:6769
+#: specialVueFakeDummyForL10nScript.js:7066
 msgid "Net change"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:299
-#: specialVueFakeDummyForL10nScript.js:6771
+#: specialVueFakeDummyForL10nScript.js:7068
 msgid "No movements in this period"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:302
-#: specialVueFakeDummyForL10nScript.js:6773
+#: specialVueFakeDummyForL10nScript.js:7070
 msgid ""
 "Filtered by class: {class}. The filter is applied on the server before "
 "pagination."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:318
-#: specialVueFakeDummyForL10nScript.js:6777
+#: specialVueFakeDummyForL10nScript.js:7074
 msgid "More accounts"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:321
-#: specialVueFakeDummyForL10nScript.js:6779
+#: specialVueFakeDummyForL10nScript.js:7076
 msgid "How are these numbers calculated?"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:322
-#: specialVueFakeDummyForL10nScript.js:6781
+#: specialVueFakeDummyForL10nScript.js:7078
 msgid ""
 "Reports use only posted entries in the workspace. They exclude pending "
 "statements, projections and unposted tax data. New accounting models still "
@@ -5882,174 +6673,174 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:327
-#: specialVueFakeDummyForL10nScript.js:6783
+#: specialVueFakeDummyForL10nScript.js:7080
 msgid "Edit report"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:329
-#: specialVueFakeDummyForL10nScript.js:6785
+#: specialVueFakeDummyForL10nScript.js:7082
 msgid ""
 "Register a report configuration from an existing report. Creating entirely "
 "new accounting reports is a future capability."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:331
-#: specialVueFakeDummyForL10nScript.js:6787
+#: specialVueFakeDummyForL10nScript.js:7084
 msgid "Report name"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:332
-#: specialVueFakeDummyForL10nScript.js:6789
+#: specialVueFakeDummyForL10nScript.js:7086
 msgid "Base template"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:340
-#: specialVueFakeDummyForL10nScript.js:6795
+#: specialVueFakeDummyForL10nScript.js:7092
 msgid "Customize the table"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:341
-#: specialVueFakeDummyForL10nScript.js:6797
+#: specialVueFakeDummyForL10nScript.js:7094
 msgid ""
 "Choose columns, their order and the account class. Accounting calculations "
 "do not change."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:349
-#: specialVueFakeDummyForL10nScript.js:6799
+#: specialVueFakeDummyForL10nScript.js:7096
 msgid "Show only accounts of class"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:350
-#: specialVueFakeDummyForL10nScript.js:6801
+#: specialVueFakeDummyForL10nScript.js:7098
 msgid ""
 "This version configures the trial balance presentation and class filter; it "
 "does not create custom formulas or financial statements."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:354
-#: specialVueFakeDummyForL10nScript.js:6805
+#: specialVueFakeDummyForL10nScript.js:7102
 msgid "Save report"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:359
-#: specialVueFakeDummyForL10nScript.js:6807
+#: specialVueFakeDummyForL10nScript.js:7104
 msgid "Permanently delete report"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:361
-#: specialVueFakeDummyForL10nScript.js:6809
+#: specialVueFakeDummyForL10nScript.js:7106
 msgid ""
 "This action permanently deletes the report configuration, even if it is "
 "archived. It does not remove accounting information."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:362
-#: specialVueFakeDummyForL10nScript.js:6811
+#: specialVueFakeDummyForL10nScript.js:7108
 msgid "Delete {name}?"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:366
-#: specialVueFakeDummyForL10nScript.js:6815
+#: specialVueFakeDummyForL10nScript.js:7112
 msgid "Delete configuration"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:372
-#: specialVueFakeDummyForL10nScript.js:6817
+#: specialVueFakeDummyForL10nScript.js:7114
 msgid "Archive report"
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:374
-#: specialVueFakeDummyForL10nScript.js:6819
+#: specialVueFakeDummyForL10nScript.js:7116
 msgid ""
 "Archive {name}? The template will no longer appear in the catalog. Ledger "
 "entries and accounting data will remain intact."
 msgstr ""
 
 #. TRANSLATORS s/ReportsView.vue:377
-#: specialVueFakeDummyForL10nScript.js:6823
+#: specialVueFakeDummyForL10nScript.js:7120
 msgid "Archive template"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6848 /app/src/navigation.js:32
+#: specialVueFakeDummyForL10nScript.js:7145 /app/src/navigation.js:32
 #: src/navigation.js:33
 msgid "Access and sharing"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6849
+#: specialVueFakeDummyForL10nScript.js:7146
 msgid "Define who can view and operate this financial workspace."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6852 /app/src/navigation.js:34
+#: specialVueFakeDummyForL10nScript.js:7149 /app/src/navigation.js:34
 msgid "Custom fields"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6853
+#: specialVueFakeDummyForL10nScript.js:7150
 msgid "Customize records according to the data used by the organization."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6857
+#: specialVueFakeDummyForL10nScript.js:7154
 msgid "Manage payment methods available for entries."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6860 /app/src/navigation.js:36
+#: specialVueFakeDummyForL10nScript.js:7157 /app/src/navigation.js:36
 msgid "Installed features"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6861
+#: specialVueFakeDummyForL10nScript.js:7158
 msgid ""
 "Activate or deactivate the features available in this financial workspace."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6865
+#: specialVueFakeDummyForL10nScript.js:7162
 msgid "Banking and reconciliation"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6865
+#: specialVueFakeDummyForL10nScript.js:7162
 msgid "Bank statements, transfers and reconciliation"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6866
+#: specialVueFakeDummyForL10nScript.js:7163
 msgid "Bills, obligations, due dates and settlements"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6867
+#: specialVueFakeDummyForL10nScript.js:7164
 msgid "Sales, purchases and taxes"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6867
+#: specialVueFakeDummyForL10nScript.js:7164
 msgid "Commercial invoices and jurisdiction-specific tax rules"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6868
+#: specialVueFakeDummyForL10nScript.js:7165
 msgid "Profit and loss, cash flow, trial balance and saved reports"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6869
+#: specialVueFakeDummyForL10nScript.js:7166
 msgid "Data import and migration"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6869
+#: specialVueFakeDummyForL10nScript.js:7166
 msgid "Approved imports, source identity mapping and reconciliation"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6938
+#: specialVueFakeDummyForL10nScript.js:7235
 msgid "Access grants changed. Check the refreshed list before revoking again."
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:128
-#: specialVueFakeDummyForL10nScript.js:6946
-#: specialVueFakeDummyForL10nScript.js:7199
+#: specialVueFakeDummyForL10nScript.js:7243
+#: specialVueFakeDummyForL10nScript.js:7496
 msgid "MANAGE"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:131
-#: specialVueFakeDummyForL10nScript.js:6948
+#: specialVueFakeDummyForL10nScript.js:7245
 msgid "Workspace access"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:132
-#: specialVueFakeDummyForL10nScript.js:6950
+#: specialVueFakeDummyForL10nScript.js:7247
 msgid ""
 "Permissions are checked by the server for each operation. Nextcloud accounts "
 "and groups are not customizable financial records: custom fields belong to "
@@ -6057,7 +6848,7 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:142
-#: specialVueFakeDummyForL10nScript.js:6956
+#: specialVueFakeDummyForL10nScript.js:7253
 msgid ""
 "Only users with financial role management permission can grant or revoke "
 "individual access. Environment administrators do not automatically receive "
@@ -6065,7 +6856,7 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:145
-#: specialVueFakeDummyForL10nScript.js:6958
+#: specialVueFakeDummyForL10nScript.js:7255
 msgid ""
 "This context is administered by Nextcloud group {name}. Delegated "
 "administrators can grant access only to users belonging to the authorized "
@@ -6073,148 +6864,148 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:151
-#: specialVueFakeDummyForL10nScript.js:6964
+#: specialVueFakeDummyForL10nScript.js:7261
 msgid "Permission"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:165
-#: specialVueFakeDummyForL10nScript.js:6974
+#: specialVueFakeDummyForL10nScript.js:7271
 msgid "Revoke access for group {name}"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:173
-#: specialVueFakeDummyForL10nScript.js:6976
+#: specialVueFakeDummyForL10nScript.js:7273
 msgid "No other access grants"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:174
-#: specialVueFakeDummyForL10nScript.js:6978
+#: specialVueFakeDummyForL10nScript.js:7275
 msgid "Invite people or groups when you need to collaborate."
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:183
-#: specialVueFakeDummyForL10nScript.js:6980
+#: specialVueFakeDummyForL10nScript.js:7277
 msgid "Available features"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:184
-#: specialVueFakeDummyForL10nScript.js:6982
+#: specialVueFakeDummyForL10nScript.js:7279
 msgid "LibreFinance capabilities installed by the Nextcloud administrator."
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:186
-#: specialVueFakeDummyForL10nScript.js:6984
+#: specialVueFakeDummyForL10nScript.js:7281
 msgid ""
 "Activating a feature in this workspace does not install new code or grant "
 "additional permission. Regional apps such as NFS-e remain optional."
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:193
-#: specialVueFakeDummyForL10nScript.js:6986
+#: specialVueFakeDummyForL10nScript.js:7283
 msgid ""
 "Blocked by administrative policy. Local activation does not remove the "
 "restriction."
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:195
-#: specialVueFakeDummyForL10nScript.js:6988
+#: specialVueFakeDummyForL10nScript.js:7285
 msgid "Available in this workspace"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6988
+#: specialVueFakeDummyForL10nScript.js:7285
 msgid "Deactivated in this workspace"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:199
-#: specialVueFakeDummyForL10nScript.js:6990
+#: specialVueFakeDummyForL10nScript.js:7287
 msgid "Blocked by policy"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6990
+#: specialVueFakeDummyForL10nScript.js:7287
 msgid "Deactivate"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6990
+#: specialVueFakeDummyForL10nScript.js:7287
 msgid "Activate"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:201
-#: specialVueFakeDummyForL10nScript.js:6992
+#: specialVueFakeDummyForL10nScript.js:7289
 msgid "No additional features available"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:204
-#: specialVueFakeDummyForL10nScript.js:6994
+#: specialVueFakeDummyForL10nScript.js:7291
 msgid "Grant access to user"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:6994
+#: specialVueFakeDummyForL10nScript.js:7291
 msgid "Grant access to group"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:208
-#: specialVueFakeDummyForL10nScript.js:6996
+#: specialVueFakeDummyForL10nScript.js:7293
 msgid "Nextcloud user"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:211
-#: specialVueFakeDummyForL10nScript.js:7000
+#: specialVueFakeDummyForL10nScript.js:7297
 msgid "Workspace role"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:214
-#: specialVueFakeDummyForL10nScript.js:7004
+#: specialVueFakeDummyForL10nScript.js:7301
 msgid "Grant access"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:218
 #. TRANSLATORS s/SettingsView.vue:226
-#: specialVueFakeDummyForL10nScript.js:7006
-#: specialVueFakeDummyForL10nScript.js:7012
+#: specialVueFakeDummyForL10nScript.js:7303
+#: specialVueFakeDummyForL10nScript.js:7309
 msgid "Revoke access"
 msgstr ""
 
 #. TRANSLATORS s/SettingsView.vue:221
-#: specialVueFakeDummyForL10nScript.js:7008
+#: specialVueFakeDummyForL10nScript.js:7305
 msgid "Revoke access for {name} to this financial workspace?"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7129
+#: specialVueFakeDummyForL10nScript.js:7426
 msgid "Workspace name updated."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7146
+#: specialVueFakeDummyForL10nScript.js:7443
 msgid "Workspace archived without deleting entries or documents."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7161
+#: specialVueFakeDummyForL10nScript.js:7458
 msgid "Workspace restored with its history."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7184
+#: specialVueFakeDummyForL10nScript.js:7481
 msgid "Independent workspace created."
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:193
-#: specialVueFakeDummyForL10nScript.js:7199 /app/src/navigation.js:20
+#: specialVueFakeDummyForL10nScript.js:7496 /app/src/navigation.js:20
 #: src/navigation.js:60
 msgid "Financial workspaces"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:194
-#: specialVueFakeDummyForL10nScript.js:7201
+#: specialVueFakeDummyForL10nScript.js:7498
 msgid ""
 "Each financial area contains an independent ledger, cash and access rights. "
 "Registering companies within an area does not create separate accounting."
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:196
-#: specialVueFakeDummyForL10nScript.js:7203
+#: specialVueFakeDummyForL10nScript.js:7500
 msgid "New workspace"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:202
-#: specialVueFakeDummyForL10nScript.js:7205
+#: specialVueFakeDummyForL10nScript.js:7502
 msgid ""
 "A financial workspace has its own cash and accounting ledger, with "
 "independent accounts, entries, documents and access rights. It is not a "
@@ -6222,7 +7013,7 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:203
-#: specialVueFakeDummyForL10nScript.js:7207
+#: specialVueFakeDummyForL10nScript.js:7504
 msgid ""
 "To register or edit companies and branches within the current finances, use "
 "Organization details in Records, without creating another area. For separate "
@@ -6231,140 +7022,140 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:205
-#: specialVueFakeDummyForL10nScript.js:7209
+#: specialVueFakeDummyForL10nScript.js:7506
 msgid "Register or edit companies"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:212
-#: specialVueFakeDummyForL10nScript.js:7211
+#: specialVueFakeDummyForL10nScript.js:7508
 msgid "External financial sharing"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:220
-#: specialVueFakeDummyForL10nScript.js:7213
+#: specialVueFakeDummyForL10nScript.js:7510
 msgid "Policies of the current workspace"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:221
-#: specialVueFakeDummyForL10nScript.js:7215
+#: specialVueFakeDummyForL10nScript.js:7512
 msgid ""
 "Owners and financial managers can restrict features of their SaaS workspace "
 "without modifying other ledgers in the environment."
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:226
-#: specialVueFakeDummyForL10nScript.js:7217
+#: specialVueFakeDummyForL10nScript.js:7514
 msgid "Hide policies"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7217
+#: specialVueFakeDummyForL10nScript.js:7514
 msgid "Configure policies"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:235
-#: specialVueFakeDummyForL10nScript.js:7219
+#: specialVueFakeDummyForL10nScript.js:7516
 msgid "Individual dashboard preferences"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:236
-#: specialVueFakeDummyForL10nScript.js:7221
+#: specialVueFakeDummyForL10nScript.js:7518
 msgid ""
 "These user restrictions are independent of other ledgers and never replace "
 "group financial permission."
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:241
-#: specialVueFakeDummyForL10nScript.js:7223
+#: specialVueFakeDummyForL10nScript.js:7520
 msgid "Filter financial workspaces"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:242
-#: specialVueFakeDummyForL10nScript.js:7225
+#: specialVueFakeDummyForL10nScript.js:7522
 msgid "Area name or type"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:246
-#: specialVueFakeDummyForL10nScript.js:7227
+#: specialVueFakeDummyForL10nScript.js:7524
 msgid "My workspaces"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:247
-#: specialVueFakeDummyForL10nScript.js:7229
+#: specialVueFakeDummyForL10nScript.js:7526
 msgid ""
 "Open accesses the financial ledger. Renaming or archiving does not change "
 "entries."
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:249
-#: specialVueFakeDummyForL10nScript.js:7231
+#: specialVueFakeDummyForL10nScript.js:7528
 msgid "Workspaces I own"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:252
-#: specialVueFakeDummyForL10nScript.js:7233
-#: specialVueFakeDummyForL10nScript.js:7261
+#: specialVueFakeDummyForL10nScript.js:7530
+#: specialVueFakeDummyForL10nScript.js:7558
 msgid "Actions for workspace {name}"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:263
-#: specialVueFakeDummyForL10nScript.js:7237
-#: specialVueFakeDummyForL10nScript.js:7265
+#: specialVueFakeDummyForL10nScript.js:7534
+#: specialVueFakeDummyForL10nScript.js:7562
 msgid "Open"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:267
-#: specialVueFakeDummyForL10nScript.js:7239
+#: specialVueFakeDummyForL10nScript.js:7536
 msgid "Edit name and color"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:276
-#: specialVueFakeDummyForL10nScript.js:7243
+#: specialVueFakeDummyForL10nScript.js:7540
 msgid "No workspaces match this search"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:277
-#: specialVueFakeDummyForL10nScript.js:7245
+#: specialVueFakeDummyForL10nScript.js:7542
 msgid "Create a workspace, remove the filter or restore an archived workspace."
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:280
-#: specialVueFakeDummyForL10nScript.js:7247
+#: specialVueFakeDummyForL10nScript.js:7544
 msgid "Archived workspaces"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:281
-#: specialVueFakeDummyForL10nScript.js:7249
+#: specialVueFakeDummyForL10nScript.js:7546
 msgid "Archived financial workspaces"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:283
-#: specialVueFakeDummyForL10nScript.js:7251
+#: specialVueFakeDummyForL10nScript.js:7548
 msgid "Actions for archived workspace {name}"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:286
-#: specialVueFakeDummyForL10nScript.js:7253
+#: specialVueFakeDummyForL10nScript.js:7550
 msgid "Archived workspace"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:298
-#: specialVueFakeDummyForL10nScript.js:7257
+#: specialVueFakeDummyForL10nScript.js:7554
 msgid "Shared with me"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:299
-#: specialVueFakeDummyForL10nScript.js:7259
+#: specialVueFakeDummyForL10nScript.js:7556
 #: src/financialContexts.js:22
 msgid "Shared financial workspaces"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:304
-#: specialVueFakeDummyForL10nScript.js:7263
+#: specialVueFakeDummyForL10nScript.js:7560
 msgid "Shared workspace"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:314
-#: specialVueFakeDummyForL10nScript.js:7267
+#: specialVueFakeDummyForL10nScript.js:7564
 msgid ""
 "Permanent deletion of workspaces is unavailable in this version. Archiving "
 "is reversible and preserves records and audit history; safe deletion must "
@@ -6372,17 +7163,17 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:316
-#: specialVueFakeDummyForL10nScript.js:7269
+#: specialVueFakeDummyForL10nScript.js:7566
 msgid "Create financial workspace"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:321
-#: specialVueFakeDummyForL10nScript.js:7271
+#: specialVueFakeDummyForL10nScript.js:7568
 msgid "This option creates an independent financial workspace."
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:322
-#: specialVueFakeDummyForL10nScript.js:7273
+#: specialVueFakeDummyForL10nScript.js:7570
 msgid ""
 "Accounts, cash, obligations, balances and access rights will be separate. If "
 "you only need to register another company or branch within the same "
@@ -6390,35 +7181,35 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:324
-#: specialVueFakeDummyForL10nScript.js:7275
+#: specialVueFakeDummyForL10nScript.js:7572
 msgid ""
 "Use a separate area only for truly independent finances, such as your "
 "household, another business or a group that does not share cash."
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:327
-#: specialVueFakeDummyForL10nScript.js:7277
+#: specialVueFakeDummyForL10nScript.js:7574
 msgid "I want to register a company within the current finances"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:331
-#: specialVueFakeDummyForL10nScript.js:7281
+#: specialVueFakeDummyForL10nScript.js:7578
 msgid "Financial workspace type"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:332
-#: specialVueFakeDummyForL10nScript.js:7283
-#: specialVueFakeDummyForL10nScript.js:7299
+#: specialVueFakeDummyForL10nScript.js:7580
+#: specialVueFakeDummyForL10nScript.js:7596
 msgid "Workspace identification color"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:334
-#: specialVueFakeDummyForL10nScript.js:7285
+#: specialVueFakeDummyForL10nScript.js:7582
 msgid "Choose financial workspace color"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:341
-#: specialVueFakeDummyForL10nScript.js:7289
+#: specialVueFakeDummyForL10nScript.js:7586
 msgid ""
 "Color, logo and visual identity belong to the company, not the workspace. "
 "Next, configure legal registration, visual identity, logo and additional "
@@ -6426,32 +7217,32 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:350
-#: specialVueFakeDummyForL10nScript.js:7295
+#: specialVueFakeDummyForL10nScript.js:7592
 msgid "Edit financial workspace"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:357
-#: specialVueFakeDummyForL10nScript.js:7301
+#: specialVueFakeDummyForL10nScript.js:7598
 msgid "Change financial workspace color"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:367
-#: specialVueFakeDummyForL10nScript.js:7307
+#: specialVueFakeDummyForL10nScript.js:7604
 msgid "Save name"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:372
-#: specialVueFakeDummyForL10nScript.js:7309
+#: specialVueFakeDummyForL10nScript.js:7606
 msgid "Archive financial workspace"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:376
-#: specialVueFakeDummyForL10nScript.js:7311
+#: specialVueFakeDummyForL10nScript.js:7608
 msgid "Archive {name}?"
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:378
-#: specialVueFakeDummyForL10nScript.js:7313
+#: specialVueFakeDummyForL10nScript.js:7610
 msgid ""
 "The workspace will no longer appear in lists and access will be suspended. "
 "Accounts, documents, entries and audit history will be preserved. The owner "
@@ -6459,41 +7250,41 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/SpacesView.vue:383
-#: specialVueFakeDummyForL10nScript.js:7317
+#: specialVueFakeDummyForL10nScript.js:7614
 msgid "Archive workspace"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7359
+#: specialVueFakeDummyForL10nScript.js:7656
 msgid "No category"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7389
+#: specialVueFakeDummyForL10nScript.js:7686
 msgid "Not specified"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7409
+#: specialVueFakeDummyForL10nScript.js:7706
 msgid ""
 "Outflow of {amount} from account {account}. Classification: {classification}."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7410
+#: specialVueFakeDummyForL10nScript.js:7707
 msgid ""
 "Inflow of {amount} into account {account}. Classification: {classification}."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7440
+#: specialVueFakeDummyForL10nScript.js:7737
 msgid ""
 "Enter the financial account, income or expense account, date and description "
 "before continuing."
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:142
-#: specialVueFakeDummyForL10nScript.js:7457
+#: specialVueFakeDummyForL10nScript.js:7754
 msgid "Inflows and outflows"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:143
-#: specialVueFakeDummyForL10nScript.js:7459
+#: specialVueFakeDummyForL10nScript.js:7756
 msgid ""
 "Record money already moved without a registered pending bill. For an "
 "existing payable or receivable, use its Pay or Receive action; to review "
@@ -6502,33 +7293,33 @@ msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:148
 #. TRANSLATORS s/TransactionsView.vue:197
-#: specialVueFakeDummyForL10nScript.js:7461
-#: specialVueFakeDummyForL10nScript.js:7495
+#: specialVueFakeDummyForL10nScript.js:7758
+#: specialVueFakeDummyForL10nScript.js:7792
 msgid "Record inflow or outflow"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:154
-#: specialVueFakeDummyForL10nScript.js:7463
+#: specialVueFakeDummyForL10nScript.js:7760
 msgid "Posted transactions"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:155
-#: specialVueFakeDummyForL10nScript.js:7465
+#: specialVueFakeDummyForL10nScript.js:7762
 msgid "Filter loaded journal entries"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:156
-#: specialVueFakeDummyForL10nScript.js:7467
+#: specialVueFakeDummyForL10nScript.js:7764
 msgid "Description or date"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:160
-#: specialVueFakeDummyForL10nScript.js:7469
+#: specialVueFakeDummyForL10nScript.js:7766
 msgid "How should journal entries be interpreted?"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:161
-#: specialVueFakeDummyForL10nScript.js:7471
+#: specialVueFakeDummyForL10nScript.js:7768
 msgid ""
 "Debit and credit are the two sides of an accounting entry. A posted entry "
 "cannot be edited: differences must be corrected with another entry. Search "
@@ -6537,60 +7328,60 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:168
-#: specialVueFakeDummyForL10nScript.js:7477
+#: specialVueFakeDummyForL10nScript.js:7774
 msgid "Classification"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:169
-#: specialVueFakeDummyForL10nScript.js:7479
+#: specialVueFakeDummyForL10nScript.js:7776
 msgid "Debit"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:170
-#: specialVueFakeDummyForL10nScript.js:7481
+#: specialVueFakeDummyForL10nScript.js:7778
 msgid "Credit"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:177
-#: specialVueFakeDummyForL10nScript.js:7485
+#: specialVueFakeDummyForL10nScript.js:7782
 msgid "Markdown notes attached"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:181
-#: specialVueFakeDummyForL10nScript.js:7487
+#: specialVueFakeDummyForL10nScript.js:7784
 msgid "Unclassified"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:190
-#: specialVueFakeDummyForL10nScript.js:7489
+#: specialVueFakeDummyForL10nScript.js:7786
 msgid "No journal entries found on this page"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7489
+#: specialVueFakeDummyForL10nScript.js:7786
 msgid "No posted journal entries"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:191
-#: specialVueFakeDummyForL10nScript.js:7491
+#: specialVueFakeDummyForL10nScript.js:7788
 msgid "Use Record inflow or outflow, or load more history."
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:193
-#: specialVueFakeDummyForL10nScript.js:7493
+#: specialVueFakeDummyForL10nScript.js:7790
 msgid "Load more journal entries"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:200
-#: specialVueFakeDummyForL10nScript.js:7497
+#: specialVueFakeDummyForL10nScript.js:7794
 msgid "Record a paid expense."
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7497
+#: specialVueFakeDummyForL10nScript.js:7794
 msgid "Record received income."
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:201
-#: specialVueFakeDummyForL10nScript.js:7499
+#: specialVueFakeDummyForL10nScript.js:7796
 msgid ""
 "The financial account ledger balance will be updated immediately. To pay or "
 "receive a registered bill, use its Pay or Receive action to avoid "
@@ -6598,114 +7389,114 @@ msgid ""
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:204
-#: specialVueFakeDummyForL10nScript.js:7501
+#: specialVueFakeDummyForL10nScript.js:7798
 msgid "What happened?"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:210
-#: specialVueFakeDummyForL10nScript.js:7505
+#: specialVueFakeDummyForL10nScript.js:7802
 msgid "Money went out"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:216
-#: specialVueFakeDummyForL10nScript.js:7509
+#: specialVueFakeDummyForL10nScript.js:7806
 msgid "Money came in"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:222
-#: specialVueFakeDummyForL10nScript.js:7511
+#: specialVueFakeDummyForL10nScript.js:7808
 msgid "Where did the money come from?"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7511
+#: specialVueFakeDummyForL10nScript.js:7808
 msgid "Where did the money go?"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:223
-#: specialVueFakeDummyForL10nScript.js:7513
+#: specialVueFakeDummyForL10nScript.js:7810
 msgid "Select an account"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:225
-#: specialVueFakeDummyForL10nScript.js:7515
+#: specialVueFakeDummyForL10nScript.js:7812
 msgid "Expense account"
 msgstr ""
 
-#: specialVueFakeDummyForL10nScript.js:7515
+#: specialVueFakeDummyForL10nScript.js:7812
 msgid "Revenue account"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:226
-#: specialVueFakeDummyForL10nScript.js:7517
+#: specialVueFakeDummyForL10nScript.js:7814
 msgid "Choose the accounting classification"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:228
-#: specialVueFakeDummyForL10nScript.js:7519
+#: specialVueFakeDummyForL10nScript.js:7816
 msgid "Category (optional)"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:233
-#: specialVueFakeDummyForL10nScript.js:7523
+#: specialVueFakeDummyForL10nScript.js:7820
 msgid "Payment method (optional)"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:234
-#: specialVueFakeDummyForL10nScript.js:7525
+#: specialVueFakeDummyForL10nScript.js:7822
 msgid "Transaction date"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:235
-#: specialVueFakeDummyForL10nScript.js:7527
+#: specialVueFakeDummyForL10nScript.js:7824
 msgid "Short description"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:236
-#: specialVueFakeDummyForL10nScript.js:7529
+#: specialVueFakeDummyForL10nScript.js:7826
 msgid "E.g. payment for office supplies"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:239
-#: specialVueFakeDummyForL10nScript.js:7531
+#: specialVueFakeDummyForL10nScript.js:7828
 msgid "Payment methods unavailable: {error}"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:241
-#: specialVueFakeDummyForL10nScript.js:7533
+#: specialVueFakeDummyForL10nScript.js:7830
 msgid "Detailed description"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:243
-#: specialVueFakeDummyForL10nScript.js:7535
+#: specialVueFakeDummyForL10nScript.js:7832
 msgid ""
 "The income or expense account determines how the transaction appears in "
 "reports. A category, if available, provides a more detailed classification."
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:245
-#: specialVueFakeDummyForL10nScript.js:7537
+#: specialVueFakeDummyForL10nScript.js:7834
 msgid "Review before posting"
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:247
-#: specialVueFakeDummyForL10nScript.js:7539
+#: specialVueFakeDummyForL10nScript.js:7836
 msgid ""
 "The entry is final. Correct errors with a new entry, never by changing the "
 "history."
 msgstr ""
 
 #. TRANSLATORS s/TransactionsView.vue:251
-#: specialVueFakeDummyForL10nScript.js:7543
+#: specialVueFakeDummyForL10nScript.js:7840
 msgid "Post transaction"
 msgstr ""
 
 #. TRANSLATORS s/InvoicesView.vue:410
-#: specialVueFakeDummyForL10nScript.js:5250
+#: specialVueFakeDummyForL10nScript.js:5391
 msgid "{start} to {end}"
 msgstr ""
 
 #. TRANSLATORS s/DashboardView.vue:381
-#: specialVueFakeDummyForL10nScript.js:4311
+#: specialVueFakeDummyForL10nScript.js:4452
 msgid "Net cash change over recent months: {values}"
 msgstr ""
 
@@ -6723,12 +7514,12 @@ msgstr ""
 msgid "Personal and legacy workspaces"
 msgstr ""
 
-#: src/money.js:13
-msgid "Enter a valid amount with up to two decimal places."
+#: src/money.js:9
+msgid "Amount outside the permitted limits."
 msgstr ""
 
-#: src/money.js:18
-msgid "Amount outside the permitted limits."
+#: src/money.js:27
+msgid "Enter a valid amount with up to two decimal places."
 msgstr ""
 
 #: src/navigation.js:10
