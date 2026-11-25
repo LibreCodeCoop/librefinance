@@ -209,6 +209,12 @@ final class GovernanceService {
             ->where($q->expr()->eq('group_gid', $q->createNamedParameter($gid)))
             ->andWhere($q->expr()->eq('uid', $q->createNamedParameter($uid)));
         if ($q->executeQuery()->fetchOne() === false) {
+            // Instance authority may delegate to another qualified member,
+            // but must not create a new operating mandate for itself.
+            // Existing explicit grants remain valid and idempotent.
+            if ($this->session->getUser()?->getUID() === $uid) {
+                throw new DomainException('self_promotion_forbidden');
+            }
             try {
                 $this->write->insert('lf_governance_delegates', [
                     'group_gid' => $gid, 'uid' => $uid, 'created_at' => time(),

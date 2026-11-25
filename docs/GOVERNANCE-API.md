@@ -71,6 +71,13 @@ nor a client-supplied context ID conveys authorization.
 
 `PUT /api/admin/governance`: `{"managed":true}`.
 
+`POST /api/admin/groups/{gid}/delegates` may grant another current group
+member explicit administrative authority. Creating a new delegation to the
+acting instance administrator is denied with `403 self_promotion_forbidden`.
+Repeating an existing explicit grant is idempotent; historical grants are
+not removed or reinterpreted. Native Nextcloud administrative assignments
+remain a separate source of group authority.
+
 `POST /api/admin/contexts`:
 `{"name":"Example Organization","kind":"organization","gid":"example-group","currency":"BRL"}`.
 
