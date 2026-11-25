@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 node_modules/
+# Vite build output; regenerated for development, CI and App Store packages.
+/js/
+/css/
+/build/
 .ci-nextcloud-server/
 tests/ci/.runtime-config/
 dist/

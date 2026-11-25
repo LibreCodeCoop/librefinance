@@ -48,8 +48,10 @@ jobs:
       - run: php tests/openapi/generate.php --check
       - run: npm run test:openapi
       - run: npm run build
-      - name: Assert production assets are synchronized
-        run: git diff --exit-code -- js/main.js css/main.css js/main.js.license openapi.json
+      - name: Verify generated assets stay outside Git
+        run: |
+          python3 scripts/appstore-package.py verify-assets
+          git diff --exit-code -- openapi.json
       - name: Check optional Nextcloud Files and WebDAV compatibility
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -57,9 +59,11 @@ jobs:
           cache: npm
       - run: npm ci --include=dev
       - run: npm test
-      - run: npm run build
-      - name: Assert production assets are synchronized on Node 24
-        run: git diff --exit-code -- js/main.js css/main.css js/admin.js css/admin.css js/main.js.license js/admin.js.license openapi.json
+      - name: Build and verify unsigned App Store package on Node 24
+        run: |
+          make appstore
+          make verify-appstore-package
+          git diff --exit-code -- openapi.json
 
   integrated:
     name: Installed Nextcloud + NFS-e draft app / ${{ matrix.database }}
@@ -231,6 +235,8 @@ jobs:
       - name: Install browser test tools
         run: |
           npm ci --include=dev
+          npm run build
+          python3 scripts/appstore-package.py verify-assets
           npx playwright install --with-deps chromium
       - name: Verify pinned NFS-e draft app build
         run: |
