@@ -92,6 +92,7 @@ test('workspace actions and pagination cannot update a later selection', async (
   ]
   const pendingWrites = new Map()
   let oldPage
+  let listReply = () => Promise.resolve({ data: { spaces } })
   const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window')
   Object.defineProperty(globalThis, 'window', { configurable: true, value: { location: { search: '' } } })
   t.after(() => {
@@ -101,7 +102,7 @@ test('workspace actions and pagination cannot update a later selection', async (
   })
   globalThis.financeRequestStub = config => {
     const path = config.url
-    if (path.endsWith('/api/spaces')) return Promise.resolve({ data: { spaces } })
+    if (path.endsWith('/api/spaces')) return listReply()
     const match = path.match(/\/spaces\/(\d+)\/([^/?]+)/)
     assert.ok(match, path)
     const [, rawId, endpoint] = match
@@ -166,4 +167,38 @@ test('workspace actions and pagination cannot update a later selection', async (
   await page
   assert.equal(workspace.error.value, '', 'a late pagination error is not the current workspace error')
   assert.deepEqual(workspace.journals.value, [{ id: 2000 }])
+
+  // A refresh started before a new grant can finish after a newer listing.
+  // The newer list and its selected financial environment must survive.
+  let deliverOldList
+  listReply = () => new Promise(resolve => { deliverOldList = resolve })
+  const oldList = workspace.refreshSpaces()
+  assert.equal(typeof deliverOldList, 'function')
+  listReply = () => Promise.resolve({ data: { spaces } })
+  await workspace.refreshSpaces()
+  await select(20)
+  deliverOldList({ data: { spaces: [spaces[0]] } })
+  await oldList
+  await nextTick()
+  assert.deepEqual(workspace.spaces.value.map(book => book.id), [10, 20], 'an older list must not overwrite a newer authorized listing')
+  assert.equal(Number(workspace.activeId.value), 20, 'an older list must not replace the current workspace selection')
+  assert.deepEqual(workspace.journals.value, [{ id: 2000 }])
+
+  let rejectOldList
+  listReply = () => new Promise((resolve, reject) => { rejectOldList = reject })
+  const failedOldList = workspace.refreshSpaces()
+  listReply = () => Promise.resolve({ data: { spaces } })
+  await workspace.refreshSpaces()
+  rejectOldList(new Error('obsolete listing failed'))
+  await failedOldList
+  assert.equal(Number(workspace.activeId.value), 20)
+
+  // Current failures and fresh authorization changes must still be observed.
+  listReply = () => Promise.reject(new Error('current listing failed'))
+  await assert.rejects(workspace.refreshSpaces(), /current listing failed/)
+  listReply = () => Promise.resolve({ data: { spaces: [spaces[0]] } })
+  await workspace.refreshSpaces()
+  await nextTick()
+  assert.deepEqual(workspace.spaces.value.map(book => book.id), [10])
+  assert.notEqual(Number(workspace.activeId.value), 20, 'a current revocation invalidates the selected workspace')
 })

@@ -89,6 +89,7 @@ const amount = ref('')
 const memo = ref('')
 const date = ref(new Date().toLocaleDateString('sv-SE'))
 let loadSequence = 0
+let spacesLoadSequence = 0
 let actionSequence = 0
 let preferredSpaceHandled = false
 const space = computed(() => spaces.value.find((s) => Number(s.id) === Number(activeId.value)))
@@ -130,7 +131,17 @@ async function call(method, path, data) {
   return response.data
 }
 async function refreshSpaces() {
-  const result = await call('GET', '/api/spaces')
+  // Invitations and lifecycle actions may refresh the authorized listing
+  // concurrently. Only the latest request may change the list or selection.
+  const generation = ++spacesLoadSequence
+  let result
+  try {
+    result = await call('GET', '/api/spaces')
+  } catch (e) {
+    if (generation !== spacesLoadSequence) return
+    throw e
+  }
+  if (generation !== spacesLoadSequence) return
   spaces.value = result.spaces
   if (!preferredSpaceHandled) {
     preferredSpaceHandled = true
