@@ -143,10 +143,13 @@ if [ "$LF_UPGRADE_SCENARIO" = saas ]; then
     exit 1
   fi
   echo 'PASS: byte-equivalent historical rows and no inferred SaaS ownership'
-  verify_out="$(compose exec -T -e LF_SYNTHETIC_SAAS_UPGRADE=yes -e LF_UPGRADE_ACTION=verify \
+  if ! verify_out="$(compose exec -T -e LF_SYNTHETIC_SAAS_UPGRADE=yes -e LF_UPGRADE_ACTION=verify \
     -e LF_TEST_USER_PASS="$LF_TEST_USER_PASS" -e LF_TEST_ADMIN_PASSWORD="$LF_TEST_ADMIN_PASSWORD" \
     -e LF_UPGRADE_SPACE_ID="$space_id" -e LF_UPGRADE_CONTROL_SPACE_ID="$control_id" \
-    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud php /tmp/upgrade-import-seed.php)"
+    -e LF_BASE_URL="http://127.0.0.1/index.php/apps/librefinance/api" nextcloud php /tmp/upgrade-import-seed.php 2>&1)"; then
+    printf '%s\n' "$verify_out" >&2
+    exit 1
+  fi
   printf '%s\n' "$verify_out"
   printf '%s\n' "$verify_out" | grep -Eq '^ALL CHECKS PASSED: [1-9][0-9]*$'
   printf '%s\n' "$verify_out" | grep -Fxq 'PASS: administrator sees review requirement, not inferred SaaS ownership'
