@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Finance workspace state and authorized API actions. No view markup.
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, shallowRef, computed, onMounted, onScopeDispose, watch } from 'vue'
 import { t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
 import { formatLedgerMoney, toMinorUnits } from '../money.js'
-import { authorizedInitialWorkspace } from '../financialContexts.js'
+import { authorizedInitialWorkspace, contextKey } from '../financialContexts.js'
+import { bindFinanceSelection, requestFinancialWorkspace } from '../services/api.js'
 
 export function useFinanceWorkspace() {
 
@@ -88,8 +89,21 @@ const amount = ref('')
 const memo = ref('')
 const date = ref(new Date().toLocaleDateString('sv-SE'))
 let loadSequence = 0
+let spacesLoadSequence = 0
+let actionSequence = 0
 let preferredSpaceHandled = false
 const space = computed(() => spaces.value.find((s) => Number(s.id) === Number(activeId.value)))
+const selectedContext = computed(() => contextKey(space.value))
+const requestSelection = shallowRef()
+watch([activeId, selectedContext], ([id, key]) => {
+  requestSelection.value = {
+    spaceId: Number(id),
+    // Listings without a public ID can only pass the server's legacy check.
+    context: key.startsWith('environment:') ? key.slice('environment:'.length)
+      : key === 'external' ? key : key ? 'legacy' : '',
+  }
+}, { immediate: true, flush: 'sync' })
+onScopeDispose(bindFinanceSelection(() => requestSelection.value))
 const selectedModule = computed(() => modules.value.find((module) => module.id === selectedModuleId.value && module.enabled))
 const writable = computed(() => ['owner', 'manager', 'operator'].includes(space.value?.role))
 const manager = computed(() => ['owner', 'manager'].includes(space.value?.role))
@@ -107,11 +121,27 @@ function unwrapError(e) {
 }
 async function call(method, path, data) {
   const url = generateUrl('/apps/librefinance' + path)
+  // Lifecycle actions on the management list use their own target and ACL.
+  // Only workspace subresources are tied to the active financial selection.
+  const scoped = /^\/api\/spaces\/(\d+)\/([^/?]+)/.exec(path)
+  if (scoped && !['archive', 'restore'].includes(scoped[2])) {
+    return requestFinancialWorkspace(scoped[1], url, method, data)
+  }
   const response = await axios({ method, url, data, headers: { Accept: 'application/json' } })
   return response.data
 }
 async function refreshSpaces() {
-  const result = await call('GET', '/api/spaces')
+  // Invitations and lifecycle actions may refresh the authorized listing
+  // concurrently. Only the latest request may change the list or selection.
+  const generation = ++spacesLoadSequence
+  let result
+  try {
+    result = await call('GET', '/api/spaces')
+  } catch (e) {
+    if (generation !== spacesLoadSequence) return
+    throw e
+  }
+  if (generation !== spacesLoadSequence) return
   spaces.value = result.spaces
   if (!preferredSpaceHandled) {
     preferredSpaceHandled = true
@@ -127,7 +157,8 @@ async function refreshSpaces() {
   }
 }
 async function refreshCurrent(options = {}) {
-  const current = Number(activeId.value)
+  const selection = requestSelection.value
+  const current = selection.spaceId
   const generation = ++loadSequence
   // A successful import must refresh shared finance data without unmounting
   // the import page or discarding its confirmation and coverage report.
@@ -165,7 +196,7 @@ async function refreshCurrent(options = {}) {
       : call('GET', '/api/spaces/' + current + '/' + path)
   ))
   const results = await Promise.allSettled(requests)
-  if (generation !== loadSequence || current !== Number(activeId.value)) return
+  if (generation !== loadSequence || selection !== requestSelection.value) return
   const failures = []
   const data = {}
   results.forEach((result, index) => {
@@ -227,19 +258,27 @@ async function refreshCurrent(options = {}) {
     ? 'Falha ao carregar: ' + failures.join(', ') + '. Atualize para tentar novamente.'
     : ''
 }
-watch(activeId, () => {
+watch(requestSelection, () => {
   // Changing the active workspace invalidates financial screens. Keep the
   // workspace-management screen open when archiving/restoring the selected
   // workspace, otherwise a late activeId reset hides the restore action.
   const managingSpaces = activeTab.value === 'spaces'
+  // Invalidate old UI ownership immediately when this selection is reset.
+  ++actionSequence
+  busy.value = false
   resetAi()
   modulesLoadedFor.value = 0
   modules.value = []
   accounts.value = []
   journals.value = []
+  nextBeforeId.value = null
   contacts.value = []
+  contactNextAfterId.value = null
   items.value = []
+  itemNextAfterId.value = null
   companies.value = []
+  companyNextAfterId.value = null
+  categoryNextAfterId.value = null
   companyFields.value = []
   categoryRecords.value = []
   members.value = []
@@ -260,21 +299,25 @@ watch(transactionCategoryId, (id) => {
   if (classification?.effective_account_id) categoryId.value = classification.effective_account_id
 })
 async function doAction(action, success, refreshOnRevisionConflict = false) {
+  const selection = requestSelection.value
+  const token = ++actionSequence
+  const isCurrent = () => selection === requestSelection.value && token === actionSequence
   busy.value = true
   error.value = ''
   message.value = ''
   try {
-    await action()
-    message.value = success
+    await action(isCurrent)
+    if (isCurrent()) message.value = success
   } catch (e) {
+    if (!isCurrent()) return
     if (refreshOnRevisionConflict && e.response?.data?.error === 'revision_conflict') {
       // The server rejected the stale write. Reload its authoritative
       // revision; do not retry or silently replace a concurrent change.
       try { await refreshCurrent() } catch { /* Retain the original conflict. */ }
     }
-    error.value = unwrapError(e)
+    if (isCurrent()) error.value = unwrapError(e)
   } finally {
-    busy.value = false
+    if (isCurrent()) busy.value = false
   }
 }
 function resetCompanyForm() {
@@ -329,22 +372,27 @@ async function saveCompany() {
   }, t('librefinance', 'Legal registration saved.'))
 }
 async function loadMoreCompanies() {
-  const current = Number(activeId.value)
+  const selection = requestSelection.value
+  const current = selection.spaceId
   const after = companyNextAfterId.value
   if (!current || !after) return
   const generation = loadSequence
   try {
     const data = await call('GET', '/api/spaces/' + current + '/companies?afterId=' + after)
-    if (generation !== loadSequence || current !== Number(activeId.value)) return
+    if (generation !== loadSequence || selection !== requestSelection.value) return
     companies.value = [...companies.value, ...data.companies]
     companyNextAfterId.value = data.nextAfterId
-  } catch (e) { error.value = unwrapError(e) }
+  } catch (e) {
+    if (generation === loadSequence && selection === requestSelection.value) error.value = unwrapError(e)
+  }
 }
 async function createSpace() {
-  await doAction(async () => {
+  await doAction(async (isCurrent) => {
     const created = await call('POST', '/api/spaces', { name: spaceName.value, kind: kind.value, currency: 'BRL' })
+    if (!isCurrent()) return
     spaceName.value = ''
     await refreshSpaces()
+    if (!isCurrent()) return
     // The activeId watcher owns loading; a second call caused duplicate
     // simultaneous requests when the newly created space was selected.
     activeId.value = created.id
@@ -390,13 +438,14 @@ async function createItem() {
   }, t('librefinance', 'Product or service registered.'))
 }
 async function loadMoreCatalog(which) {
-  const selected = Number(activeId.value)
+  const selection = requestSelection.value
+  const selected = selection.spaceId
   const gen = loadSequence
   const before = which === 'contacts' ? contactNextAfterId.value : itemNextAfterId.value
   if (!before || !selected) return
   try {
     const result = await call('GET', '/api/spaces/' + selected + '/' + which + '?afterId=' + before)
-    if (gen !== loadSequence || selected !== Number(activeId.value)) return
+    if (gen !== loadSequence || selection !== requestSelection.value) return
     if (which === 'contacts') {
       contacts.value = [...contacts.value, ...result.contacts]
       contactNextAfterId.value = result.nextAfterId
@@ -405,7 +454,7 @@ async function loadMoreCatalog(which) {
       itemNextAfterId.value = result.nextAfterId
     }
   } catch (e) {
-    if (gen === loadSequence) error.value = unwrapError(e)
+    if (gen === loadSequence && selection === requestSelection.value) error.value = unwrapError(e)
   }
 }
 async function createCategory() {
@@ -427,18 +476,20 @@ async function createCategory() {
   }, t('librefinance', 'Hierarchical category registered.'))
 }
 async function loadMoreCategories() {
-  const current = Number(activeId.value)
+  const selection = requestSelection.value
+  const current = selection.spaceId
   const generation = loadSequence
   const after = categoryNextAfterId.value
   if (!current || !after) return
   try {
     const response = await call('GET', '/api/spaces/' + current + '/categories?afterId=' + after)
-    if (loadSequence !== generation || current !== Number(activeId.value)) return
+    if (loadSequence !== generation || selection !== requestSelection.value) return
     categoryRecords.value = [...categoryRecords.value, ...response.categories]
     categoryNextAfterId.value = response.nextAfterId
-  } catch(e) { if (loadSequence === generation) error.value = unwrapError(e) }
+  } catch(e) { if (loadSequence === generation && selection === requestSelection.value) error.value = unwrapError(e) }
 }
 function resetAi() {
+  aiBusy.value = false
   aiCapability.value = null
   aiPreview.value = null
   aiTask.value = null
@@ -604,15 +655,16 @@ async function createEntry(options = {}) {
 }
 async function loadMore() {
   if (!nextBeforeId.value) return
-  const selected = Number(activeId.value)
+  const selection = requestSelection.value
+  const selected = selection.spaceId
   const token = loadSequence
   try {
     const data = await call('GET', '/api/spaces/' + selected + '/journals?beforeId=' + nextBeforeId.value)
-    if (token !== loadSequence || selected !== Number(activeId.value)) return
+    if (token !== loadSequence || selection !== requestSelection.value) return
     journals.value = [...journals.value, ...data.journals]
     nextBeforeId.value = data.nextBeforeId
   } catch (e) {
-    error.value = unwrapError(e)
+    if (token === loadSequence && selection === requestSelection.value) error.value = unwrapError(e)
   }
 }
 onMounted(async () => {

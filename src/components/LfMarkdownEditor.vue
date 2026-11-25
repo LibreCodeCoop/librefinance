@@ -1,7 +1,7 @@
 <!-- SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later -->
 <script setup>
-import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { nextTick, onMounted, onBeforeUnmount, ref } from 'vue'
 import { t } from '@nextcloud/l10n'
 import NcButton from '@nextcloud/vue/components/NcButton'
 import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
@@ -13,14 +13,24 @@ const rich = ref(false)
 let editor = null
 let destroyed = false
 function setValue(value) { emit('update:modelValue', String(value || '').slice(0, 5000)) }
-function addMarkdown(prefix, suffix = prefix) {
+async function addMarkdown(prefix, suffix = prefix) {
   const textarea = source.value
   if (!textarea) return
   const left = textarea.selectionStart ?? props.modelValue.length
   const right = textarea.selectionEnd ?? left
   const text = props.modelValue
   const next = text.slice(0, left) + prefix + text.slice(left, right) + suffix + text.slice(right)
+  // A toolbar action must never truncate existing notes to make room for syntax.
+  if (next.length > 5000) {
+    textarea.focus()
+    textarea.setSelectionRange(left, right)
+    return
+  }
   setValue(next)
+  await nextTick()
+  if (source.value !== textarea) return
+  textarea.focus()
+  textarea.setSelectionRange(left + prefix.length, right + prefix.length)
 }
 onMounted(async () => {
   const create = window.OCA?.Text?.createEditor

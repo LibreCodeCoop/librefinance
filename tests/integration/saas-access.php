@@ -49,7 +49,8 @@ $seedTask = static function (string $uid, int $spaceId, string $appId = 'librefi
 $checks = 0;
 $t = new TestHarness();
 
-function instanceRequest(string $verb, string $path, ?array $data = null, ?string $app = null): array {
+function instanceRequest(string $verb, string $path, ?array $data = null, ?string $app = null,
+    string $user = 'synthetictestadmin', ?string $context = null): array {
     global $base, $password;
     if (!str_starts_with($path, '/') || str_contains($path, '..')) {
         throw new InvalidArgumentException('Unsafe synthetic path');
@@ -57,12 +58,18 @@ function instanceRequest(string $verb, string $path, ?array $data = null, ?strin
     if ($app !== null && $app !== 'librefinance_nfse') {
         throw new InvalidArgumentException('Unexpected synthetic optional app');
     }
+    if (!in_array($user, ['synthetictestadmin', 'lfmaintestA', 'lfmaintestB'], true)) {
+        throw new InvalidArgumentException('Unexpected synthetic user');
+    }
     $api = $app === null ? $base : str_replace('/apps/librefinance/api', '/apps/librefinance_nfse/api', $base);
     $handle = curl_init($api . $path);
     if (!$handle instanceof CurlHandle) {
         throw new RuntimeException('Cannot create local Nextcloud HTTP client');
     }
     $headers = ['OCS-APIREQUEST: true', 'Accept: application/json'];
+    if ($context !== null) {
+        $headers[] = 'X-LibreFinance-Context: ' . $context;
+    }
     if ($data !== null) {
         $headers[] = 'Content-Type: application/json';
         curl_setopt($handle, CURLOPT_POSTFIELDS, json_encode($data, JSON_THROW_ON_ERROR));
@@ -71,7 +78,8 @@ function instanceRequest(string $verb, string $path, ?array $data = null, ?strin
         CURLOPT_CUSTOMREQUEST => $verb,
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_HTTPAUTH => CURLAUTH_BASIC,
-        CURLOPT_USERPWD => 'synthetictestadmin:' . $password,
+        CURLOPT_USERPWD => $user . ':' . ($user === 'synthetictestadmin'
+            ? $password : (string)getenv('LF_TEST_USER_PASS')),
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_CONNECTTIMEOUT => 5,
@@ -108,6 +116,14 @@ function saasCheck(string $name, bool $correct): void {
         throw new RuntimeException('SaaS check failed: ' . $name);
     }
     ++$checks;
+}
+
+function contextCheck(string $name, string $user, string $path, ?string $context, int $expected,
+    ?string $app = null, string $method = 'GET', ?array $data = null): void {
+    $result = instanceRequest($method, $path, $data, $app, $user, $context);
+    saasCheck($name . ' (HTTP ' . $result['code'] . ')',
+        $result['code'] === $expected
+            && ($app !== null || $expected !== 404 || $result['body'] === ['error' => 'space_not_found']));
 }
 $a = 'lfmaintestA';
 $b = 'lfmaintestB';
@@ -573,6 +589,12 @@ try {
         '/spaces/' . $spaceA . '/journals', null, 404);
     $t->check('A environment admin cannot read ledger B', $a, 'GET',
         '/spaces/' . $spaceB . '/journals', null, 404);
+    $contextsWithoutGrant = ['omitted' => null, 'target' => $envA, 'other' => $envB,
+        'legacy' => 'legacy', 'external' => 'external'];
+    foreach ($contextsWithoutGrant as $label => $context) {
+        contextCheck('B has no grant in A despite group membership and ' . $label . ' context',
+            $b, '/spaces/' . $spaceA . '/journals', $context, 404);
+    }
     instanceCheck('instance admin cannot read ledger A by forged ID', 'GET',
         '/spaces/' . $spaceA . '/journals', null, 404);
     instanceCheck('instance admin cannot write ledger A by forged ID', 'POST',
@@ -713,6 +735,12 @@ try {
             ($r['status'] ?? null) === 'accepted' && ($r['revision'] ?? null) === 2);
     instanceCheck('external user now reads only invited financial journal',
         'GET', '/spaces/' . $spaceA . '/journals', null, 200);
+    contextCheck('external context reads the invited financial journal', 'synthetictestadmin',
+        '/spaces/' . $spaceA . '/journals', 'external', 200);
+    contextCheck('external recipient cannot validate the actual hidden environment ID', 'synthetictestadmin',
+        '/spaces/' . $spaceA . '/journals', $envA, 404);
+    contextCheck('external context cannot read an uninvited sibling', 'synthetictestadmin',
+        '/spaces/' . $spaceA2 . '/journals', 'external', 404);
     instanceCheck('external account sees invited A1 but not A2 or B',
         'GET', '/spaces', null, 200,
         static fn(array $r): bool =>
@@ -720,6 +748,7 @@ try {
                 static fn(array $s): bool =>
                     (int)$s['id'] === $spaceA
                     && ($s['externalInvitation'] ?? false) === true
+                    && !array_key_exists('financialEnvironment', $s)
                     && ($s['role'] ?? null) === 'viewer')) === 1
             && !in_array($spaceA2, array_column($r['spaces'] ?? [], 'id'), true)
             && !in_array($spaceB, array_column($r['spaces'] ?? [], 'id'), true));
@@ -1204,6 +1233,32 @@ try {
     $t->check('A grants B operator in A2 while B remains viewer in A1', $a,
         'POST', '/spaces/' . $spaceA2 . '/members',
         ['uid' => $b, 'role' => 'operator', 'expectedRevision' => 0], 200);
+    $journalA2 = '/spaces/' . $spaceA2 . '/journals';
+    $journalB = '/spaces/' . $spaceB . '/journals';
+    $bAccounts = $t->check('B owner reads the chart for the N05 write control', $b,
+        'GET', '/spaces/' . $spaceB . '/accounts', null, 200,
+        static function (array $result): bool {
+            $ids = array_column($result['accounts'] ?? [], 'id', 'code');
+            return isset($ids['1000'], $ids['4000']);
+        });
+    $bIds = array_column($bAccounts['accounts'], 'id', 'code');
+    contextCheck('dual-grant actor can read A2 in A context', $b, $journalA2, $envA, 200);
+    contextCheck('N05 dual-grant actor cannot read B in A context', $b, $journalB, $envA, 404);
+    contextCheck('N05 dual-grant actor cannot write B in A context', $b, $journalB, $envA, 404,
+        method: 'POST', data: ['debitId' => $bIds['1000'], 'creditId' => $bIds['4000'],
+            'amountMinor' => 100, 'date' => '2026-11-23', 'memo' => 'Wrong context',
+            'externalKey' => 'saas-N05-context-denied']);
+    contextCheck('dual-grant actor can read B in B context', $b, $journalB, $envB, 200);
+    contextCheck('malformed context cannot read B', $b, $journalB, $envB . ', ' . $envA, 404);
+    $t->check('rejected N05 write leaves the B journal empty', $b, 'GET', $journalB, null, 200,
+        static fn(array $r): bool => ($r['journals'] ?? null) === []);
+    contextCheck('headerless dual-grant actor keeps legacy client access to B', $b, $journalB, null, 200);
+    contextCheck('external context cannot substitute for an internal environment', $b, $journalB, 'external', 404);
+    contextCheck('legacy context cannot substitute for an internal environment', $b, $journalB, 'legacy', 404);
+    if ($withNfse) {
+        contextCheck('N05 optional fiscal draft API denies B in A context', $b, $draftB, $envA, 404, $nfse);
+        contextCheck('optional fiscal draft API accepts B in B context', $b, $draftB, $envB, 200, $nfse);
+    }
     $t->check('B can post to A2 with its independent operator role', $b,
         'POST', '/spaces/' . $spaceA2 . '/journals',
         ['debitId' => $a2Ids['1000'], 'creditId' => $a2Ids['4000'],
@@ -1375,5 +1430,11 @@ $t->check('global managed-mode suspension filters SaaS books from workspace list
     static fn(array $r): bool =>
         !in_array($spaceA, array_column($r['spaces'] ?? [], 'id'), true)
         && !in_array($spaceB, array_column($r['spaces'] ?? [], 'id'), true));
+$legacy = $t->check('create a synthetic legacy personal control', $a, 'POST', '/spaces',
+    ['name' => 'Synthetic N05 legacy control', 'kind' => 'personal'], 201);
+$legacyJournal = '/spaces/' . (int)$legacy['id'] . '/journals';
+contextCheck('legacy personal workspace accepts the legacy context', $a, $legacyJournal, 'legacy', 200);
+contextCheck('legacy personal workspace denies a managed context', $a, $legacyJournal, $envA, 404);
+contextCheck('legacy context cannot grant a second actor access', $b, $legacyJournal, 'legacy', 404);
 echo 'PASS: synthetic SaaS financial isolation assertions ', $checks, PHP_EOL;
 $t->finish();
