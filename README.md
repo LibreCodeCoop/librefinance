@@ -52,7 +52,23 @@ npm run test:openapi
 npm run build
 ```
 
-Only build-time tooling uses Node.js. The generated application bundles are `js/main.js` and `css/main.css`.
+Only build-time tooling uses Node.js. Both the user and administration bundles
+are generated in `js/` and `css/`; these directories are ignored by Git.
+The source checkout must be built before using the web interface. Do not commit
+compiled assets or their generated license sidecars.
+
+To prepare an **unsigned** App Store archive from a source checkout with the
+locked npm dependencies installed:
+
+```sh
+make appstore
+make verify-appstore-package
+```
+
+The output is `build/artifacts/librefinance.tar.gz`. It contains the generated
+JavaScript, CSS, notices and runtime files, without development dependencies,
+source tooling or Git metadata. The organization's release publisher handles
+signing and publication separately.
 
 ## Development and security
 

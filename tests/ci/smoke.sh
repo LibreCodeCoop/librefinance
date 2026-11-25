@@ -5,6 +5,15 @@ set -euo pipefail
 
 cd "$(dirname "$0")/../.."
 project_root="$PWD"
+# API-only labs do not require Node or frontend assets. Real browser runs do.
+if [ "${LF_RUN_PLAYWRIGHT:-0}" = 1 ]; then
+  for asset in js/main.js js/admin.js css/main.css css/admin.css; do
+    if [ ! -s "$asset" ]; then
+      echo "Missing $asset; run npm ci --include=dev and npm run build before browser tests" >&2
+      exit 2
+    fi
+  done
+fi
 # The matrix shares a mutable Nextcloud checkout and a single config directory.
 # Running two smoke jobs against this checkout can corrupt each other's lab.
 # Fail fast instead of resetting another process's synthetic database.

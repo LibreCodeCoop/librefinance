@@ -11,6 +11,6 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 - Every financial posting must remain balanced, exact, immutable after posting and auditable. Never delete posted transactions to correct amounts.
 - Use \`OCP\DB\QueryBuilder\` for DB changes. Test SQLite, MariaDB and PostgreSQL; maintain immutable migrations.
 - No secrets in source, logs, screenshots, issues or PR descriptions. Remote banking, NFS-e, AI, payments and signatures are optional modules with explicit authorization.
-- Build and validate PHP and Vue separately. A route or a green CI that skipped tests is not proof of financial correctness.
+- Build and validate PHP and Vue separately. Never commit generated `js/` or `css/`; build assets for development, browser CI and the App Store archive. Keep OpenAPI versioned. A route or a green CI that skipped tests is not proof of financial correctness.
 - PRs: incremental signed commits with DCO, no automatic squash; follow LibreCode repository governance.
 - Issue and epic creation requires exact human approval after drafting and review. Do not publish private commercial context.

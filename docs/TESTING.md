@@ -54,9 +54,12 @@ descartáveis com o Nextcloud master e extensões instaladas.
 
 ```sh
 npm ci --include=dev
+npm run build
 npx playwright install --with-deps chromium
 LF_RUN_PLAYWRIGHT=1 bash tests/ci/smoke.sh
 ```
+
+Os bundles `js/` e `css/` não são versionados. A CI compila ambos antes dos testes de navegador; as suítes exclusivamente de API e migração não dependem de Node.js. O job de contratos também gera e verifica o pacote App Store sem assinatura, incluindo os avisos de licença e excluindo dependências de desenvolvimento.
 
 O script descobre a porta local publicada pelo Docker e configura o domínio
 confiável **no laboratório**. Localmente, o padrão são dois shards sequenciais.
