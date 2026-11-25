@@ -19,6 +19,11 @@ placeholders intact in every language. Do not assemble translated sentences
 by concatenating fragments. User-provided names, stable navigation IDs,
 account codes and persisted financial values must not be translated.
 
+Accounting date fields use the browser's native date control, which determines
+how dates appear. Forms use Gregorian calendar dates in `YYYY-MM-DD` format
+with years `0001` through `9999`. A date retains its calendar day across time
+zones, and clearing a field leaves its form value empty.
+
 ## Updating the catalogs
 
 The standard Nextcloud translation tool from nextcloud/docker-ci generates
