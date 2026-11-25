@@ -55,20 +55,22 @@ npm run build
 Only build-time tooling uses Node.js. Both the user and administration bundles
 are generated in `js/` and `css/`; these directories are ignored by Git.
 The source checkout must be built before using the web interface. Do not commit
-compiled assets or their generated license sidecars.
+compiled assets.
 
 To prepare an **unsigned** App Store archive from a source checkout with the
 locked npm dependencies installed:
 
 ```sh
+npm run build
 make appstore
-make verify-appstore-package
 ```
 
 The output is `build/artifacts/librefinance.tar.gz`. It contains the generated
 JavaScript, CSS, notices and runtime files, without development dependencies,
-source tooling or Git metadata. The organization's release publisher handles
-signing and publication separately.
+source tooling or Git metadata. CI validates the archive with
+[LibreCode Release Tool](https://github.com/LibreCodeCoop/release-tool).
+The managed `appstore-build-publish.yml` workflow handles signing, artifact
+validation and publication of an existing release.
 
 ## Development and security
 

@@ -46,7 +46,7 @@ jobs:
       - run: npm run build
       - name: Verify generated assets stay outside Git
         run: |
-          python3 scripts/appstore-package.py verify-assets
+          test -z "$(git ls-files -- js css)"
           git diff --exit-code -- openapi.json
       - name: Check optional Nextcloud Files and WebDAV compatibility
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -55,11 +55,20 @@ jobs:
           cache: npm
       - run: npm ci --include=dev
       - run: npm test
-      - name: Build and verify unsigned App Store package on Node 24
+      - name: Build unsigned App Store package on Node 24
         run: |
+          npm run build
           make appstore
-          make verify-appstore-package
           git diff --exit-code -- openapi.json
+      - name: Inspect application build metadata
+        id: build_metadata
+        uses: LibreCodeCoop/release-tool/actions/build-inspect@51355769089a6796c23d6c966108afbdaf858c32 # v0.12.0
+      - name: Validate release artifact
+        uses: LibreCodeCoop/release-tool/actions/artifact-validate@51355769089a6796c23d6c966108afbdaf858c32 # v0.12.0
+        with:
+          artifact: build/artifacts/librefinance.tar.gz
+          app-name: librefinance
+          version: ${{ steps.build_metadata.outputs.version }}
 
   integrated:
     name: Installed Nextcloud + NFS-e draft app / ${{ matrix.database }}
@@ -232,7 +241,7 @@ jobs:
         run: |
           npm ci --include=dev
           npm run build
-          python3 scripts/appstore-package.py verify-assets
+          test -z "$(git ls-files -- js css)"
           npx playwright install --with-deps chromium
       - name: Verify pinned NFS-e draft app build
         run: |
