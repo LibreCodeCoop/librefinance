@@ -42,7 +42,7 @@ npm run build
 ```
 
 Review extraction warnings and the resulting diff. Preserve SPDX notices in
-the template, catalogs and sidecar license files; keep source references
+the template and the catalog annotations in REUSE.toml; keep source references
 repository-relative. Translate each new source message in the PO catalog,
 review placeholders and plurals, and commit the generated runtime catalogs
 alongside their sources. Do not edit generated catalogs independently.

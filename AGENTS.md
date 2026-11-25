@@ -12,5 +12,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 - Use \`OCP\DB\QueryBuilder\` for DB changes. Test SQLite, MariaDB and PostgreSQL; maintain immutable migrations.
 - No secrets in source, logs, screenshots, issues or PR descriptions. Remote banking, NFS-e, AI, payments and signatures are optional modules with explicit authorization.
 - Build and validate PHP and Vue separately. Never commit generated `js/` or `css/`; build assets for development, browser CI and the App Store archive. Keep OpenAPI versioned. A route or a green CI that skipped tests is not proof of financial correctness.
+- Use LibreCode's shared release-tool and managed App Store publisher; keep app-specific packaging in the Makefile, without custom packaging, signing or publication scripts.
+- Preserve SPDX headers in source files and use the centralized `REUSE.toml` for files that cannot contain SPDX headers. Do not add per-file `.license` sidecars, including during asset generation; retain third-party notices and license texts in release packages.
+- PHP unit tests use PHPUnit and mirror existing production classes: `lib/Domain/Currency/ExactConversion.php` maps to `tests/php/Unit/Domain/Currency/ExactConversionTest.php` and the matching namespace. Keep one test class per existing source class, do not invent generic or unmatched unit test classes, and place tests requiring an installed Nextcloud or database in the integration suite. Run `composer test:unit` (or filter by class/method during development).
 - PRs: incremental signed commits with DCO, no automatic squash; follow LibreCode repository governance.
 - Issue and epic creation requires exact human approval after drafting and review. Do not publish private commercial context.

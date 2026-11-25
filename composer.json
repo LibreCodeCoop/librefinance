@@ -6,14 +6,38 @@
   "require": {
     "php": "^8.3"
   },
+  "require-dev": {
+    "bamarni/composer-bin-plugin": "^1.8"
+  },
+  "config": {
+    "platform": {
+      "php": "8.3.0"
+    },
+    "sort-packages": true,
+    "allow-plugins": {
+      "bamarni/composer-bin-plugin": true
+    }
+  },
   "autoload": {
     "psr-4": {
       "OCA\\LibreFinance\\": "lib/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "OCA\\LibreFinance\\Tests\\Unit\\": "tests/php/Unit/"
+    }
+  },
   "scripts": {
     "lint": "find appinfo lib -type f -name '*.php' -print0 | xargs -0 -n 1 php -l",
+    "test:unit": "vendor/bin/phpunit --configuration phpunit.xml --testsuite unit --no-coverage",
     "openapi": "@php tests/openapi/generate.php",
     "openapi:check": "@php tests/openapi/generate.php --check"
+  },
+  "extra": {
+    "bamarni-bin": {
+      "bin-links": true,
+      "forward-command": true
+    }
   }
 }
