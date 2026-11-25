@@ -29,6 +29,13 @@ limites com outros trabalhos da máquina. Em falhas, o script registra o estado
 dos contêineres e sinais de OOM antes da limpeza; não oferece repetição
 automática de requisições financeiras.
 
+## Testes unitários PHP
+
+Na raiz do repositório, execute `composer install` e `composer test:unit`.
+A configuração `phpunit.xml` descobre as classes em `tests/unit/`, sem
+instalar o Nextcloud. O workflow `php-unit.yml` executa essa suíte na matriz
+de versões PHP suportadas pelo aplicativo.
+
 ## API: PHPUnit/integração e Behat por shards
 
 O laboratório executa suites nativas PHP HTTP separadas por regras e

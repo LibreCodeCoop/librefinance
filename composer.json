@@ -6,21 +6,28 @@
   "require": {
     "php": "^8.3"
   },
+  "require-dev": {
+    "phpunit/phpunit": "^12.5"
+  },
+  "config": {
+    "platform": {
+      "php": "8.3.0"
+    },
+    "sort-packages": true
+  },
   "autoload": {
     "psr-4": {
       "OCA\\LibreFinance\\": "lib/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "OCA\\LibreFinance\\Tests\\Unit\\": "tests/unit/"
+    }
+  },
   "scripts": {
     "lint": "find appinfo lib -type f -name '*.php' -print0 | xargs -0 -n 1 php -l",
-    "test:unit": [
-      "@php tests/unit/currency-conversion.php",
-      "@php tests/unit/currency-rate-quote.php",
-      "@php tests/unit/module-descriptor.php",
-      "@php tests/unit/ofx-parser.php",
-      "@php tests/unit/saas-financial-capabilities.php",
-      "@php tests/unit/saas-policy.php"
-    ],
+    "test:unit": "phpunit --configuration phpunit.xml --testsuite unit --no-coverage",
     "openapi": "@php tests/openapi/generate.php",
     "openapi:check": "@php tests/openapi/generate.php --check"
   }
