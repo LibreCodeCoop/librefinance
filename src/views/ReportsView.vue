@@ -18,6 +18,7 @@ import LfPageHeader from '../components/LfPageHeader.vue'
 import LfDateField from '../components/LfDateField.vue'
 import LfSelect from '../components/LfSelect.vue'
 import { formatLedgerDate } from '../date.js'
+import { cashFlowCsv } from '../reportCsv.js'
 import { financeApi, financeError } from '../services/api.js'
 const w = inject('lfWorkspace')
 const { activeId, money, manager } = w
@@ -98,6 +99,25 @@ function currentPath() {
     : (currentKind.value === 'cash_flow' ? '/cash-flow' : '/trial-balance')
   return route + '?' + filters.toString()
 }
+async function exportCashFlow() {
+  if (!result.value || appliedQuery?.kind !== 'cash_flow' || appliedQuery?.spaceId !== Number(activeId.value)) return
+  error.value = ''
+  try {
+    const csvText = cashFlowCsv(result.value)
+    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = 'librefinance-cash-flow.csv'
+    document.body.appendChild(anchor)
+    anchor.click()
+    document.body.removeChild(anchor)
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    error.value = financeError(e)
+  }
+}
+
 async function execute() {
   const token = ++generation
   const query = { spaceId: Number(activeId.value), path: currentPath(), kind: currentKind.value }
@@ -300,6 +320,11 @@ onBeforeUnmount(() => ++generation)
           <p class="lf-muted">{{ t('librefinance', 'Actual result for the period. Excludes forecasts and pending bank statements.') }}</p>
         </template>
         <template v-if="result && currentKind === 'cash_flow'">
+          <div class="lf-report-actions" style="margin-bottom: 1rem;">
+            <NcButton :disabled="busy" @click="exportCashFlow">
+              {{ t('librefinance', 'Export CSV') }}
+            </NcButton>
+          </div>
           <p class="lf-muted">{{ t('librefinance', 'Account') }}:
             {{ bankOptions.find(option => option.value === (result.bankAccountId ?? 0))?.label ?? result.bankAccountId }}
           </p>
