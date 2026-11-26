@@ -12,6 +12,7 @@ import { bindFinanceSelection, requestFinancialWorkspace } from '../services/api
 export function useFinanceWorkspace() {
 
 const spaces = ref([])
+const spacesStatus = ref('loading')
 const activeId = ref(0)
 const accounts = ref([])
 const contacts = ref([])
@@ -134,15 +135,18 @@ async function refreshSpaces() {
   // Invitations and lifecycle actions may refresh the authorized listing
   // concurrently. Only the latest request may change the list or selection.
   const generation = ++spacesLoadSequence
+  if (spacesStatus.value !== 'ready') spacesStatus.value = 'loading'
   let result
   try {
     result = await call('GET', '/api/spaces')
   } catch (e) {
     if (generation !== spacesLoadSequence) return
+    if (spacesStatus.value !== 'ready') spacesStatus.value = 'failed'
     throw e
   }
   if (generation !== spacesLoadSequence) return
   spaces.value = result.spaces
+  spacesStatus.value = 'ready'
   if (!preferredSpaceHandled) {
     preferredSpaceHandled = true
     const desired = Number(new URLSearchParams(window.location.search).get('spaceId'))
@@ -667,10 +671,12 @@ async function loadMore() {
     if (token === loadSequence && selection === requestSelection.value) error.value = unwrapError(e)
   }
 }
-onMounted(async () => {
+async function loadInitialSpaces() {
+  error.value = ''
   try { await refreshSpaces() } catch (e) { error.value = unwrapError(e) }
-})
+}
+onMounted(loadInitialSpaces)
   return {
-    spaces, activeId, accounts, contacts, items, companies, companyNextAfterId, companyEditId, companyName, companyTradeName, companyTaxId, companyCountry, companyFields, companyCustomValues, companyMunicipal, companyState, companyProfile, companyActive, modules, modulesLoadedFor, categoryRecords, categoryNextAfterId, categoryCode, categoryName, categoryColor, categoryKind, categoryParentId, categoryAccountId, selectedModuleId, aiCapability, aiPreview, aiTask, aiConsent, aiBusy, aiError, aiThrough, aiFrom, contactNextAfterId, itemNextAfterId, activeTab, journals, members, membersGrantRevision, canManageMembers, groupGrants, nextBeforeId, error, message, busy, spaceName, kind, accountName, accountCode, contactName, contactKind, contactEmail, contactTaxId, itemSku, itemName, itemKind, itemPrice, itemDescription, shareUid, shareRole, groupGid, groupRole, direction, bankId, categoryId, transactionCategoryId, amount, memo, date, loadSequence, preferredSpaceHandled, space, selectedModule, writable, manager, banks, categories, money, naturalBalance, accountNameById, unwrapError, call, refreshSpaces, refreshCurrent, doAction, resetCompanyForm, editCompany, saveCompany, loadMoreCompanies, createSpace, createAccount, createContact, createItem, loadMoreCatalog, createCategory, loadMoreCategories, resetAi, openAi, previewAi, requestAi, checkAiStatus, openModule, toggleModule, shareUser, shareGroup, removeAccess, createEntry, loadMore
+    spaces, spacesStatus, loadInitialSpaces, activeId, accounts, contacts, items, companies, companyNextAfterId, companyEditId, companyName, companyTradeName, companyTaxId, companyCountry, companyFields, companyCustomValues, companyMunicipal, companyState, companyProfile, companyActive, modules, modulesLoadedFor, categoryRecords, categoryNextAfterId, categoryCode, categoryName, categoryColor, categoryKind, categoryParentId, categoryAccountId, selectedModuleId, aiCapability, aiPreview, aiTask, aiConsent, aiBusy, aiError, aiThrough, aiFrom, contactNextAfterId, itemNextAfterId, activeTab, journals, members, membersGrantRevision, canManageMembers, groupGrants, nextBeforeId, error, message, busy, spaceName, kind, accountName, accountCode, contactName, contactKind, contactEmail, contactTaxId, itemSku, itemName, itemKind, itemPrice, itemDescription, shareUid, shareRole, groupGid, groupRole, direction, bankId, categoryId, transactionCategoryId, amount, memo, date, loadSequence, preferredSpaceHandled, space, selectedModule, writable, manager, banks, categories, money, naturalBalance, accountNameById, unwrapError, call, refreshSpaces, refreshCurrent, doAction, resetCompanyForm, editCompany, saveCompany, loadMoreCompanies, createSpace, createAccount, createContact, createItem, loadMoreCatalog, createCategory, loadMoreCategories, resetAi, openAi, previewAi, requestAi, checkAiStatus, openModule, toggleModule, shareUser, shareGroup, removeAccess, createEntry, loadMore
   }
 }

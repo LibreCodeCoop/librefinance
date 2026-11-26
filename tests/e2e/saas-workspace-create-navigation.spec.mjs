@@ -109,3 +109,52 @@ test('a delayed workspace creation respects a cancelled and reopened dialog', as
     release()
   }
 })
+
+test('a delayed workspace list never advertises a false first-run state', async ({ page }) => {
+  await login(page)
+  const name = await makeSpace(page, 'personal')
+  let deliver
+  let release
+  const requested = new Promise(resolve => { deliver = resolve })
+  const delayed = new Promise(resolve => { release = resolve })
+  await page.route('**/apps/librefinance/api/spaces', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    const response = await route.fetch()
+    deliver(response.status())
+    await delayed
+    await route.fulfill({ response })
+  })
+  try {
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    expect(await requested).toBe(200)
+    const shell = page.getByTestId('librefinance-workspace')
+    await expect(shell).toBeVisible()
+    await expect(shell.getByRole('button', { name: 'Gerenciar ou criar gestões', exact: true })).toHaveCount(0)
+    await expect(shell.getByText('Carregando dados financeiros…', { exact: true })).toBeVisible()
+    release()
+    await expect(page.locator('.lf-context-identity')).toContainText(name)
+    await expect(shell).toHaveAttribute('data-modules-loaded', 'true')
+    await expect(shell.getByRole('button', { name: 'Gerenciar ou criar gestões', exact: true })).toHaveCount(0)
+  } finally {
+    release()
+  }
+})
+
+test('a failed initial workspace list is not an empty list and can be retried', async ({ page }) => {
+  await login(page)
+  const name = await makeSpace(page, 'personal')
+  const listing = '**/apps/librefinance/api/spaces'
+  await page.route(listing, async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    await route.fulfill({ status: 503, json: { error: 'synthetic_listing_failure' } })
+  })
+  await page.reload()
+  const shell = page.getByTestId('librefinance-workspace')
+  await expect(shell.getByRole('alert')).toContainText('synthetic_listing_failure')
+  await expect(shell.getByRole('button', { name: 'Gerenciar ou criar gestões', exact: true })).toHaveCount(0)
+  await page.unroute(listing)
+  await shell.getByRole('button', { name: 'Atualizar dados', exact: true }).click()
+  await expect(page.locator('.lf-context-identity')).toContainText(name)
+  await expect(shell).toHaveAttribute('data-modules-loaded', 'true')
+  await expect(shell.getByText('synthetic_listing_failure', { exact: true })).toHaveCount(0)
+})
