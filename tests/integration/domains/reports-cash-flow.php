@@ -106,6 +106,34 @@ $t->check('individual bank accounts sum to total closing cash',
         return $bank === 15700;
     });
 
+$cashPath = $base . '/cash-flow?from=2026-11-01&through=2026-12-31';
+$firstBankReport = $t->checkModule('cash flow for first bank includes its transfer outflow',
+    $owner, $reportApp, 'GET', $cashPath . '&bankAccountId=' . $accounts['1000'], null, 200,
+    static fn(array $v): bool => $v['bankAccountId'] === $accounts['1000']
+        && $v['openingMinor'] === 10000 && $v['netMinor'] === 400 && $v['closingMinor'] === 10400
+        && $v['months'] === [['month' => '2026-11', 'netMinor' => 400]]);
+$secondBankReport = $t->checkModule('cash flow for second bank includes its transfer inflow',
+    $owner, $reportApp, 'GET', $cashPath . '&bankAccountId=' . $accounts['1100'], null, 200,
+    static fn(array $v): bool => $v['bankAccountId'] === $accounts['1100']
+        && $v['openingMinor'] === 0 && $v['netMinor'] === 5300 && $v['closingMinor'] === 5300
+        && $v['months'] === [
+            ['month' => '2026-11', 'netMinor' => 3300],
+            ['month' => '2026-12', 'netMinor' => 2000],
+        ]);
+$t->record('selected account balances reconcile to unfiltered cash flow',
+    $report['bankAccountId'] === 0
+        && $firstBankReport['closingMinor'] + $secondBankReport['closingMinor'] === $report['closingMinor'],
+    '10400 + 5300 = 15700');
+$t->checkModule('cash-flow rejects non-bank account', $owner, $reportApp, 'GET',
+    $cashPath . '&bankAccountId=' . $accounts['5000'], null, 404,
+    static fn(array $v): bool => $v['error'] === 'bank_account_not_found');
+$t->checkModule('cash-flow rejects unknown bank account', $owner, $reportApp, 'GET',
+    $cashPath . '&bankAccountId=999999999', null, 404);
+$t->checkModule('cash-flow rejects negative bank ID', $owner, $reportApp, 'GET',
+    $cashPath . '&bankAccountId=-1', null, 422,
+    static fn(array $v): bool => $v['error'] === 'invalid_account_id');
+$t->checkModule('bank filter cannot grant access to another workspace', $outsider, $reportApp, 'GET',
+    $cashPath . '&bankAccountId=' . $accounts['1000'], null, 404);
 $t->checkModule('cash-flow denies unrelated company users',
     $outsider, $reportApp, 'GET',
     $base . '/cash-flow?from=2026-11-01&through=2026-12-31', null, 404);
@@ -122,6 +150,9 @@ $t->checkModule('finance viewer reads realized cash-flow but cannot modify it',
     $outsider, $reportApp, 'GET',
     $base . '/cash-flow?from=2026-11-01&through=2026-12-31', null, 200,
     static fn(array $v): bool => ($v['closingMinor'] ?? null) === 15700);
+$t->checkModule('report viewer can read selected bank cash flow', $outsider, $reportApp, 'GET',
+    $cashPath . '&bankAccountId=' . $accounts['1100'], null, 200,
+    static fn(array $v): bool => $v['closingMinor'] === 5300);
 $t->check('disable reports in this space',
     $owner, 'PUT', $base . '/modules/' . $reportApp,
     ['enabled' => false], 200);

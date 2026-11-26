@@ -369,12 +369,25 @@ final class FinanceApi {
      * Both queries are bounded aggregate scans, never per-journal PHP queries.
      */
     public function cashFlow(int $spaceId, string $moduleId,
-        string $from, string $through): array {
+        string $from, string $through, int $bankAccountId = 0): array {
         $this->requireModuleCapability($spaceId, $moduleId, 'reports.read');
         self::date($from);
         self::date($through);
         if ($through < $from) {
             throw new DomainException('invalid_period');
+        }
+        if ($bankAccountId < 0) {
+            throw new DomainException('invalid_account_id');
+        }
+        if ($bankAccountId > 0) {
+            $account = $this->db->getQueryBuilder();
+            $account->select('id')->from('lf_accounts')
+                ->where($account->expr()->eq('space_id', $account->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($account->expr()->eq('id', $account->createNamedParameter($bankAccountId, IQueryBuilder::PARAM_INT)))
+                ->andWhere($account->expr()->eq('is_bank', $account->createNamedParameter(true, IQueryBuilder::PARAM_BOOL)));
+            if ($account->executeQuery()->fetchOne() === false) {
+                throw new DomainException('bank_account_not_found');
+            }
         }
         $q = $this->db->getQueryBuilder();
         $q->selectAlias($q->createFunction('SUM(p.amount_minor)'), 'opening_minor')
@@ -391,6 +404,9 @@ final class FinanceApi {
                 $q->createNamedParameter(1, IQueryBuilder::PARAM_INT)))
             ->andWhere($q->expr()->lt('j.effective_on',
                 $q->createNamedParameter($from)));
+        if ($bankAccountId > 0) {
+            $q->andWhere($q->expr()->eq('p.account_id', $q->createNamedParameter($bankAccountId, IQueryBuilder::PARAM_INT)));
+        }
         $opening = (int)($q->executeQuery()->fetchOne() ?: 0);
 
         $q = $this->db->getQueryBuilder();
@@ -412,6 +428,9 @@ final class FinanceApi {
             ->andWhere($q->expr()->lte('j.effective_on', $q->createNamedParameter($through)))
             ->groupBy('month')
             ->orderBy('month', 'ASC');
+        if ($bankAccountId > 0) {
+            $q->andWhere($q->expr()->eq('p.account_id', $q->createNamedParameter($bankAccountId, IQueryBuilder::PARAM_INT)));
+        }
         $total = 0;
         $months = [];
         foreach ($q->executeQuery()->fetchAllAssociative() as $row) {
@@ -430,6 +449,7 @@ final class FinanceApi {
         return [
             'from' => $from, 'through' => $through,
             'currency' => $this->currency($spaceId, $moduleId),
+            'bankAccountId' => $bankAccountId,
             'openingMinor' => $opening,
             'months' => $months,
             'netMinor' => $total,

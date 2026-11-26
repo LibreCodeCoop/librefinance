@@ -33,6 +33,13 @@ const catalogNext = ref(null)
 const selected = ref('profit_loss')
 const from = ref(startYear)
 const through = ref(today)
+const bankAccountId = ref(0)
+const bankOptions = computed(() => [
+  { value: 0, label: t('librefinance', 'All accounts') },
+  ...w.accounts.value.filter(account => account.is_bank).map(account => ({
+    value: Number(account.id), label: account.name,
+  })),
+])
 const result = ref(null)
 const trial = ref([])
 const trialNext = ref(null)
@@ -83,6 +90,8 @@ watch(() => draft.value.kind, kind => {
 function currentPath() {
   const filters = new URLSearchParams({ through: through.value })
   if (canUsePeriod.value) filters.set('from', from.value)
+  if (currentKind.value === 'cash_flow' && Number(bankAccountId.value) > 0)
+    filters.set('bankAccountId', String(bankAccountId.value))
   if (currentKind.value === 'trial_balance' && activeAccountClass.value)
     filters.set('accountClass', activeAccountClass.value)
   const route = currentKind.value === 'profit_loss' ? '/profit-loss'
@@ -137,6 +146,7 @@ async function loadSaved(afterId = null) {
   finally { catalogBusy.value = false }
 }
 function selectReport(key) {
+  bankAccountId.value = 0
   selected.value = key
   const saved = key.startsWith('saved:')
     ? catalog.value.find(row => row.id === Number(key.slice(6))) : null
@@ -177,6 +187,7 @@ async function saveReport() {
     if (id) catalog.value = catalog.value.map(row => row.id === id
       ? { ...row, ...response } : row)
     else catalog.value = [...catalog.value, response]
+    bankAccountId.value = 0
     selected.value = 'saved:' + response.id
     from.value = response.from ?? startYear
     through.value = response.through
@@ -274,6 +285,8 @@ onBeforeUnmount(() => ++generation)
         <form class="lf-filter-row lf-report-period" @submit.prevent="execute">
           <LfDateField v-if="canUsePeriod" id="lf-report-from" v-model="from" :label="t('librefinance', 'From')" />
           <LfDateField id="lf-report-through" v-model="through" :label="canUsePeriod ? t('librefinance', 'Through') : t('librefinance', 'Reference date')" />
+          <LfSelect v-if="currentKind === 'cash_flow'" id="lf-report-bank"
+            v-model="bankAccountId" :label="t('librefinance', 'Account')" :options="bankOptions" />
           <NcButton variant="secondary" type="submit" :disabled="busy">{{ t('librefinance', 'Apply period') }}</NcButton>
         </form>
         <p class="lf-muted">{{currentSaved ? t('librefinance', 'Saved template with an initial period. You can view other dates without changing the template.') : t('librefinance', 'Standard template available in all authorized workspaces.')}}</p>
@@ -287,6 +300,9 @@ onBeforeUnmount(() => ++generation)
           <p class="lf-muted">{{ t('librefinance', 'Actual result for the period. Excludes forecasts and pending bank statements.') }}</p>
         </template>
         <template v-if="result && currentKind === 'cash_flow'">
+          <p class="lf-muted">{{ t('librefinance', 'Account') }}:
+            {{ bankOptions.find(option => option.value === (result.bankAccountId ?? 0))?.label ?? result.bankAccountId }}
+          </p>
           <div class="lf-report-metrics">
             <div><span>{{ t('librefinance', 'Opening balance') }}</span><strong>{{ money(result.openingMinor) }}</strong></div>
             <div><span>{{ t('librefinance', 'Change') }}</span><strong>{{ money(result.netMinor) }}</strong></div>
