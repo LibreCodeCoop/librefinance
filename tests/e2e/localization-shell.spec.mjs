@@ -30,6 +30,39 @@ test('native language selection localizes shell without changing workspace or ro
   await page.goto(route + '&view=bankAccounts&forceLanguage=pt_BR')
   await expect(page.getByRole('navigation', { name: 'Navegação do LibreFinance' })).toBeVisible()
   await expect(page.locator('.lf-context-identity')).toContainText(name)
+
+  // The same authorized report and exact financial result must survive the
+  // language change, including the regenerated export action label.
+  const api = '/index.php/apps/librefinance/api/spaces/' + id
+  const headers = { requesttoken: await page.evaluate(() => OC.requestToken) }
+  const chartResponse = await page.request.get(api + '/accounts', { headers })
+  expect(chartResponse.status()).toBe(200)
+  const chart = (await chartResponse.json()).accounts
+  const year = (await page.evaluate(() => new Date().toLocaleDateString('sv-SE'))).slice(0, 4)
+  const entry = await page.request.post(api + '/journals', { headers, data: {
+    debitId: chart.find(row => row.code === '1000').id,
+    creditId: chart.find(row => row.code === '4000').id,
+    amountMinor: 12345, date: year + '-01-01',
+    memo: 'Synthetic locale invariant', externalKey: 'locale-report-' + id,
+  } })
+  expect(entry.status()).toBe(201)
+  const reportPath = '/api/spaces/' + id + '/cash-flow'
+  async function localizedCashFlow(language, label, exportLabel) {
+    await page.goto(route + '&view=reports&forceLanguage=' + language)
+    const response = page.waitForResponse(r =>
+      r.request().method() === 'GET' && new URL(r.url()).pathname.endsWith(reportPath))
+    await page.getByRole('button', { name: new RegExp(label) }).click()
+    const actual = await response
+    expect(actual.status()).toBe(200)
+    await expect(page.getByRole('button', { name: exportLabel, exact: true })).toBeVisible()
+    await expect(page.locator('.lf-context-identity')).toContainText(name)
+    expect(new URL(page.url()).searchParams.get('spaceId')).toBe(id)
+    return actual.json()
+  }
+  const portuguese = await localizedCashFlow('pt_BR', 'Fluxo de caixa realizado', 'Exportar CSV')
+  const english = await localizedCashFlow('en', 'Actual cash flow', 'Export CSV')
+  expect(portuguese).toMatchObject({ currency: 'BRL', openingMinor: 0, netMinor: 12345, closingMinor: 12345 })
+  expect(english).toEqual(portuguese)
 })
 
 
