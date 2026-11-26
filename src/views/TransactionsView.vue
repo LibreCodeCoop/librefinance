@@ -18,7 +18,6 @@ import LfPageHeader from '../components/LfPageHeader.vue'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import FieldStudioShortcut from '../components/FieldStudioShortcut.vue'
 import LfMarkdownEditor from '../components/LfMarkdownEditor.vue'
-import { ledgerLocale, toMinorUnits } from '../money.js'
 import { formatLedgerDate } from '../date.js'
 import { financeApi, financeError } from '../services/api.js'
 
@@ -30,7 +29,7 @@ const { writable, activeId, journals, accounts, categoryRecords,
   date, busy, banks, categories, nextBeforeId, createEntry, loadMore,
   money, accountNameById, space } = w
 const search = ref('')
-const amountPlaceholder = new Intl.NumberFormat(ledgerLocale(), { minimumFractionDigits: 2 }).format(0)
+const amountPlaceholder = computed(() => w.amountInput(0))
 const filtered = computed(() => journals.value.filter(row => (
   (row.memo || '').toLowerCase().includes(search.value.trim().toLowerCase())
   || (row.effective_on || '').includes(search.value.trim())
@@ -83,7 +82,7 @@ watch(bankId, () => {
 const paymentLabel = id => paymentMethods.value.find(m => m.id === id)?.name || ''
 
 const entryMinor = computed(() => {
-  try { return toMinorUnits(amount.value) } catch { return null }
+  try { return w.parseMoney(amount.value, w.accountById(bankId.value), w.accountById(categoryId.value)) } catch { return null }
 })
 const selectedBank = computed(() => banks.value.find(item => Number(item.id) === Number(bankId.value)))
 const selectedCounterpart = computed(() => counterpartChoices.value.find(item => Number(item.value) === Number(categoryId.value)))
@@ -116,7 +115,7 @@ watch([journalOpenRequest, w.activeTab], ([request, view]) => {
 function closeDialog() { entryError.value = ''; dialog.value = false }
 async function submit() {
   entryError.value = ''
-  try { toMinorUnits(amount.value) } catch (cause) {
+  try { w.parseMoney(amount.value, w.accountById(bankId.value), w.accountById(categoryId.value)) } catch (cause) {
     entryError.value = cause.message
     return
   }
