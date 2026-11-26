@@ -64,7 +64,9 @@ final class OfxStatementParser {
             $originalId = self::leaf($block, 'FITID');
             $posted = self::leaf($block, 'DTPOSTED');
             $value = self::leaf($block, 'TRNAMT');
-            $memo = self::leaf($block, 'MEMO') ?? self::leaf($block, 'NAME');
+            $memo = self::leaf($block, 'MEMO');
+            $name = self::leaf($block, 'NAME');
+            $memo ??= $name;
             if ($originalId === null || $originalId === '' || mb_strlen($originalId) > 255
                 || $posted === null || $value === null
                 || $memo === null || $memo === '' || mb_strlen($memo) > 255) {
@@ -128,10 +130,17 @@ final class OfxStatementParser {
     }
 
     private static function leaf(string $block, string $name): ?string {
-        if (!preg_match('~<' . $name . '\s*>([^<]*)~i', $block, $match)) {
+        $count = preg_match_all('~<' . $name . '\s*>([^<]*)~i', $block, $matches);
+        if ($count === false) {
+            throw new DomainException('invalid_ofx_row');
+        }
+        if ($count === 0) {
             return null;
         }
-        $text = trim(html_entity_decode($match[1], ENT_QUOTES | ENT_XML1, 'UTF-8'));
+        if ($count > 1) {
+            throw new DomainException('invalid_ofx_row');
+        }
+        $text = trim(html_entity_decode($matches[1][0], ENT_QUOTES | ENT_XML1, 'UTF-8'));
         if (preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $text)) {
             throw new DomainException('invalid_ofx_row');
         }
