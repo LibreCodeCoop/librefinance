@@ -5759,7 +5759,7 @@
                     "librefinance"
                 ],
                 "summary": "rateHistory index",
-                "description": "Nextcloud-authenticated and company-scoped; permissions enforced server-side.",
+                "description": "Read-only scoped rate history. For dated selection supply sourceCurrency, targetCurrency and asOf together; optional sourceType. Returns all eligible immutable candidates in ID cursor order, never chooses a rate.",
                 "parameters": [
                     {
                         "name": "spaceId",
@@ -5777,6 +5777,39 @@
                         "schema": {
                             "type": "integer",
                             "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "sourceCurrency",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "targetCurrency",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "asOf",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "sourceType",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 ],
@@ -5906,7 +5939,7 @@
                     "librefinance"
                 ],
                 "summary": "rateHistory preview",
-                "description": "Read-only conversion of signed minor units using one explicit workspace rate snapshot and its stored precisions; half-away-from-zero rounding, no posting.",
+                "description": "Read-only conversion using one explicit workspace rate snapshot and stored precisions; optional sourceCurrency, targetCurrency, asOf and sourceType apply the same eligibility predicate as history. A nonqualifying snapshot returns 404; no posting.",
                 "parameters": [
                     {
                         "name": "spaceId",
@@ -5930,6 +5963,39 @@
                         "name": "sourceMinor",
                         "in": "query",
                         "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sourceCurrency",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "targetCurrency",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "asOf",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "sourceType",
+                        "in": "query",
+                        "required": false,
                         "schema": {
                             "type": "string"
                         }
