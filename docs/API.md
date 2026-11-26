@@ -76,12 +76,12 @@ Preços são inteiros em centavos (BRL) no domínio atual, inclusive zero. Estoq
 `GET /spaces/{spaceId}/transactions?bankAccountId=1&status=pending&from=2026-11-01&through=2026-11-30` consulta movimentações importadas no espaço autorizado. As datas de lançamento do extrato (`booking_date`) são inclusivas e independentes: omita `from` ou `through` para deixar o respectivo limite aberto. Use datas ISO gregorianas (`YYYY-MM-DD`); datas inválidas ou intervalo invertido retornam 422.
 Os filtros de conta, situação e data são aplicados antes da paginação por ID. A resposta mantém `transactions` (até 50 registros) e `nextAfterId`; use os mesmos filtros nas páginas seguintes. Movimentações pendentes são evidências, não lançamentos no razão. Esta consulta não calcula totais de extrato.
 
-## Fluxo de caixa realizado por conta
-`GET /spaces/{spaceId}/cash-flow?from=2026-11-01&through=2026-11-30` mantém a agregação de todas as contas bancárias e de caixa. Informe `bankAccountId` para restringir os saldos e os movimentos mensais à conta bancária autorizada, inclusive inativa para consulta histórica. O resultado informa `bankAccountId` (0 para todas). Uma transferência interna é neutra na visão consolidada; na visão de uma conta, sua respectiva entrada ou saída compõe o saldo. Não são considerados compromissos futuros nem extratos pendentes.
-
 ## Erros
 `{"error":"permission_denied"}` 403; `{"error":"space_not_found"}` 404; `{"error":"idempotency_conflict"}` 409; entrada inválida 422.
 Falhas internas não devem revelar SQL, caminhos do host nem configurações.
+
+## Fluxo de caixa realizado por conta
+`GET /spaces/{spaceId}/cash-flow?from=2026-11-01&through=2026-11-30` mantém a agregação de todas as contas bancárias e de caixa. Informe `bankAccountId` para restringir os saldos e os movimentos mensais à conta bancária autorizada, inclusive inativa para consulta histórica. O resultado informa `bankAccountId` (0 para todas). Uma transferência interna é neutra na visão consolidada; na visão de uma conta, sua respectiva entrada ou saída compõe o saldo. Não são considerados compromissos futuros nem extratos pendentes.
 
 ## Contratos não implementados
 Permissões granulares adicionais, estoque, contabilidade de múltiplas moedas, notas fiscais efetivamente emitidas, sincronização bancária online, migração integral do Akaunting, fechamento fiscal e demonstrações contábeis formais continuam fora desta versão. A importação pertence ao core; a NFS-e brasileira permanece um aplicativo opcional independente. A interface IA usa `OCP\\TaskProcessing` com prévia de dados e consentimento; o transporte MCP oferece quatro ferramentas de leitura, sem ferramentas de pagamento/contabilização. Ver [OpenAPI](OPENAPI.md), [MCP/IA](MCP-AI.md) e [testes](TESTING.md).
