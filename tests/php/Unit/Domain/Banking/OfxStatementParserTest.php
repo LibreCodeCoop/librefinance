@@ -168,6 +168,14 @@ OFX;
         self::assertSame(OfxStatementParser::parse(self::XML)['rows'], $statement['rows']);
     }
 
+    public function testBalanceUsesStatementCurrencyBeforeBankAccountAggregate(): void {
+        $source = str_replace('<CURDEF>BRL', '<CURDEF>BRL<BANKACCTFROM><BANKID>001<ACCTID>123<ACCTTYPE>CHECKING</BANKACCTFROM>', self::SGML);
+        $source = str_replace('</STMTRS>', '<LEDGERBAL><BALAMT>100.00<DTASOF>20261130</LEDGERBAL></STMTRS>', $source);
+        $statement = OfxStatementParser::parse($source);
+        self::assertSame(['date' => '2026-11-30', 'amount_minor' => 10000, 'currency' => 'BRL'], $statement['ledgerBalance']);
+        self::assertSame(OfxStatementParser::parse(self::SGML)['rows'], $statement['rows']);
+    }
+
     public function testZeroXmlBalance(): void {
         $statement = OfxStatementParser::parse(str_replace('</STMTRS>',
             '<LEDGERBAL><BALAMT>0.00</BALAMT><DTASOF>20261122</DTASOF></LEDGERBAL></STMTRS>', self::XML));
@@ -201,6 +209,10 @@ OFX;
             'unsupported currency' => [str_replace('<CURDEF>BRL', '<CURDEF>ZZZ', $withBalance($balance)), 'unsupported_currency'],
             'non-two-decimal currency' => [str_replace('<CURDEF>BRL', '<CURDEF>JPY', $withBalance($balance)), 'invalid_ofx_currency'],
             'missing currency' => [str_replace('<CURDEF>BRL', '', $withBalance($balance)), 'invalid_ofx_currency'],
+            'currency nested in unknown aggregate' => [str_replace('<CURDEF>BRL', '<UNKNOWN><CURDEF>USD</UNKNOWN>', $withBalance($balance)), 'invalid_ofx_row'],
+            'duplicate currency with unsupported attribute' => [str_replace('<CURDEF>BRL', '<CURDEF>BRL<CURDEF bogus="yes">USD', $withBalance($balance)), 'invalid_ofx_row'],
+            'mismatched currency closing leaf' => [str_replace('<CURDEF>BRL', '<CURDEF>BRL</UNKNOWN>', $withBalance($balance)), 'invalid_ofx_row'],
+            'orphan currency outside statement' => [str_replace('<OFX><STMTRS><CURDEF>BRL', '<OFX><CURDEF>BRL<STMTRS>', $withBalance($balance)), 'invalid_ofx_row'],
         ];
     }
 
