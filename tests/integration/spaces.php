@@ -18,6 +18,16 @@ $space = $t->check('create owner-managed financial space', $a, 'POST', '/spaces'
     static fn(array $v):bool=>($v['accent_color']??null)==='#1A2B3C');
 $id = (int)$space['id'];
 $base = '/spaces/'.$id;
+$t->check('legacy creation remains BRL-only', $a, 'POST', '/spaces',
+    ['name'=>'Unsupported book '.$token,'kind'=>'organization','currency'=>'JPY'],422,
+    static fn(array $v):bool=>($v['error']??null)==='invalid_currency');
+$t->check('authorized legacy listing exposes exact currency metadata', $a, 'GET', '/spaces', null, 200,
+    static fn(array $v):bool=>count(array_filter($v['spaces']??[],static fn(array $row):bool=>
+        (int)$row['id']===$id && $row['currency']==='BRL'
+        && ($row['currencyPrecision']??null)===2 && ($row['currencyMetadataVersion']??null)===1))===1);
+$t->check('foreign listing cannot expose the workspace metadata', $b, 'GET', '/spaces', null, 200,
+    static fn(array $v):bool=>!in_array($id,array_column($v['spaces']??[],'id'),true));
+$t->check('foreign account metadata denied', $b, 'GET',$base.'/accounts',null,404);
 $t->check('foreign user cannot rename a workspace', $b, 'PUT', $base,
     ['name'=>'Unauthorised rename'], 404);
 $t->check('foreign user cannot archive a workspace', $b, 'POST',
@@ -44,7 +54,11 @@ $t->check('renaming is reflected in authorized workspace listing', $a, 'GET',
             (int)$row['id']===$id && $row['name']==='Renamed synthetic finance '.$token
             && ($row['accent_color']??null)==='#ABCDEF'))===1);
 $accountResult = $t->check('owner obtains default cash and revenue accounts', $a,
-    'GET',$base.'/accounts',null,200);
+    'GET',$base.'/accounts',null,200,
+    static fn(array $v):bool=>count($v['accounts']??[])===4
+        && count(array_filter($v['accounts'],static fn(array $row):bool=>
+            $row['currency']==='BRL' && ($row['currencyPrecision']??null)===2
+            && ($row['currencyMetadataVersion']??null)===1 && $row['balance_minor']===0))===4);
 $accounts = [];
 foreach ($accountResult['accounts'] as $row) {
     $accounts[$row['code']] = (int)$row['id'];
@@ -78,7 +92,9 @@ $t->check('only owner can see archived workspace', $a, 'GET',
     '/spaces/archived',null,200,
     static fn(array $v):bool=>
         count(array_filter($v['spaces']??[],static fn(array $row):bool=>
-            (int)$row['id']===$id && ($row['role']??null)==='owner'))===1);
+            (int)$row['id']===$id && ($row['role']??null)==='owner'
+            && $row['currency']==='BRL' && ($row['currencyPrecision']??null)===2
+            && ($row['currencyMetadataVersion']??null)===1))===1);
 $t->check('another user cannot enumerate owner archived workspaces', $b,
     'GET','/spaces/archived',null,200,
     static fn(array $v):bool=>

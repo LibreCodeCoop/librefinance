@@ -11,7 +11,20 @@ Todos os caminhos abaixo usam `/index.php/apps/librefinance/api`. Identidade é 
 `POST /spaces`: `{"name":"Tesouraria","kind":"collective","currency":"BRL"}`
 Resposta 201: `{"id":1,"name":"Tesouraria","kind":"collective","currency":"BRL","role":"owner"}`
 
-Tipos: personal, collective, organization. Moeda: somente BRL com duas casas decimais nesta versão. Multimoedas e regras de precisão por moeda permanecem futuros.
+Tipos: personal, collective, organization. A criação continua restrita a BRL com duas casas decimais; não há ativação de novas moedas.
+
+As listas `GET /spaces`, `GET /spaces/archived`,
+`GET /saas/v1/environments/{environmentId}/workspaces` e
+`GET /spaces/{spaceId}/accounts` incluem, em cada registro autorizado,
+`currency` (código armazenado), `currencyPrecision` (escala inteira ou
+`null`) e `currencyMetadataVersion` (versão do registro de moedas).
+Por exemplo, BRL retorna precisão 2, JPY retorna 0 e KWD retorna 3 no
+registro versão 1. A precisão é metadado de leitura do registro atual,
+não uma autorização de escrituração em moeda estrangeira nem um snapshot
+histórico. Códigos históricos não reconhecidos permanecem inalterados e
+retornam precisão `null`; consumidores não devem presumir duas casas.
+Os valores monetários, as regras de acesso e os contratos de escrita
+permanecem inalterados.
 
 ## Compartilhar
 `POST /spaces/1/members`: `{"uid":"user2","role":"operator"}`

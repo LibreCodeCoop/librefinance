@@ -29,6 +29,21 @@ final class CurrencyMetadata {
         return self::PRECISIONS;
     }
 
+    /**
+     * Describe the current registry's interpretation without changing the stored
+     * code. Unrecognized historical values stay readable, but have no known scale.
+     * This is not a persisted precision snapshot or a grant to post in that unit.
+     *
+     * @return array{currency:string,currencyPrecision:?int,currencyMetadataVersion:int}
+     */
+    public static function readMetadata(string $currency): array {
+        return [
+            'currency' => $currency,
+            'currencyPrecision' => self::PRECISIONS[$currency] ?? null,
+            'currencyMetadataVersion' => self::VERSION,
+        ];
+    }
+
     public static function precision(string $currency): int {
         return self::PRECISIONS[$currency] ?? throw new DomainException('unsupported_currency');
     }

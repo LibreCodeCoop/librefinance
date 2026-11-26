@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace OCA\LibreFinance\Service;
 
 use DomainException;
+use OCA\LibreFinance\Domain\Currency\CurrencyMetadata;
 use OCP\DB\Exception as DatabaseException;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
@@ -276,7 +277,7 @@ final class SaasWorkspaceService {
             throw new DomainException('invalid_cursor');
         }
         $q = $this->db->getQueryBuilder();
-        $q->select('s.id', 's.name', 's.owner_uid', 's.kind')
+        $q->select('s.id', 's.name', 's.owner_uid', 's.kind', 's.currency')
             ->from('lf_environment_spaces', 'es')
             ->innerJoin('es', 'lf_spaces', 's', 's.id = es.space_id')
             ->where($q->expr()->eq('es.environment_id',
@@ -296,6 +297,7 @@ final class SaasWorkspaceService {
             'workspaces' => array_map(static fn(array $row): array => [
                 'id' => (int)$row['id'], 'name' => (string)$row['name'],
                 'ownerUid' => (string)$row['owner_uid'], 'kind' => (string)$row['kind'],
+                ...CurrencyMetadata::readMetadata((string)$row['currency']),
             ], $rows),
             'nextAfterId' => $hasMore ? (int)end($rows)['id'] : null,
         ];

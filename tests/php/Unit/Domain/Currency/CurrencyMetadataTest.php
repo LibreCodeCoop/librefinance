@@ -37,6 +37,11 @@ final class CurrencyMetadataTest extends TestCase {
     #[DataProvider('supportedCurrenciesProvider')]
     public function testPrecisionForSupportedCurrencies(string $currency, int $expectedScale): void {
         $this->assertSame($expectedScale, CurrencyMetadata::precision($currency));
+        $this->assertSame([
+            'currency' => $currency,
+            'currencyPrecision' => $expectedScale,
+            'currencyMetadataVersion' => 1,
+        ], CurrencyMetadata::readMetadata($currency));
     }
 
     public function testSupportedReturnsExpectedMapping(): void {
@@ -63,6 +68,11 @@ final class CurrencyMetadataTest extends TestCase {
 
     #[DataProvider('unsupportedCurrenciesProvider')]
     public function testPrecisionRejectsUnknownLowercaseWhitespaceAndMalformedCodes(string $currency): void {
+        $this->assertSame([
+            'currency' => $currency,
+            'currencyPrecision' => null,
+            'currencyMetadataVersion' => 1,
+        ], CurrencyMetadata::readMetadata($currency));
         $this->expectException(DomainException::class);
         $this->expectExceptionMessageMatches('/^unsupported_currency$/');
         CurrencyMetadata::precision($currency);

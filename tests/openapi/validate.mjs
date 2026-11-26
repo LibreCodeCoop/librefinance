@@ -43,6 +43,10 @@ if (!ai?.requestBody?.content?.['application/json']?.schema?.properties?.consent
   throw new Error('Explicit consent is missing from Nextcloud AI API schema')
 }
 const schemaChecks = [
+  ['/librefinance/api/spaces', 'get', 'CurrencySpaceList'],
+  ['/librefinance/api/spaces/archived', 'get', 'CurrencySpaceList'],
+  ['/librefinance/api/saas/v1/environments/{environmentId}/workspaces', 'get', 'CurrencyManagedWorkspaceList'],
+  ['/librefinance/api/spaces/{spaceId}/accounts', 'get', 'CurrencyAccountList'],
   ['/librefinance/api/spaces/{spaceId}/journals', 'post', 'JournalPosted'],
   ['/librefinance/api/spaces/{spaceId}/ai/preview', 'get', 'AiPreview'],
   ['/librefinance/api/spaces/{spaceId}/ai/analyze', 'post', 'AiTaskQueued'],
@@ -63,6 +67,20 @@ for (const [path, method, name] of schemaChecks) {
   })
   if (!response) {
     throw new Error('Missing typed output contract for ' + method + ' ' + path)
+  }
+}
+for (const [path, field] of [
+  ['/librefinance/api/spaces', 'spaces'],
+  ['/librefinance/api/spaces/archived', 'spaces'],
+  ['/librefinance/api/saas/v1/environments/{environmentId}/workspaces', 'workspaces'],
+  ['/librefinance/api/spaces/{spaceId}/accounts', 'accounts'],
+]) {
+  const item = spec.paths[path]?.get?.responses?.['200']?.content?.['application/json']
+    ?.schema?.properties?.[field]?.items
+  if (!item || !['currency', 'currencyPrecision', 'currencyMetadataVersion']
+    .every(key => item.required?.includes(key))
+    || !item.properties.currencyPrecision.type.includes('null')) {
+    throw new Error('Missing explicit nullable currency metadata in ' + path)
   }
 }
 const previewHash = ai?.requestBody?.content?.['application/json']?.schema

@@ -290,6 +290,39 @@ $spec = [
                 'properties' => ['error' => ['type' => 'string']],
                 'required' => ['error']],
             'JsonObject' => ['type' => 'object', 'additionalProperties' => true],
+            'CurrencyReadMetadata' => [
+                'type' => 'object',
+                'properties' => [
+                    'currency' => ['type' => 'string', 'description' => 'Stored currency code, unchanged even when unsupported.'],
+                    'currencyPrecision' => ['type' => ['integer', 'null'], 'minimum' => 0, 'maximum' => 3,
+                        'description' => 'Scale in the current registry, or null when the stored code is unsupported.'],
+                    'currencyMetadataVersion' => ['type' => 'integer', 'minimum' => 1,
+                        'description' => 'Version of the consulted registry, not a stored historical precision snapshot.'],
+                ],
+                'required' => ['currency', 'currencyPrecision', 'currencyMetadataVersion'],
+                'additionalProperties' => true,
+            ],
+            'CurrencySpaceList' => [
+                'type' => 'object',
+                'properties' => ['spaces' => ['type' => 'array',
+                    'items' => ['$ref' => '#/components/schemas/CurrencyReadMetadata']]],
+                'required' => ['spaces'],
+            ],
+            'CurrencyManagedWorkspaceList' => [
+                'type' => 'object',
+                'properties' => [
+                    'workspaces' => ['type' => 'array',
+                        'items' => ['$ref' => '#/components/schemas/CurrencyReadMetadata']],
+                    'nextAfterId' => ['type' => ['integer', 'null'], 'minimum' => 1],
+                ],
+                'required' => ['workspaces', 'nextAfterId'],
+            ],
+            'CurrencyAccountList' => [
+                'type' => 'object',
+                'properties' => ['accounts' => ['type' => 'array',
+                    'items' => ['$ref' => '#/components/schemas/CurrencyReadMetadata']]],
+                'required' => ['accounts'],
+            ],
             'ProfitLoss' => [
                 'type' => 'object',
                 'properties' => [
@@ -372,6 +405,10 @@ $spec = [
     ],
 ];
 $responseSchemas = [
+    'librefinance:space#index' => 'CurrencySpaceList',
+    'librefinance:space#archived' => 'CurrencySpaceList',
+    'librefinance:saasWorkspace#index' => 'CurrencyManagedWorkspaceList',
+    'librefinance:account#index' => 'CurrencyAccountList',
     'librefinance:journal#create' => 'JournalPosted',
     'librefinance:ai#preview' => 'AiPreview',
     'librefinance:ai#analyze' => 'AiTaskQueued',
