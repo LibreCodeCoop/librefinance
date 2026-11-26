@@ -281,7 +281,7 @@ $t->record('duplicate throws', $caughtDuplicate, 'Duplicate provider registratio
 $caughtTerminal1 = false;
 try {
     $eventTerm1 = new \OCA\LibreFinance\Domain\Banking\Providers\RegisterBankProvidersEvent();
-    $eventTerm1->register($factory("valid_providerLF", "librefinance_example"));
+    $eventTerm1->register($factory("valid_provider\n", "librefinance_example"));
 } catch (\LogicException $e) {
     if ($e->getMessage() === 'invalid_or_duplicate_bank_provider') {
         $caughtTerminal1 = true;
@@ -292,7 +292,7 @@ $t->record('terminal actual LF in provider ID', $caughtTerminal1, 'Rejects termi
 $caughtTerminal2 = false;
 try {
     $eventTerm2 = new \OCA\LibreFinance\Domain\Banking\Providers\RegisterBankProvidersEvent();
-    $eventTerm2->register($factory("valid_provider", "librefinance_exampleLF"));
+    $eventTerm2->register($factory("valid_provider", "librefinance_example\n"));
 } catch (\LogicException $e) {
     if ($e->getMessage() === 'invalid_or_duplicate_bank_provider') {
         $caughtTerminal2 = true;
