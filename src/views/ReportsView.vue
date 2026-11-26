@@ -17,6 +17,7 @@ import { mdiPlus, mdiChartLine, mdiCashMultiple, mdiTableLarge, mdiPencilOutline
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfDateField from '../components/LfDateField.vue'
 import LfSelect from '../components/LfSelect.vue'
+import { formatLedgerDate } from '../date.js'
 import { financeApi, financeError } from '../services/api.js'
 const w = inject('lfWorkspace')
 const { activeId, money, manager } = w
@@ -45,6 +46,7 @@ const archiveTarget = ref(null)
 const deleteTarget = ref(null)
 const draft = ref({ id: 0, name: '', kind: 'profit_loss', from: startYear, through: today })
 let generation = 0
+let appliedQuery = null
 const currentSaved = computed(() => selected.value.startsWith('saved:')
   ? catalog.value.find(row => row.id === Number(selected.value.slice(6))) ?? null : null)
 const currentKind = computed(() => currentSaved.value?.kind ?? selected.value)
@@ -89,16 +91,19 @@ function currentPath() {
 }
 async function execute() {
   const token = ++generation
+  const query = { spaceId: Number(activeId.value), path: currentPath(), kind: currentKind.value }
+  appliedQuery = null
   busy.value = true
   error.value = ''
   result.value = null
   trial.value = []
   trialNext.value = null
   try {
-    const response = await financeApi('librefinance_reports', Number(activeId.value), currentPath())
+    const response = await financeApi('librefinance_reports', query.spaceId, query.path)
     if (token !== generation) return
+    appliedQuery = query
     result.value = response
-    if (currentKind.value === 'trial_balance') {
+    if (query.kind === 'trial_balance') {
       trial.value = response.accounts
       trialNext.value = response.nextAfterId
     }
@@ -106,12 +111,13 @@ async function execute() {
   finally { if (token === generation) busy.value = false }
 }
 async function loadMore() {
-  if (busy.value || !trialNext.value) return
+  const query = appliedQuery
+  if (busy.value || !trialNext.value || !query || query.spaceId !== Number(activeId.value)) return
   const token = generation
   busy.value = true
   try {
-    const response = await financeApi('librefinance_reports', Number(activeId.value),
-      currentPath() + '&afterId=' + trialNext.value)
+    const response = await financeApi('librefinance_reports', query.spaceId,
+      query.path + '&afterId=' + trialNext.value)
     if (token !== generation) return
     trial.value = [...trial.value, ...response.accounts]
     trialNext.value = response.nextAfterId
@@ -299,6 +305,7 @@ onBeforeUnmount(() => ++generation)
           <NcEmptyContent v-else :name="t('librefinance', 'No movements in this period')" />
         </template>
         <template v-if="result && currentKind === 'trial_balance'">
+          <p class="lf-muted">{{ t('librefinance', 'Reference date') }}: <time :datetime="result.through">{{ formatLedgerDate(result.through) }}</time></p>
           <p v-if="activeAccountClass" class="lf-muted">{{ t('librefinance', 'Filtered by class: {class}. The filter is applied on the server before pagination.', { class: classes[activeAccountClass] }, { escape: false, sanitize: false }) }}</p>
           <div v-if="trial.length" class="lf-table-scroll"><table class="lf-data-table">
             <thead><tr><th v-for="column in activeBalanceColumns" :key="column"
