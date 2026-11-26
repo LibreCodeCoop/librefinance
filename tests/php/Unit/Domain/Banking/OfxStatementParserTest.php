@@ -138,4 +138,61 @@ OFX;
         $this->expectException(DomainException::class);
         OfxStatementParser::parse($statement);
     }
+
+    public function testParsesStatementPeriodAndDistinctBalances(): void {
+        $source = str_replace('<DTSTART>20261120', '<DTSTART>20261101<DTEND>20261130', self::SGML);
+        $source = str_replace('</STMTRS>',
+            '<LEDGERBAL><BALAMT>-1050.50<DTASOF>20261130</LEDGERBAL>'
+            . '<AVAILBAL><BALAMT>5000.00<DTASOF>20261129</AVAILBAL></STMTRS>', $source);
+        $statement = OfxStatementParser::parse($source);
+        self::assertSame(['from' => '2026-11-01', 'through' => '2026-11-30'], $statement['statementPeriod']);
+        self::assertSame(['date' => '2026-11-30', 'amount_minor' => -105050, 'currency' => 'BRL'], $statement['ledgerBalance']);
+        self::assertSame(['date' => '2026-11-29', 'amount_minor' => 500000, 'currency' => 'BRL'], $statement['availableBalance']);
+        self::assertSame(OfxStatementParser::parse(self::SGML)['rows'], $statement['rows']);
+    }
+
+    public function testMissingCheckpointsAndPartialPeriod(): void {
+        $statement = OfxStatementParser::parse(self::SGML);
+        self::assertSame(['from' => '2026-11-20', 'through' => null], $statement['statementPeriod']);
+        self::assertNull($statement['ledgerBalance']);
+        self::assertNull($statement['availableBalance']);
+        self::assertNull(OfxStatementParser::parse(self::XML)['statementPeriod']);
+    }
+
+    public function testZeroXmlBalance(): void {
+        $statement = OfxStatementParser::parse(str_replace('</STMTRS>',
+            '<LEDGERBAL><BALAMT>0.00</BALAMT><DTASOF>20261122</DTASOF></LEDGERBAL></STMTRS>', self::XML));
+        self::assertSame(['date' => '2026-11-22', 'amount_minor' => 0, 'currency' => 'BRL'], $statement['ledgerBalance']);
+        self::assertNull($statement['availableBalance']);
+        self::assertSame(105, $statement['rows'][0]['amount_minor']);
+    }
+
+    public static function invalidBalanceAndPeriodStatements(): array {
+        $balance = '<LEDGERBAL><BALAMT>100.00<DTASOF>20261130</LEDGERBAL>';
+        $withBalance = static fn (string $value): string => str_replace('</STMTRS>', $value . '</STMTRS>', self::SGML);
+        return [
+            'bad balance date' => [$withBalance(str_replace('20261130', '20260230', $balance)), 'invalid_ofx_date'],
+            'bad balance time' => [$withBalance(str_replace('20261130', '20261130250000', $balance)), 'invalid_ofx_date'],
+            'fractional cent balance' => [$withBalance(str_replace('100.00', '100.001', $balance)), 'invalid_ofx_amount'],
+            'reversed period' => [str_replace('<DTSTART>20261120', '<DTSTART>20261130<DTEND>20261101', self::SGML), 'invalid_ofx_date'],
+            'duplicate start date' => [str_replace('<DTSTART>20261120', '<DTSTART>20261120<DTSTART>20261121', self::SGML), 'invalid_ofx_row'],
+            'duplicate ledger balance' => [$withBalance($balance . $balance), 'invalid_ofx_row'],
+            'duplicate balance amount' => [$withBalance(str_replace('<BALAMT>100.00', '<BALAMT>100.00<BALAMT>200.00', $balance)), 'invalid_ofx_row'],
+            'duplicate balance date' => [$withBalance(str_replace('<DTASOF>20261130', '<DTASOF>20261130<DTASOF>20261129', $balance)), 'invalid_ofx_row'],
+            'unclosed aggregate' => [$withBalance(str_replace('</LEDGERBAL>', '', $balance)), 'invalid_ofx_row'],
+            'nested balance' => [$withBalance('<UNKNOWN>' . $balance . '</UNKNOWN>'), 'invalid_ofx_row'],
+            'orphan balance' => [str_replace('</OFX>', $balance . '</OFX>', self::SGML), 'invalid_ofx_row'],
+            'transaction period spoof' => [str_replace('<FITID>ofx-id-one', '<DTEND>20261130<FITID>ofx-id-one', self::SGML), 'invalid_ofx_row'],
+            'unsupported currency' => [str_replace('<CURDEF>BRL', '<CURDEF>ZZZ', $withBalance($balance)), 'unsupported_currency'],
+            'non-two-decimal currency' => [str_replace('<CURDEF>BRL', '<CURDEF>JPY', $withBalance($balance)), 'invalid_ofx_currency'],
+            'missing currency' => [str_replace('<CURDEF>BRL', '', $withBalance($balance)), 'invalid_ofx_currency'],
+        ];
+    }
+
+    #[DataProvider('invalidBalanceAndPeriodStatements')]
+    public function testRejectsInvalidBalanceAndPeriod(string $statement, string $error): void {
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessageMatches('/\A' . preg_quote($error, '/') . '\z/');
+        OfxStatementParser::parse($statement);
+    }
 }
