@@ -86,6 +86,16 @@ final class OfxStatementParser {
                 || substr_count($statements[1][0], $lists[0][0]) !== 1) {
                 throw new DomainException('invalid_ofx_accounts');
             }
+            // A balance inherits the explicit currency of its own statement,
+            // not a currency-like leaf elsewhere in the file. CURDEF is the
+            // first statement field; SGML may omit its closing leaf tag.
+            if (preg_match('~</?CURDEF\\b~i', $text)
+                && (preg_match('~\\A\\s*<CURDEF\\s*>[^<]*+(?:</CURDEF\\s*>)?\\s*+(?=<[A-Za-z])~i',
+                    $statements[1][0], $currencyPrefix) !== 1
+                    || preg_match_all('~</?CURDEF\\b~i', $text)
+                        !== preg_match_all('~</?CURDEF\\b~i', $currencyPrefix[0]))) {
+                throw new DomainException('invalid_ofx_row');
+            }
             // Checkpoints in this supported statement profile are siblings
             // after the selected BANKTRANLIST, never part of its transactions.
             $after = strpos($statements[1][0], $lists[0][0]) + strlen($lists[0][0]);
