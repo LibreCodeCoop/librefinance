@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: 2026 LibreCode Coop and contributors
 SPDX-License-Identifier: AGPL-3.0-or-later
 -->
 <script setup>
-import { computed, inject, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, inject, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
@@ -330,6 +330,108 @@ function viewInvoice(row) {
   }
   navigate('documents', { preserveDirection:true })
 }
+// The activity feed is scoped by the server. The preview endpoint also
+// rechecks the current workspace capability and the live obligation state.
+function canPreviewRecurrence(row) {
+  return canPlan.value && row.source === 'obligation' && row.state === 'planned'
+    && Number.isSafeInteger(row.obligationId) && row.obligationId > 0
+    && row.invoiceId === null && row.paidMinor === 0
+}
+
+const recurrenceRow = ref(null)
+const recurrenceLoading = ref(false)
+const recurrenceError = ref('')
+const recurrenceResult = ref(null)
+const recurrenceCount = ref(2)
+const recurrenceStepMonths = ref(1)
+const recurrencePolicy = ref('clamp')
+const recurrenceCountOptions = Array.from({ length: 24 }, (_, i) => ({ value: i + 1, label: String(i + 1) }))
+const recurrenceStepOptions = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: String(i + 1) }))
+const recurrencePolicyOptions = [
+  { value: 'clamp', label: t('librefinance', 'Use last day of month') },
+  { value: 'reject', label: t('librefinance', 'Reject unavailable day') },
+]
+let recurrenceGeneration = 0
+let recurrenceTrigger = null
+function invalidateRecurrence() {
+  ++recurrenceGeneration
+  recurrenceLoading.value = false
+  recurrenceError.value = ''
+  recurrenceResult.value = null
+}
+function closeRecurrence(restoreFocus = false) {
+  const trigger = recurrenceTrigger
+  const spaceId = Number(w.activeId.value)
+  recurrenceTrigger = null
+  invalidateRecurrence()
+  recurrenceRow.value = null
+  const generation = recurrenceGeneration
+  // The dialog is unmounted when it closes. Restore focus only after its
+  // focus trap is removed, and never to a previous workspace or dialog.
+  if (restoreFocus && trigger) {
+    nextTick(() => {
+      if (generation === recurrenceGeneration && spaceId === Number(w.activeId.value)
+        && !recurrenceRow.value && trigger.isConnected) trigger.focus()
+    })
+  }
+}
+function openRecurrence(row, event) {
+  if (!canPreviewRecurrence(row)) return
+  closeRecurrence()
+  recurrenceTrigger = event.target instanceof Element ? event.target.closest('button') : null
+  recurrenceCount.value = 2
+  recurrenceStepMonths.value = 1
+  recurrencePolicy.value = 'clamp'
+  recurrenceRow.value = row
+  loadRecurrence()
+}
+function recurrenceErrorMessage(cause) {
+  switch (cause.response?.data?.error) {
+    case 'recurrence_day_unavailable':
+      return t('librefinance', 'A day is unavailable in a selected month. Adjust the interval or end-of-month policy.')
+    case 'invalid_recurrence_template':
+      return t('librefinance', 'This obligation is no longer eligible for recurrence preview.')
+    case 'invalid_recurrence':
+    case 'due_before_issue':
+      return t('librefinance', 'Invalid recurrence options or dates.')
+    default:
+      return t('librefinance', 'Financial operation failed')
+  }
+}
+async function loadRecurrence() {
+  const row = recurrenceRow.value
+  if (!row || !canPreviewRecurrence(row) || recurrenceLoading.value) return
+  invalidateRecurrence()
+  const count = recurrenceCount.value
+  const stepMonths = recurrenceStepMonths.value
+  const endOfMonth = recurrencePolicy.value
+  if (!Number.isInteger(count) || count < 1 || count > 24
+    || !Number.isInteger(stepMonths) || stepMonths < 1 || stepMonths > 12
+    || !['clamp', 'reject'].includes(endOfMonth)) {
+    recurrenceError.value = t('librefinance', 'Invalid recurrence options or dates.')
+    return
+  }
+  const spaceId = Number(w.activeId.value)
+  const generation = recurrenceGeneration
+  const current = () => generation === recurrenceGeneration
+    && spaceId === Number(w.activeId.value) && recurrenceRow.value === row && canPlan.value
+  recurrenceLoading.value = true
+  try {
+    const query = new URLSearchParams({
+      count: String(count), stepMonths: String(stepMonths), endOfMonth,
+    })
+    const data = await financeApi('librefinance_obligations', spaceId,
+      '/obligations/' + row.obligationId + '/recurrence-preview?' + query.toString())
+    if (current()) recurrenceResult.value = data
+  } catch (cause) {
+    if (current()) recurrenceError.value = recurrenceErrorMessage(cause)
+  } finally {
+    if (current()) recurrenceLoading.value = false
+  }
+}
+watch([recurrenceCount, recurrenceStepMonths, recurrencePolicy], invalidateRecurrence, { flush: 'sync' })
+watch(canPlan, available => { if (!available) closeRecurrence() })
+
 const payment = ref(null)
 const paymentError = ref('')
 async function pay(row) {
@@ -509,6 +611,7 @@ watch([w.activeId,w.modulesLoadedFor], () => {
   bankBusy.value=false
   formOpen.value = false
   transferOpen.value = false
+  closeRecurrence()
   payment.value = null
   everHadRows.value = false
   clearFilters()
@@ -518,6 +621,7 @@ watch(() => [Number(w.activeId.value), w.space.value?.saasManaged],
 watch([w.activeId,w.modulesLoadedFor,accountFilter,directionFilter,statusFilter,search,period], load,
   {immediate:true})
 onBeforeUnmount(() => {
+  closeRecurrence()
   requestVersion++
   bankActionVersion++
   ++bankFormatSequence
@@ -693,6 +797,8 @@ const currency = row => w.money(row.amountMinor)
                 variant="tertiary" size="small" @click="pay(row)">
                 {{row.kind==='in'?t('librefinance', 'Receive'):t('librefinance', 'Pay')}}
               </NcButton>
+              <NcButton v-if="canPreviewRecurrence(row)" variant="tertiary" size="small"
+                @click="openRecurrence(row, $event)">{{ t('librefinance', 'Preview recurrence') }}</NcButton>
               <NcButton v-if="row.invoiceId && canInvoice" variant="tertiary"
                 size="small" @click="viewInvoice(row)">{{ t('librefinance', 'Invoice') }}</NcButton>
               <NcButton v-if="row.state==='pending' && canReviewBank && w.writable.value"
@@ -781,6 +887,47 @@ const currency = row => w.money(row.amountMinor)
           <NcButton variant="primary" type="submit"
             :disabled="bankBusy||!journalCandidates.some(row=>row.value===Number(journalId))">
             {{bankBusy?t('librefinance', 'Reviewing…'):t('librefinance', 'Confirm review')}}
+          </NcButton>
+        </div>
+      </form>
+    </NcDialog>
+
+    <NcDialog :open="Boolean(recurrenceRow)" size="normal" content-classes="lf-finance-dialog-content"
+      :name="t('librefinance', 'Recurrence preview')" :set-return-focus="false"
+      @update:open="!$event && closeRecurrence(true)">
+      <form v-if="recurrenceRow" class="lf-dialog-form" @submit.prevent="loadRecurrence">
+        <NcNoteCard type="info">
+          {{ t('librefinance', 'This is only a preview. No obligations or payments are created.') }}
+        </NcNoteCard>
+        <p>{{ recurrenceRow.description }}</p>
+        <p><strong>{{ t('librefinance', 'Template amount') }}:</strong>
+          {{ w.money(recurrenceResult?.amountMinor ?? recurrenceRow.totalMinor) }}</p>
+        <LfSelect id="lf-recurrence-count" v-model="recurrenceCount"
+          :label="t('librefinance', 'Occurrences')" :options="recurrenceCountOptions" />
+        <LfSelect id="lf-recurrence-interval" v-model="recurrenceStepMonths"
+          :label="t('librefinance', 'Interval (months)')" :options="recurrenceStepOptions" />
+        <LfSelect id="lf-recurrence-policy" v-model="recurrencePolicy"
+          :label="t('librefinance', 'End of month')" :options="recurrencePolicyOptions" />
+        <NcNoteCard v-if="recurrenceError" type="error" role="alert">{{ recurrenceError }}</NcNoteCard>
+        <p v-if="recurrenceLoading" role="status">{{ t('librefinance', 'Loading preview…') }}</p>
+        <div v-if="recurrenceResult" class="lf-table-scroll">
+          <table class="lf-data-table">
+            <thead><tr>
+              <th scope="col">{{ t('librefinance', 'Issue date') }}</th>
+              <th scope="col">{{ t('librefinance', 'Due date') }}</th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="occurrence in recurrenceResult.occurrences" :key="occurrence.dueOn">
+                <td><time :datetime="occurrence.issuedOn">{{ formatLedgerDate(occurrence.issuedOn) }}</time></td>
+                <td><time :datetime="occurrence.dueOn">{{ formatLedgerDate(occurrence.dueOn) }}</time></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="lf-form-actions">
+          <NcButton variant="tertiary" type="button" @click="closeRecurrence(true)">{{ t('librefinance', 'Close') }}</NcButton>
+          <NcButton variant="primary" type="submit" :disabled="recurrenceLoading">
+            {{ t('librefinance', 'Preview recurrence') }}
           </NcButton>
         </div>
       </form>
