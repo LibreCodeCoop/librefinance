@@ -10,12 +10,12 @@
 export function workQueueItems(drafts = [], bankMovements = []) {
   const items = []
   for (const row of drafts) {
-    const id = Number(row.id)
+    if (!Number.isSafeInteger(row?.id) || row.id < 1) continue
+    const id = row.id
     if (!['draft','issued','partially_paid','paid'].includes(row.status)
-      || !Number.isSafeInteger(id) || id < 1) continue
-    if (!['invoice', 'bill'].includes(row.kind)) continue
-    const amount = Number(row.total_minor)
-    if (!Number.isSafeInteger(amount)) continue
+      || !['invoice', 'bill'].includes(row.kind)) continue
+    if (!Number.isSafeInteger(row.total_minor)) continue
+    const amount = row.total_minor
     const draft = row.status === 'draft'
     items.push({
       key: (draft ? 'draft:' : 'unlinked:') + id, id, kind: row.kind,
@@ -30,10 +30,11 @@ export function workQueueItems(drafts = [], bankMovements = []) {
     })
   }
   for (const row of bankMovements) {
-    const id = Number(row.id)
-    if (row.status !== 'pending' || !Number.isSafeInteger(id) || id < 1) continue
-    const amount = Number(row.amount_minor)
-    if (!Number.isSafeInteger(amount)) continue
+    if (!Number.isSafeInteger(row?.id) || row.id < 1) continue
+    const id = row.id
+    if (row.status !== 'pending') continue
+    if (!Number.isSafeInteger(row.amount_minor)) continue
+    const amount = row.amount_minor
     items.push({
       key: 'bank:' + id, id, type: 'bank',
       transaction: row,

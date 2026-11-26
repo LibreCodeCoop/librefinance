@@ -31,8 +31,46 @@ test('queue ignores malformed rows and never invents a cash movement', () => {
     {id:4,kind:'invoice',status:'draft',total_minor:Infinity},
     {id:0,kind:'invoice',status:'draft',total_minor:1000},
     {id:7,kind:'other',status:'draft',total_minor:3000},
+    {id:null,kind:'invoice',status:'draft',total_minor:1000},
+    {id:true,kind:'invoice',status:'draft',total_minor:1000},
+    {id:'',kind:'invoice',status:'draft',total_minor:1000},
+    {id:'1',kind:'invoice',status:'draft',total_minor:1000},
+    {id:1,kind:'invoice',status:'draft',total_minor:null},
+    {id:1,kind:'invoice',status:'draft',total_minor:true},
+    {id:1,kind:'invoice',status:'draft',total_minor:''},
+    {id:undefined,kind:'invoice',status:'draft',total_minor:1000},
+    {id:1,kind:'invoice',status:'draft',total_minor:undefined},
+    {id:1.5,kind:'invoice',status:'draft',total_minor:1000},
+    {id:1,kind:'invoice',status:'draft',total_minor:1000.5},
+    null,
+    undefined,
+    {}
   ],[
     {id:1,status:'pending',amount_minor:NaN},
     {id:2,status:'matched',amount_minor:4500},
+    {id:null,status:'pending',amount_minor:1000},
+    {id:true,status:'pending',amount_minor:1000},
+    {id:'',status:'pending',amount_minor:1000},
+    {id:'1',status:'pending',amount_minor:1000},
+    {id:1,status:'pending',amount_minor:null},
+    {id:1,status:'pending',amount_minor:true},
+    {id:1,status:'pending',amount_minor:''},
+    {id:undefined,status:'pending',amount_minor:1000},
+    {id:1,status:'pending',amount_minor:undefined},
+    {id:1.5,status:'pending',amount_minor:1000},
+    {id:1,status:'pending',amount_minor:1000.5},
+    null,
+    undefined,
+    {}
   ]),[])
+  // Positive control: zero-valued draft remains accepted, signed negative and positive bank amounts remain accepted
+  const positiveResult = workQueueItems(
+    [{id:5,kind:'invoice',status:'draft',number:'D-5',issue_on:'2026-11-22',total_minor:0}],
+    [
+      {id:5,status:'pending',booking_date:'2026-11-22',amount_minor:-500,description:'Negative outflow'},
+      {id:6,status:'pending',booking_date:'2026-11-22',amount_minor:500,description:'Positive inflow'}
+    ]
+  )
+  assert.equal(positiveResult.length, 3)
+  assert.deepEqual(positiveResult.map(item => item.amountMinor), [0, -500, 500])
 })
