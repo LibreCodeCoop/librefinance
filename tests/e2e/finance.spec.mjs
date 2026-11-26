@@ -536,7 +536,24 @@ test('@extensions report data renders in the same Nextcloud page with authorized
   const scopedId = Number(new URL(bankResponse.url()).searchParams.get('bankAccountId'))
   expect((await bankResponse.json()).bankAccountId).toBe(scopedId)
   await expect(page.getByText('Saldo final', { exact: true })).toBeVisible()
+  const downloadPromise = page.waitForEvent('download')
+  await page.getByRole('button', { name: /Exportar CSV/ }).click()
+  const download = await downloadPromise
+  expect(download.suggestedFilename()).toBe('librefinance-cash-flow.csv')
+  const { readFile } = await import('node:fs/promises')
+  const csvContent = await readFile(await download.path(), 'utf8')
+  const lines = csvContent.trim().split('\r\n')
+  expect(lines[0]).toBe('currency,bankAccountId,from,through,metric,month,amountMinor')
+  const payload = await bankResponse.json()
+  const metadata = [payload.currency, scopedId, payload.from, payload.through].join(',')
+  expect(lines.slice(1)).toEqual([
+    metadata + ',opening,,' + payload.openingMinor,
+    metadata + ',net,,' + payload.netMinor,
+    metadata + ',closing,,' + payload.closingMinor,
+    ...payload.months.map(month => metadata + ',monthly_net,' + month.month + ',' + month.netMinor),
+  ])
   await page.getByRole('button', { name: /Balancete/ }).click()
+  await expect(page.getByRole('button', { name: /Exportar CSV/ })).toHaveCount(0)
   await expect(bankFilter).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Balancete' })).toBeVisible()
   const accounts = page.locator('.lf-report-preview .lf-data-table tbody tr')
