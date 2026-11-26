@@ -26,7 +26,7 @@ final class InvoiceService {
         private CustomFieldService $customFields,
     ) {}
 
-    public function list(int $spaceId,int $afterId=0,string $kind='',string $status=''):array {
+    public function list(int $spaceId,int $afterId=0,string $kind='',string $status='',string $issueFrom='',string $issueThrough=''):array {
         $this->finance->requireModuleCapability($spaceId, self::MODULE, 'invoice.read');
         if($afterId<0){throw new DomainException('invalid_cursor');}
         if($kind!=='' && !in_array($kind,['invoice','bill'],true)){
@@ -34,6 +34,24 @@ final class InvoiceService {
         }
         if($status!=='' && !in_array($status,['draft','issued','partially_paid','paid','attention'],true)){
             throw new DomainException('invalid_invoice_status');
+        }
+        $validateDate = static function (string $date): void {
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $date)) {
+                throw new DomainException('invalid_invoice_period');
+            }
+            [$y, $m, $d] = explode('-', $date);
+            if (!checkdate((int)$m, (int)$d, (int)$y)) {
+                throw new DomainException('invalid_invoice_period');
+            }
+        };
+        if ($issueFrom !== '') {
+            $validateDate($issueFrom);
+        }
+        if ($issueThrough !== '') {
+            $validateDate($issueThrough);
+        }
+        if ($issueFrom !== '' && $issueThrough !== '' && $issueFrom > $issueThrough) {
+            throw new DomainException('invalid_invoice_period');
         }
         $q=$this->db->getQueryBuilder();
         $fields=['id','number','kind','status','contact_id','currency',
@@ -46,6 +64,12 @@ final class InvoiceService {
         // Filter before pagination, never after a page is loaded in Vue.
         if($kind!==''){
             $q->andWhere($q->expr()->eq('i.kind',$q->createNamedParameter($kind)));
+        }
+        if($issueFrom!==''){
+            $q->andWhere($q->expr()->gte('i.issue_on',$q->createNamedParameter($issueFrom)));
+        }
+        if($issueThrough!==''){
+            $q->andWhere($q->expr()->lte('i.issue_on',$q->createNamedParameter($issueThrough)));
         }
         // Issued documents without a verified obligation link must remain
         // actionable. A scoped LEFT JOIN uses the per-space unique index

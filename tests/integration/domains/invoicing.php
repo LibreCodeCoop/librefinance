@@ -303,4 +303,88 @@ $t->check('failed legacy allocation did not claim the bank journal', $a,
     'POST', $base.'/journals/'.(int)$oldJournal['id'].'/reverse',
     null, 200, static fn(array $v): bool => ($v['replayed'] ?? null) === false);
 
+$periodSpace = $t->check('create period workspace', $a, 'POST', '/spaces', [
+    'name' => 'Synthetic invoice period',
+    'kind' => 'organization',
+    'currency' => 'BRL',
+], 201);
+$periodBase = '/spaces/' . (int)$periodSpace['id'];
+
+$periodClient = $t->check('create period client', $a, 'POST', $periodBase . '/contacts', [
+    'name' => 'Period client',
+    'kind' => 'both',
+], 201);
+$periodClientDid = (int)$periodClient['id'];
+
+$periodPayload1 = [
+    'number' => 'PINV1-' . $tag,
+    'kind' => 'invoice',
+    'contactId' => $periodClientDid,
+    'issueOn' => '2026-03-10',
+    'dueOn' => '2026-12-20',
+    'country' => 'GB',
+    'lines' => [
+        ['description' => 'Synthetic consultation 1', 'quantity' => 1, 'unitPriceMinor' => 10000, 'taxRuleId' => null],
+    ],
+];
+
+$periodPayload2 = [
+    'number' => 'PINV2-' . $tag,
+    'kind' => 'invoice',
+    'contactId' => $periodClientDid,
+    'issueOn' => '2026-03-20',
+    'dueOn' => '2026-12-20',
+    'country' => 'GB',
+    'lines' => [
+        ['description' => 'Synthetic consultation 2', 'quantity' => 1, 'unitPriceMinor' => 10000, 'taxRuleId' => null],
+    ],
+];
+
+$inv1 = $t->checkModule('create period invoice one', $a, $app, 'POST', $periodBase . '/invoices', $periodPayload1, 201,
+    static fn(array $v): bool => ($v['status'] ?? null) === 'draft' && ($v['totalMinor'] ?? null) === 10000);
+$inv2 = $t->checkModule('create period invoice two', $a, $app, 'POST', $periodBase . '/invoices', $periodPayload2, 201,
+    static fn(array $v): bool => ($v['status'] ?? null) === 'draft' && ($v['totalMinor'] ?? null) === 10000);
+
+$inv1Id = (int)$inv1['id'];
+$inv2Id = (int)$inv2['id'];
+
+$t->checkModule('period inclusive same day match', $a, $app, 'GET',
+    $periodBase . '/invoices?issueFrom=2026-03-10&issueThrough=2026-03-10', null, 200,
+    static fn(array $v): bool => count($v['invoices'] ?? []) === 1 && (int)$v['invoices'][0]['id'] === $inv1Id);
+
+$t->checkModule('period both bounds match both', $a, $app, 'GET',
+    $periodBase . '/invoices?issueFrom=2026-03-01&issueThrough=2026-03-31', null, 200,
+    static fn(array $v): bool => count($v['invoices'] ?? []) === 2);
+
+$t->checkModule('period from only bound', $a, $app, 'GET',
+    $periodBase . '/invoices?issueFrom=2026-03-15', null, 200,
+    static fn(array $v): bool => count($v['invoices'] ?? []) === 1 && (int)$v['invoices'][0]['id'] === $inv2Id);
+
+$t->checkModule('period through only bound', $a, $app, 'GET',
+    $periodBase . '/invoices?issueThrough=2026-03-15', null, 200,
+    static fn(array $v): bool => count($v['invoices'] ?? []) === 1 && (int)$v['invoices'][0]['id'] === $inv1Id);
+
+$t->checkModule('period composition with kind status and afterId cursor', $a, $app, 'GET',
+    $periodBase . '/invoices?kind=invoice&status=draft&issueFrom=2026-03-01&afterId=' . $inv1Id, null, 200,
+    static fn(array $v): bool => count($v['invoices'] ?? []) === 1 && (int)$v['invoices'][0]['id'] === $inv2Id);
+
+$t->checkModule('invalid issueFrom date format', $a, $app, 'GET',
+    $periodBase . '/invoices?issueFrom=2026-02-30', null, 422,
+    static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_invoice_period');
+
+$t->checkModule('year zero issueThrough date rejected', $a, $app, 'GET',
+    $periodBase . '/invoices?issueThrough=0000-01-01', null, 422,
+    static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_invoice_period');
+
+$t->checkModule('reversed issue period bounds rejected', $a, $app, 'GET',
+    $periodBase . '/invoices?issueFrom=2026-03-25&issueThrough=2026-03-10', null, 422,
+    static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_invoice_period');
+
+$t->checkModule('outsider denied period space invoices with bounds', $b, $app, 'GET',
+    $periodBase . '/invoices?issueFrom=2026-03-01', null, 404);
+
+$t->checkModule('terminal newline date rejected', $a, $app, 'GET',
+    $periodBase . '/invoices?issueFrom=2026-03-10%0A', null, 422,
+    static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_invoice_period');
+
 $t->finish();

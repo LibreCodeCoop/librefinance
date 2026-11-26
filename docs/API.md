@@ -82,6 +82,8 @@ Os filtros de conta, situação e data são aplicados antes da paginação por I
 ## Previsão de recorrência
 `GET /spaces/{spaceId}/obligations/{obligationId}/recurrence-preview?count=2&stepMonths=1&endOfMonth=clamp` prevê os próximos vencimentos de uma obrigação autônoma aberta e não paga. Os parâmetros são obrigatórios: count de 1 a 24, stepMonths de 1 a 12 e endOfMonth igual a clamp (ajustar para o último dia do mês) ou reject (rejeitar o dia indisponível). A previsão usa as datas originais de emissão e vencimento como âncoras, não cria títulos, não realiza lançamentos e não altera a obrigação consultada. Repetir a consulta com os mesmos dados retorna a mesma previsão. Entradas inválidas e modelos inelegíveis retornam 422; usuários sem acesso recebem 404.
 
+`GET /spaces/{spaceId}/invoices` aceita `issueFrom` e `issueThrough` como limites inclusivos opcionais em datas ISO gregorianas (`YYYY-MM-DD`). O filtro restringe a data de emissão (`issue_on`) antes da paginação e é combinado com kind, status e cursor. Datas inválidas ou intervalo invertido retornam o erro `invalid_invoice_period` (422).
+
 ## Erros
 `{"error":"permission_denied"}` 403; `{"error":"space_not_found"}` 404; `{"error":"idempotency_conflict"}` 409; entrada inválida 422.
 Falhas internas não devem revelar SQL, caminhos do host nem configurações.
