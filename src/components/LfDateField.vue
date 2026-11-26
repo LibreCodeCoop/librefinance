@@ -13,20 +13,29 @@ const props = defineProps({
   id: { type: String, required: true },
   disabled: { type: Boolean, default: false },
 })
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'validity-change'])
 const value = computed(() => parseNativeCalendarDate(props.modelValue))
 
 // The picker forwards input listeners to the native control. Capture its ISO
 // value before the picker turns it into a Date using the local offset.
 function update(event) {
   const input = event.currentTarget
-  if (!input.value || input.validity.badInput) return
+  if (input.validity.badInput) {
+    emit('validity-change', false)
+    return
+  }
+  if (!input.value) {
+    emit('validity-change', true)
+    return
+  }
 
   const date = canonicalCalendarDate(input.value)
   if (!date) {
+    emit('validity-change', false)
     input.value = canonicalCalendarDate(props.modelValue)
     return
   }
+  emit('validity-change', true)
   emit('update:modelValue', date)
 }
 

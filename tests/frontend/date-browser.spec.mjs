@@ -45,13 +45,16 @@ test('native date field keeps the ISO form model across edits and clearing', asy
 
   // HTML date inputs can hold years beyond the four-digit form contract.
   await entry.fill('10000-01-01')
+  await expect(page.locator('#field-validity')).toHaveText('false')
   await expect(model).toHaveText('["2011-12-30",1]')
   await expect(entry).toHaveValue('2011-12-30')
 
   await entry.fill('0001-01-01')
+  await expect(page.locator('#field-validity')).toHaveText('true')
   await expect(model).toHaveText('["0001-01-01",2]')
   await expect(saved).toHaveValue('0001-01-01')
   await entry.clear()
+  await expect(page.locator('#field-validity')).toHaveText('true')
   await expect(model).toHaveText('["",3]')
   await expect(saved).toHaveValue('')
 })
@@ -68,10 +71,12 @@ test.describe('mobile date field', () => {
     await expect(model).toHaveText('["",1]')
 
     await entry.fill('10000-01-01')
+    await expect(page.locator('#field-validity')).toHaveText('false')
     await expect(entry).toHaveValue('')
     await expect(model).toHaveText('["",1]')
 
     await entry.fill('2000-02-29')
+    await expect(page.locator('#field-validity')).toHaveText('true')
     await expect(model).toHaveText('["2000-02-29",2]')
     await expect(page.getByLabel('Saved date', { exact: true })).toHaveValue('2000-02-29')
   })
