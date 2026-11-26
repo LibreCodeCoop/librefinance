@@ -282,13 +282,15 @@ test('all sales and purchases share one invoice list with a server-side type fil
   await goToView(page,'Faturas')
   await expect(page.locator('#lf-invoices-type-filter')).toHaveCount(0)
   const suffix=Date.now().toString(36).toUpperCase()
-  const create=async (kind,number)=>{
+  const create=async (kind,number,issueDate)=>{
     await page.getByRole('button',{name:'Nova fatura'}).click()
     const dialog=page.getByRole('dialog',{name:'Nova fatura'})
     await dialog.getByRole('button',{
       name:kind==='invoice'?/Venda Vou cobrar/:/Compra Vou pagar/,
     }).click()
     await dialog.getByRole('textbox',{name:'Número'}).fill(number)
+    await dialog.locator('#lf-invoice-date').fill(issueDate)
+    await dialog.locator('#lf-invoice-due').fill('2028-12-31')
     await dialog.getByRole('textbox',{name:'País (ISO 2, obrigatório)'}).fill('BR')
     await dialog.locator('#lf-invoice-contact').click()
     await page.getByRole('option').filter({hasText:'E2E Invoices Contact'}).first().click()
@@ -300,8 +302,10 @@ test('all sales and purchases share one invoice list with a server-side type fil
   }
   const sale='SALE-'+suffix
   const bill='BILL-'+suffix
-  await create('invoice',sale)
-  await create('bill',bill)
+  const saleDate='2028-03-10'
+  const billDate='2028-03-20'
+  await create('invoice',sale,saleDate)
+  await create('bill',bill,billDate)
   const salesRow=page.getByRole('row',{name:new RegExp(sale)})
   const purchaseRow=page.getByRole('row',{name:new RegExp(bill)})
   await expect(salesRow).toBeVisible()
@@ -348,6 +352,66 @@ test('all sales and purchases share one invoice list with a server-side type fil
   await expect(salesRow).toHaveCount(0)
   await status.click()
   await page.getByRole('option',{name:'Todas as situações',exact:true}).click()
+
+  const fromInput=page.locator('#lf-invoice-from')
+  const throughInput=page.locator('#lf-invoice-through')
+  const applyBtn=page.getByRole('button',{name:'Aplicar período',exact:true})
+  const clearBtn=page.getByRole('button',{name:'Limpar filtros',exact:true})
+  const invoiceRead=(query)=>page.waitForResponse(r=>{
+    const url=new URL(r.url())
+    return r.request().method()==='GET' && url.pathname.endsWith('/invoices')
+      && Object.entries(query).every(([key,value])=>url.searchParams.get(key)===value)
+  })
+
+  await fromInput.fill(billDate)
+  await throughInput.fill(saleDate)
+  await expect(applyBtn).toBeDisabled()
+  await expect(page.getByRole('alert').filter({hasText:'Informe uma data válida.'})).toBeVisible()
+  await expect(salesRow).toBeVisible()
+  await expect(purchaseRow).toBeVisible()
+
+  await fromInput.fill(saleDate)
+  await expect(salesRow).toBeVisible()
+  await expect(purchaseRow).toBeVisible()
+  const sameDay=invoiceRead({issueFrom:saleDate,issueThrough:saleDate,afterId:null})
+  await applyBtn.click()
+  expect((await sameDay).status()).toBe(200)
+  await expect(salesRow).toBeVisible()
+  await expect(purchaseRow).toHaveCount(0)
+  await expect(page.locator('time[datetime="'+saleDate+'"]').first()).toBeVisible()
+
+  const allDates=invoiceRead({issueFrom:null,issueThrough:null})
+  await clearBtn.click()
+  expect((await allDates).status()).toBe(200)
+  await expect(salesRow).toBeVisible()
+  await expect(purchaseRow).toBeVisible()
+
+  await fromInput.fill(billDate)
+  const lower=invoiceRead({issueFrom:billDate,issueThrough:null})
+  await applyBtn.click()
+  expect((await lower).status()).toBe(200)
+  await expect(salesRow).toHaveCount(0)
+  await expect(purchaseRow).toBeVisible()
+  await status.click()
+  const draftLower=invoiceRead({issueFrom:billDate,status:'draft'})
+  await page.getByRole('option',{name:'Rascunho',exact:true}).click()
+  expect((await draftLower).status()).toBe(200)
+  await expect(purchaseRow).toBeVisible()
+  const reset=invoiceRead({issueFrom:null,issueThrough:null,status:null})
+  await clearBtn.click()
+  expect((await reset).status()).toBe(200)
+  await expect(salesRow).toBeVisible()
+  await expect(purchaseRow).toBeVisible()
+
+  await throughInput.fill(saleDate)
+  const upper=invoiceRead({issueFrom:null,issueThrough:saleDate})
+  await applyBtn.click()
+  expect((await upper).status()).toBe(200)
+  await expect(salesRow).toBeVisible()
+  await expect(purchaseRow).toHaveCount(0)
+  const clearUpper=invoiceRead({issueFrom:null,issueThrough:null})
+  await clearBtn.click()
+  expect((await clearUpper).status()).toBe(200)
   await expect(salesRow).toBeVisible()
   await expect(purchaseRow).toBeVisible()
   const purchaseDetails=page.waitForResponse(r => {
