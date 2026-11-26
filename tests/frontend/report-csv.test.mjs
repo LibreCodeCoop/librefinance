@@ -114,3 +114,14 @@ test('noninteger and mismatched totals', () => {
   };
   assert.throws(() => cashFlowCsv(resultNetMismatch), /Sum of monthly net must equal total net/);
 });
+
+test('reject impossible and reversed reporting dates and out-of-period months', () => {
+  for (const from of ['0000-01-01', '2026-02-30', '2026-01-01\n', '2026-04-01']) {
+    assert.throws(() => cashFlowCsv({ ...validBaseResult, from }));
+  }
+  for (const month of ['2026-00', '2026-13', '2025-12', '2026-04']) {
+    assert.throws(() => cashFlowCsv({ ...validBaseResult, months: [{ month, netMinor: 500 }] }));
+  }
+  assert.throws(() => cashFlowCsv({ ...validBaseResult, bankAccountId: Number.MAX_SAFE_INTEGER + 1 }));
+  assert.throws(() => cashFlowCsv({ ...validBaseResult, currency: 'USD\n' }));
+});

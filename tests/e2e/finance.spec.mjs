@@ -545,7 +545,13 @@ test('@extensions report data renders in the same Nextcloud page with authorized
   const lines = csvContent.trim().split('\r\n')
   expect(lines[0]).toBe('currency,bankAccountId,from,through,metric,month,amountMinor')
   const payload = await bankResponse.json()
-  expect(lines.length).toBeGreaterThan(1)
+  const metadata = [payload.currency, scopedId, payload.from, payload.through].join(',')
+  expect(lines.slice(1)).toEqual([
+    metadata + ',opening,,' + payload.openingMinor,
+    metadata + ',net,,' + payload.netMinor,
+    metadata + ',closing,,' + payload.closingMinor,
+    ...payload.months.map(month => metadata + ',monthly_net,' + month.month + ',' + month.netMinor),
+  ])
   await page.getByRole('button', { name: /Balancete/ }).click()
   await expect(page.getByRole('button', { name: /Exportar CSV/ })).toHaveCount(0)
   await expect(bankFilter).toHaveCount(0)
