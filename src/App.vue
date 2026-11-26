@@ -59,7 +59,7 @@ import ImportView from './views/ImportView.vue'
 const workspace = useFinanceWorkspace()
 provide('lfWorkspace', workspace)
 const {
-  spaces, activeId, activeTab, space, modules, modulesLoadedFor,
+  spaces, spacesStatus, loadInitialSpaces, activeId, activeTab, space, modules, modulesLoadedFor,
   manager, writable, busy, error, message, refreshCurrent,
 } = workspace
 const quickEntry = ref(false)
@@ -531,7 +531,16 @@ onBeforeUnmount(() => window.removeEventListener('popstate', onHistoryChange))
         <NcNoteCard v-if="error" type="error" role="alert">{{ error }}</NcNoteCard>
         <NcNoteCard v-if="message" type="success" role="status">{{ message }}</NcNoteCard>
 
-        <component :is="SpacesView" v-if="!space && readyView==='spaces'" />
+        <div v-if="spacesStatus === 'loading'" class="lf-loading" role="status">
+          <NcLoadingIcon :size="44" />
+          <p>{{ t('librefinance', 'Loading financial data…') }}</p>
+        </div>
+        <div v-else-if="spacesStatus === 'failed'" class="lf-view">
+          <NcButton variant="primary" @click="loadInitialSpaces">
+            {{ t('librefinance', 'Refresh data') }}
+          </NcButton>
+        </div>
+        <component :is="SpacesView" v-else-if="!space && readyView==='spaces'" />
         <NcEmptyContent v-else-if="!space && contextOptions.length > 1"
           :name="t('librefinance', 'Select a financial environment')"
           :description="t('librefinance', 'Choose an authorized environment before opening its financial workspaces.')" />
