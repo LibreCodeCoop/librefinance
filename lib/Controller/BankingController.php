@@ -33,8 +33,8 @@ final class BankingController extends Controller {
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/transactions')]
     public function index(int $spaceId, int $bankAccountId = 0, string $status = 'all',
-        int $afterId = 0): JSONResponse {
-        return $this->respond(fn() => $this->service->list($spaceId, $bankAccountId, $status, $afterId));
+        int $afterId = 0, string $from = '', string $through = ''): JSONResponse {
+        return $this->respond(fn() => $this->service->list($spaceId, $bankAccountId, $status, $afterId, $from, $through));
     }
 
     #[NoAdminRequired]

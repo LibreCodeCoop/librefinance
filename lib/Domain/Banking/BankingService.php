@@ -26,13 +26,26 @@ final class BankingService {
     ) {}
 
     /** @return array<string,mixed> */
-    public function list(int $spaceId, int $bankAccountId = 0, string $status = 'all', int $afterId = 0): array {
+    public function list(int $spaceId, int $bankAccountId = 0, string $status = 'all',
+        int $afterId = 0, string $from = '', string $through = ''): array {
         $this->finance->requireModuleCapability($spaceId, self::MODULE, 'bank.read');
         if ($afterId < 0) {
             throw new DomainException('invalid_cursor');
         }
         if (!in_array($status, ['all', 'pending', 'matched'], true)) {
             throw new DomainException('invalid_status');
+        }
+        foreach ([$from, $through] as $date) {
+            if ($date === '') {
+                continue;
+            }
+            if (preg_match('/\A(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}\z/', $date) !== 1) {
+                throw new DomainException('invalid_date');
+            }
+            self::date($date);
+        }
+        if ($from !== '' && $through !== '' && $from > $through) {
+            throw new DomainException('invalid_period');
         }
         $q = $this->db->getQueryBuilder();
         $q->select('id', 'bank_account_id', 'external_id', 'booking_date', 'amount_minor',
@@ -46,6 +59,12 @@ final class BankingService {
         }
         if ($status !== 'all') {
             $q->andWhere($q->expr()->eq('status', $q->createNamedParameter($status)));
+        }
+        if ($from !== '') {
+            $q->andWhere($q->expr()->gte('booking_date', $q->createNamedParameter($from)));
+        }
+        if ($through !== '') {
+            $q->andWhere($q->expr()->lte('booking_date', $q->createNamedParameter($through)));
         }
         $rows = $q->executeQuery()->fetchAllAssociative();
         $more = count($rows) > 50;
