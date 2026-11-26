@@ -33,6 +33,19 @@ na propria linha. Isso registra o pagamento e vincula a operacao original,
 sem cadastrar uma segunda receita ou despesa. Valores parcialmente pagos
 continuam com o saldo previsto na lista.
 
+### Prévia de recorrência
+
+Em uma movimentação prevista autônoma ainda aberta e sem pagamento,
+selecione **Pré-visualizar recorrência**. Escolha de 1 a 24 ocorrências,
+intervalo de 1 a 12 meses e a regra para datas que não existem no mês
+de destino (usar o último dia ou rejeitar). A prévia mostra o valor
+original e as datas de emissão e vencimento calculadas a partir das
+âncoras originais. Ao alterar uma opção, solicite uma nova prévia.
+Por exemplo, um vencimento em 31/01/2028, com intervalo mensal e ajuste,
+prevê 29/02/2028 e 31/03/2028. A consulta não cria títulos, não registra
+pagamentos nem altera o saldo; a opção não aparece para faturas vinculadas
+ou obrigações parcialmente pagas.
+
 ## Entender a lista
 
 - **Prevista:** dinheiro que ainda falta pagar ou receber. Nao entra no saldo.
