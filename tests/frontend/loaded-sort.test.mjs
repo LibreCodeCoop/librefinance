@@ -24,3 +24,17 @@ test('can order by safe derived display fields while preserving the page scope',
     {balance:row=>row.kind==='liability'?-row.balance_minor:row.balance_minor})
   assert.deepEqual(result.map(x=>x.id),[1,2])
 })
+test('compares pt_BR vs sv_SE with A,Å,Z and invalid locale fallback', () => {
+  const rows = [{name: 'Z'}, {name: 'A'}, {name: 'Å'}]
+  // pt_BR: Å comes between A and Z (or A, Å, Z)
+  const sortedPt = sortLoadedRows(rows, 'name', 'asc', {}, 'pt_BR')
+  assert.deepEqual(sortedPt.map(x => x.name), ['A', 'Å', 'Z'])
+
+  // sv_SE: Å comes after Z (A, Z, Å)
+  const sortedSv = sortLoadedRows(rows, 'name', 'asc', {}, 'sv_SE')
+  assert.deepEqual(sortedSv.map(x => x.name), ['A', 'Z', 'Å'])
+
+  // invalid locale fallback to pt_BR
+  const sortedInvalid = sortLoadedRows(rows, 'name', 'asc', {}, 'invalid-locale-xyz')
+  assert.deepEqual(sortedInvalid.map(x => x.name), ['A', 'Å', 'Z'])
+})
