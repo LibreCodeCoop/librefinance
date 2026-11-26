@@ -36,11 +36,16 @@ final class ActivityFeedService {
         string $state = 'all',
         int $accountId = 0,
         string $search = '',
+        string $from = '',
+        string $through = '',
     ): array {
         $this->access->requireFinancialCapability($spaceId, 'workspace.read');
         if (!in_array($direction, ['all', 'in', 'out'], true)
             || !in_array($state, ['all', 'planned', 'posted', 'pending'], true)
-            || $accountId < 0 || mb_strlen($search) > 120) {
+            || $accountId < 0 || mb_strlen($search) > 120
+            || ($from !== '' && (!preg_match('/\A(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}\z/', $from) || !$this->dateValid($from)))
+            || ($through !== '' && (!preg_match('/\A(?!0000)[0-9]{4}-[0-9]{2}-[0-9]{2}\z/', $through) || !$this->dateValid($through)))
+            || ($from !== '' && $through !== '' && $from > $through)) {
             throw new DomainException('invalid_activity_filter');
         }
         $marker = $this->cursor($cursor);
@@ -52,17 +57,17 @@ final class ActivityFeedService {
 
         $items = [];
         if ($state === 'all' || $state === 'posted') {
-            $items = $this->journals($spaceId, $marker, $direction, $accountId, $term);
+            $items = $this->journals($spaceId, $marker, $direction, $accountId, $term, $from, $through);
         }
         if ($accountId === 0 && ($state === 'all' || $state === 'planned')
             && ($enabled['librefinance_obligations'] ?? false)) {
             $items = array_merge($items,
-                $this->obligations($spaceId, $marker, $direction, $term));
+                $this->obligations($spaceId, $marker, $direction, $term, $from, $through));
         }
         if (($state === 'all' || $state === 'pending')
             && ($enabled['librefinance_banking'] ?? false)) {
             $items = array_merge($items,
-                $this->evidence($spaceId, $marker, $direction, $accountId, $term));
+                $this->evidence($spaceId, $marker, $direction, $accountId, $term, $from, $through));
         }
         usort($items, static function (array $a, array $b): int {
             return strcmp($b['date'], $a['date'])
@@ -104,6 +109,15 @@ final class ActivityFeedService {
         return $date !== false && $date->format('Y-m-d') === $value;
     }
 
+    private function applyDateRange(IQueryBuilder $q, string $dateField, string $from, string $through): void {
+        if ($from !== '') {
+            $q->andWhere($q->expr()->gte($dateField, $q->createNamedParameter($from)));
+        }
+        if ($through !== '') {
+            $q->andWhere($q->expr()->lte($dateField, $q->createNamedParameter($through)));
+        }
+    }
+
     /** @param ?array{date:string,rank:int,id:int} $cursor */
     private function after(
         IQueryBuilder $q,
@@ -135,7 +149,7 @@ final class ActivityFeedService {
     /** @param ?array{date:string,rank:int,id:int} $cursor
      * @return list<array<string,mixed>> */
     private function journals(int $spaceId, ?array $cursor,
-        string $direction, int $accountId, string $term): array {
+        string $direction, int $accountId, string $term, string $from, string $through): array {
         $q = $this->db->getQueryBuilder();
         $sum = $q->createFunction('SUM(p.amount_minor)');
         $q->select('j.id', 'j.effective_on', 'j.memo', 'j.reversed_journal_id')
@@ -169,6 +183,7 @@ final class ActivityFeedService {
                 ? $q->expr()->gt($sum, $q->createNamedParameter(0, IQueryBuilder::PARAM_INT))
                 : $q->expr()->lt($sum, $q->createNamedParameter(0, IQueryBuilder::PARAM_INT)));
         }
+        $this->applyDateRange($q, 'j.effective_on', $from, $through);
         $this->after($q, 'j.effective_on', 'j.id', self::JOURNAL, $cursor);
         $rows = $q->executeQuery()->fetchAllAssociative();
         $items = [];
@@ -197,7 +212,7 @@ final class ActivityFeedService {
     /** @param ?array{date:string,rank:int,id:int} $cursor
      * @return list<array<string,mixed>> */
     private function obligations(int $spaceId, ?array $cursor,
-        string $direction, string $term): array {
+        string $direction, string $term, string $from, string $through): array {
         $q = $this->db->getQueryBuilder();
         $q->select('o.id', 'o.kind', 'o.description', 'o.reference',
                 'o.due_on', 'o.amount_minor', 'o.paid_minor', 'o.status')
@@ -223,6 +238,7 @@ final class ActivityFeedService {
                     $q->createNamedParameter('%' . $this->db->escapeLikeParameter($term) . '%')),
             ));
         }
+        $this->applyDateRange($q, 'o.due_on', $from, $through);
         $this->after($q, 'o.due_on', 'o.id', self::OBLIGATION, $cursor);
         $items = [];
         foreach ($q->executeQuery()->fetchAllAssociative() as $row) {
@@ -250,7 +266,7 @@ final class ActivityFeedService {
     /** @param ?array{date:string,rank:int,id:int} $cursor
      * @return list<array<string,mixed>> */
     private function evidence(int $spaceId, ?array $cursor,
-        string $direction, int $accountId, string $term): array {
+        string $direction, int $accountId, string $term, string $from, string $through): array {
         $q = $this->db->getQueryBuilder();
         $q->select('b.id', 'b.booking_date', 'b.description',
                 'b.amount_minor', 'b.bank_account_id')
@@ -273,6 +289,7 @@ final class ActivityFeedService {
             $q->andWhere($q->expr()->iLike('b.description',
                 $q->createNamedParameter('%' . $this->db->escapeLikeParameter($term) . '%')));
         }
+        $this->applyDateRange($q, 'b.booking_date', $from, $through);
         $this->after($q, 'b.booking_date', 'b.id', self::EVIDENCE, $cursor);
         $items = [];
         foreach ($q->executeQuery()->fetchAllAssociative() as $row) {

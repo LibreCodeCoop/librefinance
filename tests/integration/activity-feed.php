@@ -20,6 +20,7 @@ $t->check('new workspace has empty activity', $a, 'GET', $base.'/activity', null
 $t->check('unauthorized reader cannot see activity', $b, 'GET', $base.'/activity', null, 404);
 foreach (['state=DELETED', 'direction=income;drop', 'accountId=-1',
     'cursor=2026-02-30:3:1', 'cursor=2026-11-20:2:0',
+    'from=2026-02-30', 'through=0000-01-01', 'from=2026-11-24&through=2026-11-23',
     'search='.str_repeat('a',121)] as $invalid) {
     $t->check('invalid query rejected '.$invalid[0], $a, 'GET',
         $base.'/activity?'.$invalid, null, 422);
@@ -76,6 +77,29 @@ for($i=0;$i<55;$i++){
        'reference'=>'BATCH-'.$nonce.'-'.$i, 'amountMinor'=>1000+$i,
        'issuedOn'=>'2026-11-15', 'dueOn'=>'2026-12-01'],201);
 }
+$periodPath = $base.'/activity?search='.$nonce.'&from=2026-11-20&through=2026-11-23';
+$t->check('period filters all three source dates before pagination', $a, 'GET',
+    $periodPath, null, 200,
+    static fn(array $v): bool => array_column($v['items'], 'source') === ['obligation', 'statement', 'journal']
+        && array_column($v['items'], 'date') === ['2026-11-23', '2026-11-21', '2026-11-20']
+        && $v['nextCursor'] === null);
+$t->check('single-day period includes only bank evidence', $a, 'GET',
+    $base.'/activity?from=2026-11-21&through=2026-11-21', null, 200,
+    static fn(array $v): bool => array_column($v['items'], 'source') === ['statement']);
+$t->check('activity upper bound is independently optional', $a, 'GET',
+    $base.'/activity?through=2026-11-20', null, 200,
+    static fn(array $v): bool => array_column($v['items'], 'source') === ['journal']);
+$later = $t->check('activity lower bound retains keyset pagination', $a, 'GET',
+    $base.'/activity?from=2026-12-01', null, 200,
+    static fn(array $v): bool => count($v['items']) === 50
+        && array_unique(array_column($v['items'], 'date')) === ['2026-12-01']
+        && is_string($v['nextCursor']));
+$t->check('period and cursor return the remaining five obligations', $a, 'GET',
+    $base.'/activity?from=2026-12-01&cursor='.rawurlencode($later['nextCursor']), null, 200,
+    static fn(array $v): bool => count($v['items']) === 5
+        && array_unique(array_column($v['items'], 'date')) === ['2026-12-01']
+        && $v['nextCursor'] === null);
+$t->check('period filter cannot grant workspace access', $b, 'GET', $periodPath, null, 404);
 $first=$t->check('keyset first 50 results', $a,'GET',
     $base.'/activity?search='.$nonce,null,200,
     static fn(array $v):bool=>count($v['items']??[])===50

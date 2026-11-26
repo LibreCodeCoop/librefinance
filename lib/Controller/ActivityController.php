@@ -26,10 +26,10 @@ final class ActivityController extends Controller {
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/activity')]
     public function index(int $spaceId, string $cursor = '',
         string $direction = 'all', string $state = 'all',
-        int $accountId = 0, string $search = ''): JSONResponse {
+        int $accountId = 0, string $search = '', string $from = '', string $through = ''): JSONResponse {
         try {
             return new JSONResponse($this->feed->list($spaceId, $cursor,
-                $direction, $state, $accountId, $search));
+                $direction, $state, $accountId, $search, $from, $through));
         } catch (DomainException $e) {
             return new JSONResponse(['error' => $e->getMessage()], match ($e->getMessage()) {
                 'authentication_required' => 401,

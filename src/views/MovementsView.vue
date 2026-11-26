@@ -47,13 +47,19 @@ const directionFilter = ref('all')
 const statusFilter = ref('all')
 const searchDraft = ref('')
 const search = ref('')
+const draftFrom = ref('')
+const draftThrough = ref('')
+const period = ref({ from: '', through: '' })
+const hasPeriod = computed(() => Boolean(period.value.from || period.value.through))
+const invalidPeriod = computed(() => Boolean(draftFrom.value && draftThrough.value
+  && draftFrom.value > draftThrough.value))
 const searchTimer = ref(null)
 let requestVersion = 0
 const selectedBank = computed(() => w.banks.value.find(a => Number(a.id) === Number(accountFilter.value)))
 const banks = computed(() => w.banks.value)
 const showFilters = computed(() => everHadRows.value || rows.value.length > 0
   || !!search.value || directionFilter.value !== 'all'
-  || statusFilter.value !== 'all' || !!accountFilter.value)
+  || statusFilter.value !== 'all' || !!accountFilter.value || hasPeriod.value)
 const filterOptions = [
   { value:'all', label:t('librefinance', 'All') }, {value:'in',label:t('librefinance', 'Inflows')},
   {value:'out',label:t('librefinance', 'Outflows')},
@@ -74,6 +80,8 @@ function query(cursor = '') {
     direction:directionFilter.value, state:statusFilter.value,
     accountId:String(accountFilter.value), search:search.value,
   })
+  if (period.value.from) query.set('from', period.value.from)
+  if (period.value.through) query.set('through', period.value.through)
   if (cursor) query.set('cursor', cursor)
   return '/activity?' + query.toString()
 }
@@ -473,12 +481,21 @@ async function saveTransfer() {
     if (current === Number(w.activeId.value)) transferError.value=financeError(cause)
   } finally { transferSaving.value=false }
 }
+function applyPeriod() {
+  if (loading.value || invalidPeriod.value) return
+  if (period.value.from === draftFrom.value && period.value.through === draftThrough.value) return
+  period.value = { from: draftFrom.value, through: draftThrough.value }
+}
 function clearFilters() {
   setAccount(0)
   directionFilter.value = 'all'
   statusFilter.value = 'all'
+  if (searchTimer.value) clearTimeout(searchTimer.value)
   searchDraft.value = ''
   search.value = ''
+  draftFrom.value = ''
+  draftThrough.value = ''
+  if (hasPeriod.value) period.value = { from: '', through: '' }
 }
 watch([w.activeId,w.modulesLoadedFor], () => {
   bankActionVersion++
@@ -498,7 +515,7 @@ watch([w.activeId,w.modulesLoadedFor], () => {
 })
 watch(() => [Number(w.activeId.value), w.space.value?.saasManaged],
   loadAllowedBankFormats, { immediate: true })
-watch([w.activeId,w.modulesLoadedFor,accountFilter,directionFilter,statusFilter,search], load,
+watch([w.activeId,w.modulesLoadedFor,accountFilter,directionFilter,statusFilter,search,period], load,
   {immediate:true})
 onBeforeUnmount(() => {
   requestVersion++
@@ -613,10 +630,20 @@ const currency = row => w.money(row.amountMinor)
               @click="statusFilter=option.value">{{option.label}}</NcButton>
           </div>
         </NcPopover>
-        <NcButton v-if="accountFilter||statusFilter!=='all'||directionFilter!=='all'||search"
+        <NcButton v-if="accountFilter||statusFilter!=='all'||directionFilter!=='all'||search||hasPeriod||draftFrom||draftThrough"
           variant="tertiary" @click="clearFilters">{{ t('librefinance', 'Clear filters') }}</NcButton>
       </div>
     </div>
+    <form v-if="showFilters" class="lf-filter-row" @submit.prevent="applyPeriod">
+      <LfDateField id="lf-activity-from" v-model="draftFrom" :label="t('librefinance', 'From')" />
+      <LfDateField id="lf-activity-through" v-model="draftThrough" :label="t('librefinance', 'Through')" />
+      <NcButton variant="secondary" type="submit" :disabled="loading || invalidPeriod">{{ t('librefinance', 'Apply period') }}</NcButton>
+    </form>
+    <p v-if="hasPeriod" class="lf-muted">
+      <span v-if="period.from">{{ t('librefinance', 'From') }}: <time :datetime="period.from">{{ formatLedgerDate(period.from) }}</time></span>
+      <span v-if="period.from && period.through"> · </span>
+      <span v-if="period.through">{{ t('librefinance', 'Through') }}: <time :datetime="period.through">{{ formatLedgerDate(period.through) }}</time></span>
+    </p>
     <p v-if="showFilters && selectedBank" class="lf-muted lf-activity-balance">
       {{ t('librefinance', 'Recorded balance in {account}:', { account: selectedBank.name }, { escape: false, sanitize: false }) }}
       <strong>{{w.money(selectedBank.balance_minor)}}</strong>
