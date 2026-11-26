@@ -2,10 +2,22 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Local table ordering is explicitly limited to loaded rows. Paginated
 // financial lists must not present this as a server-wide ordering guarantee.
-const collator = new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' })
+import { ledgerLocale } from './money.js'
 
-export function sortLoadedRows(rows, column, direction = 'asc', accessors = {}) {
+let cachedLocale = null
+let cachedCollator = null
+
+export function sortLoadedRows(rows, column, direction = 'asc', accessors = {}, locale) {
   if (!column || !['asc','desc'].includes(direction)) return rows.slice()
+  const resolvedLocale = ledgerLocale(locale)
+  let collator
+  if (cachedCollator && cachedLocale === resolvedLocale) {
+    collator = cachedCollator
+  } else {
+    collator = new Intl.Collator(resolvedLocale, { numeric: true, sensitivity: 'base' })
+    cachedLocale = resolvedLocale
+    cachedCollator = collator
+  }
   const valueOf = accessors[column] || (row => row[column])
   const multiplier = direction === 'asc' ? 1 : -1
   return rows.map((row, index) => ({ row, index })).sort((left, right) => {
