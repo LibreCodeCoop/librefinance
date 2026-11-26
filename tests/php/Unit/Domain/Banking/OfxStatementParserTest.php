@@ -86,6 +86,53 @@ OFX;
         ];
     }
 
+    public static function duplicateSingletonSgmlCases(): array {
+        return [
+            'duplicate CURDEF' => [str_replace('<CURDEF>BRL', '<CURDEF>BRL<CURDEF>USD', self::SGML)],
+            'duplicate FITID within same transaction' => [str_replace('<FITID>ofx-id-one', '<FITID>ofx-id-one<FITID>ofx-id-one-dup', self::SGML)],
+            'duplicate DTPOSTED' => [str_replace('<DTPOSTED>20261120124500[-3:BRT]', '<DTPOSTED>20261120124500[-3:BRT]<DTPOSTED>20261121', self::SGML)],
+            'duplicate TRNAMT' => [str_replace('<TRNAMT>-25.90', '<TRNAMT>-25.90<TRNAMT>-10.00', self::SGML)],
+            'duplicate MEMO' => [str_replace('<MEMO>Pagamento de energia', '<MEMO>Pagamento de energia<MEMO>Outro memo', self::SGML)],
+            'duplicate NAME' => [str_replace('<STMTTRN><DTPOSTED>20261122', '<STMTTRN><DTPOSTED>20261122<NAME>Nome 1<NAME>Nome 2', self::SGML)],
+            'duplicate NAME while MEMO exists' => [str_replace('<MEMO>Pagamento de energia', '<MEMO>Pagamento de energia<NAME>Nome 1<NAME>Nome 2', self::SGML)],
+        ];
+    }
+
+    #[DataProvider('duplicateSingletonSgmlCases')]
+    public function testRejectsDuplicateSingletonSgml(string $statement): void {
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessageMatches('/\Ainvalid_ofx_row\z/');
+        OfxStatementParser::parse($statement);
+    }
+
+    public static function duplicateXmlCases(): array {
+        return [
+            'duplicate TRNAMT in XML' => [str_replace('<TRNAMT>1.05</TRNAMT>', '<TRNAMT>1.05</TRNAMT><TRNAMT>2.00</TRNAMT>', self::XML)],
+        ];
+    }
+
+    #[DataProvider('duplicateXmlCases')]
+    public function testRejectsDuplicateXml(string $statement): void {
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessageMatches('/\Ainvalid_ofx_row\z/');
+        OfxStatementParser::parse($statement);
+    }
+
+    public function testMemoPreferenceWithExistingRowsAndAmounts(): void {
+        $sgmlWithBoth = str_replace(
+            '<MEMO>Pagamento de energia',
+            '<MEMO>Pagamento de energia</MEMO><NAME>Recebimento Nome',
+            self::SGML
+        );
+        $statement = OfxStatementParser::parse($sgmlWithBoth);
+
+        self::assertSame('BRL', $statement['currency']);
+        self::assertCount(2, $statement['rows']);
+        self::assertSame(-2590, $statement['rows'][0]['amount_minor']);
+        self::assertSame(15000, $statement['rows'][1]['amount_minor']);
+        self::assertSame('Pagamento de energia', $statement['rows'][0]['description']);
+    }
+
     #[DataProvider('invalidStatements')]
     public function testRejectsInvalidStatement(string $statement): void {
         $this->expectException(DomainException::class);
