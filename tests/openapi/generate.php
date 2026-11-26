@@ -162,6 +162,7 @@ $query = [
     'librefinance:report#cashFlow' => 'from:date!,through:date!,bankAccountId:i',
     'librefinance:savedReport#index' => 'afterId:i',
     'librefinance:obligation#index' => 'afterId:i,status:s,kind:s,dueRange:s,search:s,sortBy:s,sortDirection:s,referenceDate:s',
+    'librefinance:obligation#recurrencePreview' => 'count:i!,stepMonths:i!,endOfMonth:s!',
     'librefinance:obligation#settlements' => 'afterId:i',
     'librefinance:banking#index' => 'bankAccountId:i,status:s,afterId:i,from:date,through:date',
     'librefinance:tax#index' => 'afterId:i',

@@ -185,6 +185,43 @@ final class ObligationService {
         return ['obligation' => $row];
     }
 
+    /** @return array<string,mixed> */
+    public function recurrencePreview(int $spaceId, int $id, int $count, int $stepMonths, string $endOfMonth): array {
+        $row = $this->show($spaceId, $id)['obligation'];
+
+        if ($row['status'] !== 'open' || (int)$row['paid_minor'] !== 0 || $row['linkedInvoiceId'] !== null) {
+            throw new DomainException('invalid_recurrence_template');
+        }
+
+        $issuedDates = RecurrenceSchedule::dates($row['issued_on'], $count, $stepMonths, $endOfMonth);
+        $dueDates = RecurrenceSchedule::dates($row['due_on'], $count, $stepMonths, $endOfMonth);
+
+        $occurrences = [];
+        for ($i = 0; $i < $count; $i++) {
+            $issuedOn = $issuedDates[$i];
+            $dueOn = $dueDates[$i];
+            if ($dueOn < $issuedOn) {
+                throw new DomainException('due_before_issue');
+            }
+            $occurrences[] = [
+                'issuedOn' => $issuedOn,
+                'dueOn' => $dueOn,
+            ];
+        }
+
+        $contactId = $row['contact_id'] !== null ? (int)$row['contact_id'] : null;
+
+        return [
+            'templateId' => (int)$row['id'],
+            'kind' => (string)$row['kind'],
+            'description' => (string)$row['description'],
+            'amountMinor' => (int)$row['amount_minor'],
+            'currency' => (string)$row['currency'],
+            'contactId' => $contactId,
+            'occurrences' => $occurrences,
+        ];
+    }
+
     /**
      * Sum only journal-backed installments. A paid title is NOT necessarily
      * an accounted cash receipt; administrative and ledger-backed payments
