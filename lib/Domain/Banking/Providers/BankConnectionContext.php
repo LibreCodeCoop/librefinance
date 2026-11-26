@@ -9,8 +9,8 @@ final readonly class BankConnectionContext {
         public string $providerId,public string $currency,
         public string $credentialReference) {
         if($spaceId<1 || $bankAccountId<1 ||
-            !preg_match('/^[a-z][a-z0-9_]{1,40}$/',$providerId) ||
-            !preg_match('/^[A-Z]{3}$/',$currency) ||
+            !preg_match('/^[a-z][a-z0-9_]{1,40}$/D',$providerId) ||
+            !preg_match('/^[A-Z]{3}$/D',$currency) ||
             $credentialReference!=="{$providerId}/space-{$spaceId}/account-{$bankAccountId}") {
             throw new InvalidArgumentException('invalid_bank_connection_context');
         }
