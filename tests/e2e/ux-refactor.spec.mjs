@@ -238,6 +238,51 @@ test('Field Studio targets contacts and the resulting field appears in the conta
   await expect(page.getByRole('row', { name: /Cliente Field Studio/ })).toBeVisible()
 })
 
+test('trial balance pagination keeps the applied reference date until a new period is applied', async ({ page }) => {
+  await login(page)
+  await makeSpace(page)
+  const spaceId = new URL(page.url()).searchParams.get('spaceId')
+  const requests = []
+  // Control only the read-only report pagination response; the workspace and shell are real.
+  await page.route(url => url.pathname.endsWith('/api/spaces/' + spaceId + '/trial-balance'), async route => {
+    if (route.request().method() !== 'GET') return route.continue()
+    const params = new URL(route.request().url()).searchParams
+    const through = params.get('through')
+    const afterId = params.get('afterId')
+    requests.push({ through, afterId })
+    const secondPage = afterId === '1'
+    return route.fulfill({ status: 200, json: {
+      through,
+      accounts: [{ id: secondPage ? 2 : 1, code: secondPage ? '1020' : '1010',
+        name: secondPage ? 'Synthetic page two' : 'Synthetic page one',
+        class: 'asset', currency: 'BRL', balanceMinor: secondPage ? 2000 : 1000 }],
+      nextAfterId: secondPage ? null : 1,
+    } })
+  })
+  await goToView(page, 'Relatórios')
+  await page.getByRole('button', { name: /Balancete/ }).click()
+  const first = page.getByRole('cell', { name: 'Synthetic page one' })
+  const second = page.getByRole('cell', { name: 'Synthetic page two' })
+  await expect(first).toBeVisible()
+  const date = page.getByLabel('Data de referência', { exact: true })
+  const original = await date.inputValue()
+  expect(requests).toEqual([{ through: original, afterId: null }])
+  const changed = original === '2025-01-01' ? '2025-01-02' : '2025-01-01'
+  await date.fill(changed)
+  await expect(date).toHaveValue(changed)
+  await page.getByRole('button', { name: 'Mais contas', exact: true }).click()
+  await expect(second).toBeVisible()
+  await expect(first).toBeVisible()
+  expect(requests[1]).toEqual({ through: original, afterId: '1' })
+  await expect(page.locator('.lf-report-preview time')).toHaveAttribute('datetime', original)
+  await page.getByRole('button', { name: 'Aplicar período', exact: true }).click()
+  await expect.poll(() => requests.length).toBe(3)
+  expect(requests[2]).toEqual({ through: changed, afterId: null })
+  await expect(first).toBeVisible()
+  await expect(second).toHaveCount(0)
+  await expect(page.locator('.lf-report-preview time')).toHaveAttribute('datetime', changed)
+})
+
 test('a saved trial balance report selects and persists real table columns and a server filter', async ({ page }) => {
   await login(page)
   await makeSpace(page)
