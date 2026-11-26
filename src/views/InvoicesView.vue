@@ -64,10 +64,22 @@ const invoiceStatuses=[
   {value:'partially_paid',label:t('librefinance', 'Partial')},
   {value:'paid',label:t('librefinance', 'Settled by journal entry')},
 ]
+const issueFromDraft=ref('')
+const issueThroughDraft=ref('')
+const appliedIssueFrom=ref('')
+const appliedIssueThrough=ref('')
+const hasPeriod=computed(() => !!appliedIssueFrom.value || !!appliedIssueThrough.value)
+const invalidPeriod=computed(() => {
+  if (issueFromDraft.value && issueThroughDraft.value && issueFromDraft.value > issueThroughDraft.value) {
+    return true
+  }
+  return false
+})
 const hasOtherDocs=ref(false)
 const hasListedInvoices=ref(false)
 const showInvoiceFilters=computed(() => invoices.value.length > 0 || !!invoiceNext.value
-  || hasOtherDocs.value || hasListedInvoices.value || !!invoiceStatus.value)
+  || hasOtherDocs.value || hasListedInvoices.value || !!invoiceStatus.value
+  || hasPeriod.value || !!issueFromDraft.value || !!issueThroughDraft.value)
 const localSort=useLoadedSort('')
 const orderedInvoices=computed(()=>localSort.order(invoices.value))
 const taxes=ref([])
@@ -156,10 +168,24 @@ function rateBps(value) {
   if(n>100000)throw new Error(t('librefinance', 'Tax rate exceeds the 1000% limit'))
   return n
 }
+function applyPeriodFilter() {
+  if (invalidPeriod.value || busy.value) return
+  appliedIssueFrom.value = issueFromDraft.value
+  appliedIssueThrough.value = issueThroughDraft.value
+}
+function clearPeriodFilter() {
+  invoiceStatus.value = ''
+  issueFromDraft.value = ''
+  issueThroughDraft.value = ''
+  appliedIssueFrom.value = ''
+  appliedIssueThrough.value = ''
+}
 function invoiceQuery(afterId = 0) {
   const params = new URLSearchParams()
   if (invoiceFilter.value !== 'all') params.set('kind', invoiceFilter.value)
   if (invoiceStatus.value) params.set('status', invoiceStatus.value)
+  if (appliedIssueFrom.value) params.set('issueFrom', appliedIssueFrom.value)
+  if (appliedIssueThrough.value) params.set('issueThrough', appliedIssueThrough.value)
   if (afterId) params.set('afterId', String(afterId))
   const query = params.toString()
   return '/invoices' + (query ? '?' + query : '')
@@ -326,8 +352,12 @@ watch(activeId, () => {
   hasOtherDocs.value=false
   filterAvailable.value=false
   invoiceStatus.value=''
+  issueFromDraft.value=''
+  issueThroughDraft.value=''
+  appliedIssueFrom.value=''
+  appliedIssueThrough.value=''
 })
-watch([activeId,invoiceFilter,invoiceStatus],async()=>{
+watch([activeId,invoiceFilter,invoiceStatus,appliedIssueFrom,appliedIssueThrough],async()=>{
   invoices.value=[]
   invoiceNext.value=null
   closeDetails(false)
@@ -385,8 +415,22 @@ function openLinkedObligation() {
       <div v-if="showInvoiceFilters" class="lf-section-heading">
         <h2>{{ invoiceFilter === 'all' ? t('librefinance', 'Registered invoices')
           : invoiceFilter === 'bill' ? t('librefinance', 'Registered purchases') : t('librefinance', 'Registered sales') }}</h2>
-        <LfSelect id="lf-invoice-status-filter" v-model="invoiceStatus"
-          :label="t('librefinance', 'Status')" :options="invoiceStatuses" />
+        <div class="lf-invoice-filter-controls">
+          <LfSelect id="lf-invoice-status-filter" v-model="invoiceStatus"
+            :label="t('librefinance', 'Status')" :options="invoiceStatuses" />
+          <div class="lf-filter-row">
+            <LfDateField id="lf-invoice-from" v-model="issueFromDraft" :label="t('librefinance', 'From')" />
+            <LfDateField id="lf-invoice-through" v-model="issueThroughDraft" :label="t('librefinance', 'Through')" />
+            <NcButton :disabled="invalidPeriod || busy" @click="applyPeriodFilter">{{ t('librefinance', 'Apply period') }}</NcButton>
+            <NcButton variant="tertiary" :disabled="busy" @click="clearPeriodFilter">{{ t('librefinance', 'Clear filters') }}</NcButton>
+          </div>
+          <p v-if="invalidPeriod" class="lf-error" role="alert">{{ t('librefinance', 'Enter a valid date.') }}</p>
+          <p v-if="hasPeriod" class="lf-muted">
+            <span v-if="appliedIssueFrom">{{ t('librefinance', 'From') }}: <time :datetime="appliedIssueFrom">{{ formatLedgerDate(appliedIssueFrom) }}</time></span>
+            <span v-if="appliedIssueFrom && appliedIssueThrough"> · </span>
+            <span v-if="appliedIssueThrough">{{ t('librefinance', 'Through') }}: <time :datetime="appliedIssueThrough">{{ formatLedgerDate(appliedIssueThrough) }}</time></span>
+          </p>
+        </div>
       </div>
       <div v-if="busy && !invoices.length" class="lf-loading" role="status">
         {{ t('librefinance', 'Loading invoices…') }}
@@ -420,12 +464,12 @@ function openLinkedObligation() {
         </table>
       </div>
       <NcEmptyContent v-else-if="!error"
-        :name="hasOtherDocs || invoiceStatus ? t('librefinance', 'No invoices match this filter') : t('librefinance', 'No invoices registered')"
-        :description="invoiceStatus ? '' : hasOtherDocs
+        :name="hasOtherDocs || invoiceStatus || hasPeriod ? t('librefinance', 'No invoices match this filter') : t('librefinance', 'No invoices registered')"
+        :description="invoiceStatus || hasPeriod ? '' : hasOtherDocs
           ? t('librefinance', 'Use the Type filter and choose All to view the other records.')
           : t('librefinance', 'Use New invoice to record a sale or purchase. Confirming the invoice creates the corresponding amount in Financial movements.')">
-        <template v-if="invoiceStatus" #action>
-          <NcButton @click="invoiceStatus=''">{{ t('librefinance', 'Clear filters') }}</NcButton>
+        <template v-if="invoiceStatus || hasPeriod" #action>
+          <NcButton @click="invoiceStatus=''; clearPeriodFilter()">{{ t('librefinance', 'Clear filters') }}</NcButton>
         </template>
       </NcEmptyContent>
       <p v-if="localSort.column.value && invoiceNext" class="lf-muted">
