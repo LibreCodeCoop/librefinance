@@ -127,6 +127,20 @@ GET /spaces/{spaceId}/exchange-rates?afterId=0 returns the supported currency
 metadata version, its deliberately bounded currency/precision map, up to
 50 authorized rate snapshots in ID order and a nextAfterId cursor.
 
+For dated selection, provide all three parameters together:
+`sourceCurrency=JPY&targetCurrency=KWD&asOf=2026-11-24`.
+Codes are trimmed and normalized to uppercase, then checked against the
+bounded registry; the date is a canonical Gregorian date. Optionally add
+`sourceType=manual` or `sourceType=imported`. Selection returns every
+eligible snapshot for that exact directed pair with effectiveOn <= asOf,
+without choosing the newest, inverting a rate or resolving ambiguity.
+Filtering precedes ID-ordered pagination; use the same parameters with
+each nextAfterId. The response includes the normalized selection (sourceType
+is null for all sources); an authorized empty result is HTTP 200 with
+rates=[], not an authorization failure. Partial/invalid selection is 422.
+Omitting all selection parameters retains the existing historical list.
+A caller without workspace capability receives the existing denial.
+
 POST /spaces/{spaceId}/exchange-rates records a quote using sourceCurrency,
 targetCurrency, rate (a positive exact decimal string), effectiveOn (a real
 calendar date), sourceType (manual or imported) and sourceRef (a bounded
@@ -165,6 +179,12 @@ result contains the original snapshot, sourceMinor, targetMinor,
 rounding=half_away_from_zero and postingCreated=false. A missing or
 foreign snapshot returns 404, including when the caller may access both
 books. No rate is selected automatically and no accounting state changes.
+For an explicit dated selection, pass the same sourceCurrency,
+targetCurrency, asOf and optional sourceType query parameters to preview.
+The selected ID must satisfy the same predicate; a future, wrong-pair or
+wrong-source snapshot returns the same 404 as a missing/foreign ID.
+Without these parameters the backward-compatible historical preview is
+unchanged. The selection result is not a posting authorization.
 
 ## Proposed versioned monetary contract
 

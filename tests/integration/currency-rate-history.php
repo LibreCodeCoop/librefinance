@@ -105,4 +105,102 @@ $t->check('revocation denies next historical preview', $b, 'GET', $preview . '?s
 $t->check('invalid cursor rejected', $a, 'GET', $path . '?afterId=-1', null, 422);
 $t->check('cursor reads only later rows in same book', $a, 'GET', $path . '?afterId=' . $id, null, 200,
     static fn(array $r): bool => count($r['rates']) === 3 && $r['rates'][0]['id'] > $id);
+// Verify the explicitly dated lookup against the same installed HTTP API.
+$beforeSelection = $t->check('snapshot accounting journals before rate selection', $a,
+    'GET', $root . '/journals', null, 200);
+$allExisting = $t->check('retain previously recorded immutable candidates', $a,
+    'GET', $path, null, 200);
+$expected = array_column($allExisting['rates'], 'id');
+$selection = ['sourceCurrency' => 'JPY', 'targetCurrency' => 'KWD',
+    'asOf' => '2026-11-24', 'sourceType' => 'manual'];
+$query = http_build_query($selection);
+$matches = $t->check('same pair and date exposes all ambiguous candidates', $a, 'GET',
+    $path . '?' . $query, null, 200,
+    static fn(array $r): bool => $r['selection'] === $selection
+        && array_column($r['rates'], 'id') === $expected
+        && $r['nextAfterId'] === null);
+$t->check('normalized pair resolves the same candidates', $a, 'GET',
+    $path . '?' . http_build_query(array_replace($selection,
+        ['sourceCurrency' => ' jpy ', 'targetCurrency' => 'kwd'])), null, 200,
+    static fn(array $r): bool => $r === $matches);
+$t->check('dated preview uses explicitly selected immutable rate', $a, 'GET',
+    $preview . '?sourceMinor=1000&' . $query, null, 200,
+    static fn(array $r): bool => $r['selection'] === $selection
+        && $r['rate']['id'] === $id && $r['targetMinor'] === 2000
+        && $r['postingCreated'] === false);
+$t->check('authorized empty selection is not a permission error', $a, 'GET',
+    $path . '?' . http_build_query(array_replace($selection, ['asOf' => '2026-11-23'])), null, 200,
+    static fn(array $r): bool => $r['rates'] === [] && $r['nextAfterId'] === null);
+foreach ([
+    'partial pair' => 'sourceCurrency=JPY',
+    'missing cutoff' => 'sourceCurrency=JPY&targetCurrency=KWD',
+    'unsupported pair' => 'sourceCurrency=XYZ&targetCurrency=KWD&asOf=2026-11-24',
+    'same pair' => 'sourceCurrency=JPY&targetCurrency=jpy&asOf=2026-11-24',
+    'invalid leap day' => 'sourceCurrency=JPY&targetCurrency=KWD&asOf=2026-02-29',
+    'noncanonical cutoff' => 'sourceCurrency=JPY&targetCurrency=KWD&asOf=2026-2-01',
+    'invalid source' => 'sourceCurrency=JPY&targetCurrency=KWD&asOf=2026-11-24&sourceType=unknown',
+] as $label => $invalidQuery) {
+    $t->check('reject selection ' . $label, $a, 'GET', $path . '?' . $invalidQuery, null, 422);
+    $t->check('reject preview selection ' . $label, $a, 'GET',
+        $preview . '?sourceMinor=1000&' . $invalidQuery, null, 422);
+}
+$t->check('selection authorization precedes validation', $b, 'GET',
+    $path . '?sourceCurrency=XYZ', null, 404);
+$t->check('denied workspace cannot reveal eligible quotes', $b, 'GET',
+    $path . '?' . $query, null, 404);
+$t->check('denied workspace cannot preview selected quote', $b, 'GET',
+    $preview . '?sourceMinor=1000&' . $query, null, 404);
+$t->check('authorized sibling cannot preview selected foreign ID', $b, 'GET',
+    $otherPreview . '?sourceMinor=1000&' . $query, null, 404,
+    static fn(array $r): bool => $r === ['error' => 'exchange_rate_not_found']);
+
+$future = $t->check('record future dated evidence independently of selection', $a, 'POST', $path,
+    array_replace($payload, ['effectiveOn' => '2026-11-25', 'sourceRef' => 'future-' . $tag]), 200);
+$wrongPair = $t->check('record different pair evidence', $a, 'POST', $path,
+    array_replace($payload, ['targetCurrency' => 'USD', 'sourceRef' => 'other-pair-' . $tag]), 200);
+$imported = $t->check('record older imported evidence', $a, 'POST', $path,
+    array_replace($payload, ['effectiveOn' => '2026-11-23', 'sourceType' => 'imported',
+        'sourceRef' => 'imported-' . $tag]), 200);
+$t->check('record matching pair in a separate ledger', $b, 'POST', $otherPath,
+    array_replace($payload, ['sourceRef' => 'other-book-' . $tag]), 200);
+foreach (['future' => $future, 'wrong pair' => $wrongPair, 'wrong source' => $imported] as $label => $quote) {
+    $t->check('ineligible selected snapshot denied: ' . $label, $a, 'GET',
+        $path . '/' . $quote['rate']['id'] . '/preview?sourceMinor=1000&' . $query, null, 404,
+        static fn(array $r): bool => $r === ['error' => 'exchange_rate_not_found']);
+}
+$t->check('historical preview remains compatible without dated selection', $a, 'GET',
+    $path . '/' . $future['rate']['id'] . '/preview?sourceMinor=1000', null, 200,
+    static fn(array $r): bool => !array_key_exists('selection', $r) && $r['targetMinor'] === 2000);
+$t->check('older imported evidence can be selected explicitly', $a, 'GET',
+    $path . '?' . http_build_query(array_replace($selection, ['sourceType' => 'imported'])), null, 200,
+    static fn(array $r): bool => array_column($r['rates'], 'id') === [$imported['rate']['id']]
+        && $r['rates'][0]['effectiveOn'] === '2026-11-23'
+        && $r['rates'][0]['sourceType'] === 'imported'
+        && $r['rates'][0]['sourceRef'] === 'imported-' . $tag);
+
+// Interleaved ineligible snapshots must not consume candidate page slots.
+for ($i = 1; $i <= 47; ++$i) {
+    $created = $t->check('record synthetic candidate ' . $i, $a, 'POST', $path,
+        array_replace($payload, ['sourceRef' => 'candidate-' . $tag . '-' . $i]), 200);
+    $expected[] = $created['rate']['id'];
+}
+$t->record('fixture has exactly 51 matching immutable candidates', count($expected) === 51, 'count');
+$page = $t->check('filter before first candidate page', $a, 'GET', $path . '?' . $query, null, 200,
+    static fn(array $r): bool => array_column($r['rates'], 'id') === array_slice($expected, 0, 50)
+        && $r['nextAfterId'] === $expected[49]);
+$t->check('filtered continuation retains the exact selection', $a, 'GET',
+    $path . '?' . $query . '&afterId=' . $page['nextAfterId'], null, 200,
+    static fn(array $r): bool => $r['selection'] === $selection
+        && array_column($r['rates'], 'id') === [$expected[50]] && $r['nextAfterId'] === null);
+$allSources = $selection;
+unset($allSources['sourceType']);
+$t->check('omitting origin includes older imported evidence without preferring a source', $a, 'GET',
+    $path . '?' . http_build_query($allSources), null, 200,
+    static fn(array $r): bool => $r['selection']['sourceType'] === null
+        && in_array($imported['rate']['id'], array_column($r['rates'], 'id'), true)
+        && count($r['rates']) === 50 && $r['nextAfterId'] !== null);
+$t->check('rate selection and previews never alter posted journals', $a, 'GET',
+    $root . '/journals', null, 200, static fn(array $r): bool => $r === $beforeSelection);
+$t->check('rate selection and previews never alter booked balances', $a, 'GET',
+    $root . '/accounts', null, 200, static fn(array $r): bool => $r === $chart);
 $t->finish();

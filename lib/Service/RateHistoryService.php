@@ -11,6 +11,7 @@ use DomainException;
 use OCA\LibreFinance\Domain\Currency\CurrencyMetadata;
 use OCA\LibreFinance\Domain\Currency\ExactConversion;
 use OCA\LibreFinance\Domain\Currency\RateQuote;
+use OCA\LibreFinance\Domain\Currency\RateSelection;
 use OCP\DB\Exception as DatabaseException;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
@@ -26,16 +27,19 @@ final class RateHistoryService {
         private AccessService $access,
     ) {}
 
-    public function list(int $spaceId, int $afterId = 0): array {
+    public function list(int $spaceId, int $afterId = 0, ?string $sourceCurrency = null,
+        ?string $targetCurrency = null, ?string $asOf = null, ?string $sourceType = null): array {
         $this->access->requireFinancialCapability($spaceId, 'currency.rates.read');
         if ($afterId < 0) {
             throw new DomainException('invalid_cursor');
         }
+        $selection = RateSelection::fromQuery($sourceCurrency, $targetCurrency, $asOf, $sourceType);
         $q = $this->db->getQueryBuilder();
         $q->select('*')->from('lf_fx_rates')
             ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
-            ->andWhere($q->expr()->gt('id', $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)))
-            ->orderBy('id', 'ASC')->setMaxResults(51);
+            ->andWhere($q->expr()->gt('id', $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)));
+        $this->applySelection($q, $selection);
+        $q->orderBy('id', 'ASC')->setMaxResults(51);
         $rows = $q->executeQuery()->fetchAllAssociative();
         $more = count($rows) > 50;
         $rows = array_slice($rows, 0, 50);
@@ -45,6 +49,7 @@ final class RateHistoryService {
             'supportedCurrencies' => CurrencyMetadata::supported(),
             'rates' => array_map([self::class, 'cast'], $rows),
             'nextAfterId' => $more ? (int)end($rows)['id'] : null,
+            ...($selection === null ? [] : ['selection' => $selection->toArray()]),
         ];
     }
 
@@ -119,12 +124,16 @@ final class RateHistoryService {
      * Do not recompute historical scale from the current metadata registry.
      * This operation never chooses a rate, writes a posting or changes balances.
      */
-    public function preview(int $spaceId, int $rateId, mixed $sourceMinor): array {
+    public function preview(int $spaceId, int $rateId, mixed $sourceMinor,
+        ?string $sourceCurrency = null, ?string $targetCurrency = null,
+        ?string $asOf = null, ?string $sourceType = null): array {
         $this->access->requireFinancialCapability($spaceId, 'currency.rates.read');
+        $selection = RateSelection::fromQuery($sourceCurrency, $targetCurrency, $asOf, $sourceType);
         $q = $this->db->getQueryBuilder();
         $q->select('*')->from('lf_fx_rates')
             ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
             ->andWhere($q->expr()->eq('id', $q->createNamedParameter($rateId, IQueryBuilder::PARAM_INT)));
+        $this->applySelection($q, $selection);
         $row = $q->executeQuery()->fetchAssociative();
         if ($row === false) {
             throw new DomainException('exchange_rate_not_found');
@@ -146,7 +155,27 @@ final class RateHistoryService {
             'targetMinor' => $target,
             'rounding' => 'half_away_from_zero',
             'postingCreated' => false,
+            ...($selection === null ? [] : ['selection' => $selection->toArray()]),
         ];
+    }
+
+    private function applySelection(IQueryBuilder $q, ?RateSelection $selection): void {
+        if ($selection === null) {
+            return;
+        }
+        // Stored dates are canonical Gregorian YYYY-MM-DD, so the bounded
+        // inclusive lexical comparison is portable across supported engines.
+        // The same predicate qualifies both the list and explicit preview.
+        $q->andWhere($q->expr()->eq('source_currency',
+            $q->createNamedParameter($selection->sourceCurrency)))
+            ->andWhere($q->expr()->eq('target_currency',
+                $q->createNamedParameter($selection->targetCurrency)))
+            ->andWhere($q->expr()->lte('effective_on',
+                $q->createNamedParameter($selection->asOf)));
+        if ($selection->sourceType !== null) {
+            $q->andWhere($q->expr()->eq('source_type',
+                $q->createNamedParameter($selection->sourceType)));
+        }
     }
 
     private function find(int $spaceId, string $fingerprint): ?array {
