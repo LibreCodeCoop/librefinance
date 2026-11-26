@@ -17,7 +17,7 @@ This document records user-visible gaps without claiming that an unimplemented f
 ## International use
 
 - Introduce Nextcloud-native translations, starting with English and Brazilian Portuguese, and extract all user-visible strings.
-- Remove the BRL-only ledger restriction with a versioned currency and exchange-rate policy, preserving historical financial values precisely. No silent exchange conversion.
+- Remove the BRL-only ledger restriction with a versioned currency and exchange-rate policy, preserving historical financial values precisely. No silent exchange conversion. Follow the [proposed functional and original currency contract](SCHEMA.md#proposed-functional-and-original-currency-ledger-contract-v2); qualify multi-line persistence, bank and commercial writers, import/report paths and native UI before activating any new currency. The contract itself is not ledger activation.
 - Implement locale-aware dates, amounts and time zones, and properly version legal, tax and payment rules by jurisdiction.
 - Separate optional country-specific integrations (such as Brazil's NFS-e) from the international core.
 

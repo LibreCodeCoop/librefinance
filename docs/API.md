@@ -152,3 +152,19 @@ result contains the original snapshot, sourceMinor, targetMinor,
 rounding=half_away_from_zero and postingCreated=false. A missing or
 foreign snapshot returns 404, including when the caller may access both
 books. No rate is selected automatically and no accounting state changes.
+
+## Proposed versioned monetary contract
+
+The [functional/original currency design](SCHEMA.md#proposed-functional-and-original-currency-ledger-contract-v2)
+records the future v2 ledger boundary. It does not change these implemented
+endpoints or activate foreign currencies. Existing BRL v1 monetary fields
+remain exact integer minor units with their current semantics. A future
+explicitly negotiated version must expose original and functional amount,
+currency and stored precision separately; quote identity, provenance,
+effective date, and adjustment/rounding policy are part of the immutable
+financial fact. A functional-only adjustment is distinguished from an
+original-unit movement. Never add unlike original units or present an
+unsupported mixed-currency journal as a two-leg BRL entry. Preserve
+authorization, idempotency and error semantics; unsupported v2 operations
+through v1 must fail explicitly. Versioned OpenAPI changes, migration and
+full writer/reader qualification are separate implementation work.
