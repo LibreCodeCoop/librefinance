@@ -331,7 +331,14 @@ test('all sales and purchases share one invoice list with a server-side type fil
   await page.getByRole('option',{name:'Todas as situações',exact:true}).click()
   await expect(salesRow).toBeVisible()
   await expect(purchaseRow).toBeVisible()
+  const purchaseDetails=page.waitForResponse(r => {
+    const url=new URL(r.url())
+    return r.request().method()==='GET' && /\/invoices\/\d+$/.test(url.pathname)
+  })
   await purchaseRow.getByRole('button',{name:'Detalhes'}).click()
+  const purchaseResponse=await purchaseDetails
+  expect(purchaseResponse.status()).toBe(200)
+  expect((await purchaseResponse.json()).invoice.number).toBe(bill)
   await expect(page.getByRole('dialog',{name:'Detalhes da fatura'})
     .getByRole('heading',{name:bill})).toBeVisible()
 })

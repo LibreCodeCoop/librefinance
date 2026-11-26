@@ -79,12 +79,12 @@ const success=ref('')
 const newInvoice=ref(false)
 const newRule=ref(false)
 const chosen=ref(null)
+const detailLoading=ref(false)
 const cashTarget=ref(null)
 function beginCashPayment() {
-  if (!chosen.value || !chosenObligationId.value) return
+  if (busy.value || detailLoading.value || !chosen.value || !chosenObligationId.value) return
   cashTarget.value=chosen.value
-  chosen.value=null
-  allocated.value=false
+  closeDetails(false)
 }
 async function onCashPaid(result) {
   const target=cashTarget.value
@@ -140,7 +140,15 @@ const ruleKinds=[
   {value:'withholding',label:t('librefinance', 'Withholding')},{value:'other',label:t('librefinance', 'Other tax')},
 ]
 let generation=0
-function closeDetails(open) {if(!open){chosen.value=null;chosenObligationId.value=null;allocated.value=false}}
+let detailVersion=0
+function closeDetails(open) {
+  if(open)return
+  ++detailVersion
+  detailLoading.value=false
+  chosen.value=null
+  chosenObligationId.value=null
+  allocated.value=false
+}
 function rateBps(value) {
   const m=String(value).trim().match(/^(\d{1,4})(?:[.,](\d{1,2}))?$/)
   if(!m)throw new Error(t('librefinance', 'Invalid tax rate'))
@@ -257,30 +265,41 @@ async function createRule() {
   }),t('librefinance', 'Rule registered as an immutable version; legal compliance not verified.'))
   if(done)newRule.value=false
 }
-async function showInvoice(id) {
+async function showInvoice(id, refresh=false) {
+  if(!refresh)closeDetails(false)
   const token=generation
+  const request=++detailVersion
+  const spaceId=Number(activeId.value)
+  detailLoading.value=true
   error.value=''
   try{
-    const response=await financeApi(current,activeId.value,'/invoices/'+id)
-    if(token===generation){
+    const response=await financeApi(current,spaceId,'/invoices/'+id)
+    if(token===generation && request===detailVersion && spaceId===Number(activeId.value)){
       chosen.value=response.invoice
       chosenObligationId.value=response.obligationId
       allocation.value={bankAccountId:0,journalId:0,
         amount:minorInput(Number(response.invoice.total_minor)
           -Number(response.invoice.paid_minor))}
     }
-  }catch(e){if(token===generation)error.value=financeError(e)}
+  }catch(e){
+    if(token===generation && request===detailVersion){
+      closeDetails(false)
+      error.value=financeError(e)
+    }
+  }finally{
+    if(request===detailVersion)detailLoading.value=false
+  }
 }
 async function issue() {
-  if(!chosen.value)return
+  if(detailLoading.value || !chosen.value)return
   const id=chosen.value.id
   const done=await perform(async()=>financeApi(current,activeId.value,
     '/invoices/'+id+'/issue','POST',{}),
     t('librefinance', 'Document confirmed. Linked obligation created; no fiscal invoice was issued.'))
-  if(done){chosen.value=null;await showInvoice(id)}
+  if(done && chosen.value?.id===id)await showInvoice(id, true)
 }
 async function allocate() {
-  if(!chosen.value)return
+  if(detailLoading.value || !chosen.value)return
   if(!journalChoices.value.some(row=>row.value===Number(allocation.value.journalId))){
     error.value=t('librefinance', 'Select a posted journal entry matching the account and amount.')
     return
@@ -292,7 +311,7 @@ async function allocate() {
       journalId:Number(allocation.value.journalId),
       amountMinor:toMinorUnits(allocation.value.amount),
     }),t('librefinance', 'Existing journal entry associated; no transfer created.'))
-  if(done){allocated.value=false;chosen.value=null;await showInvoice(id)}
+  if(done && chosen.value?.id===id){allocated.value=false;await showInvoice(id, true)}
 }
 async function openFocusedInvoice() {
   const focus=focusedInvoice.value
@@ -311,9 +330,7 @@ watch(activeId, () => {
 watch([activeId,invoiceFilter,invoiceStatus],async()=>{
   invoices.value=[]
   invoiceNext.value=null
-  chosen.value=null
-  chosenObligationId.value=null
-  allocated.value=false
+  closeDetails(false)
   newInvoice.value=false
   await load()
   await openFocusedInvoice()
@@ -333,12 +350,12 @@ watch(() => flow?.newDetailed.value, requested => {
   newInvoice.value=true
   flow.newDetailed.value=false
 }, { immediate:true })
-onBeforeUnmount(()=>++generation)
+onBeforeUnmount(()=>{++generation;++detailVersion})
 function openLinkedObligation() {
   if(!canReadObligations.value||!chosenObligationId.value||!chosen.value)return
   focusedObligation.value={spaceId:Number(activeId.value),
     id:Number(chosenObligationId.value)}
-  chosen.value=null
+  closeDetails(false)
   if(flow)flow.showAccounts()
   else navigate('obligations')
 }
@@ -529,7 +546,7 @@ function openLinkedObligation() {
       :record="cashTarget" :kind="cashTarget?.kind==='bill'?'payable':'receivable'"
       @update:open="cashTarget=$event?cashTarget:null"
       @paid="onCashPaid" />
-    <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="Boolean(chosen)" :name="t('librefinance', 'Invoice details')"
+    <NcDialog v-if="chosen" :key="chosen.id" size="normal" content-classes="lf-finance-dialog-content" :open="true" :name="t('librefinance', 'Invoice details')"
       @update:open="closeDetails($event)">
       <div v-if="chosen" class="lf-dialog-form">
         <h3>{{chosen.number}}</h3>
@@ -550,16 +567,16 @@ function openLinkedObligation() {
             <strong>{{money(chosen.total_minor-chosen.paid_minor)}}</strong></div>
         </div>
         <NcButton v-if="manager&&chosen.status==='draft'" variant="primary"
-          :disabled="busy" @click="issue">{{isPurchase?t('librefinance', 'Confirm purchase'):t('librefinance', 'Confirm sale')}}</NcButton>
+          :disabled="busy || detailLoading" @click="issue">{{isPurchase?t('librefinance', 'Confirm purchase'):t('librefinance', 'Confirm sale')}}</NcButton>
         <template v-if="writable&&chosenObligationId&&['issued','partially_paid'].includes(chosen.status)">
           <NcNoteCard v-if="Number(chosen.tax_minor)||Number(chosen.withheld_minor)"
             type="warning">
             {{ t('librefinance', 'This document contains taxes or withholdings. It is not safe to post the gross total as income or expense. Record the correct tax entries in Accounting journals and use Link previously recorded movement.') }}
           </NcNoteCard>
-          <NcButton v-else variant="primary" @click="beginCashPayment">
+          <NcButton v-else variant="primary" :disabled="busy || detailLoading" @click="beginCashPayment">
             {{isPurchase?t('librefinance', 'Record payment'):t('librefinance', 'Record receipt')}}
           </NcButton>
-          <NcButton v-if="!allocated" variant="secondary" @click="allocated=true">
+          <NcButton v-if="!allocated" variant="secondary" :disabled="busy || detailLoading" @click="allocated=true">
             {{ t('librefinance', 'Link previously recorded movement') }}
           </NcButton>
           <form v-else class="lf-dialog-form" @submit.prevent="allocate">
@@ -578,17 +595,17 @@ function openLinkedObligation() {
             <div class="lf-form-actions">
               <NcButton v-if="nextBeforeId" variant="tertiary"
                 :disabled="busy" @click="loadMore">{{ t('librefinance', 'Load earlier entries') }}</NcButton>
-              <NcButton variant="tertiary" @click="chosen=null;navigate('transactions')">
+              <NcButton variant="tertiary" @click="closeDetails(false);navigate('transactions')">
                 {{ t('librefinance', 'Open accounting journals') }}
               </NcButton>
               <NcButton variant="primary" type="submit"
-                :disabled="busy||!journalChoices.some(row=>row.value===Number(allocation.journalId))">
+                :disabled="busy||detailLoading||!journalChoices.some(row=>row.value===Number(allocation.journalId))">
                 {{ t('librefinance', 'Associate without duplicating movement') }}
               </NcButton>
             </div>
           </form>
         </template>
-        <NcButton variant="tertiary" @click="chosen=null;allocated=false">
+        <NcButton variant="tertiary" @click="closeDetails(false)">
           {{ t('librefinance', 'Close details') }}
         </NcButton>
       </div>
