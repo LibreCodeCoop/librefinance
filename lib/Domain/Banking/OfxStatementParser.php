@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace OCA\LibreFinance\Domain\Banking;
 
 use DomainException;
+use OCA\LibreFinance\Domain\Currency\CurrencyMetadata;
 
 /**
  * Strict, bounded OFX 1.x (SGML) / OFX 2.x (XML) statement reader.
@@ -22,7 +23,15 @@ final class OfxStatementParser {
     private const MAX_ROWS = 500;
     private const MAX_MINOR = 9000000000000;
 
-    /** @return array{currency:?string,rows:list<array{id:string,date:string,amount_minor:int,description:string}>} */
+    /**
+     * @return array{
+     *     currency:?string,
+     *     statementPeriod:?array{from:?string,through:?string},
+     *     ledgerBalance:?array{date:string,amount_minor:int,currency:string},
+     *     availableBalance:?array{date:string,amount_minor:int,currency:string},
+     *     rows:list<array{id:string,date:string,amount_minor:int,description:string}>
+     * }
+     */
     public static function parse(string $source): array {
         if ($source === '' || strlen($source) > self::MAX_BYTES
             || str_contains($source, "\0")) {
@@ -41,13 +50,23 @@ final class OfxStatementParser {
             // One selected bank account cannot safely ingest several statements.
             throw new DomainException('invalid_ofx_accounts');
         }
-        $content = $lists[1][0];
+        $banktranlistBlock = $lists[1][0];
+
+        // Extract statement period from BANKTRANLIST DTSTART / DTEND
+        $periodBlock = preg_replace('~<STMTTRN(?:\s[^>]*)?>.*?</STMTTRN\s*>~is', '', $banktranlistBlock);
+        if ($periodBlock === null
+            || preg_match_all('~<DT(?:START|END)\s*>~i', $periodBlock)
+                !== preg_match_all('~<DT(?:START|END)\s*>~i', $banktranlistBlock)) {
+            throw new DomainException('invalid_ofx_row');
+        }
+        $statementPeriod = self::parseBanktranlistPeriod($periodBlock);
+
         $found = preg_match_all('~<STMTTRN(?:\s[^>]*)?>(.*?)</STMTTRN\s*>~is',
-            $content, $transactions);
+            $banktranlistBlock, $transactions);
         if (!$found || $found > self::MAX_ROWS) {
             throw new DomainException('invalid_ofx_row');
         }
-        if (preg_match_all('~<STMTTRN(?:\s[^>]*)?>~i', $content) !== $found) {
+        if (preg_match_all('~<STMTTRN(?:\s[^>]*)?>~i', $banktranlistBlock) !== $found) {
             throw new DomainException('invalid_ofx_row');
         }
         // Reject a second statement or orphan transaction outside the selected list.
@@ -58,6 +77,29 @@ final class OfxStatementParser {
         if ($currency !== null && !preg_match('/^[A-Z]{3}$/', strtoupper($currency))) {
             throw new DomainException('invalid_ofx_currency');
         }
+        $normalizedCurrency = $currency !== null ? strtoupper($currency) : null;
+
+        // Parse ledger and available balance aggregates
+        $balanceBlock = '';
+        if (preg_match('~</?(?:LEDGERBAL|AVAILBAL)\b~i', $text)) {
+            if (preg_match_all('~<STMTRS(?:\s[^>]*)?>(.*?)</STMTRS\s*>~is', $text, $statements) !== 1
+                || substr_count($statements[1][0], $lists[0][0]) !== 1) {
+                throw new DomainException('invalid_ofx_accounts');
+            }
+            // Checkpoints in this supported statement profile are siblings
+            // after the selected BANKTRANLIST, never part of its transactions.
+            $after = strpos($statements[1][0], $lists[0][0]) + strlen($lists[0][0]);
+            $balanceBlock = substr($statements[1][0], $after);
+            $matched = preg_replace('~<(LEDGERBAL|AVAILBAL)\s*>[^<]*(?:<(?:BALAMT|DTASOF)\s*>[^<]*(?:</(?:BALAMT|DTASOF)\s*>)?)*</\1\s*>~i', '', $balanceBlock);
+            if ($matched === null || trim($matched) !== ''
+                || preg_match_all('~</?(?:LEDGERBAL|AVAILBAL)\b~i', $text)
+                    !== preg_match_all('~</?(?:LEDGERBAL|AVAILBAL)\b~i', $balanceBlock)) {
+                throw new DomainException('invalid_ofx_row');
+            }
+        }
+        $ledgerBalance = self::parseBalanceAggregate($balanceBlock, 'LEDGERBAL', $normalizedCurrency);
+        $availableBalance = self::parseBalanceAggregate($balanceBlock, 'AVAILBAL', $normalizedCurrency);
+
         $ids = [];
         $rows = [];
         foreach ($transactions[1] as $block) {
@@ -72,16 +114,7 @@ final class OfxStatementParser {
                 || $memo === null || $memo === '' || mb_strlen($memo) > 255) {
                 throw new DomainException('invalid_ofx_row');
             }
-            // Bank-exported OFX dates may carry a six-digit time, optional
-            // fractional seconds and a bracketed timezone. Preserve the
-            // booking date instead of guessing a user-local conversion.
-            if (!preg_match('/^(\d{4})(\d{2})(\d{2})(?:(\d{2})(\d{2})(\d{2})(?:\.\d{1,6})?)?(?:\[[^\]\r\n]{1,24}\])?$/D', $posted, $parts)
-                || !checkdate((int)$parts[2], (int)$parts[3], (int)$parts[1])
-                || (($parts[4] ?? '') !== ''
-                    && ((int)$parts[4] > 23 || (int)$parts[5] > 59 || (int)$parts[6] > 59))) {
-                throw new DomainException('invalid_ofx_date');
-            }
-            $date = $parts[1] . '-' . $parts[2] . '-' . $parts[3];
+            $date = self::parseStrictDate($posted);
             $id = preg_match('/^[A-Za-z0-9_.:-]{1,128}$/D', $originalId)
                 ? $originalId : 'ofx-' . hash('sha256', $originalId);
             if (isset($ids[$id])) {
@@ -89,10 +122,15 @@ final class OfxStatementParser {
             }
             $ids[$id] = true;
             $rows[] = ['id' => $id, 'date' => $date,
-                'amount_minor' => self::minor($value), 'description' => $memo];
+                'amount_minor' => self::minor($value, false), 'description' => $memo];
         }
-        return ['currency' => $currency !== null ? strtoupper($currency) : null,
-            'rows' => $rows];
+        return [
+            'currency' => $normalizedCurrency,
+            'statementPeriod' => $statementPeriod,
+            'ledgerBalance' => $ledgerBalance,
+            'availableBalance' => $availableBalance,
+            'rows' => $rows,
+        ];
     }
 
     private static function decode(string $source): string {
@@ -147,20 +185,93 @@ final class OfxStatementParser {
         return $text;
     }
 
-    private static function minor(string $value): int {
+    private static function parseStrictDate(string $dateStr): string {
+        if (!preg_match('/^(\d{4})(\d{2})(\d{2})(?:(\d{2})(\d{2})(\d{2})(?:\.\d{1,6})?)?(?:\[[^\]\r\n]{1,24}\])?$/D', $dateStr, $parts)
+            || !checkdate((int)$parts[2], (int)$parts[3], (int)$parts[1])
+            || (($parts[4] ?? '') !== ''
+                && ((int)$parts[4] > 23 || (int)$parts[5] > 59 || (int)$parts[6] > 59))) {
+            throw new DomainException('invalid_ofx_date');
+        }
+        return $parts[1] . '-' . $parts[2] . '-' . $parts[3];
+    }
+
+    private static function parseBanktranlistPeriod(string $banktranlistBlock): ?array {
+        $countStart = preg_match_all('~<DTSTART(?:\s[^>]*)?>([^<]*)~i', $banktranlistBlock, $mStart);
+        $countEnd = preg_match_all('~<DTEND(?:\s[^>]*)?>([^<]*)~i', $banktranlistBlock, $mEnd);
+        if ($countStart === false || $countEnd === false || $countStart > 1 || $countEnd > 1) {
+            throw new DomainException('invalid_ofx_row');
+        }
+        if ($countStart === 0 && $countEnd === 0) {
+            return null;
+        }
+        $from = null;
+        $through = null;
+        if ($countStart === 1) {
+            $val = trim(html_entity_decode($mStart[1][0], ENT_QUOTES | ENT_XML1, 'UTF-8'));
+            if ($val === '' || preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $val)) {
+                throw new DomainException('invalid_ofx_row');
+            }
+            $from = self::parseStrictDate($val);
+        }
+        if ($countEnd === 1) {
+            $val = trim(html_entity_decode($mEnd[1][0], ENT_QUOTES | ENT_XML1, 'UTF-8'));
+            if ($val === '' || preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $val)) {
+                throw new DomainException('invalid_ofx_row');
+            }
+            $through = self::parseStrictDate($val);
+        }
+        if ($from !== null && $through !== null && $from > $through) {
+            throw new DomainException('invalid_ofx_date');
+        }
+        return ['from' => $from, 'through' => $through];
+    }
+
+    /** @return ?array{date:string,amount_minor:int,currency:string} */
+    private static function parseBalanceAggregate(string $text, string $tagName, ?string $defaultCurrency): ?array {
+        $count = preg_match_all('~<' . $tagName . '(?:\s[^>]*)?>(.*?)</' . $tagName . '\s*>~is', $text, $matches);
+        if ($count === false || $count > 1) {
+            throw new DomainException('invalid_ofx_row');
+        }
+        if ($count === 0) {
+            return null;
+        }
+        $block = $matches[1][0];
+        $amtStr = self::leaf($block, 'BALAMT');
+        $dtStr = self::leaf($block, 'DTASOF');
+        if ($amtStr === null || $dtStr === null) {
+            throw new DomainException('invalid_ofx_row');
+        }
+        if ($defaultCurrency === null || CurrencyMetadata::precision($defaultCurrency) !== 2) {
+            throw new DomainException('invalid_ofx_currency');
+        }
+        $currency = $defaultCurrency;
+        $date = self::parseStrictDate($dtStr);
+        $amountMinor = self::minor($amtStr, true);
+        return [
+            'date' => $date,
+            'amount_minor' => $amountMinor,
+            'currency' => $currency,
+        ];
+    }
+
+    private static function minor(string $value, bool $allowZero = false): int {
         if (!preg_match('/^([+-]?)(\d{1,10})(?:[.,](\d{1,6}))?$/D',
             trim($value), $m)) {
             throw new DomainException('invalid_ofx_amount');
         }
-        // Some OFX providers export four or six decimal places. Accept
-        // only extra zeroes; never round fractional cents into money.
+        // Preserve the existing two-decimal transaction contract.
         $fraction = str_pad($m[3] ?? '', 2, '0');
-        if (strlen($fraction)>2 && trim(substr($fraction, 2), '0') !== '') {
+        if (strlen($fraction) > 2 && trim(substr($fraction, 2), '0') !== '') {
             throw new DomainException('invalid_ofx_amount');
         }
         $minor = (int)$m[2] * 100 + (int)substr($fraction, 0, 2);
-        if ($m[1] === '-') $minor = -$minor;
-        if ($minor === 0 || abs($minor) > self::MAX_MINOR) {
+        if ($m[1] === '-') {
+            $minor = -$minor;
+        }
+        if (!$allowZero && $minor === 0) {
+            throw new DomainException('invalid_ofx_amount');
+        }
+        if (abs($minor) > self::MAX_MINOR) {
             throw new DomainException('invalid_ofx_amount');
         }
         return $minor;
