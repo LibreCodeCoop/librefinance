@@ -23,6 +23,7 @@ final class BankStatementEntryTest extends TestCase {
 
     public static function validProvider(): array {
         return [
+            'year zero and positive validProvider control' => ['EXT-0001', '0001-01-01', 100, 'Year one control'],
             'standard positive' => ['EXT-123.45_67:89', '2026-06-06', 1000, 'Salary'],
             'negative amount' => ['ID1', '2026-06-06', -500, 'Expense'],
             'leap day' => ['LEAP-2024', '2024-02-29', 250, 'Leap day transaction'],
@@ -39,6 +40,7 @@ final class BankStatementEntryTest extends TestCase {
 
     public static function invalidProvider(): array {
         return [
+            'year zero' => ['EXT0', '0000-01-01', 100, 'Year zero description'],
             'terminal newline in external id' => ["synthetic-id\n", '2026-06-06', 100, 'Description'],
             'malformed external id chars' => ['ext id with space', '2026-06-06', 100, 'Description'],
             'too long external id' => [str_repeat('a', 129), '2026-06-06', 100, 'Description'],

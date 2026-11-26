@@ -9,6 +9,7 @@ final readonly class BankStatementEntry {
         public int $amountMinor,public string $description) {
         if(!preg_match('/^[A-Za-z0-9_.:-]{1,128}\z/',$externalId) ||
             !preg_match('/^\d{4}-\d{2}-\d{2}$/',$date) ||
+            str_starts_with($date, '0000') ||
             ($checked=\DateTimeImmutable::createFromFormat('!Y-m-d',$date))===false ||
             $checked->format('Y-m-d')!==$date ||
             $amountMinor===0 || abs($amountMinor)>9000000000000 ||
