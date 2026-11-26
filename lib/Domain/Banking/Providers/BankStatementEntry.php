@@ -7,7 +7,7 @@ use InvalidArgumentException;
 final readonly class BankStatementEntry {
     public function __construct(public string $externalId,public string $date,
         public int $amountMinor,public string $description) {
-        if(!preg_match('/^[A-Za-z0-9_.:-]{1,128}$/',$externalId) ||
+        if(!preg_match('/^[A-Za-z0-9_.:-]{1,128}\z/',$externalId) ||
             !preg_match('/^\d{4}-\d{2}-\d{2}$/',$date) ||
             ($checked=\DateTimeImmutable::createFromFormat('!Y-m-d',$date))===false ||
             $checked->format('Y-m-d')!==$date ||
