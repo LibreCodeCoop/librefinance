@@ -66,10 +66,13 @@ const invoiceStatuses=[
 ]
 const issueFromDraft=ref('')
 const issueThroughDraft=ref('')
+const issueFromValid=ref(true)
+const issueThroughValid=ref(true)
 const appliedIssueFrom=ref('')
 const appliedIssueThrough=ref('')
 const hasPeriod=computed(() => !!appliedIssueFrom.value || !!appliedIssueThrough.value)
 const invalidPeriod=computed(() => {
+  if (!issueFromValid.value || !issueThroughValid.value) return true
   if (issueFromDraft.value && issueThroughDraft.value && issueFromDraft.value > issueThroughDraft.value) {
     return true
   }
@@ -79,7 +82,7 @@ const hasOtherDocs=ref(false)
 const hasListedInvoices=ref(false)
 const showInvoiceFilters=computed(() => invoices.value.length > 0 || !!invoiceNext.value
   || hasOtherDocs.value || hasListedInvoices.value || !!invoiceStatus.value
-  || hasPeriod.value || !!issueFromDraft.value || !!issueThroughDraft.value)
+  || hasPeriod.value || invalidPeriod.value || !!issueFromDraft.value || !!issueThroughDraft.value)
 const localSort=useLoadedSort('')
 const orderedInvoices=computed(()=>localSort.order(invoices.value))
 const taxes=ref([])
@@ -177,6 +180,8 @@ function clearPeriodFilter() {
   invoiceStatus.value = ''
   issueFromDraft.value = ''
   issueThroughDraft.value = ''
+  issueFromValid.value = true
+  issueThroughValid.value = true
   appliedIssueFrom.value = ''
   appliedIssueThrough.value = ''
 }
@@ -354,6 +359,8 @@ watch(activeId, () => {
   invoiceStatus.value=''
   issueFromDraft.value=''
   issueThroughDraft.value=''
+  issueFromValid.value=true
+  issueThroughValid.value=true
   appliedIssueFrom.value=''
   appliedIssueThrough.value=''
 })
@@ -419,8 +426,8 @@ function openLinkedObligation() {
           <LfSelect id="lf-invoice-status-filter" v-model="invoiceStatus"
             :label="t('librefinance', 'Status')" :options="invoiceStatuses" />
           <div class="lf-filter-row">
-            <LfDateField id="lf-invoice-from" v-model="issueFromDraft" :label="t('librefinance', 'From')" />
-            <LfDateField id="lf-invoice-through" v-model="issueThroughDraft" :label="t('librefinance', 'Through')" />
+            <LfDateField id="lf-invoice-from" v-model="issueFromDraft" @validity-change="issueFromValid = $event" :label="t('librefinance', 'From')" />
+            <LfDateField id="lf-invoice-through" v-model="issueThroughDraft" @validity-change="issueThroughValid = $event" :label="t('librefinance', 'Through')" />
             <NcButton :disabled="invalidPeriod || busy" @click="applyPeriodFilter">{{ t('librefinance', 'Apply period') }}</NcButton>
             <NcButton variant="tertiary" :disabled="busy" @click="clearPeriodFilter">{{ t('librefinance', 'Clear filters') }}</NcButton>
           </div>

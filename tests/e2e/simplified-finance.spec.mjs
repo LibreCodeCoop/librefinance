@@ -425,3 +425,132 @@ test('all sales and purchases share one invoice list with a server-side type fil
   await expect(page.getByRole('dialog',{name:'Detalhes da fatura'})
     .getByRole('heading',{name:bill})).toBeVisible()
 })
+
+test('invoice period pagination retains applied filters and ignores a superseded response', async ({page}) => {
+  test.setTimeout(120_000)
+  await login(page)
+  const spaceName = await makeSpace(page, 'organization')
+  const spaceId = new URL(page.url()).searchParams.get('spaceId')
+  expect(spaceId).toBeTruthy()
+  const api = '/index.php/apps/librefinance/api/spaces/' + spaceId
+  const headers = { requesttoken: await page.evaluate(() => OC.requestToken) }
+  const post = async (path, data, status = 201) => {
+    const response = await page.request.post(api + path, { headers, data })
+    expect(response.status(), path).toBe(status)
+    return response.json()
+  }
+  const contact = await post('/contacts', { name: 'Synthetic pagination contact', kind: 'both' })
+  const date = '2028-03-20'
+  const suffix = Date.now().toString(36).toUpperCase()
+  const create = (kind, label, issueOn = date) => post('/invoices', {
+    number: suffix + '-' + label, kind, contactId: contact.id, issueOn, dueOn: '2028-12-31',
+    country: 'BR', lines: [{ description: 'Synthetic line', quantity: 1, unitPriceMinor: 2500 }],
+  })
+  const outside = await create('bill', 'OUTSIDE', '2028-03-19')
+  const sale = await create('invoice', 'SALE')
+  const issued = await create('bill', 'ISSUED')
+  await post('/invoices/' + issued.id + '/issue', {}, 200)
+  const bills = []
+  for (let i = 0; i < 51; i++) bills.push(await create('bill', 'BILL-' + i))
+
+  const matches = (url, query) => url.pathname.endsWith('/api/spaces/' + spaceId + '/invoices')
+    && Object.entries(query).every(([key, value]) => url.searchParams.get(key) === value)
+  const read = query => page.waitForResponse(r => r.request().method() === 'GET' && matches(new URL(r.url()), query))
+  const chooseKind = async label => {
+    await page.locator('#lf-invoices-type-filter').click()
+    await page.getByRole('group', { name: 'Filtrar faturas por tipo' })
+      .getByRole('button', { name: label, exact: true }).click()
+  }
+  const cell = invoice => page.getByRole('cell', { name: invoice.number, exact: true })
+  const more = page.getByRole('button', { name: 'Carregar mais', exact: true })
+  await goToView(page, 'Faturas')
+  await expect(cell(sale)).toBeVisible()
+  await chooseKind('Compras')
+  await expect(cell(outside)).toBeVisible()
+  await page.locator('#lf-invoice-status-filter').click()
+  await page.getByRole('option', { name: 'Rascunho', exact: true }).click()
+  await expect(cell(issued)).toHaveCount(0)
+  const from = page.locator('#lf-invoice-from')
+  const through = page.locator('#lf-invoice-through')
+  const apply = page.getByRole('button', { name: 'Aplicar período', exact: true })
+  await from.fill('10000-01-01')
+  await expect(apply).toBeDisabled()
+  await expect(page.getByRole('alert').filter({ hasText: 'Informe uma data válida.' })).toBeVisible()
+  await from.fill(date)
+  await through.fill(date)
+  const query = { kind: 'bill', status: 'draft', issueFrom: date, issueThrough: date }
+  const first = read({ ...query, afterId: null })
+  await apply.click()
+  const firstResponse = await first
+  expect(firstResponse.status()).toBe(200)
+  const initial = await firstResponse.json()
+  expect(initial.invoices.map(i => i.id)).toEqual(bills.slice(0, 50).map(i => i.id))
+  expect(initial.nextAfterId).toBe(bills[49].id)
+  await expect(cell(bills[49])).toBeVisible()
+  await expect(cell(bills[50])).toHaveCount(0)
+  await expect(cell(outside)).toHaveCount(0)
+  await expect(cell(sale)).toHaveCount(0)
+  await expect(cell(issued)).toHaveCount(0)
+  await expect(page.locator('.lf-invoice-filter-controls time[datetime="' + date + '"]')).toHaveCount(2)
+
+  // A draft edit must not change the query used by the continuation.
+  await through.fill('2028-03-21')
+  const nextQuery = { ...query, afterId: String(initial.nextAfterId) }
+  const next = read(nextQuery)
+  await more.click()
+  const secondResponse = await next
+  expect(secondResponse.status()).toBe(200)
+  const second = await secondResponse.json()
+  expect(second.invoices.map(i => i.id)).toEqual([bills[50].id])
+  expect(second.nextAfterId).toBeNull()
+  await expect(cell(bills[50])).toHaveCount(1)
+  await expect(cell(bills[0])).toHaveCount(1)
+  await expect(more).toHaveCount(0)
+
+  // Revisit the same applied filter, then delay a real backend continuation
+  // until a different kind has been loaded. No mocked invoice data is used.
+  await chooseKind('Vendas')
+  await expect(cell(sale)).toBeVisible()
+  const restarted = read({ ...query, afterId: null })
+  await chooseKind('Compras')
+  expect((await restarted).status()).toBe(200)
+  await expect(cell(bills[49])).toBeVisible()
+  await expect(cell(bills[50])).toHaveCount(0)
+
+  let release
+  let reached
+  const held = new Promise(resolve => { reached = resolve })
+  const gate = new Promise(resolve => { release = resolve })
+  const pattern = new RegExp('/api/spaces/' + spaceId + '/invoices(?:\\?|$)')
+  const handler = async route => {
+    if (route.request().method() !== 'GET' || !matches(new URL(route.request().url()), nextQuery)) {
+      await route.continue()
+      return
+    }
+    const response = await route.fetch()
+    reached(await response.json())
+    await gate
+    await route.fulfill({ response })
+  }
+  await page.route(pattern, handler)
+  try {
+    const stale = read(nextQuery)
+    await more.click()
+    expect((await held).invoices.map(i => i.id)).toEqual([bills[50].id])
+    const changed = read({ ...query, kind: 'invoice', afterId: null })
+    await chooseKind('Vendas')
+    expect((await changed).status()).toBe(200)
+    await expect(cell(sale)).toBeVisible()
+    release()
+    await (await stale).finished()
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+    await expect(cell(sale)).toBeVisible()
+    await expect(cell(bills[0])).toHaveCount(0)
+    await expect(cell(bills[50])).toHaveCount(0)
+    await expect(more).toHaveCount(0)
+    await expect(page.locator('.lf-context-identity')).toContainText(spaceName)
+  } finally {
+    release()
+    await page.unroute(pattern, handler)
+  }
+})
