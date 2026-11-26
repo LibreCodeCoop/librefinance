@@ -354,9 +354,9 @@ $periodPayload2 = [
 ];
 
 $inv1 = $t->checkModule('create period invoice one', $a, $app, 'POST', $periodBase . '/invoices', $periodPayload1, 201,
-    static fn(array $v): bool => ($v['status'] ?? null) === 'draft' && ($v['issue_on'] ?? null) === '2026-03-10');
+    static fn(array $v): bool => ($v['status'] ?? null) === 'draft' && ($v['totalMinor'] ?? null) === 10000);
 $inv2 = $t->checkModule('create period invoice two', $a, $app, 'POST', $periodBase . '/invoices', $periodPayload2, 201,
-    static fn(array $v): bool => ($v['status'] ?? null) === 'draft' && ($v['issue_on'] ?? null) === '2026-03-20');
+    static fn(array $v): bool => ($v['status'] ?? null) === 'draft' && ($v['totalMinor'] ?? null) === 10000);
 
 $inv1Id = (int)$inv1['id'];
 $inv2Id = (int)$inv2['id'];
@@ -396,4 +396,8 @@ $t->checkModule('reversed issue period bounds rejected', $a, $app, 'GET',
 $t->checkModule('outsider denied period space invoices with bounds', $b, $app, 'GET',
     $periodBase . '/invoices?issueFrom=2026-03-01', null, 404);
 
-$t->finish();$t->finish();
+$t->checkModule('terminal newline date rejected', $a, $app, 'GET',
+    $periodBase . '/invoices?issueFrom=2026-03-10%0A', null, 422,
+    static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_invoice_period');
+
+$t->finish();
