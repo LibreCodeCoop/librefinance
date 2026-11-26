@@ -79,6 +79,8 @@ Os filtros de conta, situação e data são aplicados antes da paginação por I
 ## Movimentações financeiras
 `GET /spaces/{spaceId}/activity` aceita `from` e `through` como limites inclusivos opcionais em datas ISO gregorianas. A data filtrada é a data efetiva do lançamento, o vencimento do compromisso ou a data do extrato, conforme a origem de cada movimentação. Os limites são combinados com os filtros existentes antes da paginação; mantenha os mesmos filtros ao utilizar `nextCursor`. O filtro não altera os valores nem transforma compromissos ou evidências em lançamentos realizados.
 
+`GET /spaces/{spaceId}/invoices` aceita `issueFrom` e `issueThrough` como limites inclusivos opcionais em datas ISO gregorianas (`YYYY-MM-DD`). O filtro restringe a data de emissão (`issue_on`) antes da paginação e é combinado com kind, status e cursor. Datas inválidas ou intervalo invertido retornam o erro `invalid_invoice_period` (422).
+
 ## Erros
 `{"error":"permission_denied"}` 403; `{"error":"space_not_found"}` 404; `{"error":"idempotency_conflict"}` 409; entrada inválida 422.
 Falhas internas não devem revelar SQL, caminhos do host nem configurações.

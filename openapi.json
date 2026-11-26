@@ -6465,6 +6465,24 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "name": "issueFrom",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "issueThrough",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
                     }
                 ],
                 "security": [
