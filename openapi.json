@@ -4046,6 +4046,14 @@
                             "type": "string",
                             "format": "date"
                         }
+                    },
+                    {
+                        "name": "bankAccountId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
                     }
                 ],
                 "security": [
@@ -10414,6 +10422,10 @@
                         "type": "string",
                         "pattern": "^[A-Z]{3}$"
                     },
+                    "bankAccountId": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
                     "openingMinor": {
                         "type": "integer"
                     },
@@ -10455,6 +10467,7 @@
                     "from",
                     "through",
                     "currency",
+                    "bankAccountId",
                     "openingMinor",
                     "months",
                     "netMinor",

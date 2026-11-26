@@ -83,6 +83,9 @@ Os filtros de conta, situação e data são aplicados antes da paginação por I
 `{"error":"permission_denied"}` 403; `{"error":"space_not_found"}` 404; `{"error":"idempotency_conflict"}` 409; entrada inválida 422.
 Falhas internas não devem revelar SQL, caminhos do host nem configurações.
 
+## Fluxo de caixa realizado por conta
+`GET /spaces/{spaceId}/cash-flow?from=2026-11-01&through=2026-11-30` mantém a agregação de todas as contas bancárias e de caixa. Informe `bankAccountId` para restringir os saldos e os movimentos mensais à conta bancária autorizada, inclusive inativa para consulta histórica. O resultado informa `bankAccountId` (0 para todas). Uma transferência interna é neutra na visão consolidada; na visão de uma conta, sua respectiva entrada ou saída compõe o saldo. Não são considerados compromissos futuros nem extratos pendentes.
+
 ## Contratos não implementados
 Permissões granulares adicionais, estoque, contabilidade de múltiplas moedas, notas fiscais efetivamente emitidas, sincronização bancária online, migração integral do Akaunting, fechamento fiscal e demonstrações contábeis formais continuam fora desta versão. A importação pertence ao core; a NFS-e brasileira permanece um aplicativo opcional independente. A interface IA usa `OCP\\TaskProcessing` com prévia de dados e consentimento; o transporte MCP oferece quatro ferramentas de leitura, sem ferramentas de pagamento/contabilização. Ver [OpenAPI](OPENAPI.md), [MCP/IA](MCP-AI.md) e [testes](TESTING.md).
 

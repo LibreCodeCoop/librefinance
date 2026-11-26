@@ -36,9 +36,9 @@ final class ReportController extends Controller {
 
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/cash-flow')]
-    public function cashFlow(int $spaceId, string $from, string $through): JSONResponse {
+    public function cashFlow(int $spaceId, string $from, string $through, int $bankAccountId = 0): JSONResponse {
         return $this->respond(fn() =>
-            $this->finance->cashFlow($spaceId, 'librefinance_reports', $from, $through));
+            $this->finance->cashFlow($spaceId, 'librefinance_reports', $from, $through, $bankAccountId));
     }
 
     private function respond(callable $operation): JSONResponse {
@@ -47,7 +47,7 @@ final class ReportController extends Controller {
         } catch (DomainException $exception) {
             $code = $exception->getMessage();
             return new JSONResponse(['error' => $code], match ($code) {
-                'module_not_found', 'space_not_found' => 404,
+                'module_not_found', 'space_not_found', 'bank_account_not_found' => 404,
                 'module_disabled', 'permission_denied' => 403,
                 default => 422,
             });
