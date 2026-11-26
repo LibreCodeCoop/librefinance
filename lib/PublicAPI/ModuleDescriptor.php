@@ -24,7 +24,7 @@ final readonly class ModuleDescriptor {
         if ($contractVersion < 1 || $contractVersion > 65535) {
             throw new InvalidArgumentException('Invalid module contract version');
         }
-        if (!preg_match('/^librefinance_[a-z][a-z0-9_]{2,40}$/', $appId)) {
+        if (!preg_match('/^librefinance_[a-z][a-z0-9_]{2,40}$/D', $appId)) {
             throw new InvalidArgumentException('Invalid module ID');
         }
         if (trim($name) === '' || mb_strlen($name) > 120 || mb_strlen($description) > 255) {
@@ -35,7 +35,7 @@ final readonly class ModuleDescriptor {
                 'librefinance_reports', 'librefinance_obligations',
                 'librefinance_banking', 'librefinance_invoicing',
                 'librefinance_import',
-            ], true))) || !preg_match('/^[a-z0-9_.]+$/', $routeName)) {
+            ], true))) || !preg_match('/^[a-z0-9_.]+$/D', $routeName)) {
             throw new InvalidArgumentException('Module route must belong to its app');
         }
         if (!in_array($requiredRole, ['viewer', 'auditor', 'operator', 'manager'], true)) {

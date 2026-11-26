@@ -52,9 +52,31 @@ final class ModuleDescriptorTest extends TestCase {
         ];
     }
 
+    public static function newlineValidationDescriptors(): array {
+        return [
+            "invalid app ID with literal terminal newline and matching prefix route" => [
+                "librefinance_example\n",
+                "librefinance_example\n.page.index",
+                "Invalid module ID",
+            ],
+            "valid app ID and routeName with literal terminal newline" => [
+                "librefinance_example",
+                "librefinance_example.page.index\n",
+                "Module route must belong to its app",
+            ],
+        ];
+    }
+
     #[DataProvider('invalidDescriptors')]
     public function testRejectsInvalidDescriptor(array $arguments): void {
         $this->expectException(InvalidArgumentException::class);
         new ModuleDescriptor(...$arguments);
+    }
+
+    #[DataProvider('newlineValidationDescriptors')]
+    public function testRejectsNewlineValidation(string $appId, string $routeName, string $expectedMessage): void {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches("/^" . preg_quote($expectedMessage, '/') . "$/");
+        new ModuleDescriptor($appId, "Example", "Synthetic module", $routeName);
     }
 }
