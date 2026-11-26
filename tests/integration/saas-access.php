@@ -190,6 +190,10 @@ try {
         ['name' => 'Isolated A1', 'ownerUid' => $a,
             'idempotencyKey' => 'synthetic-workspace-A1-001'], 201);
     $spaceA = (int)$aSpace['id'];
+    $t->check('managed creation remains BRL-only', $b, 'POST', $pathA,
+        ['name'=>'Unsupported foreign book','ownerUid'=>$a,'currency'=>'KWD',
+            'idempotencyKey'=>'synthetic-unsupported-currency'],422,
+        static fn(array $r):bool=>($r['error']??null)==='invalid_currency');
     $t->check('workspace provisioning is idempotent', $b, 'POST', $pathA,
         ['name' => 'Isolated A1', 'ownerUid' => $a,
             'idempotencyKey' => 'synthetic-workspace-A1-001'], 201,
@@ -570,6 +574,14 @@ try {
             'ownerUid' => $a, 'idempotencyKey' => 'synthetic-self-grant-001'], 403);
 
     // These routes exercise the *real* previously bypassed AccessService.
+    $t->check('managed workspace metadata is scoped to its financial owner', $a, 'GET',
+        '/spaces', null, 200, static fn(array $r):bool=>
+            count(array_filter($r['spaces']??[],static fn(array $row):bool=>
+                in_array($row['id'],[$spaceA,$spaceA2],true) && $row['currency']==='BRL'
+                && ($row['currencyPrecision']??null)===2 && ($row['currencyMetadataVersion']??null)===1))===2
+            && !in_array($spaceB,array_column($r['spaces']??[],'id'),true));
+    $t->check('foreign managed account metadata denied', $b, 'GET',
+        '/spaces/'.$spaceA.'/accounts',null,404);
     $t->check('A sees only its own finance workspace', $a, 'GET',
         '/spaces', null, 200, static fn(array $r): bool =>
             in_array($spaceA, array_column($r['spaces'] ?? [], 'id'), true)
@@ -919,7 +931,10 @@ try {
 
     $accounts = $t->check('A can list its ledger accounts', $a, 'GET',
         '/spaces/' . $spaceA . '/accounts', null, 200,
-        static fn(array $r): bool => count($r['accounts'] ?? []) === 4);
+        static fn(array $r): bool => count($r['accounts'] ?? []) === 4
+            && count(array_filter($r['accounts'],static fn(array $row):bool=>
+                $row['currency']==='BRL' && ($row['currencyPrecision']??null)===2
+                && ($row['currencyMetadataVersion']??null)===1))===4);
     $ids = array_column($accounts['accounts'], 'id', 'code');
     $t->check('A can post balanced journal only to A1', $a, 'POST',
         '/spaces/' . $spaceA . '/journals',
@@ -1360,6 +1375,9 @@ try {
     $t->check('tenant A list starts with two independently provisioned books',
         $b, 'GET', $pathA, null, 200,
         static fn(array $r): bool => count($r['workspaces'] ?? []) === 2
+            && count(array_filter($r['workspaces'],static fn(array $row):bool=>
+                $row['currency']==='BRL' && ($row['currencyPrecision']??null)===2
+                && ($row['currencyMetadataVersion']??null)===1))===2
             && ($r['nextAfterId'] ?? null) === null);
     $t->check('negative workspace cursor is rejected without disclosure',
         $b, 'GET', $pathA . '?afterId=-1', null, 422,

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace OCA\LibreFinance\Service;
 
 use DomainException;
+use OCA\LibreFinance\Domain\Currency\CurrencyMetadata;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 use OCP\IGroupManager;
@@ -27,7 +28,9 @@ final class SpaceService {
 
     /** @return array<int, array<string, mixed>> */
     public function list(): array {
-        return $this->access->accessibleSpaces();
+        return array_map(static fn(array $space): array => [
+            ...$space, ...CurrencyMetadata::readMetadata((string)$space['currency']),
+        ], $this->access->accessibleSpaces());
     }
 
     /** @return array<string,mixed> */
@@ -133,7 +136,7 @@ final class SpaceService {
                     continue;
                 }
             }
-            $safe[] = $row;
+            $safe[] = [...$row, ...CurrencyMetadata::readMetadata((string)$row['currency'])];
         }
         return $safe;
     }

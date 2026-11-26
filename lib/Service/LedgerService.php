@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace OCA\LibreFinance\Service;
 
 use DomainException;
+use OCA\LibreFinance\Domain\Currency\CurrencyMetadata;
 use OCP\DB\Exception as DatabaseException;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
@@ -91,6 +92,7 @@ final class LedgerService {
             $account['is_bank'] = (bool)$account['is_bank'];
             $account['active'] = (bool)$account['active'];
             $account['balance_minor'] = $balances[$account['id']] ?? 0;
+            $account = [...$account, ...CurrencyMetadata::readMetadata((string)$account['currency'])];
         }
         unset($account);
         return $accounts;
