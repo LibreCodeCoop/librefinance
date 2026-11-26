@@ -21,6 +21,7 @@ import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSortableHeader from '../components/LfSortableHeader.vue'
 import { useLoadedSort } from '../composables/useLoadedSort.js'
 import LfSelect from '../components/LfSelect.vue'
+import LfDateField from '../components/LfDateField.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { formatLedgerDate } from '../date.js'
 const props=defineProps({ embedded:{type:Boolean,default:false} })
@@ -32,6 +33,13 @@ const { activeId, accounts, journals, nextBeforeId,
   loadMore: loadMoreJournals, money, writable } = w
 const chosenAccount=ref(0)
 const filter=ref('all')
+const draftFrom=ref('')
+const draftThrough=ref('')
+const period=ref({from:'',through:''})
+const invalidPeriod=computed(()=>Boolean(draftFrom.value && draftThrough.value
+  && draftFrom.value > draftThrough.value))
+const hasFilters=computed(()=>chosenAccount.value!==0 || filter.value!=='all'
+  || Boolean(period.value.from || period.value.through))
 const transfers=ref([])
 const transferCursor=ref(null)
 const rows=ref([])
@@ -146,12 +154,35 @@ async function loadFormatPolicy() {
   }
 }
 
+function transactionQuery(afterId = 0) {
+  const params = new URLSearchParams({
+    status: filter.value, bankAccountId: String(chosenAccount.value),
+  })
+  if (period.value.from) params.set('from', period.value.from)
+  if (period.value.through) params.set('through', period.value.through)
+  if (afterId) params.set('afterId', String(afterId))
+  return '/transactions?' + params.toString()
+}
+function applyPeriod() {
+  if (busy.value || invalidPeriod.value) return
+  period.value = {from:draftFrom.value,through:draftThrough.value}
+}
+function clearPeriod() {
+  draftFrom.value=''
+  draftThrough.value=''
+  if (period.value.from || period.value.through) period.value={from:'',through:''}
+}
+function clearFilters() {
+  chosenAccount.value=0
+  filter.value='all'
+  clearPeriod()
+}
 async function load() {
   const token=++generation
   busy.value=true
   error.value=''
   try {
-    const query='/transactions?status='+filter.value+'&bankAccountId='+Number(chosenAccount.value)
+    const query=transactionQuery()
     const [entryResult,providerResult,transferResult]=await Promise.allSettled([
       financeApi('librefinance_banking',activeId.value,query),
       financeApi('librefinance_banking',activeId.value,'/providers'),
@@ -176,8 +207,7 @@ async function more() {
   busy.value=true
   try {
     const result=await financeApi('librefinance_banking',activeId.value,
-      '/transactions?status='+filter.value+'&bankAccountId='+Number(chosenAccount.value)
-      +'&afterId='+next.value)
+      transactionQuery(next.value))
     if(token!==generation)return
     rows.value=[...rows.value,...result.transactions];next.value=result.nextAfterId
   }catch(e){if(token===generation)error.value=financeError(e)}
@@ -307,7 +337,11 @@ watch(chosenAccount, id => {
     bankContext.value = Number(id)
   }
 })
-watch([chosenAccount,filter],load)
+watch([chosenAccount,filter,period],()=>{
+  rows.value=[]
+  next.value=null
+  load()
+})
 watch(() => [Number(activeId.value), Number(w.space.value?.id), w.space.value?.saasManaged],
   loadFormatPolicy, { immediate: true, flush: 'sync' })
 watch(canImport, allowed => {
@@ -326,6 +360,7 @@ watch(focusedBank, focus => {
     || row.status!=='pending') return
   chosenAccount.value=Number(row.bank_account_id)
   filter.value='pending'
+  clearPeriod()
   if(writable.value) chooseReconciliation(row)
 }, { immediate:true })
 // The embedded toolbar uses the same resolved authority as this dialog.
@@ -359,7 +394,7 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
     <NcNoteCard v-if="error" type="error" role="alert">{{error}}</NcNoteCard>
     <NcNoteCard v-if="success" type="success" role="status">{{success}}</NcNoteCard>
     <section class="lf-surface">
-      <div v-if="rows.length || next || chosenAccount || filter!=='all'"
+      <div v-if="banks.length && (rows.length || next || hasFilters)"
         class="lf-section-heading lf-banking-toolbar">
         <div
           class="lf-native-agenda-filters">
@@ -391,6 +426,18 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
           </NcPopover>
         </div>
       </div>
+      <form v-if="banks.length" class="lf-filter-row" @submit.prevent="applyPeriod">
+        <LfDateField id="lf-bank-from" v-model="draftFrom" :label="t('librefinance', 'From')" />
+        <LfDateField id="lf-bank-through" v-model="draftThrough" :label="t('librefinance', 'Through')" />
+        <NcButton variant="secondary" type="submit" :disabled="busy || invalidPeriod">{{ t('librefinance', 'Apply period') }}</NcButton>
+        <NcButton v-if="hasFilters || draftFrom || draftThrough" variant="tertiary" type="button"
+          @click="clearFilters">{{ t('librefinance', 'Clear filters') }}</NcButton>
+      </form>
+      <p v-if="period.from || period.through" class="lf-muted">
+        <span v-if="period.from">{{ t('librefinance', 'From') }}: <time :datetime="period.from">{{ formatLedgerDate(period.from) }}</time></span>
+        <span v-if="period.from && period.through"> · </span>
+        <span v-if="period.through">{{ t('librefinance', 'Through') }}: <time :datetime="period.through">{{ formatLedgerDate(period.through) }}</time></span>
+      </p>
       <p v-if="rows.length" class="lf-dialog-help">
         {{ next
           ? t('librefinance', 'Movements loaded for this filter: {count}. More pages are available.', { count: rows.length }, { escape: false, sanitize: false })
@@ -409,11 +456,10 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
         </template>
       </NcEmptyContent>
       <NcEmptyContent v-else-if="!rows.length"
-        :name="chosenAccount || filter!=='all' ? t('librefinance', 'No movements match this filter') : t('librefinance', 'No movements imported')"
+        :name="hasFilters ? t('librefinance', 'No movements match this filter') : t('librefinance', 'No movements imported')"
         :description="t('librefinance', 'Import a CSV or OFX statement to review movements without changing the ledger balance.')">
         <template #action>
-          <NcButton v-if="chosenAccount || filter!=='all'" @click="chosenAccount=0;filter='all'">{{ t('librefinance', 'Clear filters') }}</NcButton>
-          <NcButton v-else-if="canImport && !embedded"
+          <NcButton v-if="!hasFilters && canImport && !embedded"
             variant="primary" @click="openImportDialog">{{ t('librefinance', 'Import statement') }}</NcButton>
         </template>
       </NcEmptyContent>

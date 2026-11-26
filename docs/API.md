@@ -72,6 +72,10 @@ Resposta 201: objeto de item com id, sku, name, kind, unit_price_minor, currency
 
 Preços são inteiros em centavos (BRL) no domínio atual, inclusive zero. Estoque, tabelas de preços, unidades de medida e descontos ainda não estão presentes. Os módulos opcionais de fatura comercial e regras genéricas de imposto estão disponíveis, mas não equivalem a controle fiscal certificado ou emissão de nota.
 
+## Extratos bancários
+`GET /spaces/{spaceId}/transactions?bankAccountId=1&status=pending&from=2026-11-01&through=2026-11-30` consulta movimentações importadas no espaço autorizado. As datas de lançamento do extrato (`booking_date`) são inclusivas e independentes: omita `from` ou `through` para deixar o respectivo limite aberto. Use datas ISO gregorianas (`YYYY-MM-DD`); datas inválidas ou intervalo invertido retornam 422.
+Os filtros de conta, situação e data são aplicados antes da paginação por ID. A resposta mantém `transactions` (até 50 registros) e `nextAfterId`; use os mesmos filtros nas páginas seguintes. Movimentações pendentes são evidências, não lançamentos no razão. Esta consulta não calcula totais de extrato.
+
 ## Erros
 `{"error":"permission_denied"}` 403; `{"error":"space_not_found"}` 404; `{"error":"idempotency_conflict"}` 409; entrada inválida 422.
 Falhas internas não devem revelar SQL, caminhos do host nem configurações.

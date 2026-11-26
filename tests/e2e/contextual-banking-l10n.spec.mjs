@@ -46,3 +46,51 @@ test('contextual bank statement localizes import and preserves exact evidence ac
   expect(rows).toHaveLength(1)
   expect(rows[0]).toMatchObject({ amount_minor: -1427, booking_date: date, status: 'pending' })
 })
+
+test('statement period filters imported evidence without changing the ledger', async ({ page }) => {
+  await login(page)
+  await makeSpace(page, 'personal')
+  const spaceId = new URL(page.url()).searchParams.get('spaceId')
+  await page.goto('/index.php/apps/librefinance/?spaceId=' + spaceId + '&view=banking&forceLanguage=en')
+  await expect(page.getByRole('heading', { name: 'Account statement', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Import statement', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Import bank statement' })
+  const suffix = Date.now().toString(36)
+  const firstDescription = 'Synthetic earlier ' + suffix
+  const secondDescription = 'Synthetic later ' + suffix
+  const csv = 'id,date,amount,description\n'
+    + 'earlier-' + suffix + ',2026-11-20,-14.27,' + firstDescription + '\n'
+    + 'later-' + suffix + ',2026-11-21,15.50,' + secondDescription + '\n'
+  await dialog.locator('input[type=file]').setInputFiles({
+    name: 'period.csv', mimeType: 'text/csv', buffer: Buffer.from(csv),
+  })
+  const imported = page.waitForResponse(r => r.request().method() === 'POST' && /\/imports$/.test(r.url()))
+  await dialog.getByRole('button', { name: 'Import for review' }).click()
+  const response = await imported
+  expect(response.status()).toBe(201)
+  expect((await response.json()).imported).toBe(2)
+  await expect(dialog).toHaveCount(0)
+  const first = page.getByRole('row').filter({ hasText: firstDescription })
+  const second = page.getByRole('row').filter({ hasText: secondDescription })
+  await expect(first).toHaveCount(1)
+  await expect(second).toHaveCount(1)
+  const from = page.getByLabel('From', { exact: true })
+  const through = page.getByLabel('Through', { exact: true })
+  const apply = page.getByRole('button', { name: 'Apply period', exact: true })
+  await from.fill('2026-11-21')
+  await through.fill('2026-11-20')
+  await expect(apply).toBeDisabled()
+  await through.fill('2026-11-21')
+  await expect(first).toHaveCount(1)
+  await expect(second).toHaveCount(1)
+  await apply.click()
+  await expect(first).toHaveCount(0)
+  await expect(second).toHaveCount(1)
+  await expect(second).toContainText('Pending')
+  await from.fill('2026-11-20')
+  await expect(first).toHaveCount(0)
+  await expect(second).toHaveCount(1)
+  await page.getByRole('button', { name: 'Clear filters', exact: true }).click()
+  await expect(first).toHaveCount(1)
+  await expect(second).toHaveCount(1)
+})

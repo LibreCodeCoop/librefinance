@@ -148,4 +148,49 @@ $t->checkModule('unrelated user cannot import OFX', $b, $app, 'POST',
     $base . '/imports', $ofxPayload, 404);
 $t->checkModule('unknown bank format rejected', $a, $app, 'POST',
     $base . '/imports', ['bankAccountId'=>$bankId,'format'=>'qif','csv'=>$csv], 422);
+// More than one page of earlier evidence must not hide the requested period.
+$periodCsv = "id,date,amount,description\n";
+for ($i = 0; $i < 51; ++$i) {
+    $periodCsv .= "period-old-$tag-$i,2026-10-01,1.00,Synthetic older evidence\n";
+}
+$periodCsv .= "period-start-$tag,2026-12-01,2.00,Synthetic period start\n"
+    . "period-end-$tag,2026-12-02,-3.00,Synthetic period end\n";
+$t->checkModule('seed more than a page outside the statement period', $a, $app, 'POST',
+    $base . '/imports', ['bankAccountId' => $bankId, 'csv' => $periodCsv], 201,
+    static fn(array $v): bool => $v['imported'] === 53 && $v['skipped'] === 0);
+$periodPath = $base . '/transactions?status=pending&bankAccountId=' . $bankId
+    . '&from=2026-12-01&through=2026-12-02';
+$period = $t->checkModule('inclusive statement dates filter before pagination', $a, $app,
+    'GET', $periodPath, null, 200,
+    static fn(array $v): bool => array_column($v['transactions'], 'external_id')
+        === ["period-start-$tag", "period-end-$tag"]
+        && array_column($v['transactions'], 'booking_date') === ['2026-12-01', '2026-12-02']
+        && $v['nextAfterId'] === null);
+$t->checkModule('date filter composes with the ID cursor', $a, $app, 'GET',
+    $periodPath . '&afterId=' . $period['transactions'][0]['id'], null, 200,
+    static fn(array $v): bool => array_column($v['transactions'], 'external_id') === ["period-end-$tag"]
+        && $v['nextAfterId'] === null);
+$t->checkModule('single-day statement period includes that day', $a, $app, 'GET',
+    $base . '/transactions?from=2026-12-02&through=2026-12-02', null, 200,
+    static fn(array $v): bool => array_column($v['transactions'], 'external_id') === ["period-end-$tag"]);
+$t->checkModule('statement lower bound is independently optional', $a, $app, 'GET',
+    $base . '/transactions?from=2026-12-01', null, 200,
+    static fn(array $v): bool => array_column($v['transactions'], 'external_id')
+        === ["period-start-$tag", "period-end-$tag"] && $v['nextAfterId'] === null);
+$older = $t->checkModule('statement upper bound is independently optional', $a, $app, 'GET',
+    $base . '/transactions?through=2026-10-01', null, 200,
+    static fn(array $v): bool => count($v['transactions']) === 50 && $v['nextAfterId'] !== null
+        && array_unique(array_column($v['transactions'], 'booking_date')) === ['2026-10-01']);
+$t->checkModule('upper-bound statement pagination has no missing evidence', $a, $app, 'GET',
+    $base . '/transactions?through=2026-10-01&afterId=' . $older['nextAfterId'], null, 200,
+    static fn(array $v): bool => array_column($v['transactions'], 'external_id') === ["period-old-$tag-50"]
+        && $v['nextAfterId'] === null);
+$t->checkModule('invalid statement calendar date is rejected', $a, $app, 'GET',
+    $base . '/transactions?from=2026-02-30', null, 422,
+    static fn(array $v): bool => $v['error'] === 'invalid_date');
+$t->checkModule('reversed statement period is rejected', $a, $app, 'GET',
+    $base . '/transactions?from=2026-12-02&through=2026-12-01', null, 422,
+    static fn(array $v): bool => $v['error'] === 'invalid_period');
+$t->checkModule('period filter does not reveal another workspace', $b, $app,
+    'GET', $periodPath, null, 404);
 $t->finish();
