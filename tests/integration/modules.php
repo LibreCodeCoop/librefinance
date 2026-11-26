@@ -251,4 +251,64 @@ try {
 $t->checkModule('optional NFS-e draft API works again with no forbidden writes persisted', $a,
     'librefinance_nfse', 'GET', $path . '/drafts', null, 200,
     static fn(array $r): bool => ($r['drafts'] ?? null) === []);
+$factory = static function (string $providerId, string $applicationId): \OCA\LibreFinance\Domain\Banking\Providers\BankProviderInterface {
+    return new class($providerId, $applicationId) implements \OCA\LibreFinance\Domain\Banking\Providers\BankProviderInterface {
+        public function __construct(private string $providerId, private string $applicationId) {}
+        public function id(): string { return $this->providerId; }
+        public function appId(): string { return $this->applicationId; }
+        public function name(): string { return 'Dummy Bank'; }
+        public function fetch(\OCA\LibreFinance\Domain\Banking\Providers\BankConnectionContext $context, \DateTimeImmutable $from, \DateTimeImmutable $through): iterable { return []; }
+    };
+};
+
+$eventValid = new \OCA\LibreFinance\Domain\Banking\Providers\RegisterBankProvidersEvent();
+$p1 = $factory('valid_provider', 'librefinance_example');
+$eventValid->register($p1);
+$t->record('valid registration', array_keys($eventValid->providers()) === ['valid_provider'], 'Registers valid provider successfully.');
+
+$caughtDuplicate = false;
+try {
+    $eventDuplicate = new \OCA\LibreFinance\Domain\Banking\Providers\RegisterBankProvidersEvent();
+    $eventDuplicate->register($factory('valid_provider', 'librefinance_example'));
+    $eventDuplicate->register($factory('valid_provider', 'librefinance_example'));
+} catch (\LogicException $e) {
+    if ($e->getMessage() === 'invalid_or_duplicate_bank_provider') {
+        $caughtDuplicate = true;
+    }
+}
+$t->record('duplicate throws', $caughtDuplicate, 'Duplicate provider registration throws LogicException.');
+
+$caughtTerminal1 = false;
+try {
+    $eventTerm1 = new \OCA\LibreFinance\Domain\Banking\Providers\RegisterBankProvidersEvent();
+    $eventTerm1->register($factory("valid_providerLF", "librefinance_example"));
+} catch (\LogicException $e) {
+    if ($e->getMessage() === 'invalid_or_duplicate_bank_provider') {
+        $caughtTerminal1 = true;
+    }
+}
+$t->record('terminal actual LF in provider ID', $caughtTerminal1, 'Rejects terminal LF in provider ID.');
+
+$caughtTerminal2 = false;
+try {
+    $eventTerm2 = new \OCA\LibreFinance\Domain\Banking\Providers\RegisterBankProvidersEvent();
+    $eventTerm2->register($factory("valid_provider", "librefinance_exampleLF"));
+} catch (\LogicException $e) {
+    if ($e->getMessage() === 'invalid_or_duplicate_bank_provider') {
+        $caughtTerminal2 = true;
+    }
+}
+$t->record('terminal actual LF in app ID', $caughtTerminal2, 'Rejects terminal LF in app ID.');
+
+$caughtReserved = false;
+try {
+    $eventRes = new \OCA\LibreFinance\Domain\Banking\Providers\RegisterBankProvidersEvent();
+    $eventRes->register($factory('csv_manual', 'librefinance_example'));
+} catch (\LogicException $e) {
+    if ($e->getMessage() === 'invalid_or_duplicate_bank_provider') {
+        $caughtReserved = true;
+    }
+}
+$t->record('reserved csv_manual', $caughtReserved, 'Rejects reserved csv_manual ID.');
+
 $t->finish();
