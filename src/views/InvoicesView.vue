@@ -56,10 +56,18 @@ const current='librefinance_invoicing'
 const today=new Date().toLocaleDateString('sv-SE')
 const tab=computed(() => props.section === 'taxes' ? 'taxes' : 'invoices')
 const invoices=ref([])
+const invoiceStatus=ref('')
+const invoiceStatuses=[
+  {value:'',label:t('librefinance', 'All statuses')},
+  {value:'draft',label:t('librefinance', 'Draft')},
+  {value:'issued',label:t('librefinance', 'Confirmed sale')+' / '+t('librefinance', 'Confirmed purchase')},
+  {value:'partially_paid',label:t('librefinance', 'Partial')},
+  {value:'paid',label:t('librefinance', 'Settled by journal entry')},
+]
 const hasOtherDocs=ref(false)
 const hasListedInvoices=ref(false)
 const showInvoiceFilters=computed(() => invoices.value.length > 0 || !!invoiceNext.value
-  || hasOtherDocs.value || hasListedInvoices.value)
+  || hasOtherDocs.value || hasListedInvoices.value || !!invoiceStatus.value)
 const localSort=useLoadedSort('')
 const orderedInvoices=computed(()=>localSort.order(invoices.value))
 const taxes=ref([])
@@ -140,12 +148,19 @@ function rateBps(value) {
   if(n>100000)throw new Error(t('librefinance', 'Tax rate exceeds the 1000% limit'))
   return n
 }
+function invoiceQuery(afterId = 0) {
+  const params = new URLSearchParams()
+  if (invoiceFilter.value !== 'all') params.set('kind', invoiceFilter.value)
+  if (invoiceStatus.value) params.set('status', invoiceStatus.value)
+  if (afterId) params.set('afterId', String(afterId))
+  const query = params.toString()
+  return '/invoices' + (query ? '?' + query : '')
+}
 async function load() {
   const token=++generation;busy.value=true;error.value=''
   try{
-    const kindParam = invoiceFilter.value === 'all' ? '' : '?kind=' + invoiceFilter.value
     const [docs,tax]=await Promise.all([
-      financeApi(current,activeId.value,'/invoices'+kindParam),
+      financeApi(current,activeId.value,invoiceQuery()),
       financeApi(current,activeId.value,'/tax-rules'),
     ])
     if(token!==generation)return
@@ -173,9 +188,8 @@ async function more(kind) {
   if(!cursor||busy.value)return
   const token=generation;busy.value=true
   try{
-    const filter = invoiceFilter.value === 'all' ? '' : '&kind=' + invoiceFilter.value
     const response=await financeApi(current,activeId.value,
-      (kind==='invoice'?'/invoices?afterId='+cursor+filter:'/tax-rules?afterId='+cursor))
+      (kind==='invoice'?invoiceQuery(cursor):'/tax-rules?afterId='+cursor))
     if(token!==generation)return
     if(kind==='invoice'){
       invoices.value=[...invoices.value,...response.invoices]
@@ -292,8 +306,11 @@ watch(activeId, () => {
   hasListedInvoices.value=false
   hasOtherDocs.value=false
   filterAvailable.value=false
+  invoiceStatus.value=''
 })
-watch([activeId,invoiceFilter],async()=>{
+watch([activeId,invoiceFilter,invoiceStatus],async()=>{
+  invoices.value=[]
+  invoiceNext.value=null
   chosen.value=null
   chosenObligationId.value=null
   allocated.value=false
@@ -351,6 +368,8 @@ function openLinkedObligation() {
       <div v-if="showInvoiceFilters" class="lf-section-heading">
         <h2>{{ invoiceFilter === 'all' ? t('librefinance', 'Registered invoices')
           : invoiceFilter === 'bill' ? t('librefinance', 'Registered purchases') : t('librefinance', 'Registered sales') }}</h2>
+        <LfSelect id="lf-invoice-status-filter" v-model="invoiceStatus"
+          :label="t('librefinance', 'Status')" :options="invoiceStatuses" />
       </div>
       <div v-if="busy && !invoices.length" class="lf-loading" role="status">
         {{ t('librefinance', 'Loading invoices…') }}
@@ -384,10 +403,14 @@ function openLinkedObligation() {
         </table>
       </div>
       <NcEmptyContent v-else-if="!error"
-        :name="hasOtherDocs ? t('librefinance', 'No invoices match this filter') : t('librefinance', 'No invoices registered')"
-        :description="hasOtherDocs
+        :name="hasOtherDocs || invoiceStatus ? t('librefinance', 'No invoices match this filter') : t('librefinance', 'No invoices registered')"
+        :description="invoiceStatus ? '' : hasOtherDocs
           ? t('librefinance', 'Use the Type filter and choose All to view the other records.')
-          : t('librefinance', 'Use New invoice to record a sale or purchase. Confirming the invoice creates the corresponding amount in Financial movements.')" />
+          : t('librefinance', 'Use New invoice to record a sale or purchase. Confirming the invoice creates the corresponding amount in Financial movements.')">
+        <template v-if="invoiceStatus" #action>
+          <NcButton @click="invoiceStatus=''">{{ t('librefinance', 'Clear filters') }}</NcButton>
+        </template>
+      </NcEmptyContent>
       <p v-if="localSort.column.value && invoiceNext" class="lf-muted">
         {{ t('librefinance', 'Sorting applies only to loaded documents.') }}</p>
       <div v-if="invoiceNext" class="lf-table-footer">
