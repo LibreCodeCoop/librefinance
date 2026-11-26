@@ -143,4 +143,53 @@ $t->checkModule('revoked B cannot inspect title detail', $b, $app,
     'GET', $base . '/obligations/' . $obligationId, null, 404);
 $t->checkModule('revoked B cannot read obligations', $b, $app, 'GET',
     $base . '/obligations', null, 404);
+    $standaloneOpen = $t->checkModule('create distinct standalone open payable', $a, $app, 'POST', $base . '/obligations',
+        array_replace($data, ['reference' => 'RECUR-' . $token, 'issuedOn' => '2028-01-31', 'dueOn' => '2028-01-31', 'amountMinor' => 12345, 'contactId' => null]), 201,
+        static fn(array $v): bool => ($v['status'] ?? null) === 'open');
+    $standaloneOpenId = (int)$standaloneOpen['id'];
+
+    $previewRoute = $base . '/obligations/' . $standaloneOpenId . '/recurrence-preview';
+    $preview = $t->checkModule('get recurrence preview valid', $a, $app, 'GET',
+        $previewRoute . '?count=2&stepMonths=1&endOfMonth=clamp', null, 200,
+        static fn(array $v): bool => ($v['templateId'] ?? null) === $standaloneOpenId
+            && ($v['kind'] ?? null) === 'payable'
+            && ($v['amountMinor'] ?? null) === 12345
+            && ($v['currency'] ?? null) === 'BRL'
+            && count($v['occurrences'] ?? []) === 2
+            && $v['occurrences'][0]['issuedOn'] === '2028-02-29'
+            && $v['occurrences'][0]['dueOn'] === '2028-02-29'
+            && $v['occurrences'][1]['issuedOn'] === '2028-03-31'
+            && $v['occurrences'][1]['dueOn'] === '2028-03-31'
+            && !array_key_exists('reference', $v)
+            && !array_key_exists('operationKey', $v)
+            && !array_key_exists('payment', $v));
+
+    $t->checkModule('repeat preview unchanged', $a, $app, 'GET',
+        $previewRoute . '?count=2&stepMonths=1&endOfMonth=clamp', null, 200,
+        static fn(array $v): bool => $v === $preview);
+
+    $t->checkModule('show unchanged open unpaid after preview', $a, $app, 'GET',
+        $base . '/obligations/' . $standaloneOpenId, null, 200,
+        static fn(array $v): bool => (int)($v['obligation']['paid_minor'] ?? 1) === 0
+            && ($v['obligation']['status'] ?? null) === 'open');
+
+    $t->checkModule('reject invalid policy', $a, $app, 'GET',
+        $previewRoute . '?count=2&stepMonths=1&endOfMonth=invalid', null, 422,
+        static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_recurrence');
+
+    $t->checkModule('reject invalid count limit', $a, $app, 'GET',
+        $previewRoute . '?count=25&stepMonths=1&endOfMonth=clamp', null, 422,
+        static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_recurrence');
+
+    $t->checkModule('reject feb day under reject policy', $a, $app, 'GET',
+        $previewRoute . '?count=2&stepMonths=1&endOfMonth=reject', null, 422,
+        static fn(array $v): bool => ($v['error'] ?? null) === 'recurrence_day_unavailable');
+
+    $t->checkModule('outsider denial recurrence preview', $b, $app, 'GET',
+        $previewRoute . '?count=2&stepMonths=1&endOfMonth=clamp', null, 404);
+
+    $t->checkModule('settled obligation template rejected', $a, $app, 'GET',
+        $base . '/obligations/' . $obligationId . '/recurrence-preview?count=2&stepMonths=1&endOfMonth=clamp', null, 422,
+        static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_recurrence_template');
+
 $t->finish();

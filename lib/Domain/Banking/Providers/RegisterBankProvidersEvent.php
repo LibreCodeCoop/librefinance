@@ -10,8 +10,9 @@ final class RegisterBankProvidersEvent extends Event {
     private array $providers=[];
     public function register(BankProviderInterface $provider):void {
         $id=$provider->id();
-        if(!preg_match('/^[a-z][a-z0-9_]{1,40}$/',$id) ||
-            !preg_match('/^librefinance_[a-z][a-z0-9_]{2,40}$/',$provider->appId()) ||
+        if(!preg_match('/^[a-z][a-z0-9_]{1,40}$/D',$id) ||
+            !preg_match('/^librefinance_[a-z][a-z0-9_]{2,40}$/D',$provider->appId()) ||
+            $id === 'csv_manual' ||
             trim($provider->name())==='' ||
             isset($this->providers[$id])) {
             throw new LogicException('invalid_or_duplicate_bank_provider');

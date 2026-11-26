@@ -303,19 +303,6 @@ $t->check('failed legacy allocation did not claim the bank journal', $a,
     'POST', $base.'/journals/'.(int)$oldJournal['id'].'/reverse',
     null, 200, static fn(array $v): bool => ($v['replayed'] ?? null) === false);
 
-$t->checkModule('legacy invoice cannot allocate without verified obligation', $a,
-    $app, 'POST', $base.'/invoices/'.$old['id'].'/allocations',
-    ['journalId'=>(int)$oldJournal['id'], 'bankAccountId'=>$chart['1000'],
-        'amountMinor'=>1000], 409,
-    static fn(array $v): bool => ($v['error'] ?? null) === 'invoice_obligation_unlinked');
-$t->checkModule('rejected allocation does not modify legacy invoice or ledger refs',
-    $a, $app, 'GET', $base.'/invoices/'.$old['id'], null, 200,
-    static fn(array $v): bool => $v['invoice']['paid_minor'] === 0
-        && $v['allocations'] === []);
-$t->check('failed legacy allocation did not claim the bank journal', $a,
-    'POST', $base.'/journals/'.(int)$oldJournal['id'].'/reverse',
-    null, 200, static fn(array $v): bool => ($v['replayed'] ?? null) === false);
-
 $periodSpace = $t->check('create period workspace', $a, 'POST', '/spaces', [
     'name' => 'Synthetic invoice period',
     'kind' => 'organization',

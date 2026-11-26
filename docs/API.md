@@ -79,6 +79,9 @@ Os filtros de conta, situação e data são aplicados antes da paginação por I
 ## Movimentações financeiras
 `GET /spaces/{spaceId}/activity` aceita `from` e `through` como limites inclusivos opcionais em datas ISO gregorianas. A data filtrada é a data efetiva do lançamento, o vencimento do compromisso ou a data do extrato, conforme a origem de cada movimentação. Os limites são combinados com os filtros existentes antes da paginação; mantenha os mesmos filtros ao utilizar `nextCursor`. O filtro não altera os valores nem transforma compromissos ou evidências em lançamentos realizados.
 
+## Previsão de recorrência
+`GET /spaces/{spaceId}/obligations/{obligationId}/recurrence-preview?count=2&stepMonths=1&endOfMonth=clamp` prevê os próximos vencimentos de uma obrigação autônoma aberta e não paga. Os parâmetros são obrigatórios: count de 1 a 24, stepMonths de 1 a 12 e endOfMonth igual a clamp (ajustar para o último dia do mês) ou reject (rejeitar o dia indisponível). A previsão usa as datas originais de emissão e vencimento como âncoras, não cria títulos, não realiza lançamentos e não altera a obrigação consultada. Repetir a consulta com os mesmos dados retorna a mesma previsão. Entradas inválidas e modelos inelegíveis retornam 422; usuários sem acesso recebem 404.
+
 `GET /spaces/{spaceId}/invoices` aceita `issueFrom` e `issueThrough` como limites inclusivos opcionais em datas ISO gregorianas (`YYYY-MM-DD`). O filtro restringe a data de emissão (`issue_on`) antes da paginação e é combinado com kind, status e cursor. Datas inválidas ou intervalo invertido retornam o erro `invalid_invoice_period` (422).
 
 ## Erros

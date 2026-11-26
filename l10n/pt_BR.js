@@ -567,6 +567,7 @@ OC.L10N.register(
     "Use the columns {columns} in this order. Example: {example}. Use a decimal point and a negative sign for outflows. The limit is 256 KiB per file." : "Use as colunas {columns}, nesta ordem. Exemplo: {example}. Utilize ponto como separador decimal e sinal negativo para saídas. O limite é 256 KiB por arquivo.",
     "Test payment" : "Pagamento de teste",
     "Download CSV example" : "Baixar exemplo de CSV",
+    "Export CSV" : "Exportar CSV",
     "Use an OFX bank statement with FITID identifiers, movement dates and amounts. Limit: 256 KiB." : "Utilize um extrato bancário OFX com identificadores FITID, datas e valores de movimentação. Limite de 256 KiB.",
     "Import for review" : "Importar para revisão",
     "Reconcile movement" : "Conciliar movimentação",

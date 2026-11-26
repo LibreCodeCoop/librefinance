@@ -38,6 +38,12 @@ final class ObligationController extends Controller {
     }
 
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/obligations/{obligationId}/recurrence-preview')]
+    public function recurrencePreview(int $spaceId, int $obligationId, int $count, int $stepMonths, string $endOfMonth): JSONResponse {
+        return $this->respond(fn() => $this->service->recurrencePreview($spaceId, $obligationId, $count, $stepMonths, $endOfMonth));
+    }
+
+    #[NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/obligations')]
     public function create(int $spaceId, string $kind, string $description,
         int $amountMinor, string $issuedOn, string $dueOn, string $reference = '',
