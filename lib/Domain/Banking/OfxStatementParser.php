@@ -55,8 +55,8 @@ final class OfxStatementParser {
         // Extract statement period from BANKTRANLIST DTSTART / DTEND
         $periodBlock = preg_replace('~<STMTTRN(?:\s[^>]*)?>.*?</STMTTRN\s*>~is', '', $banktranlistBlock);
         if ($periodBlock === null
-            || preg_match_all('~<DT(?:START|END)\s*>~i', $periodBlock)
-                !== preg_match_all('~<DT(?:START|END)\s*>~i', $banktranlistBlock)) {
+            || preg_match_all('~</?DT(?:START|END)\b~i', $periodBlock)
+                !== preg_match_all('~</?DT(?:START|END)\b~i', $banktranlistBlock)) {
             throw new DomainException('invalid_ofx_row');
         }
         $statementPeriod = self::parseBanktranlistPeriod($periodBlock);
@@ -90,7 +90,7 @@ final class OfxStatementParser {
             // after the selected BANKTRANLIST, never part of its transactions.
             $after = strpos($statements[1][0], $lists[0][0]) + strlen($lists[0][0]);
             $balanceBlock = substr($statements[1][0], $after);
-            $matched = preg_replace('~<(LEDGERBAL|AVAILBAL)\s*>[^<]*(?:<(?:BALAMT|DTASOF)\s*>[^<]*(?:</(?:BALAMT|DTASOF)\s*>)?)*</\1\s*>~i', '', $balanceBlock);
+            $matched = preg_replace('~<(LEDGERBAL|AVAILBAL)\s*>\s*+(?:<(BALAMT|DTASOF)\s*>[^<]*+(?:</\2\s*>)?\s*+)*</\1\s*>~i', '', $balanceBlock);
             if ($matched === null || trim($matched) !== ''
                 || preg_match_all('~</?(?:LEDGERBAL|AVAILBAL)\b~i', $text)
                     !== preg_match_all('~</?(?:LEDGERBAL|AVAILBAL)\b~i', $balanceBlock)) {
@@ -196,30 +196,21 @@ final class OfxStatementParser {
     }
 
     private static function parseBanktranlistPeriod(string $banktranlistBlock): ?array {
-        $countStart = preg_match_all('~<DTSTART(?:\s[^>]*)?>([^<]*)~i', $banktranlistBlock, $mStart);
-        $countEnd = preg_match_all('~<DTEND(?:\s[^>]*)?>([^<]*)~i', $banktranlistBlock, $mEnd);
-        if ($countStart === false || $countEnd === false || $countStart > 1 || $countEnd > 1) {
-            throw new DomainException('invalid_ofx_row');
-        }
-        if ($countStart === 0 && $countEnd === 0) {
+        if (!preg_match('~</?DT(?:START|END)\b~i', $banktranlistBlock)) {
             return null;
         }
-        $from = null;
-        $through = null;
-        if ($countStart === 1) {
-            $val = trim(html_entity_decode($mStart[1][0], ENT_QUOTES | ENT_XML1, 'UTF-8'));
-            if ($val === '' || preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $val)) {
-                throw new DomainException('invalid_ofx_row');
-            }
-            $from = self::parseStrictDate($val);
+        // Only the two supported, direct BANKTRANLIST leaves may supply dates.
+        // SGML may omit a closing leaf; XML must not close a different leaf.
+        if (preg_match('~\A\s*+(?:<(DTSTART|DTEND)\s*>[^<]*+(?:</\1\s*>)?\s*+)*\z~i', $banktranlistBlock) !== 1) {
+            throw new DomainException('invalid_ofx_row');
         }
-        if ($countEnd === 1) {
-            $val = trim(html_entity_decode($mEnd[1][0], ENT_QUOTES | ENT_XML1, 'UTF-8'));
-            if ($val === '' || preg_match('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', $val)) {
-                throw new DomainException('invalid_ofx_row');
-            }
-            $through = self::parseStrictDate($val);
+        $start = self::leaf($banktranlistBlock, 'DTSTART');
+        $end = self::leaf($banktranlistBlock, 'DTEND');
+        if ($start === '' || $end === '') {
+            throw new DomainException('invalid_ofx_row');
         }
+        $from = $start !== null ? self::parseStrictDate($start) : null;
+        $through = $end !== null ? self::parseStrictDate($end) : null;
         if ($from !== null && $through !== null && $from > $through) {
             throw new DomainException('invalid_ofx_date');
         }

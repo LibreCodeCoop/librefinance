@@ -159,6 +159,15 @@ OFX;
         self::assertNull(OfxStatementParser::parse(self::XML)['statementPeriod']);
     }
 
+    public function testExplicitXmlStatementPeriodAndBalance(): void {
+        $source = str_replace('<BANKTRANLIST>', '<BANKTRANLIST><DTSTART>20261101</DTSTART><DTEND>20261130</DTEND>', self::XML);
+        $source = str_replace('</STMTRS>', '<LEDGERBAL><BALAMT>1.00</BALAMT><DTASOF>20261130</DTASOF></LEDGERBAL></STMTRS>', $source);
+        $statement = OfxStatementParser::parse($source);
+        self::assertSame(['from' => '2026-11-01', 'through' => '2026-11-30'], $statement['statementPeriod']);
+        self::assertSame(['date' => '2026-11-30', 'amount_minor' => 100, 'currency' => 'BRL'], $statement['ledgerBalance']);
+        self::assertSame(OfxStatementParser::parse(self::XML)['rows'], $statement['rows']);
+    }
+
     public function testZeroXmlBalance(): void {
         $statement = OfxStatementParser::parse(str_replace('</STMTRS>',
             '<LEDGERBAL><BALAMT>0.00</BALAMT><DTASOF>20261122</DTASOF></LEDGERBAL></STMTRS>', self::XML));
@@ -176,6 +185,12 @@ OFX;
             'fractional cent balance' => [$withBalance(str_replace('100.00', '100.001', $balance)), 'invalid_ofx_amount'],
             'reversed period' => [str_replace('<DTSTART>20261120', '<DTSTART>20261130<DTEND>20261101', self::SGML), 'invalid_ofx_date'],
             'duplicate start date' => [str_replace('<DTSTART>20261120', '<DTSTART>20261120<DTSTART>20261121', self::SGML), 'invalid_ofx_row'],
+            'empty period' => [str_replace('<DTSTART>20261120', '<DTSTART>', self::SGML), 'invalid_ofx_row'],
+            'transaction period with attribute' => [str_replace('<FITID>ofx-id-one', '<DTEND bogus="yes">20261130<FITID>ofx-id-one', self::SGML), 'invalid_ofx_row'],
+            'nested period' => [str_replace('<DTSTART>20261120', '<UNKNOWN><DTSTART>20261120</UNKNOWN>', self::SGML), 'invalid_ofx_row'],
+            'mismatched period closing leaf' => [str_replace('<DTSTART>20261120', '<DTSTART>20261120</DTEND>', self::SGML), 'invalid_ofx_row'],
+            'period with unsupported attribute' => [str_replace('<DTSTART>20261120', '<DTSTART bogus="yes">20261120', self::SGML), 'invalid_ofx_row'],
+            'mismatched balance closing leaves' => [str_replace('</STMTRS>', '<LEDGERBAL><BALAMT>100.00</DTASOF><DTASOF>20261130</BALAMT></LEDGERBAL></STMTRS>', self::XML), 'invalid_ofx_row'],
             'duplicate ledger balance' => [$withBalance($balance . $balance), 'invalid_ofx_row'],
             'duplicate balance amount' => [$withBalance(str_replace('<BALAMT>100.00', '<BALAMT>100.00<BALAMT>200.00', $balance)), 'invalid_ofx_row'],
             'duplicate balance date' => [$withBalance(str_replace('<DTASOF>20261130', '<DTASOF>20261130<DTASOF>20261129', $balance)), 'invalid_ofx_row'],
