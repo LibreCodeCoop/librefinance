@@ -6349,7 +6349,7 @@
                     "librefinance"
                 ],
                 "summary": "banking import",
-                "description": "CSV import only; does not initiate bank API synchronization.",
+                "description": "CSV/OFX pending evidence import. Optional previewHash binds the authorized normalized input and current replay/conflict state; legacy callers may omit it. No bank synchronization or journal posting.",
                 "parameters": [
                     {
                         "name": "spaceId",
@@ -6368,6 +6368,90 @@
                 ],
                 "responses": {
                     "201": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JsonObject"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                },
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "bankAccountId": {
+                                        "type": "integer"
+                                    },
+                                    "format": {
+                                        "type": "string"
+                                    },
+                                    "csv": {
+                                        "type": "string"
+                                    },
+                                    "ofx": {
+                                        "type": "string"
+                                    },
+                                    "previewHash": {
+                                        "type": "string",
+                                        "pattern": "^[0-9a-f]{64}$",
+                                        "minLength": 64,
+                                        "maxLength": 64
+                                    }
+                                },
+                                "required": [
+                                    "bankAccountId"
+                                ],
+                                "additionalProperties": false
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/librefinance/api/spaces/{spaceId}/imports/preview": {
+            "post": {
+                "operationId": "librefinance_banking_previewImport",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "banking previewImport",
+                "description": "Read-only CSV/OFX review with the same parser, account, policy and currency checks as import. Returns new/replayed/conflicting rows and a fingerprint only when ready; strict parser failures return a file diagnostic without partial rows.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
                         "description": "Successful operation (response schema remains provisional)",
                         "content": {
                             "application/json": {

@@ -492,6 +492,13 @@ try {
         static fn(array $r): bool => count($r['transactions'] ?? []) === 1);
     $bankFormatEnvironmentA = '/saas/v1/environments/' . $envA
         . '/policies/banking.allowedImportFormats';
+    $t->check('restricted OFX preview also denied by CSV-only policy', $a,
+        'POST', '/spaces/' . $spaceA . '/imports/preview',
+        ['bankAccountId' => $bankAccountA1, 'format' => 'ofx', 'ofx' => $ofxPolicyProof], 403);
+    $policyPreview = $t->check('CSV preview before parent policy change', $a,
+        'POST', '/spaces/' . $spaceA . '/imports/preview',
+        ['bankAccountId' => $bankAccountA1, 'format' => 'csv', 'csv' => $csvPolicyProof], 200,
+        static fn(array $r): bool => $r['ready'] && $r['counts']['replayed'] === 1);
     $t->check('environment manager narrows import formats to OFX', $b,
         'PUT', $bankFormatEnvironmentA,
         ['valueJson' => '["ofx"]', 'expectedRevision' => 0], 200,
@@ -505,6 +512,10 @@ try {
         'POST', '/spaces/' . $spaceA . '/imports',
         ['bankAccountId' => $bankAccountA1, 'format' => 'csv',
             'csv' => $csvPolicyProof], 403);
+    $t->check('parent policy change denies confirmation of an earlier preview', $a,
+        'POST', '/spaces/' . $spaceA . '/imports',
+        ['bankAccountId' => $bankAccountA1, 'format' => 'csv', 'csv' => $csvPolicyProof,
+            'previewHash' => $policyPreview['previewHash']], 403);
     $t->check('clearing local A1 policy retains stricter environment OFX', $a,
         'DELETE', $bankFormatPathA1 . '?expectedRevision=1', null, 200,
         static fn(array $r): bool =>

@@ -79,26 +79,36 @@ final class BankingService {
         return ['transactions' => $rows, 'nextAfterId' => $more ? (int)end($rows)['id'] : null];
     }
 
-    /** @return array<string,mixed> */
-    public function import(int $spaceId, int $bankAccountId, string $csv,
-        string $format = 'csv', string $ofx = ''): array {
+    /**
+     * Authorize before processing even malformed or unsupported input. Return
+     * the current effective policy projection for the preview fingerprint.
+     *
+     * @return array<string,mixed>
+     */
+    private function importContext(int $spaceId, int $bankAccountId, string $format): array {
         $this->finance->requireModuleCapability($spaceId, self::MODULE, 'bank.import_statement');
-        $this->policies->requireWorkspaceEnabled($spaceId, 'imports.enabled');
-        // This check precedes all parsing, bank lookup and financial writes.
-        // Unknown formats still use the existing explicit 422 contract.
-        if (in_array($format, ['csv', 'ofx'], true)
-            && !in_array($format,
-                $this->policies->workspace($spaceId, 'banking.allowedImportFormats')['effectiveValue'],
-                true)) {
+        $enabled = $this->policies->workspace($spaceId, 'imports.enabled');
+        $formats = $this->policies->workspace($spaceId, 'banking.allowedImportFormats');
+        if ($enabled['effectiveValue'] !== true
+            || (in_array($format, ['csv', 'ofx'], true)
+                && !in_array($format, $formats['effectiveValue'], true))) {
             throw new DomainException('module_disabled');
         }
-        $currency = $this->finance->requireBankAccount($spaceId, self::MODULE, $bankAccountId);
+        return [
+            'currency' => $this->finance->requireBankAccount($spaceId, self::MODULE, $bankAccountId),
+            'importsPolicy' => $enabled,
+            'formatsPolicy' => $formats,
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private static function parseStatement(string $csv, string $format, string $ofx, string $currency): array {
         if ($format === 'csv') {
             if (strlen($csv) < 1 || strlen($csv) > 262144 || !mb_check_encoding($csv, 'UTF-8')
                 || $ofx !== '') {
                 throw new DomainException('invalid_csv');
             }
-            $rows = self::parse($csv);
+            $statement = ['rows' => self::parse($csv)];
         } elseif ($format === 'ofx') {
             if ($csv !== '') {
                 throw new DomainException('invalid_ofx');
@@ -107,26 +117,147 @@ final class BankingService {
             if ($statement['currency'] !== null && $statement['currency'] !== $currency) {
                 throw new DomainException('bank_import_currency_mismatch');
             }
-            $rows = $statement['rows'];
         } else {
             throw new DomainException('unsupported_bank_import_format');
         }
-        if ($rows === []) {
+        if ($statement['rows'] === []) {
             throw new DomainException('empty_import');
+        }
+        return $statement;
+    }
+
+    /**
+     * Read at most the 500 parsed external IDs through the scoped unique
+     * index. A locking read on confirmation observes the current rows even
+     * under MariaDB repeatable-read; the account reservation serializes
+     * competing import writers. No unbounded statement scan.
+     *
+     * @return array<string,array<string,mixed>>
+     */
+    private function existingStatementRows(int $spaceId, int $bankAccountId, array $rows, bool $locked): array {
+        $q = $this->db->getQueryBuilder();
+        $q->select('id', 'external_id', 'amount_minor', 'booking_date', 'description')
+            ->from('lfb_transactions')
+            ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('bank_account_id', $q->createNamedParameter($bankAccountId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->in('external_id',
+                $q->createNamedParameter(array_column($rows, 'id'), IQueryBuilder::PARAM_STR_ARRAY)));
+        if ($locked && $this->db->getDatabaseProvider() !== IDBConnection::PLATFORM_SQLITE) {
+            $q->forUpdate();
+        }
+        $existing = [];
+        foreach ($q->executeQuery()->fetchAllAssociative() as $row) {
+            $existing[$row['external_id']] = [
+                'id' => (int)$row['id'],
+                'amount_minor' => (int)$row['amount_minor'],
+                'booking_date' => (string)$row['booking_date'],
+                'description' => (string)$row['description'],
+            ];
+        }
+        return $existing;
+    }
+
+    /** @return array<string,mixed> */
+    private function inspectStatement(int $spaceId, int $bankAccountId, string $format,
+        array $context, array $statement, string $fileHash, bool $locked = false): array {
+        $rows = $statement['rows'];
+        $existing = $this->existingStatementRows($spaceId, $bankAccountId, $rows, $locked);
+        $counts = ['new' => 0, 'replayed' => 0, 'conflicting' => 0];
+        $diagnostics = [];
+        $state = [];
+        foreach ($rows as $index => $row) {
+            $current = $existing[$row['id']] ?? null;
+            $classification = $current === null ? 'new' : (
+                $current['amount_minor'] === $row['amount_minor']
+                && $current['booking_date'] === $row['date']
+                && $current['description'] === $row['description'] ? 'replayed' : 'conflicting');
+            ++$counts[$classification];
+            $diagnostics[] = [
+                'row' => $index + 1,
+                'externalId' => $row['id'],
+                'date' => $row['date'],
+                'amountMinor' => $row['amount_minor'],
+                'description' => $row['description'],
+                'classification' => $classification,
+            ];
+            $state[] = $current;
+        }
+        $ready = $counts['conflicting'] === 0;
+        return [
+            'contractVersion' => 1,
+            'bankAccountId' => $bankAccountId,
+            'format' => $format,
+            'currency' => $context['currency'],
+            'currencyPrecision' => 2, // The existing CSV/OFX import contract.
+            'counts' => $counts,
+            'rows' => $diagnostics,
+            'fileError' => null,
+            'ready' => $ready,
+            'previewHash' => $ready ? hash('sha256', json_encode([
+                'version' => 1, 'actor' => $this->uid(), 'spaceId' => $spaceId,
+                'bankAccountId' => $bankAccountId, 'format' => $format,
+                'context' => $context, 'statement' => $statement,
+                'fileHash' => $fileHash, 'existing' => $state,
+            ], JSON_THROW_ON_ERROR)) : null,
+            'postingCreated' => false,
+        ];
+    }
+
+    /** Strict all-or-nothing parser; invalid files never produce partial rows. */
+    public function previewImport(int $spaceId, int $bankAccountId, string $csv,
+        string $format = 'csv', string $ofx = ''): array {
+        $context = $this->importContext($spaceId, $bankAccountId, $format);
+        try {
+            $statement = self::parseStatement($csv, $format, $ofx, $context['currency']);
+        } catch (DomainException $e) {
+            // A failed strict parser has no reliable complete row count.
+            $reason = $e->getMessage();
+            return [
+                'contractVersion' => 1, 'bankAccountId' => $bankAccountId,
+                'format' => $format, 'currency' => $context['currency'], 'currencyPrecision' => 2,
+                'counts' => null, 'rows' => [], 'ready' => false, 'previewHash' => null,
+                'fileError' => ['classification' => in_array($reason, [
+                    'unsupported_bank_import_format', 'bank_import_currency_mismatch', 'invalid_ofx_currency',
+                ], true) ? 'unsupported' : 'malformed', 'code' => $reason,
+                    'row' => $e instanceof StatementParseException ? $e->row : null],
+                'postingCreated' => false,
+            ];
+        }
+        return $this->inspectStatement($spaceId, $bankAccountId, $format, $context, $statement,
+            hash('sha256', $format === 'ofx' ? $ofx : $csv));
+    }
+
+    /** @return array<string,mixed> */
+    public function import(int $spaceId, int $bankAccountId, string $csv,
+        string $format = 'csv', string $ofx = '', ?string $previewHash = null): array {
+        // Preserve the legacy immediate API while requiring a supplied
+        // fingerprint to match the current authoritative preview.
+        $this->importContext($spaceId, $bankAccountId, $format);
+        if ($previewHash !== null && !preg_match('/^[0-9a-f]{64}$/D', $previewHash)) {
+            throw new DomainException('bank_import_preview_changed');
         }
         $created = 0;
         $skipped = 0;
         $this->db->beginTransaction();
         try {
-            $this->finance->reserveBankAccountsForWrite($spaceId, self::MODULE, [$bankAccountId]);
-            foreach ($rows as $row) {
-                $existing = $this->findByExternalId($spaceId, $bankAccountId, $row['id']);
-                if ($existing !== null) {
-                    if ((int)$existing['amount_minor'] !== $row['amount_minor']
-                        || $existing['booking_date'] !== $row['date']
-                        || $existing['description'] !== $row['description']) {
-                        throw new DomainException('bank_import_conflict');
-                    }
+            $reserved = $this->finance->reserveBankAccountsForWrite($spaceId, self::MODULE, [$bankAccountId]);
+            $context = $this->importContext($spaceId, $bankAccountId, $format);
+            $currency = $context['currency'];
+            if ($reserved[$bankAccountId] !== $currency) {
+                throw new DomainException('bank_import_preview_changed');
+            }
+            $statement = self::parseStatement($csv, $format, $ofx, $currency);
+            $review = $this->inspectStatement($spaceId, $bankAccountId, $format, $context, $statement,
+                hash('sha256', $format === 'ofx' ? $ofx : $csv), true);
+            if ($previewHash !== null && (!$review['ready']
+                || !hash_equals($review['previewHash'], $previewHash))) {
+                throw new DomainException('bank_import_preview_changed');
+            }
+            if (!$review['ready']) {
+                throw new DomainException('bank_import_conflict');
+            }
+            foreach ($statement['rows'] as $index => $row) {
+                if ($review['rows'][$index]['classification'] === 'replayed') {
                     ++$skipped;
                     continue;
                 }
@@ -226,21 +357,25 @@ final class BankingService {
                 if ($record === [null]) {
                     continue;
                 }
-                if (count($rows) >= 500 || count($record) !== 4) {
-                    throw new DomainException('invalid_csv_row');
+                try {
+                    if (count($rows) >= 500 || count($record) !== 4) {
+                        throw new DomainException('invalid_csv_row');
+                    }
+                    [$id, $date, $amount, $description] = $record;
+                    $id = trim($id);
+                    $description = trim($description);
+                    self::date($date);
+                    if (!preg_match('/^[A-Za-z0-9_.:-]{1,128}$/', $id)
+                        || $description === '' || mb_strlen($description) > 255
+                        || isset($ids[$id])) {
+                        throw new DomainException('invalid_csv_row');
+                    }
+                    $minor = self::minor($amount);
+                    $ids[$id] = true;
+                    $rows[] = ['id' => $id, 'date' => $date, 'amount_minor' => $minor, 'description' => $description];
+                } catch (DomainException $e) {
+                    throw new StatementParseException($e, count($rows) + 1);
                 }
-                [$id, $date, $amount, $description] = $record;
-                $id = trim($id);
-                $description = trim($description);
-                self::date($date);
-                if (!preg_match('/^[A-Za-z0-9_.:-]{1,128}$/', $id)
-                    || $description === '' || mb_strlen($description) > 255
-                    || isset($ids[$id])) {
-                    throw new DomainException('invalid_csv_row');
-                }
-                $minor = self::minor($amount);
-                $ids[$id] = true;
-                $rows[] = ['id' => $id, 'date' => $date, 'amount_minor' => $minor, 'description' => $description];
             }
             return $rows;
         } finally {
@@ -267,17 +402,6 @@ final class BankingService {
         if ($parsed === false || $parsed->format('Y-m-d') !== $value) {
             throw new DomainException('invalid_date');
         }
-    }
-
-    /** @return array<string,mixed>|null */
-    private function findByExternalId(int $spaceId, int $bankAccountId, string $externalId): ?array {
-        $q = $this->db->getQueryBuilder();
-        $q->select('id', 'amount_minor', 'booking_date', 'description')
-            ->from('lfb_transactions')
-            ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
-            ->andWhere($q->expr()->eq('bank_account_id', $q->createNamedParameter($bankAccountId, IQueryBuilder::PARAM_INT)))
-            ->andWhere($q->expr()->eq('external_id', $q->createNamedParameter($externalId)));
-        return $q->executeQuery()->fetchAssociative() ?: null;
     }
 
     /** @param array<string,string|int|null> $values */

@@ -113,26 +113,30 @@ final class OfxStatementParser {
         $ids = [];
         $rows = [];
         foreach ($transactions[1] as $block) {
-            $originalId = self::leaf($block, 'FITID');
-            $posted = self::leaf($block, 'DTPOSTED');
-            $value = self::leaf($block, 'TRNAMT');
-            $memo = self::leaf($block, 'MEMO');
-            $name = self::leaf($block, 'NAME');
-            $memo ??= $name;
-            if ($originalId === null || $originalId === '' || mb_strlen($originalId) > 255
-                || $posted === null || $value === null
-                || $memo === null || $memo === '' || mb_strlen($memo) > 255) {
-                throw new DomainException('invalid_ofx_row');
+            try {
+                $originalId = self::leaf($block, 'FITID');
+                $posted = self::leaf($block, 'DTPOSTED');
+                $value = self::leaf($block, 'TRNAMT');
+                $memo = self::leaf($block, 'MEMO');
+                $name = self::leaf($block, 'NAME');
+                $memo ??= $name;
+                if ($originalId === null || $originalId === '' || mb_strlen($originalId) > 255
+                    || $posted === null || $value === null
+                    || $memo === null || $memo === '' || mb_strlen($memo) > 255) {
+                    throw new DomainException('invalid_ofx_row');
+                }
+                $date = self::parseStrictDate($posted);
+                $id = preg_match('/^[A-Za-z0-9_.:-]{1,128}$/D', $originalId)
+                    ? $originalId : 'ofx-' . hash('sha256', $originalId);
+                if (isset($ids[$id])) {
+                    throw new DomainException('invalid_ofx_row');
+                }
+                $ids[$id] = true;
+                $rows[] = ['id' => $id, 'date' => $date,
+                    'amount_minor' => self::minor($value, false), 'description' => $memo];
+            } catch (DomainException $e) {
+                throw new StatementParseException($e, count($rows) + 1);
             }
-            $date = self::parseStrictDate($posted);
-            $id = preg_match('/^[A-Za-z0-9_.:-]{1,128}$/D', $originalId)
-                ? $originalId : 'ofx-' . hash('sha256', $originalId);
-            if (isset($ids[$id])) {
-                throw new DomainException('invalid_ofx_row');
-            }
-            $ids[$id] = true;
-            $rows[] = ['id' => $id, 'date' => $date,
-                'amount_minor' => self::minor($value, false), 'description' => $memo];
         }
         return [
             'currency' => $normalizedCurrency,

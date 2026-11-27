@@ -281,6 +281,11 @@
       "route": "librefinance.banking.transfers"
     },
     {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/imports/preview",
+      "request": "POST",
+      "route": "librefinance.banking.previewimport"
+    },
+    {
       "path": "/apps/librefinance/api/spaces/{spaceId}/imports",
       "request": "POST",
       "route": "librefinance.banking.import"

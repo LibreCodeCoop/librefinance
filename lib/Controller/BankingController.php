@@ -44,11 +44,19 @@ final class BankingController extends Controller {
     }
 
     #[NoAdminRequired]
-    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/imports')]
-    public function import(int $spaceId, int $bankAccountId, string $csv = '',
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/imports/preview')]
+    public function previewImport(int $spaceId, int $bankAccountId, string $csv = '',
         string $format = 'csv', string $ofx = ''): JSONResponse {
         return $this->respond(
-            fn() => $this->service->import($spaceId, $bankAccountId, $csv, $format, $ofx), 201);
+            fn() => $this->service->previewImport($spaceId, $bankAccountId, $csv, $format, $ofx));
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/imports')]
+    public function import(int $spaceId, int $bankAccountId, string $csv = '',
+        string $format = 'csv', string $ofx = '', ?string $previewHash = null): JSONResponse {
+        return $this->respond(
+            fn() => $this->service->import($spaceId, $bankAccountId, $csv, $format, $ofx, $previewHash), 201);
     }
 
     #[NoAdminRequired]
@@ -66,7 +74,7 @@ final class BankingController extends Controller {
                 'space_not_found', 'module_not_found', 'bank_account_not_found',
                 'bank_transaction_not_found', 'journal_posting_not_found' => 404,
                 'permission_denied', 'module_disabled' => 403,
-                'bank_import_conflict', 'journal_already_matched', 'bank_transaction_matched',
+                'bank_import_conflict', 'bank_import_preview_changed', 'journal_already_matched', 'bank_transaction_matched',
                 'journal_already_claimed', 'journal_not_available',
                 'account_reference_busy' => 409,
                 'authentication_required' => 401,
