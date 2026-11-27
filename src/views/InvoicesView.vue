@@ -20,6 +20,7 @@ import LfSelect from '../components/LfSelect.vue'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import LfDateField from '../components/LfDateField.vue'
 import CashPaymentDialog from '../components/CashPaymentDialog.vue'
+import InvoiceDuplicateCandidates from '../components/InvoiceDuplicateCandidates.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { ledgerLocale, toMinorUnits } from '../money.js'
 import { formatLedgerDate } from '../date.js'
@@ -36,6 +37,7 @@ const invoiceFilter=inject('lfInvoiceFilter',ref(documentKind.value))
 const filterAvailable=inject('lfInvoiceFilterAvailable',ref(false))
 const creationKind=ref('invoice')
 const creationStep=ref('choose')
+const duplicateDateValid=ref(true)
 const navigate=inject('lfNavigate',()=>{})
 const focusedInvoice=inject('lfFocusedInvoice',ref(null))
 const focusedObligation=inject('lfFocusedObligation',ref(null))
@@ -351,6 +353,7 @@ async function openFocusedInvoice() {
   focusedInvoice.value=null
   await showInvoice(Number(focus.id))
 }
+watch(newInvoice, () => { duplicateDateValid.value = true })
 watch(activeId, () => {
   // A previous workspace's documents must not expose filters in a new empty space.
   hasListedInvoices.value=false
@@ -542,7 +545,8 @@ function openLinkedObligation() {
             :label="t('librefinance', 'Customer or supplier')" />
           <NcTextField v-model="form.country" :label="t('librefinance', 'Country (ISO 2, required)')" maxlength="2" required />
           <NcTextField v-model="form.region" :label="t('librefinance', 'Region (optional)')" maxlength="32" />
-          <LfDateField id="lf-invoice-date" v-model="form.issueOn" :label="t('librefinance', 'Issue date')" />
+          <LfDateField id="lf-invoice-date" v-model="form.issueOn" :label="t('librefinance', 'Issue date')"
+            @validity-change="duplicateDateValid = $event" />
           <LfDateField id="lf-invoice-due" v-model="form.dueOn" :label="t('librefinance', 'Due date')" />
         </div>
         <h3>{{ isPurchase ? t('librefinance', 'Purchase items') : t('librefinance', 'Sale items') }}</h3>
@@ -560,6 +564,9 @@ function openLinkedObligation() {
         <NcButton variant="secondary" :disabled="form.lines.length>=20" @click="addLine">
           {{ t('librefinance', 'Add line') }}
         </NcButton>
+        <InvoiceDuplicateCandidates v-if="newInvoice" :key="activeId + ':' + creationKind"
+          :kind="creationKind" :contact-id="Number(form.contactId)" :reference="form.number"
+          :issue-on="form.issueOn" :date-valid="duplicateDateValid" />
         <CustomFieldsPanel :key="activeId+':'+creationKind+':'+newInvoice"
           v-model="form.customFields" :entity-kind="creationKind" />
         <div class="lf-form-actions">
@@ -617,6 +624,7 @@ function openLinkedObligation() {
           <div class="lf-kpi"><span>{{ t('librefinance', 'Outstanding') }}</span>
             <strong>{{money(chosen.total_minor-chosen.paid_minor)}}</strong></div>
         </div>
+        <InvoiceDuplicateCandidates :invoice-id="Number(chosen.id)" @inspect="showInvoice($event)" />
         <NcButton v-if="manager&&chosen.status==='draft'" variant="primary"
           :disabled="busy || detailLoading" @click="issue">{{isPurchase?t('librefinance', 'Confirm purchase'):t('librefinance', 'Confirm sale')}}</NcButton>
         <template v-if="writable&&chosenObligationId&&['issued','partially_paid'].includes(chosen.status)">
