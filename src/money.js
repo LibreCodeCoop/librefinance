@@ -49,15 +49,30 @@ export function ledgerLocale(locale = getLocale()) {
 /** Present signed minor units at the supplied precision, which defaults to base 100. */
 export function formatLedgerMoney(minor, currency = 'BRL', locale = getLocale(), precision = 2) {
   validatePrecision(precision)
-  const scale = 10 ** precision
-  // Within ±MAX_MINOR the integer converts exactly, and division error is less
-  // than half a minor unit, so formatting to this precision recovers every digit.
-  return new Intl.NumberFormat(ledgerLocale(locale), {
+  const value = exactInteger(minor)
+  if (value === null) throw limitsError()
+  const amount = BigInt(value)
+  const scale = 10n ** BigInt(precision)
+  const absolute = amount < 0n ? -amount : amount
+  const whole = absolute / scale
+  // A safe integer can still lose minor units when divided into a Number.
+  // Format the whole magnitude and localized fractional digits separately.
+  const signedWhole = amount < 0n
+    ? (whole === 0n ? -0 : -whole)
+    : (Object.is(value, -0) ? -0 : whole)
+  const formatter = new Intl.NumberFormat(ledgerLocale(locale), {
     style: 'currency',
     currency,
     minimumFractionDigits: precision,
     maximumFractionDigits: precision,
-  }).format(Number(minor) / scale)
+  })
+  const fraction = new Intl.NumberFormat(ledgerLocale(locale), {
+    minimumIntegerDigits: Math.max(1, precision),
+    useGrouping: false,
+    maximumFractionDigits: 0,
+  }).format(absolute % scale)
+  return formatter.formatToParts(signedWhole)
+    .map(part => part.type === 'fraction' ? fraction : part.value).join('')
 }
 
 /**
@@ -74,7 +89,7 @@ export function resolveMoneyContext(workspace, record = workspace) {
     const precision = record.currencyPrecision
     if (!Number.isInteger(precision) || precision < 0 || precision > 3
       || (currency === 'BRL' && precision !== 2)
-      || !Number.isSafeInteger(record.currencyMetadataVersion) || record.currencyMetadataVersion < 1) return null
+      || record.currencyMetadataVersion !== 1) return null
     return { currency, precision }
   }
   if (record !== workspace && currency === workspace?.currency) return resolveMoneyContext(workspace)

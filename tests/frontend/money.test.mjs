@@ -147,3 +147,29 @@ test('missing or contradictory non-BRL metadata never guesses scale or permits a
   assert.throws(() => parseContextMoney('12.34', brl, [{ currency: 'JPY' }]), Error)
   assert.equal(resolveMoneyContext(brl, { currency: 'BRL', currencyPrecision: null, currencyMetadataVersion: 1 }), null)
 })
+
+test('aggregate money displays every safe-integer minor unit without floating-point rounding', async () => {
+  const { formatContextMoney } = await import('../../src/money.js')
+  const brl = { currency: 'BRL', currencyPrecision: 2, currencyMetadataVersion: 1 }
+  const kwd = { currency: 'KWD', currencyPrecision: 3, currencyMetadataVersion: 1 }
+  const jpy = { currency: 'JPY', currencyPrecision: 0, currencyMetadataVersion: 1 }
+  const n = Number.MAX_SAFE_INTEGER
+  assert.equal(formatContextMoney(n, brl, undefined, 'en_US'), 'R$90,071,992,547,409.91')
+  assert.equal(formatContextMoney(-n, brl, undefined, 'pt_BR'), '-R$\u00a090.071.992.547.409,91')
+  assert.equal(formatContextMoney(n, kwd, undefined, 'en_US'), 'KWD\u00a09,007,199,254,740.991')
+  assert.equal(formatContextMoney(-n, jpy, undefined, 'en_US'), '-¥9,007,199,254,740,991')
+  assert.equal(formatContextMoney(-1, kwd, undefined, 'en_US'), '-KWD\u00a00.001')
+  assert.equal(formatContextMoney(n + 1, brl), t('librefinance', 'Unavailable'))
+  assert.equal(formatContextMoney('9007199254740992', brl), t('librefinance', 'Unavailable'))
+})
+
+test('unsupported metadata versions cannot authorize a guessed precision', async () => {
+  const { resolveMoneyContext, parseContextMoney, formatContextMoney } = await import('../../src/money.js')
+  const current = { currency: 'JPY', currencyPrecision: 0, currencyMetadataVersion: 1 }
+  const unknown = { ...current, currencyMetadataVersion: 2 }
+  assert.deepEqual(resolveMoneyContext(current), { currency: 'JPY', precision: 0 })
+  assert.equal(resolveMoneyContext(unknown), null)
+  assert.throws(() => parseContextMoney('123', unknown), Error)
+  assert.throws(() => parseContextMoney('123', current, [unknown]), Error)
+  assert.equal(formatContextMoney(123, current, unknown), t('librefinance', 'Unavailable'))
+})
