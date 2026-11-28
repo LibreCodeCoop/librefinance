@@ -160,6 +160,8 @@ $query = [
     'librefinance:report#profitLoss' => 'from:date!,through:date!',
     'librefinance:report#trialBalance' => 'through:date!,afterId:i,accountClass:s',
     'librefinance:report#cashFlow' => 'from:date!,through:date!,bankAccountId:i',
+    'librefinance:report#generalLedger' => 'accountId:i!,from:date!,through:date!,snapshot:s,afterDate:date,afterId:i',
+    'librefinance:report#generalLedgerExport' => 'accountId:i!,from:date!,through:date!,snapshot:s!,afterDate:date,afterId:i',
     'librefinance:savedReport#index' => 'afterId:i',
     'librefinance:obligation#index' => 'afterId:i,status:s,kind:s,dueRange:s,search:s,sortBy:s,sortDirection:s,referenceDate:s',
     'librefinance:obligation#recurrencePreview' => 'count:i!,stepMonths:i!,endOfMonth:s!',
@@ -231,6 +233,9 @@ $descriptions = [
     'librefinance:transfer#apply' => 'Stages linked source bank transfers without duplicating statement lines or ledger postings. Source transfer legs remain unmatched.',
     'librefinance:inventory#preview' => 'Read-only coverage audit against an externally supplied untrusted source inventory. Count parity is never proof of financial or fiscal functional parity.',
     'librefinance:banking#import' => 'CSV import only; does not initiate bank API synchronization.',
+    'librefinance:report#generalLedger' => 'Authorized posted account ledger, debit positive, inclusive period. Minor units are exact decimal strings. Scope-bound snapshot and date/posting cursor; 409 if relevant immutable facts change.',
+    'librefinance:report#generalLedgerExport' => 'Same complete paginated snapshot as general-ledger, independently requires reports.export. Start at the beginning and follow nextCursor; no truncated export.',
+    'librefinance:report#generalLedgerJournal' => 'Read-only, independently authorized posted journal and account sides in the selected workspace.',
     'librefinance:reconciliation#candidates' => 'Read-only advisory candidates for one pending bank evidence item, exact signed amount/account, inclusive zero-to-thirty-day window. Excludes bank claims and reversals; cursor continuation. Never matches automatically; confirmation revalidates existing authority.',
 ];
 
@@ -364,6 +369,90 @@ $spec = [
                 'required' => ['from', 'through', 'currency', 'bankAccountId', 'openingMinor',
                     'months', 'netMinor', 'closingMinor', 'basis', 'isForecast'],
             ],
+            'GeneralLedgerMinor' => [
+                'type' => 'string', 'pattern' => '^-?(0|[1-9][0-9]*)$',
+                'description' => 'Exact signed integer minor units, serialized without floating point.',
+            ],
+            'GeneralLedgerCursor' => [
+                'type' => 'object',
+                'properties' => [
+                    'afterDate' => ['type' => 'string', 'format' => 'date'],
+                    'afterId' => ['type' => 'integer', 'minimum' => 1],
+                ],
+                'required' => ['afterDate', 'afterId'],
+            ],
+            'GeneralLedgerRow' => [
+                'type' => 'object',
+                'properties' => [
+                    'postingId' => ['type' => 'integer', 'minimum' => 1],
+                    'journalId' => ['type' => 'integer', 'minimum' => 1],
+                    'reversedJournalId' => ['type' => ['integer', 'null'], 'minimum' => 1],
+                    'date' => ['type' => 'string', 'format' => 'date'],
+                    'memo' => ['type' => 'string'],
+                    'currency' => ['type' => 'string', 'const' => 'BRL'],
+                    'amountMinor' => ['$ref' => '#/components/schemas/GeneralLedgerMinor'],
+                    'debitMinor' => ['type' => 'string', 'pattern' => '^(0|[1-9][0-9]*)$'],
+                    'creditMinor' => ['type' => 'string', 'pattern' => '^(0|[1-9][0-9]*)$'],
+                    'runningMinor' => ['$ref' => '#/components/schemas/GeneralLedgerMinor'],
+                ],
+                'required' => ['postingId', 'journalId', 'reversedJournalId', 'date', 'memo',
+                    'currency', 'amountMinor', 'debitMinor', 'creditMinor', 'runningMinor'],
+            ],
+            'GeneralLedgerPage' => [
+                'type' => 'object',
+                'properties' => [
+                    'basis' => ['type' => 'string', 'const' => 'posted_debit_positive'],
+                    'account' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'id' => ['type' => 'integer', 'minimum' => 1],
+                            'code' => ['type' => 'string'],
+                            'name' => ['type' => 'string'],
+                            'class' => ['type' => 'string'],
+                            'currency' => ['type' => 'string', 'const' => 'BRL'],
+                        ],
+                        'required' => ['id', 'code', 'name', 'class', 'currency'],
+                    ],
+                    'currency' => ['type' => 'string', 'const' => 'BRL'],
+                    'currencyPrecision' => ['type' => 'integer', 'const' => 2],
+                    'from' => ['type' => 'string', 'format' => 'date'],
+                    'through' => ['type' => 'string', 'format' => 'date'],
+                    'snapshot' => ['type' => 'string', 'pattern' => '^[a-f0-9]{64}$'],
+                    'openingMinor' => ['$ref' => '#/components/schemas/GeneralLedgerMinor'],
+                    'closingMinor' => ['$ref' => '#/components/schemas/GeneralLedgerMinor'],
+                    'pageOpeningMinor' => ['$ref' => '#/components/schemas/GeneralLedgerMinor'],
+                    'rowCount' => ['type' => 'integer', 'minimum' => 0],
+                    'rows' => ['type' => 'array', 'maxItems' => 50,
+                        'items' => ['$ref' => '#/components/schemas/GeneralLedgerRow']],
+                    'nextCursor' => ['oneOf' => [
+                        ['$ref' => '#/components/schemas/GeneralLedgerCursor'],
+                        ['type' => 'null'],
+                    ]],
+                ],
+                'required' => ['basis', 'account', 'currency', 'currencyPrecision', 'from', 'through',
+                    'snapshot', 'openingMinor', 'closingMinor', 'pageOpeningMinor', 'rowCount', 'rows', 'nextCursor'],
+            ],
+            'GeneralLedgerJournal' => [
+                'type' => 'object',
+                'properties' => [
+                    'id' => ['type' => 'integer', 'minimum' => 1],
+                    'date' => ['type' => 'string', 'format' => 'date'],
+                    'memo' => ['type' => 'string'],
+                    'reversedJournalId' => ['type' => ['integer', 'null'], 'minimum' => 1],
+                    'postings' => ['type' => 'array', 'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'accountId' => ['type' => 'integer', 'minimum' => 1],
+                            'code' => ['type' => 'string'],
+                            'name' => ['type' => 'string'],
+                            'currency' => ['type' => 'string', 'pattern' => '^[A-Z]{3}$'],
+                            'amountMinor' => ['$ref' => '#/components/schemas/GeneralLedgerMinor'],
+                        ],
+                        'required' => ['accountId', 'code', 'name', 'currency', 'amountMinor'],
+                    ]],
+                ],
+                'required' => ['id', 'date', 'memo', 'reversedJournalId', 'postings'],
+            ],
             'ReconciliationCandidate' => [
                 'type' => 'object',
                 'properties' => [
@@ -468,6 +557,9 @@ $responseSchemas = [
     'librefinance:mcp#handle' => 'McpJsonRpc',
     'librefinance:report#profitLoss' => 'ProfitLoss',
     'librefinance:report#cashFlow' => 'CashFlow',
+    'librefinance:report#generalLedger' => 'GeneralLedgerPage',
+    'librefinance:report#generalLedgerExport' => 'GeneralLedgerPage',
+    'librefinance:report#generalLedgerJournal' => 'GeneralLedgerJournal',
     'librefinance:reconciliation#candidates' => 'ReconciliationCandidatePage',
 ];
 /**

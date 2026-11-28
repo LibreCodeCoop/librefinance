@@ -155,6 +155,14 @@ source references are not treated as proof.
 Reports distinguish posted results from projections. Mixed currencies
 and unavailable dimensions cannot be silently aggregated.
 
+The General ledger template requires an explicit account and applied period.
+It reports posted debit-positive balances, all rows by stable date/posting
+cursor, and exact CSV export authorized separately. Journal detail opens the
+actual scoped journal, including the original link on a reversal. If relevant
+posted facts change, reapply the report before continuing or exporting.
+The report does not change posting basis, create a saved model, or activate
+foreign-currency/dimension support.
+
 ### D. Workspace administration and instance policy
 
 ```text

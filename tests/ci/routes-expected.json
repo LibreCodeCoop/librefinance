@@ -376,6 +376,21 @@
       "route": "librefinance.report.cashflow"
     },
     {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/general-ledger",
+      "request": "GET",
+      "route": "librefinance.report.generalledger"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/general-ledger/export",
+      "request": "GET",
+      "route": "librefinance.report.generalledgerexport"
+    },
+    {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/general-ledger/journals/{journalId}",
+      "request": "GET",
+      "route": "librefinance.report.generalledgerjournal"
+    },
+    {
       "path": "/apps/librefinance/api/spaces/{spaceId}/saved-reports",
       "request": "GET",
       "route": "librefinance.savedreport.index"

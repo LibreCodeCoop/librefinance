@@ -37,7 +37,7 @@ final class FinancialCapabilities {
         'imports.read' => ['manager', 'owner'],
         'imports.apply' => ['manager', 'owner'],
         'reports.read' => ['viewer', 'auditor', 'operator', 'manager', 'owner'],
-        // Reserved for a future explicit server-side export endpoint; not a grant to an existing route.
+        // General-ledger export requires this explicit capability on each page.
         'reports.export' => ['auditor', 'operator', 'manager', 'owner'],
         'contacts.read' => ['viewer', 'auditor', 'operator', 'manager', 'owner'],
         'contacts.manage' => ['manager', 'owner'],

@@ -308,7 +308,7 @@ for script in basic personal-finance agenda-search-sort spaces advanced governan
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/$script.php"
 done
 echo "PASS: Native PHP authorization, ledger, group access and concurrency tests on Nextcloud Server master."
-for domain_test in banking banking-candidates obligations invoicing payments reports-cash-flow reports-saved import; do
+for domain_test in banking banking-candidates obligations invoicing payments reports-cash-flow reports-general-ledger reports-saved import; do
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/domains/$domain_test.php"
 done
 echo "PASS: Native banking, obligations, invoicing, reporting and core-import integration suites."

@@ -17,6 +17,7 @@ import { mdiPlus, mdiChartLine, mdiCashMultiple, mdiTableLarge, mdiPencilOutline
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfDateField from '../components/LfDateField.vue'
 import LfSelect from '../components/LfSelect.vue'
+import GeneralLedgerReport from '../components/GeneralLedgerReport.vue'
 import { formatLedgerDate } from '../date.js'
 import { cashFlowCsv } from '../reportCsv.js'
 import { financeApi, financeError } from '../services/api.js'
@@ -28,7 +29,9 @@ const reportKinds = [
   { value: 'profit_loss', label: t('librefinance', 'Profit and loss for the period'), help: t('librefinance', 'Income, expenses and result by period'), icon: mdiChartLine },
   { value: 'cash_flow', label: t('librefinance', 'Actual cash flow'), help: t('librefinance', 'Cash inflows, outflows and ledger balance'), icon: mdiCashMultiple },
   { value: 'trial_balance', label: t('librefinance', 'Trial balance'), help: t('librefinance', 'Ledger balance by account and class'), icon: mdiTableLarge },
+  { value: 'general_ledger', label: t('librefinance', 'General ledger'), help: t('librefinance', 'Posted movements and running balance by account'), icon: mdiTableLarge },
 ]
+const savedReportKinds = reportKinds.filter(item => item.value !== 'general_ledger')
 const catalog = ref([])
 const catalogNext = ref(null)
 const selected = ref('profit_loss')
@@ -122,6 +125,14 @@ async function execute() {
   const token = ++generation
   const query = { spaceId: Number(activeId.value), path: currentPath(), kind: currentKind.value }
   appliedQuery = null
+  if (query.kind === 'general_ledger') {
+    busy.value = false
+    error.value = ''
+    result.value = null
+    trial.value = []
+    trialNext.value = null
+    return
+  }
   busy.value = true
   error.value = ''
   result.value = null
@@ -177,7 +188,7 @@ function selectReport(key) {
 }
 function beginCreate() {
   modalError.value = ''
-  draft.value = { id: 0, name: '', kind: currentKind.value, from: from.value,
+  draft.value = { id: 0, name: '', kind: currentKind.value === 'general_ledger' ? 'profit_loss' : currentKind.value, from: from.value,
     through: through.value, columns: currentKind.value === 'trial_balance'
       ? [...defaultBalanceColumns] : [], accountClass: '' }
   editorOpen.value = true
@@ -302,6 +313,8 @@ onBeforeUnmount(() => ++generation)
             </NcButton>
           </div>
         </div>
+        <GeneralLedgerReport v-if="currentKind === 'general_ledger'" />
+        <template v-else>
         <form class="lf-filter-row lf-report-period" @submit.prevent="execute">
           <LfDateField v-if="canUsePeriod" id="lf-report-from" v-model="from" :label="t('librefinance', 'From')" />
           <LfDateField id="lf-report-through" v-model="through" :label="canUsePeriod ? t('librefinance', 'Through') : t('librefinance', 'Reference date')" />
@@ -365,6 +378,7 @@ onBeforeUnmount(() => ++generation)
           <NcEmptyContent v-else :name="t('librefinance', 'No account found')" />
           <div v-if="trialNext" class="lf-table-footer"><NcButton :disabled="busy" @click="loadMore">{{ t('librefinance', 'More accounts') }}</NcButton></div>
         </template>
+        </template>
         <details class="lf-finance-explanation">
           <summary>{{ t('librefinance', 'How are these numbers calculated?') }}</summary>
           <p>{{ t('librefinance', 'Reports use only posted entries in the workspace. They exclude pending statements, projections and unposted tax data. New accounting models still require their own calculation services and formal validation.') }}</p>
@@ -378,7 +392,7 @@ onBeforeUnmount(() => ++generation)
         <NcNoteCard v-if="modalError" type="error" role="alert">{{ modalError }}</NcNoteCard>
         <NcTextField v-model="draft.name" :label="t('librefinance', 'Report name')" required maxlength="120" />
         <LfSelect id="lf-saved-report-kind" v-model="draft.kind" :label="t('librefinance', 'Base template')"
-          :options="reportKinds.map(item => ({value:item.value,label:item.label}))" />
+          :options="savedReportKinds.map(item => ({value:item.value,label:item.label}))" />
         <div class="lf-form-grid">
           <LfDateField v-if="draft.kind !== 'trial_balance'" id="lf-saved-report-from" v-model="draft.from" :label="t('librefinance', 'From')" />
           <LfDateField id="lf-saved-report-through" v-model="draft.through"
