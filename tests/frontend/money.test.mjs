@@ -96,3 +96,80 @@ test('displays signed amounts near the ledger limit at the chosen precision', ()
   assert.equal(formatLedgerMoney('8999999999999', 'BRL', 'en_US'), 'R$89,999,999,999.99')
   assert.equal(formatLedgerMoney(-8999999999999, 'KWD', 'en_US', 3), '-KWD\u00a08,999,999,999.999')
 })
+
+test('workspace currency metadata controls exact parsing and signed display', async () => {
+  const { resolveMoneyContext, parseContextMoney, formatContextMoney, formatContextInput } = await import('../../src/money.js')
+  const jpy = { currency: 'JPY', currencyPrecision: 0, currencyMetadataVersion: 1 }
+  const kwd = { currency: 'KWD', currencyPrecision: 3, currencyMetadataVersion: 1 }
+  const brl = { currency: 'BRL', currencyPrecision: 2, currencyMetadataVersion: 1 }
+  assert.deepEqual(resolveMoneyContext(jpy), { currency: 'JPY', precision: 0 })
+  assert.deepEqual(resolveMoneyContext(kwd), { currency: 'KWD', precision: 3 })
+  assert.equal(parseContextMoney('1000', jpy), 1000)
+  assert.equal(parseContextMoney('1,001', kwd), 1001)
+  assert.equal(parseContextMoney('12,34', brl), 1234)
+  assert.equal(parseContextMoney('12,34', { currency: 'BRL' }), 1234)
+  assert.equal(formatContextMoney(-1234, jpy, undefined, 'en_US'), '-¥1,234')
+  assert.equal(formatContextMoney(-1234, kwd, undefined, 'en_US'), '-KWD\u00a01.234')
+  assert.equal(formatContextMoney(1234, brl, undefined, 'pt_BR'), 'R$\u00a012,34')
+  assert.equal(formatContextInput(1234, jpy, undefined, 'pt_BR'), '1234')
+  assert.equal(formatContextInput(1234, kwd, undefined, 'pt_BR'), '1,234')
+  assert.equal(formatContextInput(1234, kwd, undefined, 'en_US'), '1.234')
+  assert.equal(formatContextInput(0, brl, undefined, 'pt_BR'), '0,00')
+  assert.equal(parseContextMoney('1.001', kwd, [{ currency: 'KWD' }]), 1001)
+  assert.equal(parseContextMoney('0,000', kwd, [], { allowZero: true }), 0)
+  assert.equal(parseContextMoney('0', jpy, [], { allowZero: true }), 0)
+  assert.throws(() => parseContextMoney('0', jpy), Error)
+  assert.throws(() => parseContextMoney('1.2', jpy), Error)
+  assert.throws(() => parseContextMoney('9000000000.001', kwd), Error)
+  assert.throws(() => parseContextMoney('1', kwd, [jpy]), Error)
+  assert.throws(() => parseContextMoney('1', kwd, [{ ...kwd, currencyPrecision: 2 }]), Error)
+  assert.equal(formatContextMoney(1234, kwd, jpy, 'en_US'), '¥1,234')
+})
+
+test('missing or contradictory non-BRL metadata never guesses scale or permits a submission', async () => {
+  const { resolveMoneyContext, parseContextMoney, formatContextMoney, formatContextInput } = await import('../../src/money.js')
+  for (const workspace of [
+    null, {}, { currency: 'JPY' }, { currency: 'KWD', currencyPrecision: 3 },
+    { currency: 'XXX', currencyPrecision: null, currencyMetadataVersion: 1 },
+    { currency: 'JPY', currencyPrecision: 0, currencyMetadataVersion: 0 },
+    { currency: 'BRL', currencyPrecision: null, currencyMetadataVersion: 1 },
+    { currency: 'BRL', currencyPrecision: 3, currencyMetadataVersion: 1 },
+    { currency: 'JPY', currencyPrecision: '0', currencyMetadataVersion: 1 },
+  ]) {
+    assert.equal(resolveMoneyContext(workspace), null, JSON.stringify(workspace))
+    assert.throws(() => parseContextMoney('1', workspace), Error)
+    assert.throws(() => parseContextMoney('0', workspace, [], { allowZero: true }), Error)
+    assert.equal(formatContextInput(1234, workspace), '')
+    assert.equal(formatContextMoney(1234, workspace), t('librefinance', 'Unavailable'))
+  }
+  const brl = { currency: 'BRL' }
+  assert.equal(resolveMoneyContext(brl, { currency: 'JPY' }), null)
+  assert.throws(() => parseContextMoney('12.34', brl, [{ currency: 'JPY' }]), Error)
+  assert.equal(resolveMoneyContext(brl, { currency: 'BRL', currencyPrecision: null, currencyMetadataVersion: 1 }), null)
+})
+
+test('aggregate money displays every safe-integer minor unit without floating-point rounding', async () => {
+  const { formatContextMoney } = await import('../../src/money.js')
+  const brl = { currency: 'BRL', currencyPrecision: 2, currencyMetadataVersion: 1 }
+  const kwd = { currency: 'KWD', currencyPrecision: 3, currencyMetadataVersion: 1 }
+  const jpy = { currency: 'JPY', currencyPrecision: 0, currencyMetadataVersion: 1 }
+  const n = Number.MAX_SAFE_INTEGER
+  assert.equal(formatContextMoney(n, brl, undefined, 'en_US'), 'R$90,071,992,547,409.91')
+  assert.equal(formatContextMoney(-n, brl, undefined, 'pt_BR'), '-R$\u00a090.071.992.547.409,91')
+  assert.equal(formatContextMoney(n, kwd, undefined, 'en_US'), 'KWD\u00a09,007,199,254,740.991')
+  assert.equal(formatContextMoney(-n, jpy, undefined, 'en_US'), '-¥9,007,199,254,740,991')
+  assert.equal(formatContextMoney(-1, kwd, undefined, 'en_US'), '-KWD\u00a00.001')
+  assert.equal(formatContextMoney(n + 1, brl), t('librefinance', 'Unavailable'))
+  assert.equal(formatContextMoney('9007199254740992', brl), t('librefinance', 'Unavailable'))
+})
+
+test('unsupported metadata versions cannot authorize a guessed precision', async () => {
+  const { resolveMoneyContext, parseContextMoney, formatContextMoney } = await import('../../src/money.js')
+  const current = { currency: 'JPY', currencyPrecision: 0, currencyMetadataVersion: 1 }
+  const unknown = { ...current, currencyMetadataVersion: 2 }
+  assert.deepEqual(resolveMoneyContext(current), { currency: 'JPY', precision: 0 })
+  assert.equal(resolveMoneyContext(unknown), null)
+  assert.throws(() => parseContextMoney('123', unknown), Error)
+  assert.throws(() => parseContextMoney('123', current, [unknown]), Error)
+  assert.equal(formatContextMoney(123, current, unknown), t('librefinance', 'Unavailable'))
+})

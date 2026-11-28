@@ -21,15 +21,16 @@ import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import LfDateField from '../components/LfDateField.vue'
 import CashPaymentDialog from '../components/CashPaymentDialog.vue'
 import { financeApi, financeError } from '../services/api.js'
-import { ledgerLocale, toMinorUnits } from '../money.js'
+import { ledgerLocale } from '../money.js'
 import { formatLedgerDate } from '../date.js'
-const amountPlaceholder = new Intl.NumberFormat(ledgerLocale(), { minimumFractionDigits: 2 }).format(0)
+const taxRatePlaceholder = new Intl.NumberFormat(ledgerLocale(), { minimumFractionDigits: 2 }).format(0)
 const percentDisplay = value => new Intl.NumberFormat(ledgerLocale(), { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value)/10000)
 const props = defineProps({
   section: { type: String, default: 'invoices' },
   embedded: { type: Boolean, default: false },
 })
 const w=inject('lfWorkspace')
+const amountPlaceholder = computed(() => w.amountInput(0))
 const flow=inject('lfFlowContext',null)
 const documentKind=inject('lfInvoiceKind',ref('invoice'))
 const invoiceFilter=inject('lfInvoiceFilter',ref(documentKind.value))
@@ -116,12 +117,12 @@ const form=ref({
   lines:[{description:'',quantity:1,price:'',taxRuleId:0}],customFields:{},
 })
 const rule=ref({
-  code:'',label:'',country:'',region:'',kind:'vat',rate:amountPlaceholder,
+  code:'',label:'',country:'',region:'',kind:'vat',rate:taxRatePlaceholder,
   inclusive:false,from:today,through:'',sourceRef:'',
 })
 const allocation=ref({bankAccountId:0,journalId:0,amount:''})
 const allocationMinor=computed(()=>{
-  try { return toMinorUnits(allocation.value.amount) } catch { return 0 }
+  try { return w.parseMoney(allocation.value.amount, chosen.value, w.accountById(allocation.value.bankAccountId)) } catch { return 0 }
 })
 const journalChoices=computed(()=>{
   const bankId=Number(allocation.value.bankAccountId)
@@ -133,12 +134,6 @@ const journalChoices=computed(()=>{
       label:'#'+row.id+' · '+formatLedgerDate(row.effective_on)+' · '+(row.memo||t('librefinance', 'Entry'))
         +' · '+money(Math.abs(expected))}))
 })
-function minorInput(value) {
-  const minor=Math.max(0,Number(value)||0)
-  const separator = new Intl.NumberFormat(ledgerLocale(), { useGrouping: false }).formatToParts(1.1)
-    .find(part => part.type === 'decimal')?.value
-  return Math.floor(minor/100)+(separator === ',' ? ',' : '.')+String(minor%100).padStart(2,'0')
-}
 watch([()=>allocation.value.bankAccountId,()=>allocation.value.amount],()=>{
   if(!journalChoices.value.some(row=>row.value===Number(allocation.value.journalId))){
     allocation.value.journalId=0
@@ -266,7 +261,7 @@ async function create() {
   const successResult=await perform(async()=>{
     const lines=form.value.lines.map(line=>({
       description:line.description.trim(),quantity:Number(line.quantity),
-      unitPriceMinor:toMinorUnits(line.price),
+      unitPriceMinor:w.parseMoney(line.price),
       taxRuleId:Number(line.taxRuleId)||null,
     }))
     await financeApi(current,activeId.value,'/invoices','POST',{
@@ -309,8 +304,8 @@ async function showInvoice(id, refresh=false) {
       chosen.value=response.invoice
       chosenObligationId.value=response.obligationId
       allocation.value={bankAccountId:0,journalId:0,
-        amount:minorInput(Number(response.invoice.total_minor)
-          -Number(response.invoice.paid_minor))}
+        amount:w.amountInput(Number(response.invoice.total_minor)
+          -Number(response.invoice.paid_minor), response.invoice)}
     }
   }catch(e){
     if(token===generation && request===detailVersion){
@@ -340,7 +335,7 @@ async function allocate() {
     '/invoices/'+id+'/allocations','POST',{
       bankAccountId:Number(allocation.value.bankAccountId),
       journalId:Number(allocation.value.journalId),
-      amountMinor:toMinorUnits(allocation.value.amount),
+      amountMinor:w.parseMoney(allocation.value.amount, chosen.value, w.accountById(allocation.value.bankAccountId)),
     }),t('librefinance', 'Existing journal entry associated; no transfer created.'))
   if(done && chosen.value?.id===id){allocated.value=false;await showInvoice(id, true)}
 }
@@ -462,8 +457,8 @@ function openLinkedObligation() {
             <td>{{invoice.kind==='invoice'?t('librefinance', 'Sale'):t('librefinance', 'Purchase')}}</td>
             <td><span class="lf-state">{{commercialStatus(invoice.status, invoice.kind)}}</span></td>
             <td><time :datetime="invoice.due_on">{{ formatLedgerDate(invoice.due_on) }}</time></td>
-            <td class="lf-numeric">{{money(invoice.total_minor)}}</td>
-            <td class="lf-numeric">{{money(invoice.paid_minor)}}</td>
+            <td class="lf-numeric">{{money(invoice.total_minor, invoice)}}</td>
+            <td class="lf-numeric">{{money(invoice.paid_minor, invoice)}}</td>
             <td><NcButton size="small" variant="tertiary" @click="showInvoice(invoice.id)">
               {{ t('librefinance', 'Details') }}
             </NcButton></td>
@@ -613,9 +608,9 @@ function openLinkedObligation() {
         </NcNoteCard>
         <div class="lf-kpis">
           <div class="lf-kpi"><span>{{ t('librefinance', 'Total') }}</span>
-            <strong>{{money(chosen.total_minor)}}</strong></div>
+            <strong>{{money(chosen.total_minor, chosen)}}</strong></div>
           <div class="lf-kpi"><span>{{ t('librefinance', 'Outstanding') }}</span>
-            <strong>{{money(chosen.total_minor-chosen.paid_minor)}}</strong></div>
+            <strong>{{money(chosen.total_minor-chosen.paid_minor, chosen)}}</strong></div>
         </div>
         <NcButton v-if="manager&&chosen.status==='draft'" variant="primary"
           :disabled="busy || detailLoading" @click="issue">{{isPurchase?t('librefinance', 'Confirm purchase'):t('librefinance', 'Confirm sale')}}</NcButton>
