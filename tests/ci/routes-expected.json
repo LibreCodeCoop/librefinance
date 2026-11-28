@@ -296,6 +296,11 @@
       "route": "librefinance.banking.match"
     },
     {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/transactions/{transactionId}/reconciliation-candidates",
+      "request": "GET",
+      "route": "librefinance.reconciliation.candidates"
+    },
+    {
       "path": "/apps/librefinance/api/spaces/{spaceId}/tax-rules",
       "request": "GET",
       "route": "librefinance.tax.index"
