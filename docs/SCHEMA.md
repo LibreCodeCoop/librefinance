@@ -32,7 +32,7 @@ Tabelas no banco do Nextcloud, com prefixo da instalação (por exemplo `oc_`); 
 | lf_journals | space_id, external_key, request_hash, effective_on, reversed_journal_id, category_id | Chave de idempotência única por espaço, referência opcional à categoria hierárquica persistida |
 | lf_postings | journal_id, account_id, space_id, amount_minor, currency | Lançamentos por partidas dobradas |
 | lf_audit | space_id, actor_uid, action, entity, occurred_at | Rastro de alteração por espaço |
-| lf_contacts | space_id, kind, name, email, tax_id, active | Cliente/fornecedor por espaço; dados fiscais são apenas cadastrais |
+| lf_contacts | space_id, kind, name, email, tax_id, active, contact_person, phone, website, billing_*, shipping_* | Cliente/fornecedor por espaço; perfil e endereços opcionais, sem inferência de identidade ou alteração de documentos emitidos |
 | lf_items | space_id, sku, kind, name, unit_price_minor, currency, active | Código de produto/serviço único dentro do espaço; preço em centavos |
 | lf_module_flags | space_id, module_id, enabled | Estado de cada extensão por espaço; espaço/módulo único no banco |
 | lf_categories | space_id, code, kind, parent_id, account_id | Categoria imutável com vínculo de herança de conta contábil, validado no PHP |

@@ -19,6 +19,7 @@ import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSortableHeader from '../components/LfSortableHeader.vue'
 import { useLoadedSort } from '../composables/useLoadedSort.js'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
+import ContactProfileFields from '../components/ContactProfileFields.vue'
 import FieldStudioShortcut from '../components/FieldStudioShortcut.vue'
 import { financeApi, financeError } from '../services/api.js'
 
@@ -33,11 +34,40 @@ const pageTitle = computed(() => active.value === 'items' ? t('librefinance', 'P
 const editId = ref(null)
 const editingItem = ref(null)
 const dialog = ref('')
+const viewing = ref(false)
+let dialogGeneration = 0
+const emptyAddress = () => ({ line1:'', line2:'', city:'', region:'', postalCode:'', country:'' })
+const profileBaseline = ref(null)
+const editProfile = (profile = {}) => ({
+  contactPerson:profile.contactPerson ?? '', phone:profile.phone ?? '', website:profile.website ?? '',
+  billingAddress:{...emptyAddress(), ...profile.billingAddress},
+  shippingAddress:{...emptyAddress(), ...profile.shippingAddress},
+})
+// For an existing contact only submit changed profile fields; the API
+// preserves omitted fields even when another caller updates a different one.
+function changedProfile() {
+  const current = form.value.profile
+  if (!profileBaseline.value) return current
+  const patch = {}
+  for (const key of ['contactPerson', 'phone', 'website']) {
+    if ((current[key] ?? '') !== (profileBaseline.value[key] ?? '')) patch[key] = current[key] || null
+  }
+  for (const key of ['billingAddress', 'shippingAddress']) {
+    const changes = {}
+    for (const field of Object.keys(emptyAddress())) {
+      if ((current[key]?.[field] ?? '') !== (profileBaseline.value[key]?.[field] ?? '')) {
+        changes[field] = current[key]?.[field] || null
+      }
+    }
+    if (Object.keys(changes).length) patch[key] = changes
+  }
+  return patch
+}
 const working = ref(false)
 const problem = ref('')
 const form = ref({
   name:'', kind:'customer', email:'', taxId:'', active:true,
-  sku:'', description:'', price:'', customFields:{},
+  sku:'', description:'', price:'', customFields:{}, profile:editProfile(),
 })
 // Existing customer/vendor/both enum is unchanged; only the labels change.
 const contactKinds = computed(() => personal.value ? [
@@ -101,23 +131,31 @@ watch([searchTerm, activeId, active], () => loadSearch())
 onMounted(() => { if (searchTerm.value) loadSearch() })
 onBeforeUnmount(() => { ++searchSequence; if (searchTimer) clearTimeout(searchTimer) })
 function newRecord() {
+  dialogGeneration++
+  viewing.value = false
+  profileBaseline.value = null
   editId.value = null
   editingItem.value = null
   form.value = { name:'',kind:active.value==='contacts'?'customer':'service',
-    email:'',taxId:'',active:true,sku:'',description:'',price:'',customFields:{} }
+    email:'',taxId:'',active:true,sku:'',description:'',price:'',customFields:{},profile:editProfile() }
   problem.value = ''
   dialog.value = active.value
 }
 function editContact(row) {
+  dialogGeneration++
+  viewing.value = !manager.value
+  profileBaseline.value = editProfile(row.profile ?? {})
   editId.value = row.id
   editingItem.value = null
   form.value = { ...form.value,name:row.name,kind:row.kind,
     email:row.email||'',taxId:row.tax_id||'',active:row.active,
-    customFields:{...row.custom_fields} }
+    profile:editProfile(row.profile ?? {}),customFields:{...row.custom_fields} }
   problem.value = ''
   dialog.value = 'contacts'
 }
 function editItem(row) {
+  dialogGeneration++
+  viewing.value = false
   editId.value = row.id
   editingItem.value = row
   form.value = { ...form.value,name:row.name,kind:row.kind,sku:row.sku,
@@ -126,31 +164,44 @@ function editItem(row) {
   problem.value = ''
   dialog.value = 'items'
 }
+function closeDialog() {
+  dialogGeneration++
+  dialog.value = ''
+  working.value = false
+  problem.value = ''
+}
+watch([activeId, active], closeDialog, { flush: 'sync' })
+watch(manager, allowed => { if (!allowed && dialog.value && !viewing.value) closeDialog() }, { flush: 'sync' })
+onBeforeUnmount(() => { ++dialogGeneration })
 async function save() {
-  if (working.value || !form.value.name.trim()) return
+  if (viewing.value || !manager.value || working.value || !form.value.name.trim()) return
+  const token = ++dialogGeneration
+  const spaceId = Number(activeId.value)
   working.value = true
   problem.value = ''
   try {
     if (dialog.value === 'contacts') {
       const data = {name:form.value.name.trim(),kind:form.value.kind,
         email:form.value.email.trim()||null,taxId:form.value.taxId.trim()||null,
-        active:form.value.active,customFields:form.value.customFields}
-      await financeApi('librefinance',activeId.value,
+        active:form.value.active,customFields:form.value.customFields,profile:changedProfile()}
+      await financeApi('librefinance',spaceId,
         '/contacts' + (editId.value ? '/' + editId.value : ''),
         editId.value ? 'PUT' : 'POST',data)
     } else {
       const data = {sku:form.value.sku.trim(),name:form.value.name.trim(),
         kind:form.value.kind,description:form.value.description.trim()||null,
         unitPriceMinor:w.parseMoney(form.value.price, editingItem.value),active:form.value.active,customFields:form.value.customFields}
-      await financeApi('librefinance',activeId.value,
+      await financeApi('librefinance',spaceId,
         '/items' + (editId.value ? '/' + editId.value : ''),
         editId.value ? 'PUT' : 'POST',data)
     }
+    if (token !== dialogGeneration || spaceId !== Number(activeId.value)) return
     await refreshCurrent()
+    if (token !== dialogGeneration || spaceId !== Number(activeId.value)) return
     if (searchTerm.value) await loadSearch()
-    dialog.value = ''
-  } catch (e) { problem.value = financeError(e) }
-  finally { working.value = false }
+    if (token === dialogGeneration) closeDialog()
+  } catch (e) { if (token === dialogGeneration) problem.value = financeError(e) }
+  finally { if (token === dialogGeneration) working.value = false }
 }
 </script>
 <template>
@@ -195,7 +246,7 @@ async function save() {
               <LfSortableHeader :label="col.label" :column="col.key"
                 :active-column="localSort.column.value" :direction="localSort.direction.value"
                 scope="loaded" @sort="localSort.sort" />
-            </th><th v-if="manager">{{ t('librefinance', 'Actions') }}</th>
+            </th><th>{{ t('librefinance', 'Actions') }}</th>
           </tr></thead>
           <thead v-else><tr>
             <th v-for="col in [
@@ -214,9 +265,11 @@ async function save() {
             <td>{{ contactKinds.find(k=>k.value===c.kind)?.label || c.kind }}</td>
             <td>{{ c.email||'—' }}</td><td>{{ c.tax_id||'—' }}</td>
             <td>{{ c.active ? t('librefinance', 'Active') : t('librefinance', 'Inactive') }}</td>
-            <td v-if="manager"><NcButton variant="tertiary" :aria-label="t('librefinance', 'Edit {name}', { name: c.name }, { escape: false, sanitize: false })"
+            <td><NcButton variant="tertiary"
+              :aria-label="manager ? t('librefinance', 'Edit {name}', { name: c.name }, { escape: false, sanitize: false }) : t('librefinance', 'View {name}', { name: c.name }, { escape: false, sanitize: false })"
               @click="editContact(c)">
-              <template #icon><NcIconSvgWrapper :path="mdiPencilOutline" :size="20" /></template>
+              <template v-if="manager" #icon><NcIconSvgWrapper :path="mdiPencilOutline" :size="20" /></template>
+              <template v-if="!manager">{{ t('librefinance', 'Details') }}</template>
             </NcButton></td>
           </tr></tbody>
           <tbody v-else><tr v-for="i in shownItems" :key="i.id">
@@ -245,16 +298,17 @@ async function save() {
     </section>
 
     <NcDialog size="normal" content-classes="lf-finance-dialog-content" :open="Boolean(dialog)"
-      :name="(dialog === 'items' ? (editId ? t('librefinance', 'Edit product or service') : t('librefinance', 'New product or service')) : (editId ? t('librefinance', 'Edit contact') : t('librefinance', 'New contact')))"
-      @update:open="dialog = $event ? dialog : ''">
+      :name="viewing ? t('librefinance', 'Contact details') : (dialog === 'items' ? (editId ? t('librefinance', 'Edit product or service') : t('librefinance', 'New product or service')) : (editId ? t('librefinance', 'Edit contact') : t('librefinance', 'New contact')))"
+      @update:open="!$event && closeDialog()">
       <form class="lf-dialog-form" @submit.prevent="save">
         <NcNoteCard v-if="problem" type="error" role="alert">{{ problem }}</NcNoteCard>
-        <NcTextField v-model="form.name" :label="t('librefinance', 'Name')" required maxlength="160" />
+        <NcTextField v-model="form.name" :label="t('librefinance', 'Name')" required maxlength="160" :disabled="viewing" />
         <LfSelect v-if="dialog==='contacts'" id="lf-contact-kind" v-model="form.kind"
-          :options="contactKinds" :label="t('librefinance', 'Contact type')" />
+          :options="contactKinds" :label="t('librefinance', 'Contact type')" :disabled="viewing" />
         <template v-if="dialog==='contacts'">
-          <NcTextField v-model="form.email" :label="t('librefinance', 'Email (optional)')" type="email" maxlength="190" />
-          <NcTextField v-model="form.taxId" :label="t('librefinance', 'CPF/CNPJ or identification (optional)')" maxlength="40" />
+          <NcTextField v-model="form.email" :label="t('librefinance', 'Email (optional)')" type="email" maxlength="190" :disabled="viewing" />
+          <NcTextField v-model="form.taxId" :label="t('librefinance', 'CPF/CNPJ or identification (optional)')" maxlength="40" :disabled="viewing" />
+          <ContactProfileFields :key="activeId + ':' + editId" v-model="form.profile" :read-only="viewing" />
         </template>
         <template v-else>
           <NcTextField v-model="form.sku" :label="t('librefinance', 'Code/SKU')" maxlength="48" required />
@@ -263,14 +317,14 @@ async function save() {
             inputmode="decimal" required />
           <NcTextArea v-model="form.description" :label="t('librefinance', 'Additional description')" />
         </template>
-        <CustomFieldsPanel :key="activeId + ':' + dialog" v-model="form.customFields"
+        <CustomFieldsPanel v-if="!viewing" :key="activeId + ':' + dialog" v-model="form.customFields"
           :entity-kind="dialog === 'contacts' ? 'contact' : 'item'" />
-        <NcCheckboxRadioSwitch v-if="editId" v-model="form.active" type="checkbox">
+        <NcCheckboxRadioSwitch v-if="editId" v-model="form.active" type="checkbox" :disabled="viewing">
           {{ t('librefinance', 'Active record') }}
         </NcCheckboxRadioSwitch>
         <div class="lf-form-actions">
-          <NcButton variant="tertiary" @click="dialog=''">{{ t('librefinance', 'Cancel') }}</NcButton>
-          <NcButton variant="primary" type="submit" :disabled="working">
+          <NcButton variant="tertiary" @click="closeDialog">{{ viewing ? t('librefinance', 'Close') : t('librefinance', 'Cancel') }}</NcButton>
+          <NcButton v-if="!viewing" variant="primary" type="submit" :disabled="working">
             {{ t('librefinance', 'Save record') }}
           </NcButton>
         </div>

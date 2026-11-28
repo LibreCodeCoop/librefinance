@@ -304,7 +304,7 @@ assert_integration_complete() {
 
 if [ "$(printenv LF_BROWSER_DEBUG_ONLY || echo 0)" != 1 ]; then
 # Run native PHP integration suites inside the same Nextcloud PHP runtime.
-for script in basic personal-finance agenda-search-sort spaces advanced governance catalog categories companies custom-fields field-studio-v3 ux-enhancements company-logo bank-identity payment-methods currency-rate-history module-toggle-race; do
+for script in basic personal-finance agenda-search-sort spaces advanced governance catalog contact-profile categories companies custom-fields field-studio-v3 ux-enhancements company-logo bank-identity payment-methods currency-rate-history module-toggle-race; do
   assert_integration_complete "/var/www/html/custom_apps/librefinance/tests/integration/$script.php"
 done
 echo "PASS: Native PHP authorization, ledger, group access and concurrency tests on Nextcloud Server master."

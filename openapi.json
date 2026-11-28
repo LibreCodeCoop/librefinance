@@ -5037,6 +5037,14 @@
                             "type": "integer",
                             "minimum": 1
                         }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "security": [
@@ -5050,7 +5058,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/JsonObject"
+                                    "$ref": "#/components/schemas/ContactPage"
                                 }
                             }
                         }
@@ -5098,7 +5106,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/JsonObject"
+                                    "$ref": "#/components/schemas/ContactRecord"
                                 }
                             }
                         }
@@ -5138,6 +5146,9 @@
                                     "customFields": {
                                         "type": "object",
                                         "additionalProperties": true
+                                    },
+                                    "profile": {
+                                        "$ref": "#/components/schemas/ContactProfile"
                                     }
                                 },
                                 "required": [
@@ -5190,7 +5201,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/JsonObject"
+                                    "$ref": "#/components/schemas/ContactRecord"
                                 }
                             }
                         }
@@ -5233,6 +5244,9 @@
                                     "customFields": {
                                         "type": "object",
                                         "additionalProperties": true
+                                    },
+                                    "profile": {
+                                        "$ref": "#/components/schemas/ContactProfile"
                                     }
                                 },
                                 "required": [],
@@ -10714,6 +10728,185 @@
             }
         },
         "schemas": {
+            "ContactAddress": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "line1": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "line2": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "city": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    },
+                    "region": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 120
+                    },
+                    "postalCode": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 32
+                    },
+                    "country": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "pattern": "^[A-Z]{2}$"
+                    }
+                }
+            },
+            "ContactProfile": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Optional contact data; omitted fields are preserved on update, null clears a field, null address clears that address only.",
+                "properties": {
+                    "contactPerson": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 160
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 60
+                    },
+                    "website": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "billingAddress": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ContactAddress"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "shippingAddress": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ContactAddress"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                }
+            },
+            "ContactRecord": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "customer",
+                            "vendor",
+                            "both"
+                        ]
+                    },
+                    "email": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "tax_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "active": {
+                        "type": "boolean"
+                    },
+                    "created_at": {
+                        "type": [
+                            "integer",
+                            "string"
+                        ]
+                    },
+                    "custom_fields": {
+                        "type": [
+                            "object",
+                            "array"
+                        ]
+                    },
+                    "profile": {
+                        "$ref": "#/components/schemas/ContactProfile"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "kind",
+                    "email",
+                    "tax_id",
+                    "active",
+                    "custom_fields",
+                    "profile"
+                ]
+            },
+            "ContactPage": {
+                "type": "object",
+                "properties": {
+                    "contacts": {
+                        "type": "array",
+                        "maxItems": 50,
+                        "items": {
+                            "$ref": "#/components/schemas/ContactRecord"
+                        }
+                    },
+                    "nextAfterId": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    }
+                },
+                "required": [
+                    "contacts",
+                    "nextAfterId"
+                ]
+            },
             "Error": {
                 "type": "object",
                 "properties": {
