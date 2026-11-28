@@ -202,3 +202,21 @@ test('workspace actions and pagination cannot update a later selection', async (
   assert.deepEqual(workspace.spaces.value.map(book => book.id), [10])
   assert.notEqual(Number(workspace.activeId.value), 20, 'a current revocation invalidates the selected workspace')
 })
+
+test('encoded query spaces do not broaden the permitted financial route path', async (t) => {
+  const selection = { spaceId: 10, context: 'legacy' }
+  t.after(bindFinanceSelection(() => selection))
+  t.after(() => { delete globalThis.financeRequestStub })
+  const requests = []
+  globalThis.financeRequestStub = config => {
+    requests.push(config)
+    return Promise.resolve({ data: { ok: true } })
+  }
+  const query = new URLSearchParams({ search: 'Synthetic evidence target', state: 'pending' })
+  assert.deepEqual(await financeApi('librefinance', 10, '/activity?' + query), { ok: true })
+  assert.equal(requests[0].url, '/index.php/apps/librefinance/api/spaces/10/activity?search=Synthetic+evidence+target&state=pending')
+  for (const route of ['/activity+other', '/activity/../accounts', 'https://example.invalid', '/activity?search=x#outside', '/activity\\other']) {
+    await assert.rejects(financeApi('librefinance', 10, route), /Invalid financial request/, route)
+  }
+  assert.equal(requests.length, 1)
+})

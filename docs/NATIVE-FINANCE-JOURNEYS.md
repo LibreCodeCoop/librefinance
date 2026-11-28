@@ -145,6 +145,13 @@ Reports   [Model] [Saved configuration]
 One payment entry point must serve linked invoice/obligation, and the
 server must reject duplicate or stale operation identities. Do not expose
 a second "pay" action in both worklists that bypasses the shared workflow.
+Statement review offers explainable server-side reconciliation suggestions
+for the selected pending row: exact signed amount, account and a chosen
+date window. The reviewer explicitly selects a candidate and then confirms
+using the existing matching action. Manual selection stays available;
+suggestions do not claim a journal or change balances, and uncomparable
+source references are not treated as proof.
+
 Reports distinguish posted results from projections. Mixed currencies
 and unavailable dimensions cannot be silently aggregated.
 

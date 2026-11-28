@@ -22,6 +22,7 @@ import { mdiPlus, mdiFilterVariant, mdiRefresh, mdiBankOutline, mdiFileUploadOut
 import LfPageHeader from '../components/LfPageHeader.vue'
 import LfDateField from '../components/LfDateField.vue'
 import LfSelect from '../components/LfSelect.vue'
+import ReconciliationSuggestions from '../components/ReconciliationSuggestions.vue'
 import CashPaymentDialog from '../components/CashPaymentDialog.vue'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import { financeApi, financeError } from '../services/api.js'
@@ -153,17 +154,32 @@ const importing = ref(false)
 const bankBusy = ref(false)
 const reconcileRow = ref(null)
 const journalId = ref(0)
+const suggestedJournal = ref(null)
+function clearSuggestedJournal() {
+  if (suggestedJournal.value?.value === Number(journalId.value)) journalId.value = 0
+  suggestedJournal.value = null
+}
+function chooseSuggestedJournal(selection) {
+  if (bankBusy.value || !w.writable.value || !canReviewBank.value || !reconcileRow.value
+    || selection.spaceId !== Number(w.activeId.value) || selection.transactionId !== Number(reconcileRow.value.sourceId)) return
+  suggestedJournal.value = selection.option
+  journalId.value = selection.option.value
+}
 const reconciliationError = ref('')
 let bankActionVersion = 0
 const journalCandidates = computed(() => {
   if (!reconcileRow.value) return []
   const evidence = reconcileRow.value
-  return w.journals.value.filter(item => item.postings?.some(post =>
+  const choices = w.journals.value.filter(item => item.postings?.some(post =>
     Number(post.accountId)===Number(evidence.accountId)
     && Number(post.amountMinor)===Number(evidence.amountMinor)))
     .map(item => ({value:Number(item.id),
       label:formatLedgerDate(item.effective_on)+' · '+(item.memo || t('librefinance', 'Movement'))
         +' (#'+item.id+')'}))
+  if (suggestedJournal.value && !choices.some(choice => choice.value === suggestedJournal.value.value)) {
+    choices.push(suggestedJournal.value)
+  }
+  return choices
 })
 async function loadAllowedBankFormats() {
   const token = ++bankFormatSequence
@@ -280,12 +296,14 @@ function reviewStatement(row) {
   if (!w.writable.value || !canReviewBank.value
     || row.source!=='statement' || row.state!=='pending'
     || !banks.value.some(bank=>Number(bank.id)===Number(row.accountId))) return
+  clearSuggestedJournal()
   reconcileRow.value={...row}
   journalId.value=0
   reconciliationError.value=''
 }
 function closeReconciliation() {
   if(bankBusy.value)return
+  clearSuggestedJournal()
   reconcileRow.value=null
   journalId.value=0
   reconciliationError.value=''
@@ -307,6 +325,7 @@ async function matchStatement() {
     await financeApi('librefinance_banking',spaceId,
       '/transactions/'+evidenceId+'/match','POST',{journalId:selected})
     if(token!==bankActionVersion || spaceId!==Number(w.activeId.value))return
+    clearSuggestedJournal()
     reconcileRow.value=null
     journalId.value=0
     success.value=t('librefinance', 'Movement reviewed. No new payment was recorded.')
@@ -605,6 +624,7 @@ watch([w.activeId,w.modulesLoadedFor], () => {
   importFile.value=null
   importError.value=''
   importing.value=false
+  clearSuggestedJournal()
   reconcileRow.value=null
   journalId.value=0
   reconciliationError.value=''
@@ -873,6 +893,9 @@ const currency = row => w.money(row.amountMinor, row)
             <strong>{{currency(reconcileRow)}}</strong>
           </div>
         </div>
+        <ReconciliationSuggestions v-if="reconcileRow" :key="w.activeId.value + ':' + reconcileRow.sourceId"
+          :transaction-id="Number(reconcileRow.sourceId)" :disabled="bankBusy"
+          @choose="chooseSuggestedJournal" @invalidate="clearSuggestedJournal" />
         <LfSelect id="lf-bank-journal" v-model="journalId"
           :label="t('librefinance', 'Matching movement')" :options="journalCandidates"
           :placeholder="t('librefinance', 'Select by date and description')" :disabled="bankBusy" />
