@@ -108,6 +108,144 @@ final class InvoiceService {
         return ['invoices'=>$rows,'nextAfterId'=>$more?(int)end($rows)['id']:null];
     }
 
+    /**
+     * Read-only advisory lookup. A document reference is not an origin identity.
+     * The existing document, if supplied, owns its evidence; never trust a
+     * caller to substitute its party or exclude an arbitrary candidate.
+     *
+     * @return array<string,mixed>
+     */
+    public function duplicateCandidates(int $spaceId, int $invoiceId = 0, string $kind = '',
+        int $contactId = 0, string $reference = '', string $issueOn = '',
+        string $totalMinor = '', int $afterId = 0): array {
+        $this->finance->requireModuleCapability($spaceId, self::MODULE, 'invoice.read');
+        if ($invoiceId < 0 || $contactId < 0 || $afterId < 0) {
+            throw new DomainException('invalid_duplicate_evidence');
+        }
+        $knownDocumentId = null;
+        if ($invoiceId > 0) {
+            if ($kind !== '' || $contactId !== 0 || $reference !== '' || $issueOn !== '' || $totalMinor !== '') {
+                throw new DomainException('invalid_duplicate_evidence');
+            }
+            $document = $this->find($spaceId, $invoiceId);
+            if ($document === null) {
+                throw new DomainException('invoice_not_found');
+            }
+            $knownDocumentId = (int)$document['id'];
+            $kind = (string)$document['kind'];
+            $contactId = (int)$document['contact_id'];
+            $reference = (string)$document['number'];
+            $issueOn = (string)$document['issue_on'];
+            $totalMinor = (string)$document['total_minor'];
+            $currency = (string)$document['currency'];
+        } else {
+            $currency = $this->finance->currency($spaceId, self::MODULE);
+            if ($contactId > 0) {
+                $this->finance->requireActiveContact($spaceId, self::MODULE, $contactId);
+            }
+        }
+
+        $reference = strtoupper(trim($reference));
+        if ($kind !== '' && !in_array($kind, ['invoice', 'bill'], true)) {
+            throw new DomainException('invalid_invoice_kind');
+        }
+        if ($reference !== '' && !preg_match('~^[A-Z0-9_./:-]{2,80}$~D', $reference)) {
+            throw new DomainException('invalid_duplicate_evidence');
+        }
+        $from = $through = null;
+        if ($issueOn !== '') {
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/D', $issueOn)) {
+                throw new DomainException('invalid_date');
+            }
+            [$year, $month, $day] = array_map('intval', explode('-', $issueOn));
+            if (!checkdate($month, $day, $year)) {
+                throw new DomainException('invalid_date');
+            }
+            $date = new \DateTimeImmutable($issueOn, new \DateTimeZone('UTC'));
+            $from = max(new \DateTimeImmutable('0001-01-01', new \DateTimeZone('UTC')), $date->modify('-3 days'))->format('Y-m-d');
+            $through = min(new \DateTimeImmutable('9999-12-31', new \DateTimeZone('UTC')), $date->modify('+3 days'))->format('Y-m-d');
+        }
+        $amount = null;
+        if ($totalMinor !== '') {
+            if (!preg_match('/^[1-9][0-9]{0,12}$/D', $totalMinor) || (int)$totalMinor > TaxCalculator::MAX_MINOR) {
+                throw new DomainException('invalid_duplicate_evidence');
+            }
+            $amount = (int)$totalMinor;
+        }
+        $dateAndAmount = $from !== null && $amount !== null;
+        $complete = $kind !== '' && $contactId > 0 && ($reference !== '' || $dateAndAmount);
+        $result = [
+            'contractVersion' => 1,
+            'knownDocumentId' => $knownDocumentId,
+            // No commercial source identity is recorded by the current importer.
+            'originIdentityStatus' => 'unavailable',
+            'evidence' => [
+                'kind' => $kind, 'contactId' => $contactId ?: null, 'currency' => $currency,
+                'reference' => $reference ?: null, 'issueOn' => $issueOn ?: null,
+                'totalMinor' => $amount, 'dateToleranceDays' => 3,
+            ],
+            'status' => $complete ? 'no_candidate' : 'incomplete_evidence',
+            'candidates' => [],
+            'nextAfterId' => null,
+        ];
+        if (!$complete) {
+            return $result;
+        }
+
+        $q = $this->db->getQueryBuilder();
+        $matches = [];
+        if ($reference !== '') {
+            $matches[] = $q->expr()->eq('number', $q->createNamedParameter($reference));
+        }
+        if ($dateAndAmount) {
+            $matches[] = $q->expr()->andX(
+                $q->expr()->eq('total_minor', $q->createNamedParameter($amount, IQueryBuilder::PARAM_INT)),
+                $q->expr()->gte('issue_on', $q->createNamedParameter($from)),
+                $q->expr()->lte('issue_on', $q->createNamedParameter($through)),
+            );
+        }
+        $q->select('id', 'number', 'kind', 'contact_id', 'currency', 'status', 'issue_on', 'total_minor')
+            ->from('lfi_invoices')
+            ->where($q->expr()->eq('space_id', $q->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('kind', $q->createNamedParameter($kind)))
+            ->andWhere($q->expr()->eq('contact_id', $q->createNamedParameter($contactId, IQueryBuilder::PARAM_INT)))
+            ->andWhere($q->expr()->eq('currency', $q->createNamedParameter($currency)))
+            ->andWhere($q->expr()->gt('id', $q->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)))
+            ->andWhere(count($matches) === 1 ? $matches[0] : $q->expr()->orX(...$matches));
+        if ($knownDocumentId !== null) {
+            $q->andWhere($q->expr()->neq('id', $q->createNamedParameter($knownDocumentId, IQueryBuilder::PARAM_INT)));
+        }
+        $rows = $q->orderBy('id', 'ASC')->setMaxResults(51)->executeQuery()->fetchAllAssociative();
+        $more = count($rows) > 50;
+        $rows = array_slice($rows, 0, 50);
+        foreach ($rows as $row) {
+            $reasons = [];
+            if ($reference !== '' && $row['number'] === $reference) {
+                $reasons[] = 'same_reference';
+            }
+            if ($dateAndAmount && (int)$row['total_minor'] === $amount
+                && $row['issue_on'] >= $from && $row['issue_on'] <= $through) {
+                $reasons[] = 'same_total';
+                $reasons[] = $row['issue_on'] === $issueOn ? 'same_issue_date' : 'near_issue_date';
+            }
+            $result['candidates'][] = [
+                'id' => (int)$row['id'],
+                'reference' => (string)$row['number'],
+                'kind' => (string)$row['kind'],
+                'contactId' => (int)$row['contact_id'],
+                'currency' => (string)$row['currency'],
+                'status' => (string)$row['status'],
+                'issueOn' => (string)$row['issue_on'],
+                'totalMinor' => (int)$row['total_minor'],
+                'matchReasons' => $reasons,
+                'classification' => 'possible_duplicate',
+            ];
+        }
+        $result['status'] = $rows === [] ? 'no_candidate' : 'candidates';
+        $result['nextAfterId'] = $more ? (int)end($rows)['id'] : null;
+        return $result;
+    }
+
     public function show(int $spaceId,int $invoiceId):array {
         $this->finance->requireModuleCapability($spaceId, self::MODULE, 'invoice.read');
         $invoice=$this->find($spaceId,$invoiceId);

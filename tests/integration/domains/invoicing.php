@@ -387,4 +387,134 @@ $t->checkModule('terminal newline date rejected', $a, $app, 'GET',
     $periodBase . '/invoices?issueFrom=2026-03-10%0A', null, 422,
     static fn(array $v): bool => ($v['error'] ?? null) === 'invalid_invoice_period');
 
+
+// Commercial duplicate review is advisory and scoped before pagination.
+$dupSpace = $t->check('create duplicate review workspace', $a, 'POST', '/spaces',
+    ['name' => 'Synthetic duplicate review', 'kind' => 'organization', 'currency' => 'BRL'], 201);
+$dupBase = '/spaces/' . $dupSpace['id'];
+$party = $t->check('create duplicate review supplier', $a, 'POST', $dupBase . '/contacts',
+    ['name' => 'Synthetic supplier A', 'kind' => 'vendor'], 201);
+$otherParty = $t->check('create independent supplier', $a, 'POST', $dupBase . '/contacts',
+    ['name' => 'Synthetic supplier B', 'kind' => 'vendor'], 201);
+$dupPayload = [
+    'number' => 'REFERENCE-A', 'kind' => 'bill', 'contactId' => (int)$party['id'],
+    'issueOn' => '2026-11-20', 'dueOn' => '2026-12-20', 'country' => 'BR',
+    'lines' => [['description' => 'Synthetic supplier document', 'quantity' => 1,
+        'unitPriceMinor' => 12345, 'taxRuleId' => null]],
+];
+$original = $t->checkModule('create original supplier document', $a, $app, 'POST',
+    $dupBase . '/invoices', $dupPayload, 201);
+$near = $t->checkModule('same party exact total at inclusive lower date boundary', $a, $app, 'POST',
+    $dupBase . '/invoices', array_replace($dupPayload,
+        ['number' => 'REFERENCE-B', 'issueOn' => '2026-11-17']), 201);
+$far = $t->checkModule('same party total outside date window', $a, $app, 'POST',
+    $dupBase . '/invoices', array_replace($dupPayload,
+        ['number' => 'REFERENCE-FAR', 'issueOn' => '2026-11-16']), 201);
+$distinct = $t->checkModule('same date different amount', $a, $app, 'POST',
+    $dupBase . '/invoices', array_replace($dupPayload, [
+        'number' => 'REFERENCE-DISTINCT',
+        'lines' => [['description' => 'Synthetic distinct purchase', 'quantity' => 1, 'unitPriceMinor' => 12346]],
+    ]), 201);
+$unrelated = $t->checkModule('different supplier same amount and date', $a, $app, 'POST',
+    $dupBase . '/invoices', array_replace($dupPayload,
+        ['number' => 'REFERENCE-OTHER', 'contactId' => (int)$otherParty['id']]), 201);
+$wrongKind = $t->checkModule('different commercial kind same reference and amount', $a, $app, 'POST',
+    $dupBase . '/invoices', array_replace($dupPayload, ['kind' => 'invoice']), 201);
+$evidence = ['kind' => 'bill', 'contactId' => (int)$party['id'], 'reference' => 'reference-a',
+    'issueOn' => '2026-11-20', 'totalMinor' => '12345'];
+$lookup = static fn(array $fields): string => $dupBase . '/invoice-duplicate-candidates?' . http_build_query($fields);
+$t->checkModule('same reference is advisory, not an origin identity', $a, $app, 'GET',
+    $lookup($evidence), null, 200, static fn(array $v): bool =>
+        $v['status'] === 'candidates' && $v['knownDocumentId'] === null
+        && $v['originIdentityStatus'] === 'unavailable'
+        && array_column($v['candidates'], 'id') === [$original['id'], $near['id']]
+        && $v['candidates'][0]['classification'] === 'possible_duplicate'
+        && $v['candidates'][0]['matchReasons'] === ['same_reference', 'same_total', 'same_issue_date']
+        && $v['candidates'][1]['matchReasons'] === ['same_total', 'near_issue_date']);
+$t->checkModule('same reference alone can find a candidate even with different date and total', $a, $app, 'GET',
+    $lookup(array_replace($evidence, ['issueOn' => '2026-12-01', 'totalMinor' => '555'])), null, 200,
+    static fn(array $v): bool => array_column($v['candidates'], 'id') === [$original['id']]
+        && $v['candidates'][0]['matchReasons'] === ['same_reference']);
+$t->checkModule('same reference with different supplier never returns the original', $a, $app, 'GET',
+    $lookup(array_replace($evidence, ['contactId' => (int)$otherParty['id']])), null, 200,
+    static fn(array $v): bool => array_column($v['candidates'], 'id') === [$unrelated['id']]);
+$t->checkModule('different supplier reference-only lookup has no candidate', $a, $app, 'GET',
+    $lookup(['kind' => 'bill', 'contactId' => (int)$otherParty['id'], 'reference' => 'REFERENCE-A']), null, 200,
+    static fn(array $v): bool => $v['status'] === 'no_candidate' && $v['candidates'] === []);
+$t->checkModule('distinct reference and amount is not automatically suspicious', $a, $app, 'GET',
+    $lookup(array_replace($evidence, ['reference' => 'NEW-REFERENCE', 'totalMinor' => '999'])), null, 200,
+    static fn(array $v): bool => $v['status'] === 'no_candidate' && $v['candidates'] === []);
+$t->checkModule('missing party is incomplete evidence', $a, $app, 'GET',
+    $lookup(['kind' => 'bill', 'reference' => 'REFERENCE-A']), null, 200,
+    static fn(array $v): bool => $v['status'] === 'incomplete_evidence' && $v['candidates'] === []);
+$t->checkModule('date alone is incomplete evidence', $a, $app, 'GET',
+    $lookup(['kind' => 'bill', 'contactId' => (int)$party['id'], 'issueOn' => '2026-11-20']), null, 200,
+    static fn(array $v): bool => $v['status'] === 'incomplete_evidence');
+$t->checkModule('detail mode derives stored evidence and excludes itself', $a, $app, 'GET',
+    $lookup(['invoiceId' => $original['id']]), null, 200,
+    static fn(array $v): bool => $v['knownDocumentId'] === $original['id']
+        && array_column($v['candidates'], 'id') === [$near['id']]);
+$t->checkModule('detail mode rejects evidence overrides', $a, $app, 'GET',
+    $lookup(['invoiceId' => $original['id'], 'contactId' => $otherParty['id']]), null, 422);
+$t->checkModule('cross-workspace document ID denied', $a, $app, 'GET',
+    $lookup(['invoiceId' => $invoiceId]), null, 404);
+$t->checkModule('cross-workspace contact ID denied', $a, $app, 'GET',
+    $lookup(array_replace($evidence, ['contactId' => $cId])), null, 404);
+$t->checkModule('outsider denied duplicate evidence lookup', $b, $app, 'GET',
+    $lookup($evidence), null, 404);
+$t->checkModule('outsider denied duplicate detail lookup', $b, $app, 'GET',
+    $lookup(['invoiceId' => $original['id']]), null, 404);
+foreach (['1.25', '-1', '9000000000001', '01', '0', '1e2'] as $invalid) {
+    $t->checkModule('reject noncanonical or out-of-range amount ' . $invalid, $a, $app, 'GET',
+        $lookup(array_replace($evidence, ['totalMinor' => $invalid])), null, 422);
+}
+foreach (['2026-02-30', '0000-01-01', "2026-11-20\n"] as $invalid) {
+    $t->checkModule('reject invalid calendar date ' . json_encode($invalid), $a, $app, 'GET',
+        $lookup(array_replace($evidence, ['issueOn' => $invalid])), null, 422);
+}
+$t->checkModule('negative cursor rejected', $a, $app, 'GET',
+    $lookup($evidence + ['afterId' => -1]), null, 422);
+$t->checkModule('calendar lower bound is supported without year zero', $a, $app, 'GET',
+    $lookup(array_replace($evidence, ['reference' => '', 'issueOn' => '0001-01-01'])), null, 200,
+    static fn(array $v): bool => $v['status'] === 'no_candidate');
+$t->checkModule('calendar upper bound is supported without year 10000', $a, $app, 'GET',
+    $lookup(array_replace($evidence, ['reference' => '', 'issueOn' => '9999-12-31'])), null, 200,
+    static fn(array $v): bool => $v['status'] === 'no_candidate');
+
+$expectedIds = [(int)$original['id'], (int)$near['id']];
+for ($i = 0; $i < 49; $i++) {
+    $candidate = $t->checkModule('create scoped candidate ' . $i, $a, $app, 'POST',
+        $dupBase . '/invoices', array_replace($dupPayload, ['number' => 'REFERENCE-PAGE-' . $i]), 201);
+    $expectedIds[] = (int)$candidate['id'];
+}
+$readState = static function () use ($t, $a, $app, $dupBase, $original): array {
+    $documents = [];
+    $cursor = 0;
+    do {
+        $page = $t->requestModule($a, $app, 'GET', $dupBase . '/invoices?afterId=' . $cursor);
+        if ($page['code'] !== 200) {
+            throw new RuntimeException('Cannot read synthetic document state');
+        }
+        $documents = [...$documents, ...$page['body']['invoices']];
+        $cursor = $page['body']['nextAfterId'];
+    } while ($cursor !== null);
+    return [
+        'documents' => $documents,
+        'detail' => $t->requestModule($a, $app, 'GET', $dupBase . '/invoices/' . $original['id']),
+        'journals' => $t->request($a, 'GET', $dupBase . '/journals'),
+        'accounts' => $t->request($a, 'GET', $dupBase . '/accounts'),
+        'obligations' => $t->request($a, 'GET', $dupBase . '/obligations'),
+    ];
+};
+$beforeReview = $readState();
+$page1 = $t->checkModule('duplicate lookup filters before stable 50-row pagination', $a, $app, 'GET',
+    $lookup($evidence), null, 200, static fn(array $v): bool =>
+        array_column($v['candidates'], 'id') === array_slice($expectedIds, 0, 50)
+        && $v['nextAfterId'] === $expectedIds[49]);
+$t->checkModule('duplicate lookup returns remaining candidate exactly once', $a, $app, 'GET',
+    $lookup($evidence + ['afterId' => $page1['nextAfterId'] ?? 0]), null, 200,
+    static fn(array $v): bool => array_column($v['candidates'], 'id') === [$expectedIds[50]]
+        && $v['nextAfterId'] === null);
+$t->record('duplicate review changes no documents, journals, accounts or obligations',
+    $readState() === $beforeReview, 'before/after authorized reads');
 $t->finish();

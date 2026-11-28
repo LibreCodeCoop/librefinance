@@ -21,6 +21,14 @@ final class InvoiceController extends Controller {
         return $this->respond(fn()=>$this->service->list($spaceId,$afterId,$kind,$status,$issueFrom,$issueThrough));
     }
     #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/invoice-duplicate-candidates')]
+    public function duplicateCandidates(int $spaceId, int $invoiceId = 0, string $kind = '',
+        int $contactId = 0, string $reference = '', string $issueOn = '',
+        string $totalMinor = '', int $afterId = 0): JSONResponse {
+        return $this->respond(fn() => $this->service->duplicateCandidates(
+            $spaceId, $invoiceId, $kind, $contactId, $reference, $issueOn, $totalMinor, $afterId));
+    }
+    #[NoAdminRequired]
     #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/invoices/{invoiceId}')]
     public function show(int $spaceId,int $invoiceId):JSONResponse {
         return $this->respond(fn()=>$this->service->show($spaceId,$invoiceId));
