@@ -12,7 +12,6 @@ import NcNoteCard from '@nextcloud/vue/components/NcNoteCard'
 import LfDateField from './LfDateField.vue'
 import LfSelect from './LfSelect.vue'
 import { financeApi, financeError } from '../services/api.js'
-import { ledgerLocale, toMinorUnits } from '../money.js'
 import { formatLedgerDate } from '../date.js'
 
 const props = defineProps({
@@ -58,14 +57,8 @@ const outstanding = computed(() => {
   const total = Number(record.amount_minor ?? record.total_minor ?? 0)
   return total - Number(record.paid_minor ?? 0)
 })
-function amountInput(minor) {
-  const separator = new Intl.NumberFormat(ledgerLocale(), { useGrouping: false }).formatToParts(1.1)
-    .find(part => part.type === 'decimal')?.value
-  return Math.floor(Math.max(0,minor) / 100) + (separator === ',' ? ',' : '.')
-    + String(Math.max(0,minor) % 100).padStart(2, '0')
-}
 const minor = computed(() => {
-  try { return toMinorUnits(amount.value) } catch { return 0 }
+  try { return w.parseMoney(amount.value, props.record, w.accountById(bankId.value), props.existing ? undefined : w.accountById(counterId.value)) } catch { return 0 }
 })
 const taxed=computed(()=>props.source==='invoice' && !props.existing
   && (Number(props.record?.tax_minor)||Number(props.record?.withheld_minor)))
@@ -87,7 +80,7 @@ watch(() => props.open, opened => {
   counterId.value = counterOptions.value.length === 1
     ? Number(counterOptions.value[0].value) : 0
   journalId.value=0
-  amount.value = amountInput(outstanding.value)
+  amount.value = w.amountInput(Math.max(0, outstanding.value), props.record)
   date.value = new Date().toLocaleDateString('sv-SE')
   generateKey()
 }, { immediate: true })
@@ -156,7 +149,7 @@ async function recordPayment() {
         {{ t('librefinance', 'Choose the movement type corresponding to the payment or receipt.') }}
       </NcNoteCard>
       <p v-if="record"><strong>{{record.description || record.number}}</strong> ·
-        {{ t('librefinance', 'Outstanding: {amount}', { amount: w.money(outstanding) }, { escape: false, sanitize: false }) }}</p>
+        {{ t('librefinance', 'Outstanding: {amount}', { amount: w.money(outstanding, record) }, { escape: false, sanitize: false }) }}</p>
       <NcNoteCard v-if="error" type="error" role="alert">{{error}}</NcNoteCard>
       <LfSelect id="lf-cash-bank" v-model="bankId"
         :label="t('librefinance', 'Bank or cash account')" :options="bankOptions"

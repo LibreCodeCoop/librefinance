@@ -5,7 +5,7 @@ import { ref, shallowRef, computed, onMounted, onScopeDispose, watch } from 'vue
 import { t } from '@nextcloud/l10n'
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { formatLedgerMoney, toMinorUnits } from '../money.js'
+import { formatContextInput, formatContextMoney, parseContextMoney } from '../money.js'
 import { authorizedInitialWorkspace, contextKey } from '../financialContexts.js'
 import { bindFinanceSelection, requestFinancialWorkspace } from '../services/api.js'
 
@@ -110,8 +110,11 @@ const writable = computed(() => ['owner', 'manager', 'operator'].includes(space.
 const manager = computed(() => ['owner', 'manager'].includes(space.value?.role))
 const banks = computed(() => accounts.value.filter((a) => a.is_bank && a.active))
 const categories = computed(() => accounts.value.filter((a) => a.active && a.class === (direction.value === 'expense' ? 'expense' : 'revenue')))
-const money = (minor) => formatLedgerMoney(minor, space.value?.currency || 'BRL')
-const naturalBalance = (account) => money((['liability', 'equity', 'revenue'].includes(account.class) ? -1 : 1) * account.balance_minor)
+const money = (minor, record) => formatContextMoney(minor, space.value, record ?? space.value)
+const amountInput = (minor, record) => formatContextInput(minor, space.value, record ?? space.value)
+const parseMoney = (value, ...records) => parseContextMoney(value, space.value, records)
+const accountById = id => accounts.value.find(account => Number(account.id) === Number(id))
+const naturalBalance = (account) => money((['liability', 'equity', 'revenue'].includes(account.class) ? -1 : 1) * account.balance_minor, account)
 const accountNameById = (id) => accounts.value.find((a) => a.id === Number(id))?.name || ('#' + id)
 
 function unwrapError(e) {
@@ -271,6 +274,13 @@ watch(requestSelection, () => {
   ++actionSequence
   busy.value = false
   resetAi()
+  // An unfinished amount belongs to the previous financial context.
+  amount.value = ''
+  itemPrice.value = ''
+  memo.value = ''
+  bankId.value = 0
+  categoryId.value = 0
+  transactionCategoryId.value = 0
   modulesLoadedFor.value = 0
   modules.value = []
   accounts.value = []
@@ -428,8 +438,7 @@ async function createContact() {
 async function createItem() {
   await doAction(async () => {
     const selected = Number(activeId.value)
-    const price = itemPrice.value.trim() === '0' || itemPrice.value.trim() === '0,00'
-      ? 0 : toMinorUnits(itemPrice.value)
+    const price = parseContextMoney(itemPrice.value, space.value, [], { allowZero: true })
     await call('POST', '/api/spaces/' + selected + '/items', {
       sku: itemSku.value, name: itemName.value, kind: itemKind.value,
       description: itemDescription.value || null, unitPriceMinor: price,
@@ -638,7 +647,7 @@ async function removeAccess(type, identifier) {
 }
 async function createEntry(options = {}) {
   await doAction(async () => {
-    const minor = toMinorUnits(amount.value)
+    const minor = parseMoney(amount.value, accountById(bankId.value), accountById(categoryId.value))
     if (minor <= 0 || !bankId.value || !categoryId.value) throw new Error(t('librefinance', 'Select the accounts and enter the amount.'))
     const debitId = direction.value === 'income' ? Number(bankId.value) : Number(categoryId.value)
     const creditId = direction.value === 'income' ? Number(categoryId.value) : Number(bankId.value)
@@ -677,6 +686,6 @@ async function loadInitialSpaces() {
 }
 onMounted(loadInitialSpaces)
   return {
-    spaces, spacesStatus, loadInitialSpaces, activeId, accounts, contacts, items, companies, companyNextAfterId, companyEditId, companyName, companyTradeName, companyTaxId, companyCountry, companyFields, companyCustomValues, companyMunicipal, companyState, companyProfile, companyActive, modules, modulesLoadedFor, categoryRecords, categoryNextAfterId, categoryCode, categoryName, categoryColor, categoryKind, categoryParentId, categoryAccountId, selectedModuleId, aiCapability, aiPreview, aiTask, aiConsent, aiBusy, aiError, aiThrough, aiFrom, contactNextAfterId, itemNextAfterId, activeTab, journals, members, membersGrantRevision, canManageMembers, groupGrants, nextBeforeId, error, message, busy, spaceName, kind, accountName, accountCode, contactName, contactKind, contactEmail, contactTaxId, itemSku, itemName, itemKind, itemPrice, itemDescription, shareUid, shareRole, groupGid, groupRole, direction, bankId, categoryId, transactionCategoryId, amount, memo, date, loadSequence, preferredSpaceHandled, space, selectedModule, writable, manager, banks, categories, money, naturalBalance, accountNameById, unwrapError, call, refreshSpaces, refreshCurrent, doAction, resetCompanyForm, editCompany, saveCompany, loadMoreCompanies, createSpace, createAccount, createContact, createItem, loadMoreCatalog, createCategory, loadMoreCategories, resetAi, openAi, previewAi, requestAi, checkAiStatus, openModule, toggleModule, shareUser, shareGroup, removeAccess, createEntry, loadMore
+    spaces, spacesStatus, loadInitialSpaces, activeId, accounts, contacts, items, companies, companyNextAfterId, companyEditId, companyName, companyTradeName, companyTaxId, companyCountry, companyFields, companyCustomValues, companyMunicipal, companyState, companyProfile, companyActive, modules, modulesLoadedFor, categoryRecords, categoryNextAfterId, categoryCode, categoryName, categoryColor, categoryKind, categoryParentId, categoryAccountId, selectedModuleId, aiCapability, aiPreview, aiTask, aiConsent, aiBusy, aiError, aiThrough, aiFrom, contactNextAfterId, itemNextAfterId, activeTab, journals, members, membersGrantRevision, canManageMembers, groupGrants, nextBeforeId, error, message, busy, spaceName, kind, accountName, accountCode, contactName, contactKind, contactEmail, contactTaxId, itemSku, itemName, itemKind, itemPrice, itemDescription, shareUid, shareRole, groupGid, groupRole, direction, bankId, categoryId, transactionCategoryId, amount, memo, date, loadSequence, preferredSpaceHandled, space, selectedModule, writable, manager, banks, categories, money, amountInput, parseMoney, accountById, naturalBalance, accountNameById, unwrapError, call, refreshSpaces, refreshCurrent, doAction, resetCompanyForm, editCompany, saveCompany, loadMoreCompanies, createSpace, createAccount, createContact, createItem, loadMoreCatalog, createCategory, loadMoreCategories, resetAi, openAi, previewAi, requestAi, checkAiStatus, openModule, toggleModule, shareUser, shareGroup, removeAccess, createEntry, loadMore
   }
 }

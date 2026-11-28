@@ -140,6 +140,48 @@ não gera arquivo parcial.
 
 `GET /spaces/{spaceId}/invoices` aceita `issueFrom` e `issueThrough` como limites inclusivos opcionais em datas ISO gregorianas (`YYYY-MM-DD`). O filtro restringe a data de emissão (`issue_on`) antes da paginação e é combinado com kind, status e cursor. Datas inválidas ou intervalo invertido retornam o erro `invalid_invoice_period` (422).
 
+#### Commercial duplicate candidates (read-only)
+
+`GET /spaces/{spaceId}/invoice-duplicate-candidates` accepts either the
+existing document's positive `invoiceId` alone (plus the optional `afterId`
+cursor), or explicit evidence: `kind` (invoice/bill), `contactId` (active,
+workspace-scoped party), optional `reference`, `issueOn` (canonical
+Gregorian date) and `totalMinor` (canonical positive decimal integer string
+at the current workspace currency precision). Existing-document mode derives
+all evidence from the authorized stored document and excludes that document
+from the candidates. Evidence overrides in this mode are invalid.
+
+The lookup always matches the same workspace, kind, contact and currency.
+A candidate must have the same normalized reference OR the same exact total
+and an issue date within three calendar days inclusive. The returned
+`matchReasons` enumerate the matched evidence; each row is only a
+`possible_duplicate`, not proof of identical origin, fraud or invalidity.
+The three-day window is an explicit heuristic; amount alone or date alone
+is insufficient. Unknown/invalid contact IDs and inaccessible documents
+are not accepted. `incomplete_evidence` is distinct from `no_candidate`.
+`candidates` pages are ordered by ascending ID, up to 50 per page, with
+`nextAfterId` for the next page using the same evidence. The absence of a
+candidate is not certification that a document is unique.
+
+`knownDocumentId` identifies only the already stored native document in
+detail mode. The current importer does not persist commercial document
+origin mappings, so `originIdentityStatus` is explicitly `unavailable`.
+Neither a reference nor a possible match asserts a source-system identity.
+No invoice, obligation, settlement, journal, or balance is written or
+deleted. Existing invoice number uniqueness rules remain unchanged.
+
+In the native create dialog, Check possible duplicates opens a read-only
+review using the selected party, document number, issue date and optional
+explicit source-document total (net of applicable withholdings and inclusive
+of applicable taxes). The evidence amount is not a draft line or a stored
+invoice total, and entering it is optional. In document details the review
+derives the stored evidence on the server and allows opening an authorized
+candidate through the usual detail action. Editing evidence invalidates
+previous results. Neither absence of matches nor dismissing the review
+changes the existing save/confirm/settlement behavior.
+
+
+
 ## Erros
 `{"error":"permission_denied"}` 403; `{"error":"space_not_found"}` 404; `{"error":"idempotency_conflict"}` 409; entrada inválida 422.
 Falhas internas não devem revelar SQL, caminhos do host nem configurações.
@@ -207,8 +249,20 @@ Managers and owners can append rate evidence using the native Nextcloud
 dialog. The supported currency list is obtained from the scoped API; the
 form accepts a decimal string with a single decimal point or comma and
 sends a canonical decimal-point string, never a floating-point number.
-The read-only table displays the stored exact rate, date, currency pair,
-provenance and actor. A correction adds another immutable record. The
+The read-only table displays the stored exact rate, quote ID, date, currency
+pair, both stored precisions, provenance and actor. To find dated evidence,
+select the source and target currencies, accounting date and optionally the
+source type, then choose Find rates. The list contains all matching immutable
+candidates, in pages of 50, without automatically choosing a rate. Select
+Preview conversion on a particular row and enter a signed amount in that
+snapshot's source currency (including zero, with a decimal point or comma
+and no grouping). The server verifies that the explicit ID still qualifies
+for the applied selection, calculates the exact target minor units using
+stored precision, and the interface displays the result at target precision.
+Changing the filters invalidates preview actions until they are reapplied;
+changing the amount invalidates its previous result. An empty selection
+is distinct from a failed or unauthorized request; permission loss clears
+visible evidence. No financial records are modified. A correction adds another immutable record. The
 screen does not change the ledger currency, choose a rate for a posting or
 convert balances. Workspace changes discard in-flight UI results.
 
