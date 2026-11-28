@@ -313,9 +313,9 @@ onBeforeUnmount(() => ++generation)
         <div v-if="busy && !result" class="lf-loading"><NcLoadingIcon :size="30" /><p>{{ t('librefinance', 'Calculating report…') }}</p></div>
         <template v-if="result && currentKind === 'profit_loss'">
           <div class="lf-report-metrics">
-            <div><span>{{ t('librefinance', 'Income') }}</span><strong>{{ money(result.revenueMinor) }}</strong></div>
-            <div><span>{{ t('librefinance', 'Expenses') }}</span><strong>{{ money(result.expenseMinor) }}</strong></div>
-            <div><span>{{ t('librefinance', 'Result') }}</span><strong>{{ money(result.resultMinor) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Income') }}</span><strong>{{ money(result.revenueMinor, result) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Expenses') }}</span><strong>{{ money(result.expenseMinor, result) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Result') }}</span><strong>{{ money(result.resultMinor, result) }}</strong></div>
           </div>
           <p class="lf-muted">{{ t('librefinance', 'Actual result for the period. Excludes forecasts and pending bank statements.') }}</p>
         </template>
@@ -329,9 +329,9 @@ onBeforeUnmount(() => ++generation)
             {{ bankOptions.find(option => option.value === (result.bankAccountId ?? 0))?.label ?? result.bankAccountId }}
           </p>
           <div class="lf-report-metrics">
-            <div><span>{{ t('librefinance', 'Opening balance') }}</span><strong>{{ money(result.openingMinor) }}</strong></div>
-            <div><span>{{ t('librefinance', 'Change') }}</span><strong>{{ money(result.netMinor) }}</strong></div>
-            <div><span>{{ t('librefinance', 'Closing balance') }}</span><strong>{{ money(result.closingMinor) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Opening balance') }}</span><strong>{{ money(result.openingMinor, result) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Change') }}</span><strong>{{ money(result.netMinor, result) }}</strong></div>
+            <div><span>{{ t('librefinance', 'Closing balance') }}</span><strong>{{ money(result.closingMinor, result) }}</strong></div>
           </div>
           <h3>{{ t('librefinance', 'Movements by month') }}</h3>
           <div v-if="result.months.length" class="lf-table-scroll"><table class="lf-data-table">
@@ -340,7 +340,7 @@ onBeforeUnmount(() => ++generation)
               <th class="lf-numeric">{{ t('librefinance', 'Net change') }}</th>
             </tr></thead>
             <tbody><tr v-for="month in result.months" :key="month.month">
-              <td>{{ month.month }}</td><td class="lf-numeric">{{ money(month.netMinor) }}</td>
+              <td>{{ month.month }}</td><td class="lf-numeric">{{ money(month.netMinor, result) }}</td>
             </tr></tbody>
           </table></div>
           <NcEmptyContent v-else :name="t('librefinance', 'No movements in this period')" />
@@ -356,7 +356,7 @@ onBeforeUnmount(() => ++generation)
               <td v-for="column in activeBalanceColumns" :key="column"
                 :class="{ 'lf-numeric': column === 'balanceMinor', 'lf-code': column === 'code' }">
                 <strong v-if="column === 'name'">{{ account.name }}</strong>
-                <template v-else-if="column === 'balanceMinor'">{{ money(account.balanceMinor) }}</template>
+                <template v-else-if="column === 'balanceMinor'">{{ money(account.balanceMinor, account) }}</template>
                 <template v-else-if="column === 'class'">{{ classes[account.class] || account.class }}</template>
                 <template v-else>{{ account.code }}</template>
               </td>

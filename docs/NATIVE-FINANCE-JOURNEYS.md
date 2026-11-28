@@ -5,6 +5,23 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Native financial journeys: audit and proposed wireframes
 
+### Currency precision in native amount fields
+
+The authorized workspace read contract determines the functional currency and
+decimal scale. Native journal, movement, transfer, item, invoice, obligation and
+settlement forms parse exact minor units with that scale; an account or document
+in a different currency cannot silently use the workspace scale for a posting.
+When records have their own currency metadata, display uses it; same-currency
+records without separate metadata inherit the authorized workspace context.
+Historical BRL records without either precision field remain base 100. Unknown,
+incomplete or contradictory non-BRL metadata displays an unavailable amount and
+prevents monetary submission rather than guessing a scale. Decimal input accepts
+a comma or point without grouping; editing uses exact stored minor units.
+Workspace changes re-resolve the current context. This does not enable a new
+currency, change the server's write restrictions, change tax rates or quantities,
+or change the separate optional NFS-e contract.
+
+
 ## Scope and observed baseline
 
 The 2026-11-24 synthetic browser review exercised the current navigation

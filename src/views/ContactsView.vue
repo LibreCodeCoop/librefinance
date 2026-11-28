@@ -21,7 +21,6 @@ import { useLoadedSort } from '../composables/useLoadedSort.js'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import FieldStudioShortcut from '../components/FieldStudioShortcut.vue'
 import { financeApi, financeError } from '../services/api.js'
-import { toMinorUnits } from '../money.js'
 
 const props = defineProps({ section: { type: String, default: 'contacts' } })
 const w = inject('lfWorkspace')
@@ -32,6 +31,7 @@ const personal = computed(() => w.space.value?.kind === 'personal')
 const pageTitle = computed(() => active.value === 'items' ? t('librefinance', 'Products and services')
   : personal.value ? t('librefinance', 'People and businesses') : t('librefinance', 'Customers and suppliers'))
 const editId = ref(null)
+const editingItem = ref(null)
 const dialog = ref('')
 const working = ref(false)
 const problem = ref('')
@@ -102,6 +102,7 @@ onMounted(() => { if (searchTerm.value) loadSearch() })
 onBeforeUnmount(() => { ++searchSequence; if (searchTimer) clearTimeout(searchTimer) })
 function newRecord() {
   editId.value = null
+  editingItem.value = null
   form.value = { name:'',kind:active.value==='contacts'?'customer':'service',
     email:'',taxId:'',active:true,sku:'',description:'',price:'',customFields:{} }
   problem.value = ''
@@ -109,6 +110,7 @@ function newRecord() {
 }
 function editContact(row) {
   editId.value = row.id
+  editingItem.value = null
   form.value = { ...form.value,name:row.name,kind:row.kind,
     email:row.email||'',taxId:row.tax_id||'',active:row.active,
     customFields:{...row.custom_fields} }
@@ -117,9 +119,9 @@ function editContact(row) {
 }
 function editItem(row) {
   editId.value = row.id
+  editingItem.value = row
   form.value = { ...form.value,name:row.name,kind:row.kind,sku:row.sku,
-    description:row.description || '',price:Math.floor(row.unit_price_minor/100)
-      + ',' + String(row.unit_price_minor%100).padStart(2,'0'),active:row.active,
+    description:row.description || '',price:w.amountInput(row.unit_price_minor, row),active:row.active,
     customFields:{...row.custom_fields} }
   problem.value = ''
   dialog.value = 'items'
@@ -139,7 +141,7 @@ async function save() {
     } else {
       const data = {sku:form.value.sku.trim(),name:form.value.name.trim(),
         kind:form.value.kind,description:form.value.description.trim()||null,
-        unitPriceMinor:toMinorUnits(form.value.price),active:form.value.active,customFields:form.value.customFields}
+        unitPriceMinor:w.parseMoney(form.value.price, editingItem.value),active:form.value.active,customFields:form.value.customFields}
       await financeApi('librefinance',activeId.value,
         '/items' + (editId.value ? '/' + editId.value : ''),
         editId.value ? 'PUT' : 'POST',data)
@@ -220,7 +222,7 @@ async function save() {
           <tbody v-else><tr v-for="i in shownItems" :key="i.id">
             <td class="lf-code">{{ i.sku }}</td><td><strong>{{ i.name }}</strong></td>
             <td>{{ i.kind==='service'?t('librefinance', 'Service'):t('librefinance', 'Product') }}</td>
-            <td class="lf-numeric">{{ money(i.unit_price_minor) }}</td>
+            <td class="lf-numeric">{{ money(i.unit_price_minor, i) }}</td>
             <td>{{ i.active?t('librefinance', 'Active'):t('librefinance', 'Inactive') }}</td>
             <td v-if="manager"><NcButton variant="tertiary" :aria-label="t('librefinance', 'Edit {name}', { name: i.name }, { escape: false, sanitize: false })"
               @click="editItem(i)">
@@ -257,7 +259,7 @@ async function save() {
         <template v-else>
           <NcTextField v-model="form.sku" :label="t('librefinance', 'Code/SKU')" maxlength="48" required />
           <LfSelect id="lf-item-kind" v-model="form.kind" :options="itemKinds" :label="t('librefinance', 'Type')" />
-          <NcTextField v-model="form.price" :label="t('librefinance', 'Unit price')" placeholder="0,00"
+          <NcTextField v-model="form.price" :label="t('librefinance', 'Unit price')" :placeholder="w.amountInput(0, editingItem)"
             inputmode="decimal" required />
           <NcTextArea v-model="form.description" :label="t('librefinance', 'Additional description')" />
         </template>

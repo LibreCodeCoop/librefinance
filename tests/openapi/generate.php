@@ -168,6 +168,7 @@ $query = [
     'librefinance:banking#index' => 'bankAccountId:i,status:s,afterId:i,from:date,through:date',
     'librefinance:tax#index' => 'afterId:i',
     'librefinance:invoice#index' => 'afterId:i,kind:s,status:s,issueFrom:date,issueThrough:date',
+    'librefinance:invoice#duplicateCandidates' => 'invoiceId:i,kind:s,contactId:i,reference:s,issueOn:date,totalMinor:s,afterId:i',
     'librefinance_nfse:draft#index' => 'afterId:i',
 ];
 $descriptions = [
@@ -215,6 +216,7 @@ $descriptions = [
     'librefinance:governance#capabilities' => 'Authenticated user. Read whether context creation is permitted.',
     'librefinance:mcp#handle' => 'MCP read-only JSON-RPC; clients must use an authenticated Nextcloud app password and the negotiated 2025-06-18 protocol.',
     'librefinance:ai#analyze' => 'TaskProcessing: only aggregate totals, read-only, requires human consent; provider may be external.',
+    'librefinance:invoice#duplicateCandidates' => 'Read-only advisory candidates in an authorized workspace, kind, party and currency. Match an explicit normalized reference or exact total and issue date within three calendar days; use invoiceId alone to derive evidence from an existing document. Never treats a reference as an origin identity or modifies documents. Returns incomplete evidence separately from no candidate.',
     'librefinance:invoice#issue' => 'Internal commercial issue status only. This is NOT a fiscal authorization.',
     'librefinance:space#rename' => 'Only the owner may rename an active finance space.',
     'librefinance:space#archive' => 'Owner-only reversible archival. Preserves all accounting records and suspends other access.',
