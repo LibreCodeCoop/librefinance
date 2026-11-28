@@ -195,3 +195,10 @@ synthetic desktop/mobile states and verify exact integrated CI revision.
 This closes the audit/prototype deliverable only when reviewed and
 integrated. It does not close the broader UX epic or claim completed
 implementation of any proposed financial capability.
+
+Contact records keep optional contact information, billing address and shipping
+address in separate expandable native sections. A manager can create, edit or
+archive a record; authorized readers can inspect its details without writing.
+Changing a profile does not change the existing issued-document reference or
+financial postings. Enter an explicit country code only when known; no address
+or jurisdiction is inferred.
