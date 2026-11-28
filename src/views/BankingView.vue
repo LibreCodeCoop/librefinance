@@ -499,7 +499,7 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
             <td><time :datetime="row.booking_date">{{ formatLedgerDate(row.booking_date) }}</time></td>
             <td>{{bankName(row.bank_account_id)}}</td>
             <td><strong>{{row.description}}</strong></td>
-            <td class="lf-numeric">{{money(row.amount_minor)}}</td>
+            <td class="lf-numeric">{{money(row.amount_minor, row)}}</td>
             <td><span :class="row.status==='matched'?'lf-state lf-state-good':'lf-state lf-state-warning'">
               {{row.status==='matched'?t('librefinance', 'Reconciled'):t('librefinance', 'Pending')}}</span></td>
             <td v-if="writable"><NcButton v-if="row.status==='pending'"
@@ -529,7 +529,7 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
           <tbody><tr v-for="item in orderedTransfers" :key="item.id">
             <td><time :datetime="item.bookingDate">{{ formatLedgerDate(item.bookingDate) }}</time></td><td>{{bankName(item.fromAccountId)}}</td>
             <td>{{bankName(item.toAccountId)}}</td>
-            <td class="lf-numeric">{{money(item.amountMinor)}}</td>
+            <td class="lf-numeric">{{money(item.amountMinor, item)}}</td>
             <td><span class="lf-state lf-state-warning">{{ t('librefinance', 'Awaiting review') }}</span></td>
           </tr></tbody>
         </table></div>
@@ -588,7 +588,7 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
             <span>{{ t('librefinance', 'Date') }}</span><strong><time :datetime="reconcile.booking_date">{{ formatLedgerDate(reconcile.booking_date) }}</time></strong>
             <span>{{ t('librefinance', 'Financial account') }}</span><strong>{{ bankName(reconcile.bank_account_id) }}</strong>
             <span>{{ t('librefinance', 'Movement') }}</span><strong>{{ Number(reconcile.amount_minor) >= 0 ? t('librefinance', 'Inflow') : t('librefinance', 'Outflow') }}</strong>
-            <span>{{ t('librefinance', 'Statement amount') }}</span><strong>{{ money(reconcile.amount_minor) }}</strong>
+            <span>{{ t('librefinance', 'Statement amount') }}</span><strong>{{ money(reconcile.amount_minor, reconcile) }}</strong>
           </div>
           <small>{{ t('librefinance', 'In review. The corresponding journal entry must use the same account and amount.') }}</small>
         </div>

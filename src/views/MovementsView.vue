@@ -26,11 +26,10 @@ import ReconciliationSuggestions from '../components/ReconciliationSuggestions.v
 import CashPaymentDialog from '../components/CashPaymentDialog.vue'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import { financeApi, financeError } from '../services/api.js'
-import { ledgerLocale, toMinorUnits } from '../money.js'
 import { formatLedgerDate } from '../date.js'
 
-const amountPlaceholder = new Intl.NumberFormat(ledgerLocale(), { minimumFractionDigits: 2 }).format(0)
 const w = inject('lfWorkspace')
+const amountPlaceholder = computed(() => w.amountInput(0))
 const navigate = inject('lfNavigate', () => {})
 const focusedInvoice = inject('lfFocusedInvoice', ref(null))
 const directionHint = inject('lfFinanceDirectionHint', ref('all'))
@@ -514,7 +513,8 @@ async function save() {
   const spaceId = Number(w.activeId.value)
   let amountMinor
   try {
-    amountMinor = toMinorUnits(form.value.amount)
+    amountMinor = w.parseMoney(form.value.amount, ...(timing.value === 'posted'
+      ? [w.accountById(form.value.accountId), w.accountById(form.value.categoryId)] : []))
   } catch (cause) { formError.value = cause.message; return }
   if (!form.value.description.trim() || !amountMinor || amountMinor <= 0) {
     formError.value = t('librefinance', 'Enter a description and an amount greater than zero.')
@@ -577,7 +577,7 @@ async function saveTransfer() {
   const current = Number(w.activeId.value)
   const {fromId,toId,note,date} = transferForm.value
   let amountMinor
-  try { amountMinor = toMinorUnits(transferForm.value.amount) }
+  try { amountMinor = w.parseMoney(transferForm.value.amount, w.accountById(fromId), w.accountById(toId)) }
   catch (cause) { transferError.value = cause.message; return }
   if (!amountMinor || amountMinor <= 0
     || Number(fromId) === Number(toId)
@@ -653,7 +653,7 @@ const stateLabel = row => ({
 })[row.state] || row.state
 const directionLabel = row => row.kind==='transfer'?t('librefinance', 'Transfer'):
   row.kind==='in'?t('librefinance', 'Inflow'):t('librefinance', 'Outflow')
-const currency = row => w.money(row.amountMinor)
+const currency = row => w.money(row.amountMinor, row)
 </script>
 
 <template>
@@ -770,7 +770,7 @@ const currency = row => w.money(row.amountMinor)
     </p>
     <p v-if="showFilters && selectedBank" class="lf-muted lf-activity-balance">
       {{ t('librefinance', 'Recorded balance in {account}:', { account: selectedBank.name }, { escape: false, sanitize: false }) }}
-      <strong>{{w.money(selectedBank.balance_minor)}}</strong>
+      <strong>{{w.money(selectedBank.balance_minor, selectedBank)}}</strong>
     </p>
 
     <div v-if="loading && !rows.length" role="status" class="lf-loading">
@@ -924,7 +924,7 @@ const currency = row => w.money(row.amountMinor)
         </NcNoteCard>
         <p>{{ recurrenceRow.description }}</p>
         <p><strong>{{ t('librefinance', 'Template amount') }}:</strong>
-          {{ w.money(recurrenceResult?.amountMinor ?? recurrenceRow.totalMinor) }}</p>
+          {{ w.money(recurrenceResult?.amountMinor ?? recurrenceRow.totalMinor, recurrenceResult ?? recurrenceRow) }}</p>
         <LfSelect id="lf-recurrence-count" v-model="recurrenceCount"
           :label="t('librefinance', 'Occurrences')" :options="recurrenceCountOptions" />
         <LfSelect id="lf-recurrence-interval" v-model="recurrenceStepMonths"

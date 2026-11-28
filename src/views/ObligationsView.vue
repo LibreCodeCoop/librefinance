@@ -23,7 +23,6 @@ import LfDateField from '../components/LfDateField.vue'
 import CashPaymentDialog from '../components/CashPaymentDialog.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { formatLedgerDate } from '../date.js'
-import { toMinorUnits } from '../money.js'
 const props=defineProps({
   kind: { type: String, default: 'all' },
   embedded: { type: Boolean, default: false },
@@ -91,7 +90,7 @@ const dueChoices=[
   {value:'next7',label:t('librefinance', 'Next 7 days')},
 ]
 const signedAmount=(row,minor)=>
-  (row.kind==='receivable'?'+':'−')+money(Math.abs(Number(minor)))
+  (row.kind==='receivable'?'+':'−')+money(Math.abs(Number(minor)), row)
 const loading=ref(false)
 const error=ref('')
 const success=ref('')
@@ -226,7 +225,7 @@ async function create() {
   const result=await perform(async()=>financeApi('librefinance_obligations',
     activeId.value,'/obligations','POST',{
       kind:props.kind==='all'?draft.value.kind:props.kind,reference:draft.value.reference.trim(),
-      description:draft.value.description.trim(),amountMinor:toMinorUnits(draft.value.amount),
+      description:draft.value.description.trim(),amountMinor:w.parseMoney(draft.value.amount),
       issuedOn:draft.value.issuedOn,dueOn:draft.value.dueOn,
       contactId:Number(draft.value.contactId)||null,
     }),t('librefinance', 'Obligation recorded.'))
@@ -238,15 +237,14 @@ async function create() {
 }
 function beginSettlement(row) {
   settlement.value=row
-  settleForm.value={amount:(Math.floor(outstanding(row)/100)+','
-    +String(outstanding(row)%100).padStart(2,'0')),paidOn:today,note:''}
+  settleForm.value={amount:w.amountInput(outstanding(row), row),paidOn:today,note:''}
 }
 async function settle() {
   if(!settlement.value)return
   const target=settlement.value
   const result=await perform(async()=>financeApi('librefinance_obligations',
     activeId.value,'/obligations/'+target.id+'/settlements','POST',{
-      amountMinor:toMinorUnits(settleForm.value.amount),
+      amountMinor:w.parseMoney(settleForm.value.amount, target),
       paidOn:settleForm.value.paidOn,operationKey:'web:'+crypto.randomUUID(),
       note:settleForm.value.note.trim()||null,
     }),t('librefinance', 'Administrative settlement recorded. No journal entry was posted.'))
@@ -297,7 +295,7 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
     <NcNoteCard v-if="success" type="success" role="status">{{success}}</NcNoteCard>
     <NcNoteCard v-if="focusedError" type="error">{{focusedError}}</NcNoteCard>
     <NcNoteCard v-if="focusedRecord" type="info">
-      {{ t('librefinance', 'Selected record: {description} · {amount} outstanding.', { description: focusedRecord.description, amount: money(outstanding(focusedRecord)) }, { escape: false, sanitize: false }) }}
+      {{ t('librefinance', 'Selected record: {description} · {amount} outstanding.', { description: focusedRecord.description, amount: money(outstanding(focusedRecord), focusedRecord) }, { escape: false, sanitize: false }) }}
     </NcNoteCard>
     <section class="lf-surface">
       <div v-if="displayedRows.length || hasListedRecords" class="lf-section-heading lf-obligation-filters">
@@ -423,10 +421,10 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
                 {{signedAmount(row,outstanding(row))}}
               </strong>
               <span v-if="row.ledgerPaidMinor" class="lf-muted">
-                {{ t('librefinance', 'Posted: {amount}', { amount: money(row.ledgerPaidMinor) }, { escape: false, sanitize: false }) }}
+                {{ t('librefinance', 'Posted: {amount}', { amount: money(row.ledgerPaidMinor, row) }, { escape: false, sanitize: false }) }}
               </span>
               <span v-if="row.administrativePaidMinor" class="lf-muted">
-                {{ t('librefinance', 'Settlement without movement: {amount}', { amount: money(row.administrativePaidMinor) }, { escape: false, sanitize: false }) }}
+                {{ t('librefinance', 'Settlement without movement: {amount}', { amount: money(row.administrativePaidMinor, row) }, { escape: false, sanitize: false }) }}
               </span>
             </td>
             <td><span :class="overdue(row)?'lf-state lf-state-warning':'lf-state'">
@@ -503,7 +501,7 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
         <NcTextField v-model="draft.reference" :label="t('librefinance', 'Reference (optional)')"
           maxlength="80" />
         <NcTextField v-model="draft.amount" :label="t('librefinance', 'Amount')" inputmode="decimal"
-          placeholder="0,00" required />
+          :placeholder="w.amountInput(0)" required />
         <div class="lf-form-grid">
           <LfDateField id="lf-title-issued" v-model="draft.issuedOn" :label="t('librefinance', 'Issue date')" />
           <LfDateField id="lf-title-due" v-model="draft.dueOn" :label="t('librefinance', 'Due date')" />
@@ -522,12 +520,12 @@ onBeforeUnmount(()=>{++generation;++focusedSequence;if(searchTimer)clearTimeout(
       @update:open="settlement = $event ? settlement : null">
       <form class="lf-dialog-form" @submit.prevent="settle">
         <p v-if="settlement"><strong>{{settlement.description}}</strong>
-          · {{ t('librefinance', 'Outstanding: {amount}', { amount: money(outstanding(settlement)) }, { escape: false, sanitize: false }) }}</p>
+          · {{ t('librefinance', 'Outstanding: {amount}', { amount: money(outstanding(settlement), settlement) }, { escape: false, sanitize: false }) }}</p>
         <NcNoteCard type="warning">
           {{ t('librefinance', 'This settlement only updates the obligation. It does not record a bank inflow or outflow. Posting and reconciliation are separate steps.') }}
         </NcNoteCard>
         <NcTextField v-model="settleForm.amount" :label="t('librefinance', 'Settlement amount')"
-          inputmode="decimal" placeholder="0,00" required />
+          inputmode="decimal" :placeholder="w.amountInput(0)" required />
         <LfDateField id="lf-settle-date" v-model="settleForm.paidOn" :label="t('librefinance', 'Date')" />
         <NcTextField v-model="settleForm.note" :label="t('librefinance', 'Note')" maxlength="255" />
         <div class="lf-form-actions">
