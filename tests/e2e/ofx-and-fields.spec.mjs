@@ -55,7 +55,9 @@ test('OFX 1.x bank file imports inline without posting a second journal', async 
     name:'statement.ofx',mimeType:'application/x-ofx',buffer:latinOfx,
   })
   await expect(importing.getByText('statement.ofx')).toBeVisible()
-  await importing.getByRole('button',{name:'Importar OFX para conferir'}).click()
+  await importing.getByRole('button',{name:'Pré-visualizar extrato',exact:true}).click()
+  await expect(importing.getByRole('region',{name:'Prévia da importação do extrato'})).toBeVisible()
+  await importing.getByRole('button',{name:'Confirmar importação',exact:true}).click()
   await expect(importing).toHaveCount(0)
   await expect(page.getByRole('heading',{name:'Movimentações'})).toBeVisible()
   const pending=page.getByRole('row',{name:new RegExp(description)})
@@ -69,7 +71,9 @@ test('OFX 1.x bank file imports inline without posting a second journal', async 
   await repeated.locator('input[type=file]').setInputFiles({
     name:'statement.ofx',mimeType:'application/x-ofx',buffer:latinOfx,
   })
-  await repeated.getByRole('button',{name:'Importar OFX para conferir'}).click()
+  await repeated.getByRole('button',{name:'Pré-visualizar extrato',exact:true}).click()
+  await expect(repeated.getByRole('region',{name:'Prévia da importação do extrato'})).toBeVisible()
+  await repeated.getByRole('button',{name:'Confirmar importação',exact:true}).click()
   await expect(repeated).toHaveCount(0)
   await expect(pending).toHaveCount(1)
   await expect(page.getByRole('status')).toContainText('Movimentações importadas: 0;')

@@ -13,7 +13,7 @@ test('contextual bank statement localizes import and preserves exact evidence ac
   await expect(page.getByText('No movements imported', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Import statement', exact: true }).click()
   const dialog = page.getByRole('dialog', { name: 'Import bank statement' })
-  await expect(dialog.getByRole('button', { name: 'Import for review' })).toBeDisabled()
+  await expect(dialog.getByRole('button', { name: 'Preview statement' })).toBeDisabled()
   const description = 'Synthetic bank evidence ' + Date.now().toString(36)
   const date = '2026-11-20'
   await dialog.locator('input[type=file]').setInputFiles({
@@ -22,7 +22,9 @@ test('contextual bank statement localizes import and preserves exact evidence ac
   })
   await expect(dialog.getByText('synthetic.csv', { exact: true })).toBeVisible()
   const imported = page.waitForResponse(r => r.request().method() === 'POST' && /\/imports$/.test(r.url()))
-  await dialog.getByRole('button', { name: 'Import for review' }).click()
+  await dialog.getByRole('button', { name: 'Preview statement' }).click()
+  await expect(dialog.getByRole('region', { name: 'Statement import preview' })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Confirm import', exact: true }).click()
   const response = await imported
   expect(response.status()).toBe(201)
   expect((await response.json()).imported).toBe(1)
@@ -65,7 +67,9 @@ test('statement period filters imported evidence without changing the ledger', a
     name: 'period.csv', mimeType: 'text/csv', buffer: Buffer.from(csv),
   })
   const imported = page.waitForResponse(r => r.request().method() === 'POST' && /\/imports$/.test(r.url()))
-  await dialog.getByRole('button', { name: 'Import for review' }).click()
+  await dialog.getByRole('button', { name: 'Preview statement' }).click()
+  await expect(dialog.getByRole('region', { name: 'Statement import preview' })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Confirm import', exact: true }).click()
   const response = await imported
   expect(response.status()).toBe(201)
   expect((await response.json()).imported).toBe(2)

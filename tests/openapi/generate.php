@@ -82,7 +82,8 @@ $writeForms = [
         'kind:s!,description:s!,amountMinor:i!,issuedOn:date!,dueOn:date!,reference:s,contactId:i',
     'librefinance:obligation#settle' =>
         'amountMinor:i!,paidOn:date!,operationKey:s!,note:s',
-    'librefinance:banking#import' => 'bankAccountId:i!,format:s,csv:s,ofx:s',
+    'librefinance:banking#import' => 'bankAccountId:i!,format:s,csv:s,ofx:s,previewHash:s',
+    'librefinance:banking#previewImport' => 'bankAccountId:i!,format:s,csv:s,ofx:s',
     'librefinance:banking#match' => 'journalId:i!',
     'librefinance:tax#create' =>
         'code:s!,label:s!,country:s!,region:s,kind:s!,rateBps:i!,inclusive:b!,validFrom:date!,validThrough:date,sourceRef:s!',
@@ -230,7 +231,8 @@ $descriptions = [
     'librefinance:movement#apply' => 'Explicitly approved historical bank movement import. Creates pending bank statements only, never ledger postings or transfers.',
     'librefinance:transfer#apply' => 'Stages linked source bank transfers without duplicating statement lines or ledger postings. Source transfer legs remain unmatched.',
     'librefinance:inventory#preview' => 'Read-only coverage audit against an externally supplied untrusted source inventory. Count parity is never proof of financial or fiscal functional parity.',
-    'librefinance:banking#import' => 'CSV import only; does not initiate bank API synchronization.',
+    'librefinance:banking#import' => 'CSV/OFX pending evidence import. Optional previewHash binds the authorized normalized input and current replay/conflict state; legacy callers may omit it. No bank synchronization or journal posting.',
+    'librefinance:banking#previewImport' => 'Read-only CSV/OFX review with the same parser, account, policy and currency checks as import. Returns new/replayed/conflicting rows and a fingerprint only when ready; strict parser failures return a file diagnostic without partial rows.',
     'librefinance:reconciliation#candidates' => 'Read-only advisory candidates for one pending bank evidence item, exact signed amount/account, inclusive zero-to-thirty-day window. Excludes bank claims and reversals; cursor continuation. Never matches automatically; confirmation revalidates existing authority.',
 ];
 
@@ -560,6 +562,7 @@ foreach ($apps as $app) {
                 'librefinance:transfer#preview',
                 'librefinance:transfer#apply',
                 'librefinance:inventory#preview',
+                'librefinance:banking#previewImport',
                 'librefinance:banking#match',
                 'librefinance:module#toggle',
             ], true) => '200',

@@ -24,6 +24,8 @@ import LfDateField from '../components/LfDateField.vue'
 import LfSelect from '../components/LfSelect.vue'
 import ReconciliationSuggestions from '../components/ReconciliationSuggestions.vue'
 import CashPaymentDialog from '../components/CashPaymentDialog.vue'
+import StatementImportPreview from '../components/StatementImportPreview.vue'
+import { useStatementImportPreview } from '../composables/useStatementImportPreview.js'
 import CustomFieldsPanel from '../components/CustomFieldsPanel.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { formatLedgerDate } from '../date.js'
@@ -150,7 +152,6 @@ const csvExample = 'data:text/csv;charset=utf-8,' + encodeURIComponent(
   'id,date,amount,description\nexemplo-001,2026-11-22,-25.90,Pagamento de exemplo\n'
   + 'exemplo-002,2026-11-22,150.00,Recebimento de exemplo\n')
 const importError = ref('')
-const importing = ref(false)
 const bankBusy = ref(false)
 const reconcileRow = ref(null)
 const journalId = ref(0)
@@ -227,7 +228,7 @@ function closeImport() {
   importError.value=''
 }
 function chooseImportFile(files) {
-  importError.value=''
+  resetImportPreview()
   if (!Array.isArray(files) || files.length !== 1) {
     importFile.value=null
     importError.value=t('librefinance', 'Select only one file.')
@@ -246,52 +247,24 @@ function chooseImportFile(files) {
   }
   importFile.value=file
 }
-async function importStatement() {
-  if (!importFile.value || !importAccount.value || importing.value
-    || !w.writable.value || !canReviewBank.value
-    || !allowedBankFormats.value.includes(importFormat.value)) return
-  importError.value=''
-  const token=++bankActionVersion
-  const spaceId=Number(w.activeId.value)
-  const bankId=Number(importAccount.value)
-  importing.value=true
-  try {
-    if(importFile.value.size>262144)throw new Error(t('librefinance', 'File exceeds the 256 KiB limit.'))
-    // File.text() assumes UTF-8; bank OFX frequently declares Windows-1252.
-    // Decode locally by the documented header, using fatal mode for UTF-8
-    // rather than silently replacing accented descriptions.
-    const bytes=new Uint8Array(await importFile.value.arrayBuffer())
-    let charset='utf-8'
-    if(importFormat.value==='ofx') {
-      const header=new TextDecoder('windows-1252').decode(bytes.slice(0,512))
-      const numeric=header.match(/^CHARSET:\s*(\d+)\s*$/mi)?.[1]
-      const xml=header.match(/<\?xml[^>]*encoding=['"]([^'"]+)['"]/i)?.[1]?.toLowerCase()
-      if(numeric==='1252' || ['windows-1252','cp1252'].includes(xml))charset='windows-1252'
-      else if(numeric==='8859' || ['iso-8859-1','latin1'].includes(xml))charset='iso-8859-1'
-      else if(numeric && !['65001'].includes(numeric))
-        throw new Error(t('librefinance', 'Unknown OFX encoding: {encoding}', { encoding: numeric }, { escape: false, sanitize: false }))
-      else if(xml && !['utf-8','utf8'].includes(xml))
-        throw new Error(t('librefinance', 'Unknown OFX encoding: {encoding}', { encoding: xml }, { escape: false, sanitize: false }))
-    }
-    const csv=new TextDecoder(charset,{fatal:true}).decode(bytes)
-    if(token!==bankActionVersion || spaceId!==Number(w.activeId.value))return
-    const result=await financeApi('librefinance_banking',spaceId,
-      '/imports','POST',importFormat.value==='ofx'
-        ? {bankAccountId:bankId,format:'ofx',ofx:csv}
-        : {bankAccountId:bankId,format:'csv',csv})
-    if(token!==bankActionVersion || spaceId!==Number(w.activeId.value))return
-    importOpen.value=false
-    importFile.value=null
-    success.value = t('librefinance', 'Imported movements: {imported}; already present: {skipped}. Review pending items in the list.', { imported: result.imported, skipped: result.skipped }, { escape: false, sanitize: false })
-    if(accountFilter.value!==bankId)setAccount(bankId)
-    else await load()
-  } catch (cause) {
-    if(token===bankActionVersion && spaceId===Number(w.activeId.value))
-      importError.value=financeError(cause)
-  } finally {
-    if(token===bankActionVersion)importing.value=false
-  }
-}
+const importAllowed = computed(() => w.writable.value && canReviewBank.value
+  && Number(w.space.value?.id) === Number(w.activeId.value)
+  && !bankFormatsLoading.value && allowedBankFormats.value.includes(importFormat.value)
+  && banks.value.some(bank => Number(bank.id) === Number(importAccount.value)))
+const { preview: importPreview, previewing, confirming: importing, canConfirm: canConfirmImport,
+  reset: resetImportPreview, review: reviewStatementImport, confirm: importStatement } =
+  useStatementImportPreview({
+    spaceId: w.activeId, account: importAccount, file: importFile, format: importFormat,
+    allowed: importAllowed, open: importOpen, error: importError,
+    async onConfirmed(result, bankId) {
+      closeImport()
+      success.value = t('librefinance', 'Imported movements: {imported}; already present: {skipped}. Review pending items in the list.', {
+        imported: result.imported, skipped: result.skipped,
+      })
+      if (accountFilter.value !== bankId) setAccount(bankId)
+      else await load()
+    },
+  })
 function reviewStatement(row) {
   if (!w.writable.value || !canReviewBank.value
     || row.source!=='statement' || row.state!=='pending'
@@ -623,7 +596,7 @@ watch([w.activeId,w.modulesLoadedFor], () => {
   importOpen.value=false
   importFile.value=null
   importError.value=''
-  importing.value=false
+  resetImportPreview()
   clearSuggestedJournal()
   reconcileRow.value=null
   journalId.value=0
@@ -841,8 +814,8 @@ const currency = row => w.money(row.amountMinor, row)
     <NcDialog :open="importOpen" size="normal"
       content-classes="lf-finance-dialog-content" :name="t('librefinance', 'Import {format} statement', { format: importFormat.toUpperCase() }, { escape: false, sanitize: false })"
       @update:open="!$event && closeImport()">
-      <form class="lf-dialog-form" @submit.prevent="importStatement">
-        <p>{{ t('librefinance', 'Import the {format} bank statement. Movements will appear here as Pending review, without duplicating payments.', { format: importFormat.toUpperCase() }, { escape: false, sanitize: false }) }}</p>
+      <form class="lf-dialog-form" @submit.prevent="reviewStatementImport">
+        <p v-if="!importPreview">{{ t('librefinance', 'Import the {format} bank statement. Movements will appear here as Pending review, without duplicating payments.', { format: importFormat.toUpperCase() }, { escape: false, sanitize: false }) }}</p>
         <NcNoteCard v-if="importError" type="error" role="alert">{{importError}}</NcNoteCard>
         <LfSelect v-if="banks.length>1" id="lf-import-bank"
           v-model="importAccount" :label="t('librefinance', 'Statement account')"
@@ -855,20 +828,27 @@ const currency = row => w.money(row.amountMinor, row)
           :accept="importFormat==='csv'?['.csv','text/csv']:['.ofx','application/x-ofx']"
           @pick="chooseImportFile" />
         <p class="lf-muted" role="status">{{importFile?.name||t('librefinance', 'No file selected')}}</p>
-        <template v-if="importFormat==='csv'">
-          <p class="lf-muted">{{ t('librefinance', 'CSV: columns {columns}, with a decimal point and negative amounts for outflows.', { columns: 'id,date,amount,description' }, { escape: false, sanitize: false }) }}</p>
-          <NcButton variant="tertiary" :href="csvExample" download="exemplo-extrato.csv">
-            {{ t('librefinance', 'Download CSV example') }}
-          </NcButton>
+        <template v-if="!importPreview">
+          <template v-if="importFormat==='csv'">
+            <p class="lf-muted">{{ t('librefinance', 'CSV: columns {columns}, with a decimal point and negative amounts for outflows.', { columns: 'id,date,amount,description' }, { escape: false, sanitize: false }) }}</p>
+            <NcButton variant="tertiary" :href="csvExample" download="exemplo-extrato.csv">
+              {{ t('librefinance', 'Download CSV example') }}
+            </NcButton>
+          </template>
+          <p v-else class="lf-muted">{{ t('librefinance', 'OFX: bank statement with FITID identifiers, date and amount. OFX 1.x and 2.x are accepted, one statement per file.') }}</p>
+          <p class="lf-muted">{{ t('librefinance', 'The file is read only for import; it is not stored in Files. Limit: 256 KiB and 500 movements.') }}</p>
         </template>
-        <p v-else class="lf-muted">{{ t('librefinance', 'OFX: bank statement with FITID identifiers, date and amount. OFX 1.x and 2.x are accepted, one statement per file.') }}</p>
-        <p class="lf-muted">{{ t('librefinance', 'The file is read only for import; it is not stored in Files. Limit: 256 KiB and 500 movements.') }}</p>
+        <StatementImportPreview v-if="importPreview" :preview="importPreview" />
         <div class="lf-form-actions">
-          <NcButton variant="tertiary" :disabled="importing"
+          <NcButton variant="tertiary" type="button" :disabled="importing"
             @click="closeImport">{{ t('librefinance', 'Cancel') }}</NcButton>
-          <NcButton variant="primary" type="submit"
-            :disabled="importing||!importAccount||!importFile||!allowedBankFormats.includes(importFormat)">
-            {{importing?t('librefinance', 'Importing…'):t('librefinance', 'Import {format} for review', { format: importFormat.toUpperCase() }, { escape: false, sanitize: false })}}
+          <NcButton :variant="canConfirmImport ? 'secondary' : 'primary'" type="submit"
+            :disabled="importing || previewing || !importAllowed || !importFile">
+            {{ previewing ? t('librefinance', 'Reviewing statement…') : t('librefinance', 'Preview statement') }}
+          </NcButton>
+          <NcButton v-if="importPreview?.ready" variant="primary" type="button"
+            :disabled="!canConfirmImport" @click="importStatement">
+            {{ t('librefinance', 'Confirm import') }}
           </NcButton>
         </div>
       </form>

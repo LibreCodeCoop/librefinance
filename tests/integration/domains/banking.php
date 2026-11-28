@@ -48,8 +48,62 @@ $t->checkModule('empty bank statement', $a, $app, 'GET', $base . '/transactions'
     static fn(array $v): bool => ($v['transactions'] ?? null) === []);
 $t->checkModule('B cannot view bank statement', $b, $app, 'GET', $base . '/transactions', null, 404);
 $import = ['bankAccountId' => $bankId, 'csv' => $csv];
-$t->checkModule('import 3 CSV rows', $a, $app, 'POST', $base . '/imports', $import, 201,
+$previewPath = $base . '/imports/preview';
+$ledgerBefore = $t->request($a, 'GET', $base . '/journals');
+$balancesBefore = $t->request($a, 'GET', $base . '/accounts');
+$preview = $t->checkModule('CSV preview has exact row evidence without posting', $a, $app, 'POST',
+    $previewPath, $import, 200, static fn(array $v): bool =>
+        $v['ready'] === true && $v['postingCreated'] === false
+        && $v['counts'] === ['new' => 3, 'replayed' => 0, 'conflicting' => 0]
+        && array_column($v['rows'], 'amountMinor') === [10000, -2500, 500]
+        && $v['rows'][2]['description'] === 'Quoted, description'
+        && $v['fileError'] === null && strlen($v['previewHash']) === 64);
+$t->checkModule('preview left statement empty', $a, $app, 'GET', $base . '/transactions', null, 200,
+    static fn(array $v): bool => $v['transactions'] === []);
+$t->record('preview does not change journals or account balances',
+    $t->request($a, 'GET', $base . '/journals') === $ledgerBefore
+    && $t->request($a, 'GET', $base . '/accounts') === $balancesBefore, 'before/after ledger reads');
+$t->checkModule('repeat preview has the same fingerprint for the same evidence', $a, $app, 'POST',
+    $previewPath, $import, 200, static fn(array $v): bool => $v['previewHash'] === $preview['previewHash']);
+$t->checkModule('stale changed valid file cannot be confirmed', $a, $app, 'POST',
+    $base . '/imports', array_replace($import, ['csv' => str_replace('100.00', '101.00', $csv),
+        'previewHash' => $preview['previewHash']]), 409,
+    static fn(array $v): bool => $v['error'] === 'bank_import_preview_changed');
+$t->checkModule('malformed file returns no fabricated counts and exact failing row', $a, $app, 'POST',
+    $previewPath, array_replace($import, ['csv' => $csv . "bad-$tag,2026-11-20,invalid,Bad amount\n"]),
+    200, static fn(array $v): bool => !$v['ready'] && $v['previewHash'] === null && $v['counts'] === null
+        && $v['rows'] === [] && $v['fileError'] === [
+            'classification' => 'malformed', 'code' => 'invalid_csv_amount', 'row' => 4]);
+$t->checkModule('unsupported statement format diagnosed without parsing', $a, $app, 'POST',
+    $previewPath, array_replace($import, ['format' => 'qif']), 200,
+    static fn(array $v): bool => !$v['ready'] && $v['fileError']['classification'] === 'unsupported');
+$t->checkModule('denied preview does not disclose rows to outsider', $b, $app, 'POST',
+    $previewPath, $import, 404);
+$t->checkModule('invalid account denied before preview parsing', $a, $app, 'POST',
+    $previewPath, ['bankAccountId' => 9999999, 'csv' => 'malformed'], 404);
+$t->checkModule('non-bank account denied before preview parsing', $a, $app, 'POST',
+    $previewPath, ['bankAccountId' => $byCode['4000'], 'csv' => $csv], 404);
+
+$t->checkModule('import 3 CSV rows', $a, $app, 'POST', $base . '/imports', $import + ['previewHash' => $preview['previewHash']], 201,
     static fn(array $v): bool => ($v['imported'] ?? null) === 3 && ($v['skipped'] ?? null) === 0);
+$t->checkModule('original preview cannot authorize a different replay state', $a, $app, 'POST',
+    $base . '/imports', $import + ['previewHash' => $preview['previewHash']], 409,
+    static fn(array $v): bool => $v['error'] === 'bank_import_preview_changed');
+$replay = $t->checkModule('fresh preview classifies all original rows as replays', $a, $app, 'POST',
+    $previewPath, $import, 200, static fn(array $v): bool => $v['ready']
+        && $v['counts'] === ['new' => 0, 'replayed' => 3, 'conflicting' => 0]
+        && array_unique(array_column($v['rows'], 'classification')) === ['replayed']);
+$t->checkModule('explicit replay confirmation creates no new entries', $a, $app, 'POST',
+    $base . '/imports', $import + ['previewHash' => $replay['previewHash']], 201,
+    static fn(array $v): bool => $v['imported'] === 0 && $v['skipped'] === 3);
+$t->checkModule('conflict preview reports changed ID and no confirmation hash', $a, $app, 'POST',
+    $previewPath, array_replace($import, ['csv' => str_replace('100.00', '99.00', $csv)]),
+    200, static fn(array $v): bool => !$v['ready'] && $v['previewHash'] === null
+        && $v['counts'] === ['new' => 0, 'replayed' => 2, 'conflicting' => 1]
+        && $v['rows'][0]['classification'] === 'conflicting');
+$t->record('confirmed pending evidence still does not change the ledger',
+    $t->request($a, 'GET', $base . '/journals') === $ledgerBefore
+    && $t->request($a, 'GET', $base . '/accounts') === $balancesBefore, 'before/after ledger reads');
 $t->checkModule('re-import skips all rows', $a, $app, 'POST', $base . '/imports', $import, 201,
     static fn(array $v): bool => ($v['imported'] ?? null) === 0 && ($v['skipped'] ?? null) === 3);
 $t->checkModule('same external id different amount is conflict', $a, $app, 'POST',
@@ -100,6 +154,10 @@ $t->checkModule('matched filter returns two rows', $a, $app, 'GET',
     static fn(array $v): bool => count($v['transactions'] ?? []) === 2);
 $t->check('disable bank extension in this space', $a, 'PUT',
     $base . '/modules/' . $app, ['enabled' => false], 200);
+$t->checkModule('disabled bank extension also denies preview', $a, $app, 'POST',
+    $previewPath, $import, 403);
+$t->checkModule('disabled bank extension rejects prior valid fingerprint', $a, $app, 'POST',
+    $base . '/imports', $import + ['previewHash' => $replay['previewHash']], 403);
 $t->checkModule('disabled bank extension denies imports', $a, $app, 'POST',
     $base . '/imports', $import, 403,
     static fn(array $v): bool => ($v['error'] ?? null) === 'module_disabled');
@@ -109,6 +167,8 @@ $t->check('grant B viewer', $a, 'POST', $base . '/members',
     ['uid' => $b, 'role' => 'viewer'], 200);
 $t->checkModule('bank viewer can see imported lines', $b, $app, 'GET',
     $base . '/transactions', null, 200);
+$t->checkModule('bank viewer cannot inspect upload evidence as an importer', $b, $app, 'POST',
+    $previewPath, $import, 403);
 $t->checkModule('bank viewer cannot match', $b, $app, 'POST',
     $base . '/transactions/' . $extra['id'] . '/match',
     ['journalId' => $journalIncome['id']], 403);
@@ -123,8 +183,22 @@ $ofx = "OFXHEADER:100\nDATA:OFXSGML\nVERSION:102\nCHARSET:1252\n"
     . "<FITID>ofx-income-$tag\n<NAME>Synthetic OFX income\n</STMTTRN>"
     . "</BANKTRANLIST></STMTRS></OFX>";
 $ofxPayload = ['bankAccountId' => $bankId, 'format' => 'ofx', 'ofx' => $ofx];
+$ofxReview = $t->checkModule('OFX preview returns exact FITID and signed amount', $a, $app, 'POST',
+    $previewPath, $ofxPayload, 200, static fn(array $v): bool => $v['ready']
+        && $v['counts'] === ['new' => 2, 'replayed' => 0, 'conflicting' => 0]
+        && array_column($v['rows'], 'amountMinor') === [-935, 1550]
+        && $v['currency'] === 'BRL');
+$t->checkModule('OFX currency mismatch is an unsupported diagnostic', $a, $app, 'POST',
+    $previewPath, array_replace($ofxPayload, ['ofx' => str_replace('<CURDEF>BRL', '<CURDEF>USD', $ofx)]),
+    200, static fn(array $v): bool => !$v['ready'] && $v['fileError']['classification'] === 'unsupported'
+        && $v['fileError']['code'] === 'bank_import_currency_mismatch');
+$t->checkModule('OFX invalid second transaction identifies the logical row', $a, $app, 'POST',
+    $previewPath, array_replace($ofxPayload, ['ofx' => str_replace('15.50', 'bad', $ofx)]),
+    200, static fn(array $v): bool => !$v['ready'] && $v['fileError']['row'] === 2
+        && $v['fileError']['code'] === 'invalid_ofx_amount' && $v['rows'] === []);
+
 $t->checkModule('OFX 1.x imports two evidence rows', $a, $app, 'POST',
-    $base . '/imports', $ofxPayload, 201,
+    $base . '/imports', $ofxPayload + ['previewHash' => $ofxReview['previewHash']], 201,
     static fn(array $v): bool => ($v['imported'] ?? null) === 2
         && ($v['skipped'] ?? null) === 0);
 $t->checkModule('repeated OFX is idempotent', $a, $app, 'POST',
@@ -193,4 +267,23 @@ $t->checkModule('reversed statement period is rejected', $a, $app, 'GET',
     static fn(array $v): bool => $v['error'] === 'invalid_period');
 $t->checkModule('period filter does not reveal another workspace', $b, $app,
     'GET', $periodPath, null, 404);
+
+// Two confirmations of the very same new evidence must not silently
+// reinterpret the second confirmation as a replay of a different state.
+$race = ['bankAccountId' => $bankId, 'csv' => "id,date,amount,description\nrace-$tag,2026-11-22,1.23,Synthetic concurrent preview\n"];
+$racePreview = $t->checkModule('preview racing confirmations', $a, $app, 'POST', $previewPath, $race, 200);
+$race['previewHash'] = $racePreview['previewHash'];
+[$raceA, $raceB] = $t->parallel(
+    ['user' => $a, 'method' => 'POST', 'path' => $base . '/imports', 'data' => $race, 'module' => $app],
+    ['user' => $a, 'method' => 'POST', 'path' => $base . '/imports', 'data' => $race, 'module' => $app],
+);
+$raceCodes = [$raceA['code'], $raceB['code']];
+sort($raceCodes);
+$t->record('only one confirmation succeeds for a new-row preview', $raceCodes === [201, 409],
+    'codes ' . implode(',', $raceCodes));
+$t->checkModule('racing preview writes exactly one pending transaction', $a, $app, 'GET',
+    $base . '/transactions?from=2026-11-22&through=2026-11-22', null, 200,
+    static fn(array $v): bool => count($v['transactions']) === 1
+        && $v['transactions'][0]['amount_minor'] === 123
+        && $v['transactions'][0]['status'] === 'pending');
 $t->finish();

@@ -155,7 +155,9 @@ test('bank evidence is imported and reconciled inline without a second financial
     name:'bank-evidence.csv',mimeType:'text/csv',
     buffer:Buffer.from('id,date,amount,description\n'+id+',2026-11-22,-32.10,E2E bank evidence of water\n'),
   })
-  await importing.getByRole('button',{name:'Importar CSV para conferir'}).click()
+  await importing.getByRole('button',{name:'Pré-visualizar extrato',exact:true}).click()
+  await expect(importing.getByRole('region',{name:'Prévia da importação do extrato'})).toBeVisible()
+  await importing.getByRole('button',{name:'Confirmar importação',exact:true}).click()
   await expect(importing).toHaveCount(0)
   await expect(page.getByRole('heading',{name:'Movimentações',exact:true})).toBeVisible()
   await expect(posted).toHaveCount(1)

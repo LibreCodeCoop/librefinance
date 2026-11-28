@@ -89,6 +89,53 @@ Preços são inteiros em centavos (BRL) no domínio atual, inclusive zero. Estoq
 `GET /spaces/{spaceId}/transactions?bankAccountId=1&status=pending&from=2026-11-01&through=2026-11-30` consulta movimentações importadas no espaço autorizado. As datas de lançamento do extrato (`booking_date`) são inclusivas e independentes: omita `from` ou `through` para deixar o respectivo limite aberto. Use datas ISO gregorianas (`YYYY-MM-DD`); datas inválidas ou intervalo invertido retornam 422.
 Os filtros de conta, situação e data são aplicados antes da paginação por ID. A resposta mantém `transactions` (até 50 registros) e `nextAfterId`; use os mesmos filtros nas páginas seguintes. Movimentações pendentes são evidências, não lançamentos no razão. Esta consulta não calcula totais de extrato.
 
+### Prévia e confirmação da importação de extrato
+
+`POST /spaces/{spaceId}/imports/preview` recebe o mesmo arquivo e conta de
+destino do contrato de importação existente:
+
+```json
+{"bankAccountId":1,"format":"csv","csv":"id,date,amount,description\nmov-001,2026-11-20,-25.90,Pagamento sintético\n"}
+```
+
+Para OFX, informe `format: "ofx"` e `ofx` com o conteúdo, sem `csv`.
+O limite continua sendo 256 KiB e 500 movimentações; a prévia aplica o
+mesmo parser estrito e a mesma autorização de importação, incluindo a
+conta bancária ativa e as políticas vigentes. A moeda do OFX, quando
+informada, deve corresponder à da conta. O contrato de importação
+continua usando duas casas decimais.
+
+O retorno 200 (`contractVersion: 1`) informa a conta, formato, moeda,
+`currencyPrecision`, `counts` de `new`, `replayed` e `conflicting`,
+e `rows` com a posição lógica, identificador externo normalizado, data,
+valor inteiro em unidades mínimas, descrição e classificação. Uma linha
+repetida tem o mesmo identificador na mesma conta, data, valor e descrição.
+Conflitos não são sobrescritos. Se o parser rejeitar o arquivo inteiro,
+`counts` será nulo, sem linhas parciais, e `fileError` terá
+`classification` (malformed/unsupported), `code` e `row` quando
+identificável (posição lógica dos registros, não linha física do arquivo).
+Não há gravação de extrato, auditoria, arquivo ou lançamento nesta etapa;
+`postingCreated` é sempre falso.
+
+Quando `ready` for verdadeiro, a resposta inclui `previewHash`.
+Confirme com `POST /spaces/{spaceId}/imports` reenviando o mesmo
+payload e esse hash. Ele é vinculado à identidade autenticada, gestão,
+conta, formato, conteúdo recebido, dados normalizados, moeda, políticas
+efetivas e evidência existente pertinente. Não é uma credencial ou
+reserva permanente. A confirmação reserva a conta na transação, revalida
+a autorização e o parser, consulta o estado corrente e rejeita uma
+prévia alterada com 409 (`bank_import_preview_changed`); revogação de
+acesso ou conta indisponível mantém 403/404. Em caso de erro ou resposta
+incerta, faça nova prévia. Nunca confirme automaticamente. A criação
+registra somente evidência pendente e sua auditoria, não dinheiro
+contabilizado. A resposta 201 mantém `imported`, `skipped` e `currency`.
+
+O endpoint de importação continua compatível com clientes antigos que
+não enviam `previewHash`; nesses casos aplica as validações e
+idempotência existentes sem exigir etapa anterior. A interface nativa
+exige confirmação após a prévia. Alterar arquivo, conta, formato ou
+gestão invalida a prévia visível.
+
 ## Sugestões de conciliação bancária
 
 GET /spaces/{spaceId}/transactions/{transactionId}/reconciliation-candidates?windowDays=3&afterId=0
@@ -114,6 +161,7 @@ candidato: as condições podem mudar, e a confirmação continua exigindo
 POST /transactions/{transactionId}/match, que revalida conta, valor,
 estado, autorização e reivindicação em transação. A revisão manual permanece
 disponível e a ausência de sugestões não autoriza criar um novo lançamento.
+
 
 ## Movimentações financeiras
 `GET /spaces/{spaceId}/activity` aceita `from` e `through` como limites inclusivos opcionais em datas ISO gregorianas. A data filtrada é a data efetiva do lançamento, o vencimento do compromisso ou a data do extrato, conforme a origem de cada movimentação. Os limites são combinados com os filtros existentes antes da paginação; mantenha os mesmos filtros ao utilizar `nextCursor`. O filtro não altera os valores nem transforma compromissos ou evidências em lançamentos realizados.

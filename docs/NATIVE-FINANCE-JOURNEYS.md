@@ -119,9 +119,15 @@ Existing Migration route:
   [Back] [Explicit permitted operation, only when backend supports it]
 ```
 
-The statement preview, if added, is a new server-side dry-run contract,
-not a client-side promise. The existing evidence import remains distinct
-from ledger posting. Do not enable neutral historical application before
+The statement preview is a server-side dry-run contract on
+`POST /imports/preview`, not a client-side promise. Both the Financial
+movements and account statement dialogs use it. The user reviews exact
+pending amounts, replayed IDs and conflicts, or a strict parser diagnostic.
+The confirmation button is available only for a ready fingerprint, and
+resubmits the same file and account with that fingerprint. Changes to the
+selection, cancellation and obsolete asynchronous responses discard
+the preview. A stale state or failure requires a fresh preview. The
+existing evidence import remains distinct from ledger posting. Do not enable neutral historical application before
 destination mapping, idempotency, reconciliation and permissions exist.
 Rejected or inaccessible resources are not "0 records". Use a modal only
 for bounded actions; the multi-step migration remains in its existing route.
