@@ -89,6 +89,32 @@ Preços são inteiros em centavos (BRL) no domínio atual, inclusive zero. Estoq
 `GET /spaces/{spaceId}/transactions?bankAccountId=1&status=pending&from=2026-11-01&through=2026-11-30` consulta movimentações importadas no espaço autorizado. As datas de lançamento do extrato (`booking_date`) são inclusivas e independentes: omita `from` ou `through` para deixar o respectivo limite aberto. Use datas ISO gregorianas (`YYYY-MM-DD`); datas inválidas ou intervalo invertido retornam 422.
 Os filtros de conta, situação e data são aplicados antes da paginação por ID. A resposta mantém `transactions` (até 50 registros) e `nextAfterId`; use os mesmos filtros nas páginas seguintes. Movimentações pendentes são evidências, não lançamentos no razão. Esta consulta não calcula totais de extrato.
 
+## Sugestões de conciliação bancária
+
+GET /spaces/{spaceId}/transactions/{transactionId}/reconciliation-candidates?windowDays=3&afterId=0
+é uma consulta de revisão, sem criação de registros, lançamentos ou vínculos.
+Requer as capacidades de conciliação, leitura e postagem do razão e uso da
+conta bancária ativa. A conta, a moeda, o valor com sinal e a data são
+obtidos exclusivamente do extrato pendente autorizado. A janela é inclusiva,
+de zero a trinta dias para cada lado da data do extrato (padrão três).
+A referência externa é devolvida como evidência, mas o identificador
+idempotente do lançamento não equivale a uma referência de origem bancária:
+sourceReferenceComparison é unavailable, sem associação inferida.
+
+Os candidatos usam o mesmo espaço, conta, moeda e valor exato, com
+lançamento efetivado dentro da janela. São excluídos estornos, originais
+estornados, registros já conciliados e journals reivindicados pelo módulo
+bancário. Vínculos independentes de outros módulos não são tratados como
+conciliação. O resultado distingue unique, ambiguous, no_candidate e
+incomplete_lookup. candidateStatus descreve a classificação do conjunto
+filtrado, mesmo se uma página final contiver apenas um candidato;
+nextAfterId permite continuar, com os mesmos parâmetros, em ordem de ID
+e até 50 registros por página. Uma leitura não constitui reserva de
+candidato: as condições podem mudar, e a confirmação continua exigindo
+POST /transactions/{transactionId}/match, que revalida conta, valor,
+estado, autorização e reivindicação em transação. A revisão manual permanece
+disponível e a ausência de sugestões não autoriza criar um novo lançamento.
+
 ## Movimentações financeiras
 `GET /spaces/{spaceId}/activity` aceita `from` e `through` como limites inclusivos opcionais em datas ISO gregorianas. A data filtrada é a data efetiva do lançamento, o vencimento do compromisso ou a data do extrato, conforme a origem de cada movimentação. Os limites são combinados com os filtros existentes antes da paginação; mantenha os mesmos filtros ao utilizar `nextCursor`. O filtro não altera os valores nem transforma compromissos ou evidências em lançamentos realizados.
 

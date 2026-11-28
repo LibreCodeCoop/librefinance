@@ -165,6 +165,7 @@ $query = [
     'librefinance:obligation#recurrencePreview' => 'count:i!,stepMonths:i!,endOfMonth:s!',
     'librefinance:obligation#settlements' => 'afterId:i',
     'librefinance:banking#index' => 'bankAccountId:i,status:s,afterId:i,from:date,through:date',
+    'librefinance:reconciliation#candidates' => 'windowDays:i,afterId:i',
     'librefinance:tax#index' => 'afterId:i',
     'librefinance:invoice#index' => 'afterId:i,kind:s,status:s,issueFrom:date,issueThrough:date',
     'librefinance_nfse:draft#index' => 'afterId:i',
@@ -228,6 +229,7 @@ $descriptions = [
     'librefinance:transfer#apply' => 'Stages linked source bank transfers without duplicating statement lines or ledger postings. Source transfer legs remain unmatched.',
     'librefinance:inventory#preview' => 'Read-only coverage audit against an externally supplied untrusted source inventory. Count parity is never proof of financial or fiscal functional parity.',
     'librefinance:banking#import' => 'CSV import only; does not initiate bank API synchronization.',
+    'librefinance:reconciliation#candidates' => 'Read-only advisory candidates for one pending bank evidence item, exact signed amount/account, inclusive zero-to-thirty-day window. Excludes bank claims and reversals; cursor continuation. Never matches automatically; confirmation revalidates existing authority.',
 ];
 
 /** @return array{properties:array<string,mixed>,required:list<string>} */
@@ -360,6 +362,54 @@ $spec = [
                 'required' => ['from', 'through', 'currency', 'bankAccountId', 'openingMinor',
                     'months', 'netMinor', 'closingMinor', 'basis', 'isForecast'],
             ],
+            'ReconciliationCandidate' => [
+                'type' => 'object',
+                'properties' => [
+                    'journalId' => ['type' => 'integer', 'minimum' => 1],
+                    'effectiveOn' => ['type' => 'string', 'format' => 'date'],
+                    'description' => ['type' => 'string'],
+                    'accountId' => ['type' => 'integer', 'minimum' => 1],
+                    'amountMinor' => ['type' => 'integer'],
+                    'currency' => ['type' => 'string', 'pattern' => '^[A-Z]{3}$'],
+                    'reasons' => ['type' => 'array', 'minItems' => 3, 'maxItems' => 3,
+                        'items' => ['type' => 'string', 'enum' => ['same_account', 'exact_signed_amount',
+                            'same_booking_date', 'within_date_window']]],
+                ],
+                'required' => ['journalId', 'effectiveOn', 'description', 'accountId',
+                    'amountMinor', 'currency', 'reasons'],
+            ],
+            'ReconciliationCandidatePage' => [
+                'type' => 'object',
+                'properties' => [
+                    'contractVersion' => ['type' => 'integer', 'const' => 1],
+                    'transactionId' => ['type' => 'integer', 'minimum' => 1],
+                    'evidence' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'accountId' => ['type' => 'integer', 'minimum' => 1],
+                            'amountMinor' => ['type' => 'integer'],
+                            'currency' => ['type' => 'string', 'pattern' => '^[A-Z]{3}$'],
+                            'bookingDate' => ['type' => 'string', 'format' => 'date'],
+                            'sourceReference' => ['type' => 'string'],
+                            'sourceReferenceComparison' => ['type' => 'string', 'const' => 'unavailable'],
+                            'windowDays' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 30],
+                            'from' => ['type' => 'string', 'format' => 'date'],
+                            'through' => ['type' => 'string', 'format' => 'date'],
+                        ],
+                        'required' => ['accountId', 'amountMinor', 'currency', 'bookingDate',
+                            'sourceReference', 'sourceReferenceComparison', 'windowDays', 'from', 'through'],
+                    ],
+                    'status' => ['type' => 'string', 'enum' => ['unique', 'ambiguous',
+                        'no_candidate', 'incomplete_lookup']],
+                    'candidateStatus' => ['type' => 'string', 'enum' => ['unique', 'ambiguous',
+                        'no_candidate', 'unconfirmed']],
+                    'candidates' => ['type' => 'array', 'maxItems' => 50,
+                        'items' => ['$ref' => '#/components/schemas/ReconciliationCandidate']],
+                    'nextAfterId' => ['type' => ['integer', 'null'], 'minimum' => 1],
+                ],
+                'required' => ['contractVersion', 'transactionId', 'evidence', 'status',
+                    'candidateStatus', 'candidates', 'nextAfterId'],
+            ],
             'AiPreview' => [
                 'type' => 'object',
                 'properties' => [
@@ -416,6 +466,7 @@ $responseSchemas = [
     'librefinance:mcp#handle' => 'McpJsonRpc',
     'librefinance:report#profitLoss' => 'ProfitLoss',
     'librefinance:report#cashFlow' => 'CashFlow',
+    'librefinance:reconciliation#candidates' => 'ReconciliationCandidatePage',
 ];
 /**
  * Read the source of truth from controller attributes without bootstrapping a

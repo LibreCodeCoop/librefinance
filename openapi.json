@@ -10169,6 +10169,82 @@
                 }
             }
         },
+        "/librefinance/api/spaces/{spaceId}/transactions/{transactionId}/reconciliation-candidates": {
+            "get": {
+                "operationId": "librefinance_reconciliation_candidates",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "reconciliation candidates",
+                "description": "Read-only advisory candidates for one pending bank evidence item, exact signed amount/account, inclusive zero-to-thirty-day window. Excludes bank claims and reversals; cursor continuation. Never matches automatically; confirmation revalidates existing authority.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "transactionId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "windowDays",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "afterId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ReconciliationCandidatePage"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
         "/librefinance/api/spaces/{spaceId}/transfer-coverage": {
             "get": {
                 "operationId": "librefinance_transfer_coverage",
@@ -10720,6 +10796,161 @@
                     "closingMinor",
                     "basis",
                     "isForecast"
+                ]
+            },
+            "ReconciliationCandidate": {
+                "type": "object",
+                "properties": {
+                    "journalId": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "effectiveOn": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "accountId": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "amountMinor": {
+                        "type": "integer"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "pattern": "^[A-Z]{3}$"
+                    },
+                    "reasons": {
+                        "type": "array",
+                        "minItems": 3,
+                        "maxItems": 3,
+                        "items": {
+                            "type": "string",
+                            "enum": [
+                                "same_account",
+                                "exact_signed_amount",
+                                "same_booking_date",
+                                "within_date_window"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "journalId",
+                    "effectiveOn",
+                    "description",
+                    "accountId",
+                    "amountMinor",
+                    "currency",
+                    "reasons"
+                ]
+            },
+            "ReconciliationCandidatePage": {
+                "type": "object",
+                "properties": {
+                    "contractVersion": {
+                        "type": "integer",
+                        "const": 1
+                    },
+                    "transactionId": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "evidence": {
+                        "type": "object",
+                        "properties": {
+                            "accountId": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "amountMinor": {
+                                "type": "integer"
+                            },
+                            "currency": {
+                                "type": "string",
+                                "pattern": "^[A-Z]{3}$"
+                            },
+                            "bookingDate": {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            "sourceReference": {
+                                "type": "string"
+                            },
+                            "sourceReferenceComparison": {
+                                "type": "string",
+                                "const": "unavailable"
+                            },
+                            "windowDays": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 30
+                            },
+                            "from": {
+                                "type": "string",
+                                "format": "date"
+                            },
+                            "through": {
+                                "type": "string",
+                                "format": "date"
+                            }
+                        },
+                        "required": [
+                            "accountId",
+                            "amountMinor",
+                            "currency",
+                            "bookingDate",
+                            "sourceReference",
+                            "sourceReferenceComparison",
+                            "windowDays",
+                            "from",
+                            "through"
+                        ]
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "unique",
+                            "ambiguous",
+                            "no_candidate",
+                            "incomplete_lookup"
+                        ]
+                    },
+                    "candidateStatus": {
+                        "type": "string",
+                        "enum": [
+                            "unique",
+                            "ambiguous",
+                            "no_candidate",
+                            "unconfirmed"
+                        ]
+                    },
+                    "candidates": {
+                        "type": "array",
+                        "maxItems": 50,
+                        "items": {
+                            "$ref": "#/components/schemas/ReconciliationCandidate"
+                        }
+                    },
+                    "nextAfterId": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    }
+                },
+                "required": [
+                    "contractVersion",
+                    "transactionId",
+                    "evidence",
+                    "status",
+                    "candidateStatus",
+                    "candidates",
+                    "nextAfterId"
                 ]
             },
             "AiPreview": {
