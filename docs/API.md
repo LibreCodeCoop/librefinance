@@ -206,8 +206,20 @@ Managers and owners can append rate evidence using the native Nextcloud
 dialog. The supported currency list is obtained from the scoped API; the
 form accepts a decimal string with a single decimal point or comma and
 sends a canonical decimal-point string, never a floating-point number.
-The read-only table displays the stored exact rate, date, currency pair,
-provenance and actor. A correction adds another immutable record. The
+The read-only table displays the stored exact rate, quote ID, date, currency
+pair, both stored precisions, provenance and actor. To find dated evidence,
+select the source and target currencies, accounting date and optionally the
+source type, then choose Find rates. The list contains all matching immutable
+candidates, in pages of 50, without automatically choosing a rate. Select
+Preview conversion on a particular row and enter a signed amount in that
+snapshot's source currency (including zero, with a decimal point or comma
+and no grouping). The server verifies that the explicit ID still qualifies
+for the applied selection, calculates the exact target minor units using
+stored precision, and the interface displays the result at target precision.
+Changing the filters invalidates preview actions until they are reapplied;
+changing the amount invalidates its previous result. An empty selection
+is distinct from a failed or unauthorized request; permission loss clears
+visible evidence. No financial records are modified. A correction adds another immutable record. The
 screen does not change the ledger currency, choose a rate for a posting or
 convert balances. Workspace changes discard in-flight UI results.
 

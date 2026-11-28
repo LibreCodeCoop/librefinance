@@ -15,7 +15,9 @@ import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSelect from '../components/LfSelect.vue'
 import LfDateField from '../components/LfDateField.vue'
 import { financeApi, financeError } from '../services/api.js'
-import { formatLedgerDate } from '../date.js'
+import { canonicalCalendarDate, formatLedgerDate } from '../date.js'
+import { formatLedgerMoney } from '../money.js'
+import { previewMinorUnits } from '../exchangeRateSelection.js'
 
 const w = inject('lfWorkspace')
 const target = Number(w.activeId.value)
@@ -48,6 +50,119 @@ const sourceTypes = [
   { value: 'imported', label: t('librefinance', 'Imported rate evidence') },
 ]
 const typeLabel = type => sourceTypes.find(s => s.value === type)?.label || type
+const filterBlank = () => ({
+  sourceCurrency: '', targetCurrency: '', asOf: new Date().toLocaleDateString('sv-SE'),
+  sourceType: 'all',
+})
+const filter = ref(filterBlank())
+const dateValid = ref(true)
+const applied = ref(null)
+const filterTargets = computed(() => choices.value.filter(c => c.value !== filter.value.sourceCurrency))
+const filterOrigins = [{ value: 'all', label: t('librefinance', 'All sources') }, ...sourceTypes]
+const filterValid = computed(() => dateValid.value
+  && choices.value.some(c => c.value === filter.value.sourceCurrency)
+  && filterTargets.value.some(c => c.value === filter.value.targetCurrency)
+  && !!canonicalCalendarDate(filter.value.asOf)
+  && filterOrigins.some(c => c.value === filter.value.sourceType))
+const draftSelection = computed(() => ({
+  sourceCurrency: filter.value.sourceCurrency,
+  targetCurrency: filter.value.targetCurrency,
+  asOf: filter.value.asOf,
+  sourceType: filter.value.sourceType === 'all' ? null : filter.value.sourceType,
+}))
+const sameSelection = (a, b) => a?.sourceCurrency === b?.sourceCurrency
+  && a?.targetCurrency === b?.targetCurrency && a?.asOf === b?.asOf && a?.sourceType === b?.sourceType
+const dirty = computed(() => !!applied.value && (!filterValid.value || !sameSelection(applied.value, draftSelection.value)))
+const canPreview = computed(() => current() && ready.value && !busy.value && !saving.value
+  && !!applied.value && !dirty.value)
+function selectionQuery(selection, parameters = {}) {
+  const query = new URLSearchParams(parameters)
+  if (selection) {
+    query.set('sourceCurrency', selection.sourceCurrency)
+    query.set('targetCurrency', selection.targetCurrency)
+    query.set('asOf', selection.asOf)
+    if (selection.sourceType !== null) query.set('sourceType', selection.sourceType)
+  }
+  return query.toString()
+}
+const previewRate = ref(null)
+const previewAmount = ref('')
+const previewResult = ref(null)
+const previewError = ref('')
+const previewBusy = ref(false)
+let previewGeneration = 0
+const previewMinor = computed(() => previewMinorUnits(previewAmount.value, previewRate.value?.sourcePrecision))
+const previewValue = computed(() => previewResult.value
+  ? formatLedgerMoney(previewResult.value.targetMinor, previewResult.value.rate.targetCurrency,
+      undefined, previewResult.value.rate.targetPrecision) : '')
+function clearPreview() {
+  ++previewGeneration
+  previewBusy.value = false
+  previewError.value = ''
+  previewResult.value = null
+}
+function closePreview() {
+  clearPreview()
+  previewRate.value = null
+  previewAmount.value = ''
+}
+function openPreview(row) {
+  if (!canPreview.value || !rows.value.some(candidate => candidate.id === row.id)) return
+  closePreview()
+  previewRate.value = row
+}
+async function calculatePreview() {
+  if (!canPreview.value || !previewRate.value || previewMinor.value === null || previewBusy.value) return
+  const rate = previewRate.value
+  const sourceMinor = previewMinor.value
+  const selection = applied.value
+  const token = ++previewGeneration
+  previewBusy.value = true
+  previewError.value = ''
+  previewResult.value = null
+  try {
+    const data = await financeApi('librefinance', target, '/exchange-rates/' + rate.id + '/preview?'
+      + selectionQuery(selection, { sourceMinor: String(sourceMinor) }))
+    if (!current() || token !== previewGeneration || !canPreview.value) return
+    if (data.contractVersion !== 1 || data.postingCreated !== false
+      || data.rate?.id !== rate.id || data.sourceMinor !== sourceMinor
+      || data.rate.sourcePrecision !== rate.sourcePrecision
+      || data.rate.targetPrecision !== rate.targetPrecision
+      || data.rate.sourceCurrency !== rate.sourceCurrency || data.rate.targetCurrency !== rate.targetCurrency
+      || !sameSelection(data.selection, selection) || !Number.isSafeInteger(data.targetMinor)) {
+      throw new Error(t('librefinance', 'Unsupported exchange-rate history version.'))
+    }
+    previewResult.value = data
+  } catch (cause) {
+    if (!current() || token !== previewGeneration) return
+    if ([403, 404].includes(cause.response?.status)) {
+      closePreview()
+      rows.value = []
+      currencies.value = {}
+      cursor.value = null
+      ready.value = false
+      error.value = describe(cause)
+    } else {
+      previewError.value = describe(cause)
+    }
+  } finally {
+    if (current() && token === previewGeneration) previewBusy.value = false
+  }
+}
+function applyFilter() {
+  if (!filterValid.value || busy.value || saving.value) return
+  closePreview()
+  applied.value = { ...draftSelection.value }
+  load()
+}
+function clearFilters() {
+  if (busy.value || saving.value) return
+  closePreview()
+  filter.value = filterBlank()
+  dateValid.value = true
+  applied.value = null
+  load()
+}
 const canonicalRate = computed(() => form.value.rate.trim().replace(',', '.'))
 const valid = computed(() => choices.value.some(c => c.value === form.value.sourceCurrency)
   && targetChoices.value.some(c => c.value === form.value.targetCurrency)
@@ -70,6 +185,7 @@ async function load(append = false) {
   if (!current() || busy.value || (append && !cursor.value)) return
   const token = ++generation
   const after = append ? cursor.value : 0
+  const selection = applied.value
   busy.value = true
   error.value = ''
   if (!append) {
@@ -78,9 +194,10 @@ async function load(append = false) {
     cursor.value = null
   }
   try {
-    const data = await financeApi('librefinance', target, '/exchange-rates?afterId=' + after)
+    const data = await financeApi('librefinance', target, '/exchange-rates?'
+      + selectionQuery(selection, { afterId: String(after) }))
     if (!current() || token !== generation) return
-    if (data.contractVersion !== 1) {
+    if (data.contractVersion !== 1 || (selection && !sameSelection(data.selection, selection))) {
       throw new Error(t('librefinance', 'Unsupported exchange-rate history version.'))
     }
     currencies.value = data.supportedCurrencies
@@ -129,11 +246,18 @@ async function record() {
 watch(() => form.value.sourceCurrency, value => {
   if (value === form.value.targetCurrency) form.value.targetCurrency = ''
 })
+watch(() => filter.value.sourceCurrency, value => {
+  if (value === filter.value.targetCurrency) filter.value.targetCurrency = ''
+})
+watch(previewAmount, clearPreview, { flush: 'sync' })
+watch(canPreview, allowed => {
+  if (!allowed) closePreview()
+})
 watch(canRecord, allowed => {
   if (!allowed) dialog.value = false
 })
 onMounted(() => load())
-onBeforeUnmount(() => { alive = false; ++generation })
+onBeforeUnmount(() => { alive = false; ++generation; closePreview() })
 </script>
 
 <template>
@@ -154,6 +278,33 @@ onBeforeUnmount(() => { alive = false; ++generation })
     <NcNoteCard v-if="success" type="success" role="status">{{ success }}</NcNoteCard>
     <section class="lf-surface">
       <div class="lf-section-heading"><h2>{{ t('librefinance', 'Exchange-rate history') }}</h2></div>
+      <form v-if="Object.keys(currencies).length" class="lf-form-grid" :aria-label="t('librefinance', 'Find exchange rates')"
+        @submit.prevent="applyFilter">
+        <LfSelect id="lf-fx-filter-source" v-model="filter.sourceCurrency" :options="choices"
+          :label="t('librefinance', 'Source currency')" :disabled="busy || saving" />
+        <LfSelect id="lf-fx-filter-target" v-model="filter.targetCurrency" :options="filterTargets"
+          :label="t('librefinance', 'Target currency')" :disabled="busy || saving" />
+        <LfDateField id="lf-fx-filter-date" v-model="filter.asOf"
+          :label="t('librefinance', 'Accounting date')" :disabled="busy || saving"
+          @validity-change="value => dateValid = value" />
+        <LfSelect id="lf-fx-filter-origin" v-model="filter.sourceType" :options="filterOrigins"
+          :label="t('librefinance', 'Source')" :disabled="busy || saving" />
+        <div class="lf-form-actions lf-form-full">
+          <NcButton variant="tertiary" :disabled="busy || saving" @click="clearFilters">
+            {{ t('librefinance', 'Clear filters') }}
+          </NcButton>
+          <NcButton variant="primary" type="submit" :disabled="busy || saving || !filterValid">
+            {{ t('librefinance', 'Find rates') }}
+          </NcButton>
+        </div>
+      </form>
+      <NcNoteCard v-if="applied && ready" type="info">
+        <p>{{ t('librefinance', 'Candidates for {source} to {target}, through {date}. Select a rate explicitly.', {
+          source: applied.sourceCurrency, target: applied.targetCurrency, date: formatLedgerDate(applied.asOf),
+        }) }}</p>
+        <p>{{ applied.sourceType === null ? t('librefinance', 'All sources') : typeLabel(applied.sourceType) }}</p>
+        <p v-if="dirty">{{ t('librefinance', 'Apply the current filters before selecting a rate.') }}</p>
+      </NcNoteCard>
       <div v-if="rows.length" class="lf-table-scroll">
         <table class="lf-data-table">
           <thead><tr>
@@ -164,23 +315,54 @@ onBeforeUnmount(() => { alive = false; ++generation })
             <th scope="col">{{ t('librefinance', 'Source') }}</th>
             <th scope="col">{{ t('librefinance', 'Source reference') }}</th>
             <th scope="col">{{ t('librefinance', 'Recorded by') }}</th>
+            <th v-if="applied" scope="col">{{ t('librefinance', 'Actions') }}</th>
           </tr></thead>
           <tbody><tr v-for="row in rows" :key="row.id" :data-rate-id="row.id">
-            <td>{{ row.sourceCurrency }}</td><td>{{ row.targetCurrency }}</td>
-            <td class="lf-numeric">{{ row.rate }}</td>
+            <td>{{ row.sourceCurrency }}<div class="lf-muted">{{ t('librefinance', 'Decimal places: {precision}', { precision: row.sourcePrecision }) }}</div></td>
+            <td>{{ row.targetCurrency }}<div class="lf-muted">{{ t('librefinance', 'Decimal places: {precision}', { precision: row.targetPrecision }) }}</div></td>
+            <td class="lf-numeric">{{ row.rate }}<div class="lf-muted">#{{ row.id }}</div></td>
             <td><time :datetime="row.effectiveOn">{{ formatLedgerDate(row.effectiveOn) }}</time></td>
             <td>{{ typeLabel(row.sourceType) }}</td><td>{{ row.sourceRef }}</td>
             <td>{{ row.createdBy }}</td>
+            <td v-if="applied">
+              <NcButton :disabled="!canPreview" @click="openPreview(row)">
+                {{ t('librefinance', 'Preview conversion') }}
+              </NcButton>
+            </td>
           </tr></tbody>
         </table>
       </div>
       <NcLoadingIcon v-if="busy" :size="28" />
-      <NcEmptyContent v-else-if="ready && !rows.length" :name="t('librefinance', 'No exchange rates recorded')" />
+      <NcEmptyContent v-else-if="ready && !rows.length"
+        :name="applied ? t('librefinance', 'No matching exchange rates') : t('librefinance', 'No exchange rates recorded')" />
       <div class="lf-table-footer">
-        <NcButton v-if="cursor" :disabled="busy || saving" @click="load(true)">{{ t('librefinance', 'Load more') }}</NcButton>
+        <NcButton v-if="cursor" :disabled="busy || saving || dirty" @click="load(true)">{{ t('librefinance', 'Load more') }}</NcButton>
         <NcButton v-if="!ready && !busy" @click="load()">{{ t('librefinance', 'Try again') }}</NcButton>
       </div>
     </section>
+    <NcDialog size="normal" content-classes="lf-finance-dialog-content"
+      :open="!!previewRate" :name="t('librefinance', 'Preview conversion')"
+      @update:open="value => { if (!value) closePreview() }">
+      <form v-if="previewRate" class="lf-dialog-form" @submit.prevent="calculatePreview">
+        <NcNoteCard type="info">{{ t('librefinance', 'This conversion is a preview only. No financial records are changed.') }}</NcNoteCard>
+        <p><strong>{{ previewRate.sourceCurrency }} → {{ previewRate.targetCurrency }} · {{ previewRate.rate }}</strong> (#{{ previewRate.id }})</p>
+        <p>{{ formatLedgerDate(previewRate.effectiveOn) }} · {{ typeLabel(previewRate.sourceType) }} · {{ previewRate.sourceRef }}</p>
+        <p>{{ t('librefinance', 'Decimal places: {precision}', { precision: previewRate.sourcePrecision }) }}</p>
+        <NcTextField v-model="previewAmount" :label="t('librefinance', 'Source amount ({currency})', { currency: previewRate.sourceCurrency })"
+          inputmode="decimal" maxlength="18" :disabled="previewBusy" />
+        <NcNoteCard v-if="previewError" type="error" role="alert">{{ previewError }}</NcNoteCard>
+        <div v-if="previewResult" role="status" data-testid="lf-fx-preview-result">
+          <p>{{ t('librefinance', 'Converted amount') }}</p>
+          <strong>{{ previewValue }}</strong>
+        </div>
+        <div class="lf-form-actions">
+          <NcButton variant="tertiary" @click="closePreview">{{ t('librefinance', 'Close') }}</NcButton>
+          <NcButton variant="primary" type="submit" :disabled="!canPreview || previewMinor === null || previewBusy">
+            {{ t('librefinance', 'Calculate preview') }}
+          </NcButton>
+        </div>
+      </form>
+    </NcDialog>
     <NcDialog size="normal" content-classes="lf-finance-dialog-content"
       :open="dialog" :name="t('librefinance', 'Record exchange rate')"
       @update:open="value => { if (!saving) dialog = value }">
