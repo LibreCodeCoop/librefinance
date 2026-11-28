@@ -21,6 +21,7 @@ import LfPageHeader from '../components/LfPageHeader.vue'
 import LfSortableHeader from '../components/LfSortableHeader.vue'
 import { useLoadedSort } from '../composables/useLoadedSort.js'
 import LfSelect from '../components/LfSelect.vue'
+import ReconciliationSuggestions from '../components/ReconciliationSuggestions.vue'
 import LfDateField from '../components/LfDateField.vue'
 import { financeApi, financeError } from '../services/api.js'
 import { formatLedgerDate } from '../date.js'
@@ -75,6 +76,17 @@ const formatPolicyLoading=ref(true)
 let formatPolicySequence=0
 const reconcile=ref(null)
 const journalId=ref(0)
+const suggestedJournal=ref(null)
+function clearSuggestedJournal() {
+  if (suggestedJournal.value?.value === Number(journalId.value)) journalId.value = 0
+  suggestedJournal.value = null
+}
+function chooseSuggestedJournal(selection) {
+  if (busy.value || !writable.value || !reconcile.value || selection.spaceId !== Number(activeId.value)
+    || selection.transactionId !== Number(reconcile.value.id)) return
+  suggestedJournal.value = selection.option
+  journalId.value = selection.option.value
+}
 const reconciliationError=ref('')
 let generation=0
 const banks=computed(()=>accounts.value.filter(a=>a.is_bank && a.active))
@@ -85,13 +97,17 @@ const canImport = computed(() => Number(activeId.value) > 0
 const journalCandidates=computed(()=>{
   if (!reconcile.value) return []
   const target = reconcile.value
-  return journals.value.filter(entry => entry.postings?.some(post =>
+  const choices = journals.value.filter(entry => entry.postings?.some(post =>
     Number(post.accountId) === Number(target.bank_account_id)
       && Number(post.amountMinor) === Number(target.amount_minor)))
     .map(entry => ({ value: entry.id,
       label: t('librefinance', '{date} · {description} (#{id})', {
         date: formatLedgerDate(entry.effective_on), description: String(entry.memo), id: entry.id,
       }, { escape: false, sanitize: false }) }))
+  if (suggestedJournal.value && !choices.some(choice => choice.value === suggestedJournal.value.value)) {
+    choices.push(suggestedJournal.value)
+  }
+  return choices
 })
 const bankChoices=computed(()=>[{value:0,label:t('librefinance', 'All accounts')},
   ...banks.value.map(a=>({value:a.id,label:a.name}))])
@@ -109,11 +125,13 @@ function bankName(id) {
     || t('librefinance', 'Account #{id}', { id: String(id) }, { escape: false, sanitize: false })
 }
 function chooseReconciliation(row) {
+  clearSuggestedJournal()
   reconcile.value = row
   journalId.value = 0
   reconciliationError.value = ''
 }
 function closeReconciliation() {
+  clearSuggestedJournal()
   reconcile.value = null
   journalId.value = 0
   reconciliationError.value = ''
@@ -574,6 +592,9 @@ onBeforeUnmount(() => { ++generation; ++formatPolicySequence })
           </div>
           <small>{{ t('librefinance', 'In review. The corresponding journal entry must use the same account and amount.') }}</small>
         </div>
+        <ReconciliationSuggestions v-if="reconcile" :key="activeId + ':' + reconcile.id"
+          :transaction-id="Number(reconcile.id)" :disabled="busy"
+          @choose="chooseSuggestedJournal" @invalidate="clearSuggestedJournal" />
         <LfSelect id="lf-bank-journal" v-model="journalId"
           :label="t('librefinance', 'Select a posted journal entry')" :options="journalCandidates"
           :placeholder="t('librefinance', 'Select by date and description')" />

@@ -58,7 +58,8 @@ const accepted = new Set([
 export async function financeApi(app, spaceId, route, method = 'GET', data) {
   if (!accepted.has(app)
     || !Number.isSafeInteger(Number(spaceId)) || Number(spaceId) < 1
-    || !/^\/[a-zA-Z0-9/_?=&%.-]*$/.test(route)
+    // URLSearchParams encodes query spaces as '+'. Never allow it in a path.
+    || !/^\/[a-zA-Z0-9/_=&%.-]*(?:\?[a-zA-Z0-9/_?=&%+.-]*)?$/.test(route)
     || route.includes('..')) {
     throw new Error(invalidRequestMessage())
   }
