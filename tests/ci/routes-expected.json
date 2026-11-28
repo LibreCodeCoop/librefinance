@@ -311,6 +311,11 @@
       "route": "librefinance.invoice.create"
     },
     {
+      "path": "/apps/librefinance/api/spaces/{spaceId}/invoice-duplicate-candidates",
+      "request": "GET",
+      "route": "librefinance.invoice.duplicatecandidates"
+    },
+    {
       "path": "/apps/librefinance/api/spaces/{spaceId}/invoices/{invoiceId}",
       "request": "GET",
       "route": "librefinance.invoice.show"
