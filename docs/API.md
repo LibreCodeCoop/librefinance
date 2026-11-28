@@ -89,6 +89,49 @@ Preços são inteiros em centavos (BRL) no domínio atual, inclusive zero. Estoq
 `GET /spaces/{spaceId}/transactions?bankAccountId=1&status=pending&from=2026-11-01&through=2026-11-30` consulta movimentações importadas no espaço autorizado. As datas de lançamento do extrato (`booking_date`) são inclusivas e independentes: omita `from` ou `through` para deixar o respectivo limite aberto. Use datas ISO gregorianas (`YYYY-MM-DD`); datas inválidas ou intervalo invertido retornam 422.
 Os filtros de conta, situação e data são aplicados antes da paginação por ID. A resposta mantém `transactions` (até 50 registros) e `nextAfterId`; use os mesmos filtros nas páginas seguintes. Movimentações pendentes são evidências, não lançamentos no razão. Esta consulta não calcula totais de extrato.
 
+## Razão contábil por conta
+
+`GET /spaces/{spaceId}/general-ledger?accountId=1&from=2026-01-01&through=2026-12-31`
+consulta lançamentos efetivados da conta autorizada, inclusive inativa, por
+data efetiva inclusiva e ID do registro contábil. A base
+`posted_debit_positive` representa a escrituração atual: débito positivo,
+crédito negativo. Não converte regime de caixa para competência e não
+inclui compromissos, projeções ou extratos pendentes. O contrato atual é BRL
+com duas casas decimais; moedas divergentes são recusadas, sem conversão
+implícita. As políticas e a capacidade `reports.read` são verificadas pelo servidor.
+
+O objeto retorna conta, moeda, precisão, período, `openingMinor`,
+`closingMinor`, `pageOpeningMinor`, `rowCount`, `snapshot`, `rows` e
+`nextCursor`. Valores monetários são **strings decimais inteiras** em
+unidades mínimas, sem arredondamento; débitos/créditos são magnitudes não
+negativas, `amountMinor` tem sinal e `runningMinor` é o saldo acumulado.
+Saldo inicial soma registros anteriores a `from`; saldo final inclui
+todos até `through`. A página contém até 50 registros, ordenados por
+data efetiva e ID de registro; o saldo não depende do tamanho da página.
+Para continuar, reenvie os mesmos filtros, `snapshot` e `afterDate`/
+`afterId` de `nextCursor`. Um estado alterado retorna 409
+(`ledger_report_changed`); reaplique o relatório. Não é um snapshot
+histórico retido no servidor. Valores fora da faixa inteira de 64 bits
+são recusados em vez de aproximados.
+
+`GET /spaces/{spaceId}/general-ledger/journals/{journalId}` revalida
+as permissões de leitura e retorna o lançamento efetivado e seus lados
+contábeis na gestão. Estornos permanecem separados do original, com
+`reversedJournalId`; nenhum lançamento é removido ou duplicado.
+
+`GET /spaces/{spaceId}/general-ledger/export` usa os mesmos parâmetros,
+com `snapshot` obrigatório e capacidade `reports.export` em cada
+página. O cliente nativo começa sem cursor, segue todos os cursores,
+confere contagem, ordenação e saldos, e só então disponibiliza o CSV.
+Não limita a exportação às linhas visíveis. A exportação reúne os
+fragmentos CSV na memória do navegador; não é streaming para disco.
+O CSV inclui linhas explícitas de abertura/fechamento e referências a
+lançamentos, inclusive estornos. Importe colunas de valores como texto
+em planilhas que arredondam inteiros extensos; descrições são escapadas
+e neutralizadas contra fórmulas. Para grandes volumes, use paginação
+da API e um consumidor incremental. Falha ou alteração durante a leitura
+não gera arquivo parcial.
+
 ## Movimentações financeiras
 `GET /spaces/{spaceId}/activity` aceita `from` e `through` como limites inclusivos opcionais em datas ISO gregorianas. A data filtrada é a data efetiva do lançamento, o vencimento do compromisso ou a data do extrato, conforme a origem de cada movimentação. Os limites são combinados com os filtros existentes antes da paginação; mantenha os mesmos filtros ao utilizar `nextCursor`. O filtro não altera os valores nem transforma compromissos ou evidências em lançamentos realizados.
 
