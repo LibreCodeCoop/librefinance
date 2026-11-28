@@ -26,6 +26,7 @@ final class CatalogService {
         $this->access->requireFinancialCapability($spaceId, 'contacts.read');
         $qb = $this->db->getQueryBuilder();
         $qb->select('id', 'name', 'kind', 'email', 'tax_id', 'active', 'created_at')
+            ->addSelect(...ContactProfile::columns())
             ->from('lf_contacts')
             ->where($qb->expr()->eq('space_id', $qb->createNamedParameter($spaceId, IQueryBuilder::PARAM_INT)))
             ->andWhere($qb->expr()->gt('id', $qb->createNamedParameter($afterId, IQueryBuilder::PARAM_INT)))
@@ -43,6 +44,10 @@ final class CatalogService {
         foreach ($rows as &$row) {
             $row['id'] = (int)$row['id'];
             $row['active'] = (bool)$row['active'];
+            $row['profile'] = ContactProfile::fromRow($row);
+            foreach (ContactProfile::columns() as $column) {
+                unset($row[$column]);
+            }
         }
         unset($row);
         $values = $this->customFields->valuesForEntities($spaceId, 'contact', array_column($rows, 'id'));
@@ -52,7 +57,8 @@ final class CatalogService {
     }
 
     /** @return array<string,mixed> */
-    public function createContact(int $spaceId, string $name, string $kind, ?string $email, ?string $taxId, array $customFields = []): array {
+    public function createContact(int $spaceId, string $name, string $kind, ?string $email, ?string $taxId,
+        array $customFields = [], array $profile = []): array {
         $this->access->requireFinancialCapability($spaceId, 'contacts.manage');
         $name = $this->requiredName($name);
         if (!in_array($kind, ['customer', 'vendor', 'both'], true)) {
@@ -60,6 +66,7 @@ final class CatalogService {
         }
         $email = $this->normalizeEmail($email);
         $taxId = $this->normalizeTaxId($taxId);
+        $profileColumns = ContactProfile::patch($profile);
         $uid = $this->access->uid();
         $custom = $this->customFields->validateValues($spaceId, $customFields, true, 0, 'contact');
         $this->db->beginTransaction();
@@ -67,6 +74,7 @@ final class CatalogService {
             $this->writer->insert('lf_contacts', [
                 'space_id' => $spaceId, 'name' => $name, 'kind' => $kind,
                 'email' => $email, 'tax_id' => $taxId, 'active' => 1,
+                ...$profileColumns,
                 'created_by' => $uid, 'created_at' => time(),
             ]);
             $id = (int)$this->db->lastInsertId('*PREFIX*lf_contacts');
@@ -75,6 +83,7 @@ final class CatalogService {
             $this->db->commit();
             return ['id' => $id, 'name' => $name, 'kind' => $kind,
                 'email' => $email, 'tax_id' => $taxId, 'active' => true,
+                'profile' => ContactProfile::fromRow($profileColumns),
                 'custom_fields' => $this->customFields->valuesForEntities($spaceId, 'contact', [$id])[$id] ?? []];
         } catch (\Throwable $e) {
             $this->db->rollBack();
@@ -83,7 +92,8 @@ final class CatalogService {
     }
 
     /** @return array<string,mixed> */
-    public function updateContact(int $spaceId, int $contactId, string $name, string $kind, ?string $email, ?string $taxId, bool $active, array $customFields = []): array {
+    public function updateContact(int $spaceId, int $contactId, string $name, string $kind, ?string $email, ?string $taxId,
+        bool $active, array $customFields = [], array $profile = []): array {
         $this->access->requireFinancialCapability($spaceId, 'contacts.manage');
         $name = $this->requiredName($name);
         if (!in_array($kind, ['customer', 'vendor', 'both'], true)) {
@@ -91,6 +101,7 @@ final class CatalogService {
         }
         $email = $this->normalizeEmail($email);
         $taxId = $this->normalizeTaxId($taxId);
+        $profileColumns = ContactProfile::patch($profile);
         $this->db->beginTransaction();
         try {
             $existing = $this->find($spaceId, 'lf_contacts', $contactId);
@@ -101,12 +112,15 @@ final class CatalogService {
             $this->writer->update('lf_contacts', [
                 'name' => $name, 'kind' => $kind, 'email' => $email,
                 'tax_id' => $taxId, 'active' => $active ? 1 : 0,
+                ...$profileColumns,
             ], ['id' => $contactId, 'space_id' => $spaceId]);
             $this->customFields->saveValues($spaceId, $contactId, $custom, 'contact');
             $this->audit($spaceId, 'contact.updated', 'contact', $contactId);
+            $saved = $this->find($spaceId, 'lf_contacts', $contactId);
             $this->db->commit();
             return ['id' => $contactId, 'name' => $name, 'kind' => $kind,
                 'email' => $email, 'tax_id' => $taxId, 'active' => $active,
+                'profile' => ContactProfile::fromRow($saved ?? []),
                 'custom_fields' => $this->customFields->valuesForEntities($spaceId, 'contact', [$contactId])[$contactId] ?? []];
         } catch (\Throwable $e) {
             $this->db->rollBack();

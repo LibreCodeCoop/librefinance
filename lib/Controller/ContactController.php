@@ -29,18 +29,18 @@ final class ContactController extends ApiController {
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'POST', url: '/api/spaces/{spaceId}/contacts')]
     public function create(int $spaceId, string $name, string $kind = 'customer',
-        ?string $email = null, ?string $taxId = null, array $customFields = []): JSONResponse {
+        ?string $email = null, ?string $taxId = null, array $customFields = [], array $profile = []): JSONResponse {
         return $this->respond(fn(): array => $this->catalog->createContact(
-            $spaceId, $name, $kind, $email, $taxId, $customFields,
+            $spaceId, $name, $kind, $email, $taxId, $customFields, $profile,
         ), 201);
     }
 
     #[NoAdminRequired]
     #[FrontpageRoute(verb: 'PUT', url: '/api/spaces/{spaceId}/contacts/{contactId}')]
     public function update(int $spaceId, int $contactId, string $name, string $kind,
-        ?string $email = null, ?string $taxId = null, bool $active = true, array $customFields = []): JSONResponse {
+        ?string $email = null, ?string $taxId = null, bool $active = true, array $customFields = [], array $profile = []): JSONResponse {
         return $this->respond(fn(): array => $this->catalog->updateContact(
-            $spaceId, $contactId, $name, $kind, $email, $taxId, $active, $customFields,
+            $spaceId, $contactId, $name, $kind, $email, $taxId, $active, $customFields, $profile,
         ));
     }
 }

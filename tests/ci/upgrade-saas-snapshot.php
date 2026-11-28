@@ -38,6 +38,26 @@ foreach ($tables as $table) {
     $rowCount = 0;
     while (($row = $result->fetchAssociative()) !== false) {
         ++$rowCount;
+        if ($table === 'lf_contacts') {
+            // These nullable columns are additive. Historical contacts must
+            // retain every old value and must not acquire invented addresses.
+            $profileColumns = ['contact_person', 'phone', 'website'];
+            foreach (['billing_', 'shipping_'] as $prefix) {
+                foreach (['line1', 'line2', 'city', 'region', 'postal_code', 'country'] as $field) {
+                    $profileColumns[] = $prefix . $field;
+                }
+            }
+            foreach ($profileColumns as $column) {
+                if (getenv('LF_UPGRADE_PHASE') === 'after'
+                    && (!array_key_exists($column, $row) || $row[$column] !== null)) {
+                    throw new RuntimeException('Missing or invented historical contact profile field: ' . $column);
+                }
+                if (array_key_exists($column, $row) && $row[$column] !== null) {
+                    throw new RuntimeException('Unexpected populated contact profile in legacy fixture');
+                }
+                unset($row[$column]);
+            }
+        }
         ksort($row,SORT_STRING);
         echo $table, '|', json_encode($row,JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES), PHP_EOL;
     }

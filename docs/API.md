@@ -89,6 +89,26 @@ Preços são inteiros em centavos (BRL) no domínio atual, inclusive zero. Estoq
 `GET /spaces/{spaceId}/transactions?bankAccountId=1&status=pending&from=2026-11-01&through=2026-11-30` consulta movimentações importadas no espaço autorizado. As datas de lançamento do extrato (`booking_date`) são inclusivas e independentes: omita `from` ou `through` para deixar o respectivo limite aberto. Use datas ISO gregorianas (`YYYY-MM-DD`); datas inválidas ou intervalo invertido retornam 422.
 Os filtros de conta, situação e data são aplicados antes da paginação por ID. A resposta mantém `transactions` (até 50 registros) e `nextAfterId`; use os mesmos filtros nas páginas seguintes. Movimentações pendentes são evidências, não lançamentos no razão. Esta consulta não calcula totais de extrato.
 
+## Perfil cadastral de clientes e fornecedores (v1)
+
+As rotas existentes GET/POST /spaces/{spaceId}/contacts e PUT
+/spaces/{spaceId}/contacts/{contactId} mantêm os campos anteriores e
+passam a retornar profile e a aceitar esse objeto opcional nas escritas, com os campos
+contactPerson (160 caracteres), phone (60), website (255, HTTP/HTTPS),
+billingAddress e shippingAddress. Cada endereço tem line1 e line2
+(255 cada), city e region (120 cada), postalCode (32) e country
+(código ISO 3166-1 alpha-2 em maiúsculas da lista já usada pelo sistema).
+O endereço de cobrança não é copiado para o endereço de entrega.
+Cada campo retornado é string ou null; contatos antigos retornam null.
+Na atualização, omitir profile ou um campo preserva o valor anterior;
+null ou string vazia limpa um campo, null no endereço limpa somente
+aquele endereço. Campos desconhecidos, tipo incorreto, caracteres de
+controle e país não reconhecido retornam invalid_contact_profile (422).
+Nenhuma jurisdição, identificação fiscal ou relação de identidade é
+inferida dos endereços. Mesmo nome pode identificar registros distintos.
+A referência estável continua sendo contactId; o arquivamento mantém
+dados e vínculos. Faturas emitidas e lançamentos não são modificados.
+
 ## Movimentações financeiras
 `GET /spaces/{spaceId}/activity` aceita `from` e `through` como limites inclusivos opcionais em datas ISO gregorianas. A data filtrada é a data efetiva do lançamento, o vencimento do compromisso ou a data do extrato, conforme a origem de cada movimentação. Os limites são combinados com os filtros existentes antes da paginação; mantenha os mesmos filtros ao utilizar `nextCursor`. O filtro não altera os valores nem transforma compromissos ou evidências em lançamentos realizados.
 

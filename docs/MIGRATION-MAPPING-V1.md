@@ -129,3 +129,22 @@ document unsupported fields, verified-empty vs unknown, original-to-target
 identity graph, preview, replay/rollback, counts/hashes and independent
 financial reconciliation before any cutover. No credentials or live data
 are required for this handoff.
+
+### Contact profile mapping (v1)
+
+Map from an authorized source only after resolving its stable contact identity
+to the destination workspace/contact ID. Preserve the source contact name,
+kind, email and tax identifier using the existing catalog contract. Optional
+profile fields are contactPerson, phone, website, billingAddress and
+shippingAddress; address objects carry line1, line2, city, region, postalCode
+and explicit ISO alpha-2 country. Preserve Unicode, punctuation and leading
+zeros (postal code is text). A missing country stays missing; a source
+single-address field may only map to a documented address role, not both.
+Do not infer legal residence, tax jurisdiction or source identity from text.
+An absent optional field on update is not permission to clear it. Explicit
+null clears the named field/address. Archive through active=false, without
+removing the contact ID or rewriting commercial evidence. The synthetic
+ContactProfileTest and contact-profile integration fixture exercise a distinct
+billing/shipping pair, missing values, similar names, partial changes,
+archive and preserved issued evidence. A source-specific adapter remains
+out of scope.
