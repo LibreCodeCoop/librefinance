@@ -11,7 +11,7 @@ import NcTextField from '@nextcloud/vue/components/NcTextField'
 import NcLoadingIcon from '@nextcloud/vue/components/NcLoadingIcon'
 import { financeApi, financeError } from '../services/api.js'
 import { formatLedgerDate } from '../date.js'
-import { formatLedgerMoney, toMinorUnits } from '../money.js'
+import { formatContextMoney, parseContextMoney, resolveMoneyContext } from '../money.js'
 
 const props = defineProps({
   invoiceId: { type: Number, default: 0 },
@@ -33,15 +33,11 @@ const opened = ref(false)
 let generation = 0
 let alive = true
 
-const precision = computed(() => {
-  const space = w.space.value
-  return space?.currencyMetadataVersion === 1 && Number.isInteger(space.currencyPrecision)
-    && space.currencyPrecision >= 0 && space.currencyPrecision <= 3 ? space.currencyPrecision : null
-})
+const moneyContext = computed(() => resolveMoneyContext(w.space.value))
 const amountMinor = computed(() => {
   if (!sourceTotal.value.trim()) return ''
-  if (precision.value === null) return null
-  try { return String(toMinorUnits(sourceTotal.value, precision.value)) } catch { return null }
+  if (moneyContext.value === null) return null
+  try { return String(parseContextMoney(sourceTotal.value, w.space.value)) } catch { return null }
 })
 const query = computed(() => props.invoiceId > 0 ? { invoiceId: String(props.invoiceId) } : {
   kind: props.kind,
@@ -81,8 +77,8 @@ function reasonLabel(reason) {
   })[reason] ?? reason
 }
 function displayAmount(row) {
-  if (precision.value !== null && row.currency === w.space.value?.currency) {
-    return formatLedgerMoney(row.totalMinor, row.currency, undefined, precision.value)
+  if (moneyContext.value !== null && row.currency === moneyContext.value.currency) {
+    return formatContextMoney(row.totalMinor, w.space.value, { currency: row.currency })
   }
   return t('librefinance', '{amount} minor units ({currency})', { amount: row.totalMinor, currency: row.currency })
 }
