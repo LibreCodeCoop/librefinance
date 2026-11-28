@@ -6032,6 +6032,271 @@
                 }
             }
         },
+        "/librefinance/api/spaces/{spaceId}/general-ledger": {
+            "get": {
+                "operationId": "librefinance_report_generalLedger",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "report generalLedger",
+                "description": "Authorized posted account ledger, debit positive, inclusive period. Minor units are exact decimal strings. Scope-bound snapshot and date/posting cursor; 409 if relevant immutable facts change.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "through",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "snapshot",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "afterDate",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "afterId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GeneralLedgerPage"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/spaces/{spaceId}/general-ledger/export": {
+            "get": {
+                "operationId": "librefinance_report_generalLedgerExport",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "report generalLedgerExport",
+                "description": "Same complete paginated snapshot as general-ledger, independently requires reports.export. Start at the beginning and follow nextCursor; no truncated export.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "through",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "snapshot",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "afterDate",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "afterId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GeneralLedgerPage"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
+        "/librefinance/api/spaces/{spaceId}/general-ledger/journals/{journalId}": {
+            "get": {
+                "operationId": "librefinance_report_generalLedgerJournal",
+                "tags": [
+                    "librefinance"
+                ],
+                "summary": "report generalLedgerJournal",
+                "description": "Read-only, independently authorized posted journal and account sides in the selected workspace.",
+                "parameters": [
+                    {
+                        "name": "spaceId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "journalId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "NextcloudAppPassword": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation (response schema remains provisional)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GeneralLedgerJournal"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Authenticated user cannot perform this operation"
+                    },
+                    "404": {
+                        "description": "Company not visible or resource unavailable"
+                    },
+                    "409": {
+                        "description": "State or idempotency conflict"
+                    },
+                    "422": {
+                        "description": "Invalid business inputs"
+                    }
+                }
+            }
+        },
         "/librefinance/api/spaces/{spaceId}/governance": {
             "get": {
                 "operationId": "librefinance_governance_scoped",
@@ -10720,6 +10985,250 @@
                     "closingMinor",
                     "basis",
                     "isForecast"
+                ]
+            },
+            "GeneralLedgerMinor": {
+                "type": "string",
+                "pattern": "^-?(0|[1-9][0-9]*)$",
+                "description": "Exact signed integer minor units, serialized without floating point."
+            },
+            "GeneralLedgerCursor": {
+                "type": "object",
+                "properties": {
+                    "afterDate": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "afterId": {
+                        "type": "integer",
+                        "minimum": 1
+                    }
+                },
+                "required": [
+                    "afterDate",
+                    "afterId"
+                ]
+            },
+            "GeneralLedgerRow": {
+                "type": "object",
+                "properties": {
+                    "postingId": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "journalId": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "reversedJournalId": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "memo": {
+                        "type": "string"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "const": "BRL"
+                    },
+                    "amountMinor": {
+                        "$ref": "#/components/schemas/GeneralLedgerMinor"
+                    },
+                    "debitMinor": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$"
+                    },
+                    "creditMinor": {
+                        "type": "string",
+                        "pattern": "^(0|[1-9][0-9]*)$"
+                    },
+                    "runningMinor": {
+                        "$ref": "#/components/schemas/GeneralLedgerMinor"
+                    }
+                },
+                "required": [
+                    "postingId",
+                    "journalId",
+                    "reversedJournalId",
+                    "date",
+                    "memo",
+                    "currency",
+                    "amountMinor",
+                    "debitMinor",
+                    "creditMinor",
+                    "runningMinor"
+                ]
+            },
+            "GeneralLedgerPage": {
+                "type": "object",
+                "properties": {
+                    "basis": {
+                        "type": "string",
+                        "const": "posted_debit_positive"
+                    },
+                    "account": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "integer",
+                                "minimum": 1
+                            },
+                            "code": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "class": {
+                                "type": "string"
+                            },
+                            "currency": {
+                                "type": "string",
+                                "const": "BRL"
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "code",
+                            "name",
+                            "class",
+                            "currency"
+                        ]
+                    },
+                    "currency": {
+                        "type": "string",
+                        "const": "BRL"
+                    },
+                    "currencyPrecision": {
+                        "type": "integer",
+                        "const": 2
+                    },
+                    "from": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "through": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "snapshot": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "openingMinor": {
+                        "$ref": "#/components/schemas/GeneralLedgerMinor"
+                    },
+                    "closingMinor": {
+                        "$ref": "#/components/schemas/GeneralLedgerMinor"
+                    },
+                    "pageOpeningMinor": {
+                        "$ref": "#/components/schemas/GeneralLedgerMinor"
+                    },
+                    "rowCount": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "rows": {
+                        "type": "array",
+                        "maxItems": 50,
+                        "items": {
+                            "$ref": "#/components/schemas/GeneralLedgerRow"
+                        }
+                    },
+                    "nextCursor": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/GeneralLedgerCursor"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "basis",
+                    "account",
+                    "currency",
+                    "currencyPrecision",
+                    "from",
+                    "through",
+                    "snapshot",
+                    "openingMinor",
+                    "closingMinor",
+                    "pageOpeningMinor",
+                    "rowCount",
+                    "rows",
+                    "nextCursor"
+                ]
+            },
+            "GeneralLedgerJournal": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "memo": {
+                        "type": "string"
+                    },
+                    "reversedJournalId": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "postings": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "accountId": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "code": {
+                                    "type": "string"
+                                },
+                                "name": {
+                                    "type": "string"
+                                },
+                                "currency": {
+                                    "type": "string",
+                                    "pattern": "^[A-Z]{3}$"
+                                },
+                                "amountMinor": {
+                                    "$ref": "#/components/schemas/GeneralLedgerMinor"
+                                }
+                            },
+                            "required": [
+                                "accountId",
+                                "code",
+                                "name",
+                                "currency",
+                                "amountMinor"
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "date",
+                    "memo",
+                    "reversedJournalId",
+                    "postings"
                 ]
             },
             "AiPreview": {

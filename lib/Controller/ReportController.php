@@ -10,13 +10,15 @@ use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 
 use DomainException;
 use OCA\LibreFinance\PublicAPI\FinanceApi;
+use OCA\LibreFinance\Domain\Reports\GeneralLedgerService;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 
 final class ReportController extends Controller {
-    public function __construct(string $appName, IRequest $request, private FinanceApi $finance) {
+    public function __construct(string $appName, IRequest $request, private FinanceApi $finance,
+        private GeneralLedgerService $generalLedger) {
         parent::__construct($appName, $request);
     }
 
@@ -41,13 +43,41 @@ final class ReportController extends Controller {
             $this->finance->cashFlow($spaceId, 'librefinance_reports', $from, $through, $bankAccountId));
     }
 
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/general-ledger')]
+    public function generalLedger(int $spaceId, int $accountId, string $from, string $through,
+        string $snapshot = '', string $afterDate = '', int $afterId = 0): JSONResponse {
+        return $this->respond(fn() => $this->generalLedger->page(
+            $spaceId, $accountId, $from, $through, $snapshot, $afterDate, $afterId));
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/general-ledger/export')]
+    public function generalLedgerExport(int $spaceId, int $accountId, string $from, string $through,
+        string $snapshot, string $afterDate = '', int $afterId = 0): JSONResponse {
+        return $this->respond(function () use ($spaceId, $accountId, $from, $through, $snapshot, $afterDate, $afterId): array {
+            if ($snapshot === '') {
+                throw new DomainException('invalid_cursor');
+            }
+            return $this->generalLedger->page($spaceId, $accountId, $from, $through, $snapshot, $afterDate, $afterId, true);
+        });
+    }
+
+    #[NoAdminRequired]
+    #[FrontpageRoute(verb: 'GET', url: '/api/spaces/{spaceId}/general-ledger/journals/{journalId}')]
+    public function generalLedgerJournal(int $spaceId, int $journalId): JSONResponse {
+        return $this->respond(fn() => $this->generalLedger->journal($spaceId, $journalId));
+    }
+
     private function respond(callable $operation): JSONResponse {
         try {
             return new JSONResponse($operation());
         } catch (DomainException $exception) {
             $code = $exception->getMessage();
             return new JSONResponse(['error' => $code], match ($code) {
-                'module_not_found', 'space_not_found', 'bank_account_not_found' => 404,
+                'module_not_found', 'space_not_found', 'bank_account_not_found',
+                'account_not_found', 'journal_not_found' => 404,
+                'ledger_report_changed' => 409,
                 'module_disabled', 'permission_denied' => 403,
                 default => 422,
             });
